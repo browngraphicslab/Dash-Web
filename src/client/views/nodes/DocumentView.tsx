@@ -375,8 +375,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
                         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
                             document => {  // open up target if it's not already in view ...
+                                let cv = this.props.ContainingCollectionView;  // bcz: ugh --- maybe need to have a props.unfocus() method so that we leave things in the state we found them??
+                                let px = cv && cv.props.Document.panX;
+                                let py = cv && cv.props.Document.panY;
+                                let s = cv && cv.props.Document.scale;
                                 this.props.focus(this.props.Document, true, 1);  // by zooming into the button document first
-                                setTimeout(() => this.props.addDocTab(document, undefined, maxLocation), 1000); // then after the 1sec animation, open up the target in a new tab
+                                setTimeout(() => {
+                                    this.props.addDocTab(document, undefined, maxLocation);
+                                    cv && (cv.props.Document.panX = px);
+                                    cv && (cv.props.Document.panY = py);
+                                    cv && (cv.props.Document.scale = s);
+                                }, 1000); // then after the 1sec animation, open up the target in a new tab
                             },
                             linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
@@ -758,9 +767,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let brushDegree = Doc.IsBrushedDegree(this.props.Document);
         let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        // console.log(fullDegree)
         let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
         let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         return (

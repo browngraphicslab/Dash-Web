@@ -428,6 +428,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        SelectionManager.SelectedDocuments().map(dv => {
+            let cv = dv.props.ContainingCollectionView;
+            let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+            let heading = NumCast(dv.props.Document.heading);
+            cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
+        })
         e.stopPropagation();
         e.preventDefault();
     }

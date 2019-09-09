@@ -245,22 +245,23 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let proto = Doc.GetProto(LinkFollowBox.linkDoc);
             let targetContext = await Cast(proto.targetContext, Doc);
             let sourceContext = await Cast(proto.sourceContext, Doc);
+            const shouldZoom = options ? options.shouldZoom : false;
 
             let dockingFunc = (document: Doc) => { this._addDocTab && this._addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
             if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
             }
             else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, document => dockingFunc(sourceContext!));
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
             }
             else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, undefined, undefined,
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, undefined, undefined,
                     NumCast((LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 ? LinkFollowBox.linkDoc.anchor2Page : LinkFollowBox.linkDoc.anchor1Page)));
 
             }
             else {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, dockingFunc);
             }
 
             this.highlightDoc();
@@ -326,7 +327,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    public defaultLinkBehavior: (options?: any) => void = this.openLinkTab;
+    public defaultLinkBehavior: (options?: any) => void = this.jumpToLink;
 
     @action
     currentLinkBehavior = () => {
