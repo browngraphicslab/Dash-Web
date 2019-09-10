@@ -300,15 +300,15 @@ export namespace Doc {
     export function AreProtosEqual(doc?: Doc, other?: Doc) {
         if (!doc || !other) return false;
         let r = (doc === other);
-        let r2 = (doc.proto === other);
-        let r3 = (other.proto === doc);
-        let r4 = (doc.proto === other.proto && other.proto !== undefined);
+        let r2 = (Doc.GetProto(doc) === other);
+        let r3 = (Doc.GetProto(other) === doc);
+        let r4 = (Doc.GetProto(doc) === Doc.GetProto(other) && Doc.GetProto(other) !== undefined);
         return r || r2 || r3 || r4;
     }
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
+        return doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
     }
     export function GetDataDoc(doc: Doc): Doc {
         let proto = Doc.GetProto(doc);
@@ -327,6 +327,9 @@ export namespace Doc {
         return Array.from(results);
     }
 
+    export function IndexOf(toFind: Doc, list: Doc[]) {
+        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind))
+    }
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         if (target[key] === undefined) {
             Doc.GetProto(target)[key] = new List<Doc>();
@@ -522,6 +525,7 @@ export namespace Doc {
         otherdoc.type = DocumentType.TEMPLATE;
         !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
         !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
+        !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
@@ -538,6 +542,7 @@ export namespace Doc {
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         !templateDoc.nativeWidth && (target.nativeWidth = 0);
         !templateDoc.nativeHeight && (target.nativeHeight = 0);
+        !templateDoc.nativeHeight && (target.ignoreAspect = true);
         target.width = templateDoc.width;
         target.height = templateDoc.height;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
@@ -576,7 +581,7 @@ export namespace Doc {
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
         */
-        fieldTemplate.ignoreAspect = BoolCast(fieldTemplate.ignoreAspect);
+        fieldTemplate.ignoreAspect = fieldTemplate.ignoreAspect === undefined ? undefined : BoolCast(fieldTemplate.ignoreAspect);
         fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
         fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
         fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
@@ -608,6 +613,19 @@ export namespace Doc {
         });
     }
 
+    export function isBrushedHighlightedDegree(doc: Doc) {
+        if (Doc.IsHighlighted(doc)) {
+            return 3;
+        }
+        else {
+            return Doc.IsBrushedDegree(doc);
+        }
+    }
+
+    export class DocBrush {
+        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+    }
+    const brushManager = new DocBrush();
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
@@ -617,18 +635,48 @@ export namespace Doc {
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
-        return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
+        return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
     export function IsBrushedDegree(doc: Doc) {
-        return manager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : manager.BrushedDoc.has(doc) ? 1 : 0;
+        return brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : brushManager.BrushedDoc.has(doc) ? 1 : 0;
     }
     export function BrushDoc(doc: Doc) {
-        manager.BrushedDoc.set(doc, true);
-        manager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        brushManager.BrushedDoc.set(doc, true);
+        brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
     }
     export function UnBrushDoc(doc: Doc) {
-        manager.BrushedDoc.delete(doc);
-        manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        brushManager.BrushedDoc.delete(doc);
+        brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+    }
+
+    export class HighlightBrush {
+        @observable HighlightedDoc: Map<Doc, boolean> = new Map();
+    }
+    const highlightManager = new HighlightBrush();
+    export function IsHighlighted(doc: Doc) {
+        let IsHighlighted = highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+        return IsHighlighted;
+    }
+    export function HighlightDoc(doc: Doc) {
+        runInAction(() => {
+            highlightManager.HighlightedDoc.set(doc, true);
+            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+        });
+    }
+    export function UnHighlightDoc(doc: Doc) {
+        runInAction(() => {
+            highlightManager.HighlightedDoc.set(doc, false);
+            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), false);
+        });
+    }
+    export function UnhighlightAll() {
+        let mapEntries = highlightManager.HighlightedDoc.keys();
+        let docEntry: IteratorResult<Doc>;
+        while (!(docEntry = mapEntries.next()).done) {
+            let targetDoc = docEntry.value;
+            targetDoc && Doc.UnHighlightDoc(targetDoc);
+        }
+
     }
     export function UnBrushAllDocs() {
         manager.BrushedDoc.clear();
@@ -638,3 +686,4 @@ Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
+Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });

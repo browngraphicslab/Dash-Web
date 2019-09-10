@@ -1,11 +1,18 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye, faTimes, faArrowRight, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { DocumentManager } from "../../util/DocumentManager";
-import { undoBatch } from "../../util/UndoManager";
+import { Doc } from '../../../new_fields/Doc';
+import { Cast, StrCast } from '../../../new_fields/Types';
+import { DragLinkAsDocument } from '../../util/DragManager';
+import { LinkManager } from '../../util/LinkManager';
+import { ContextMenu } from '../ContextMenu';
+import { MainView } from '../MainView';
+import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenu.scss';
 import React = require("react");
+<<<<<<< HEAD:src/client/views/nodes/LinkMenuItem.tsx
 import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
 import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
@@ -15,6 +22,8 @@ import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Utils } from '../../../Utils';
 import { Id } from '../../../new_fields/FieldSymbols';
+=======
+>>>>>>> ec62b213439ab49134fa2dbbdf38a6d1ef5737cd:src/client/views/linking/LinkMenuItem.tsx
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -31,6 +40,7 @@ interface LinkMenuItemProps {
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
+<<<<<<< HEAD:src/client/views/nodes/LinkMenuItem.tsx
     @action toggleShowMore() { this._showMore = !this._showMore; }
 
     @undoBatch
@@ -76,11 +86,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         else {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
         }
+=======
+    @action toggleShowMore() {
+        this._showMore = !this._showMore;
+>>>>>>> ec62b213439ab49134fa2dbbdf38a6d1ef5737cd:src/client/views/linking/LinkMenuItem.tsx
     }
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
         this.props.showEditor(this.props.linkDoc);
+        //SelectionManager.DeselectAll();
     }
 
     renderMetadata = (): JSX.Element => {
@@ -113,6 +128,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
+
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.Instance.setAddDocTab(this.props.addDocTab);
+        }
         e.stopPropagation();
     }
 
@@ -124,6 +145,30 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
         }
         e.stopPropagation();
+    }
+
+    onContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => this.openLinkFollower(), icon: "link" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    @action.bound
+    async followDefault() {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.Instance.defaultLinkBehavior();
+        }
+    }
+
+    @action.bound
+    async openLinkFollower() {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            MainView.Instance.toggleLinkFollowBox(false);
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+        }
     }
 
     render() {
@@ -140,7 +185,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}

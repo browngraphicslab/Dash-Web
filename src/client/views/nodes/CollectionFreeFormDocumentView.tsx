@@ -1,20 +1,21 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
-import { returnEmptyString } from "../../../Utils";
+import { random } from "animejs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;
     y?: number;
     width?: number;
     height?: number;
+    jitterRotation: number;
 }
 
 const schema = createSchema({
@@ -28,7 +29,7 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
-    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}) `; }
+    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg) scale(${this.zoom}) `; }
     @computed get X() { return this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
     @computed get Y() { return this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
     @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
@@ -76,6 +77,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     clusterColorFunc = (doc: Doc) => this.clusterColor;
 
     render() {
+        let txf = this.transform;
+        let w = this.width;
+        let h = this.height;
+        let renderScript = this.Document.renderScript;
+        if (renderScript) {
+            let someView = Cast(this.Document.someView, Doc);
+            let minimap = Cast(this.Document.minimap, Doc);
+            if (someView instanceof Doc && minimap instanceof Doc) {
+                let x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
+                let y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
+                w = NumCast(someView.width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
+                h = NumCast(someView.height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
+                txf = `translate(${x}px,${y}px)`;
+            }
+        }
         const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
@@ -83,15 +99,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
-                    boxShadow: this.props.Document.opacity === 0 ? undefined : this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :
-                        this.clusterColor ? (
-                            this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :
-                                `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) : undefined,
+                    boxShadow:
+                        this.props.Document.opacity === 0 ? undefined :  // if it's not visible, then no shadow
+                            this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
+                                this.clusterColor ? (
+                                    this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
+                                        `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                    undefined,
                     borderRadius: this.borderRounding(),
-                    transform: this.transform,
+                    transform: txf,
                     transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
-                    width: this.width,
-                    height: this.height,
+                    width: w,
+                    height: h,
                     zIndex: this.Document.zIndex || 0,
                 }} >
                 <DocumentView {...this.props}

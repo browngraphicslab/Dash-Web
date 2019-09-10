@@ -64,7 +64,7 @@ export default class Page extends React.Component<IPageProps> {
         // lower scale = easier to read at small sizes, higher scale = easier to read at large sizes
         if (this._state !== "rendering" && !this._page && this._canvas.current && this._textLayer.current) {
             this._state = "rendering";
-            let viewport = page.getViewport(1 as any);
+            let viewport = page.getViewport(scale);
             this._canvas.current.width = this._width = viewport.width;
             this._canvas.current.height = this._height = viewport.height;
             this.props.pageLoaded(viewport);

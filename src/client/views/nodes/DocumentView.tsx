@@ -375,8 +375,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
                         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
                             document => {  // open up target if it's not already in view ...
+                                let cv = this.props.ContainingCollectionView;  // bcz: ugh --- maybe need to have a props.unfocus() method so that we leave things in the state we found them??
+                                let px = cv && cv.props.Document.panX;
+                                let py = cv && cv.props.Document.panY;
+                                let s = cv && cv.props.Document.scale;
                                 this.props.focus(this.props.Document, true, 1);  // by zooming into the button document first
-                                setTimeout(() => this.props.addDocTab(document, undefined, maxLocation), 1000); // then after the 1sec animation, open up the target in a new tab
+                                setTimeout(() => {
+                                    this.props.addDocTab(document, undefined, maxLocation);
+                                    cv && (cv.props.Document.panX = px);
+                                    cv && (cv.props.Document.panY = py);
+                                    cv && (cv.props.Document.scale = s);
+                                }, 1000); // then after the 1sec animation, open up the target in a new tab
                             },
                             linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
@@ -593,11 +602,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Into Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({ description: "OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
+        makes.push({ description: "OnClick foreach doc", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick", "docList(this.collectionContext.data).map(d => {", "});\n") });
         makes.push({
             description: "Into Portal", event: () => {
-                let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
-                DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
-                this.makeBtnClicked();
+                if (!DocListCast(this.props.Document.links).find(doc => {
+                    if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.props.Document.title + ".portal") return true;
+                    return false;
+                })) {
+                    let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
+                    DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
+                    Doc.GetProto(this.props.Document).isButton = true;
+                }
             }, icon: "window-restore"
         });
         makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" });
@@ -758,19 +773,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let brushDegree = Doc.IsBrushedDegree(this.props.Document);
+        let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
-        let localScale = this.props.ScreenToLocalTransform().Scale * brushDegree;
+        let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
-                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
-                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
-                    outlineWidth: brushDegree && !borderRounding ? `${localScale}px` : "0px",
-                    border: brushDegree && borderRounding ? `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${localScale}px` : undefined,
+                    outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
+                    outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
+                    outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
+                    border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,

@@ -89,7 +89,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             );
         } else if ("subitems" in this.props) {
             let submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px" }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             return (

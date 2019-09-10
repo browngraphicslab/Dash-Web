@@ -66,13 +66,24 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
             </div>
         );
     }
-    public static EditClickScript(doc: Doc, fieldKey: string) {
+    public static EditClickScript(doc: Doc, fieldKey: string, prewrapper?: string, postwrapper?: string) {
         let overlayDisposer: () => void = emptyFunction;
         const script = ScriptCast(doc[fieldKey]);
         let originalText: string | undefined = undefined;
-        if (script) originalText = script.script.originalScript;
+        if (script) {
+            originalText = script.script.originalScript;
+            if (prewrapper && originalText.startsWith(prewrapper)) {
+                originalText = originalText.substr(prewrapper.length);
+            }
+            if (postwrapper && originalText.endsWith(postwrapper)) {
+                originalText = originalText.substr(0, originalText.length - postwrapper.length);
+            }
+        }
         // tslint:disable-next-line: no-unnecessary-callback-wrapper
         let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+            if (prewrapper) {
+                text = prewrapper + text + (postwrapper ? postwrapper : "");
+            }
             const script = CompileScript(text, {
                 params: { this: Doc.name },
                 typecheck: false,

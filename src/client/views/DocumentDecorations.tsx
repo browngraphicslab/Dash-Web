@@ -20,7 +20,7 @@ import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
-import { LinkMenu } from "./nodes/LinkMenu";
+import { LinkMenu } from "./linking/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
@@ -428,6 +428,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        SelectionManager.SelectedDocuments().map(dv => {
+            let cv = dv.props.ContainingCollectionView;
+            let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+            let heading = NumCast(dv.props.Document.heading);
+            cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
+        })
         e.stopPropagation();
         e.preventDefault();
     }
@@ -615,6 +621,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
                 let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && BoolCast(doc.ignoreAspect)) {
+                    doc.ignoreAspect = false;
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
+                }
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
@@ -818,6 +829,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
+
             let linkCount = LinkManager.Instance.getAllRelatedLinks(selFirst.props.Document).length;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}

@@ -3,12 +3,12 @@ import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnOne, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { Docs } from "../../../documents/Documents";
@@ -152,6 +152,7 @@ export namespace PivotView {
                         y={pos.y}
                         width={pos.width}
                         height={pos.height}
+                        jitterRotation={NumCast(target.props.Document.jitterRotation)}
                         {...target.getChildDocumentViewProps(doc)}
                     />,
                     bounds: {
@@ -224,8 +225,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return bounds;
     }
 
+    @computed get actualContentBounds() {
+        return this.fitToBox && !this.isAnnotationOverlay ? this.ComputeContentBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)) : undefined;
+    }
+
     @computed get contentBounds() {
-        let bounds = this.fitToBox && !this.isAnnotationOverlay ? this.ComputeContentBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)) : undefined;
+        let bounds = this.actualContentBounds;
         let res = {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
@@ -251,12 +256,34 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-        this.addDocument(newBox, false);
+        newBox.heading = 1;
+        for (let i = 0; i < this.childDocs.length; i++) {
+            if (this.childDocs[i].heading == 1) {
+                newBox.heading = 2;
+            }
+        }
+        PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
+            if (!ruleProvider) ruleProvider = this.props.Document;
+            // saturation shift
+            // let col = NumCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
+            // let back = Utils.fromRGBAstr(StrCast(this.props.Document.backgroundColor));
+            // let hsl = Utils.RGBToHSL(back.r, back.g, back.b);
+            // let newcol = { h: hsl.h, s: hsl.s + col, l: hsl.l };
+            // col && (Doc.GetProto(newBox).backgroundColor = Utils.toRGBAstr(Utils.HSLtoRGB(newcol.h, newcol.s, newcol.l)));
+            // OR transparency set
+            let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
+            col && (Doc.GetProto(newBox).backgroundColor = col);
+
+            let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
+            round && (Doc.GetProto(newBox).borderRounding = round);
+            newBox.ruleProvider = ruleProvider;
+            this.addDocument(newBox, false);
+        });
     }
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
         this.props.addDocument(newBox, false);
         this.bringToFront(newBox);
-        this.updateClusters();
+        this.updateCluster(newBox);
         return true;
     }
     private selectDocuments = (docs: Doc[]) => {
@@ -324,7 +351,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     });
 
-                    this.updateClusters();
+                    de.data.droppedDocuments.length == 1 && this.updateCluster(de.data.droppedDocuments[0]);
                 }
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
@@ -384,6 +411,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return false;
     }
     @observable sets: (Doc[])[] = [];
+
+    @undoBatch
     @action
     updateClusters() {
         this.sets.length = 0;
@@ -412,12 +441,42 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.sets.map((set, i) => set.map(member => member.cluster = i));
     }
 
+    @undoBatch
+    @action
+    updateCluster(doc: Doc) {
+        if (this.props.Document.useClusters) {
+            this.sets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
+            let preferredInd = NumCast(doc.cluster);
+            doc.cluster = -1;
+            this.sets.map((set, i) => set.map(member => {
+                if (doc.cluster === -1 && Doc.IndexOf(member, this.childDocs) !== -1 && this.boundsOverlap(doc, member)) {
+                    doc.cluster = i;
+                }
+            }));
+            if (doc.cluster === -1 && preferredInd !== -1 && (!this.sets[preferredInd] || !this.sets[preferredInd].filter(member => Doc.IndexOf(member, this.childDocs) !== -1).length)) {
+                doc.cluster = preferredInd;
+            }
+            this.sets.map((set, i) => {
+                if (doc.cluster === -1 && !set.filter(member => Doc.IndexOf(member, this.childDocs) !== -1).length) {
+                    doc.cluster = i;
+                }
+            });
+            if (doc.cluster === -1) {
+                doc.cluster = this.sets.length;
+                this.sets.push([doc]);
+            } else {
+                for (let i = this.sets.length; i <= doc.cluster; i++) !this.sets[i] && this.sets.push([]);
+                this.sets[doc.cluster].push(doc);
+            }
+        }
+    }
+
     getClusterColor = (doc: Doc) => {
         if (this.props.Document.useClusters) {
             let cluster = NumCast(doc.cluster);
             if (this.sets.length <= cluster) {
-                setTimeout(() => this.updateClusters(), 0);
-                return;
+                setTimeout(() => this.updateCluster(doc), 0);//  this.updateClusters(), 0);
+                return "";
             }
             let set = this.sets.length > cluster ? this.sets[cluster] : undefined;
             let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
@@ -742,7 +801,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
         let state: any = undefined;
-        const docs = this.childDocs;
+        let docs = this.childDocs;
+        let overlayDocs = DocListCast(this.props.Document.localOverlays);
+        overlayDocs && docs.push(...overlayDocs);
         let elements: ViewDefResult[] = [];
         if (initScript) {
             const initResult = initScript.script.run({ docs, collection: this.Document });
@@ -765,6 +826,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     if (pair.layout && !(pair.data instanceof Promise)) {
                         prev.push({
                             ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                                jitterRotation={NumCast(this.props.Document.jitterRotation)}
                                 x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                                 width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
                             bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) }
@@ -869,6 +931,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
                 Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
                 this.props.Document.useClusters = !this.props.Document.useClusters;
+                this.updateClusters();
             },
             icon: !this.props.Document.useClusters ? "braille" : "braille"
         });
@@ -879,9 +942,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
         layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
+
+        let noteItems: ContextMenuProps[] = [];
+        noteItems.push({ description: "1: Note", event: () => this.createText("Note", "yellow"), icon: "eye" });
+        noteItems.push({ description: "2: Idea", event: () => this.createText("Idea", "pink"), icon: "eye" });
+        noteItems.push({ description: "3: Topic", event: () => this.createText("Topic", "lightBlue"), icon: "eye" });
+        noteItems.push({ description: "4: Person", event: () => this.createText("Person", "lightGreen"), icon: "eye" });
+        layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" })
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
+    createText = (noteStyle: string, color: string) => {
+        let pt = this.getTransform().transformPoint(ContextMenu.Instance.pageX, ContextMenu.Instance.pageY);
+        this.addLiveTextBox(Docs.Create.TextDocument({ title: noteStyle, x: pt[0], y: pt[1], autoHeight: true, backgroundColor: color }))
+    }
 
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
@@ -920,6 +995,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     render() {
+        this.props.Document.fitX = this.actualContentBounds && this.actualContentBounds.x;
+        this.props.Document.fitY = this.actualContentBounds && this.actualContentBounds.y;
+        this.props.Document.fitW = this.actualContentBounds && (this.actualContentBounds.r - this.actualContentBounds.x);
+        this.props.Document.fitH = this.actualContentBounds && (this.actualContentBounds.b - this.actualContentBounds.y);
         const easing = () => this.props.Document.panTransformType === "Ease";
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (

@@ -120,9 +120,9 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     render() {
         return (
             <div className="collectionfreeformlinksview-container">
-                {/* <svg className="collectionfreeformlinksview-svgCanvas">
+                <svg className="collectionfreeformlinksview-svgCanvas">
                     {this.uniqueConnections}
-                </svg> */}
+                </svg>
                 {this.props.children}
             </div>
         );

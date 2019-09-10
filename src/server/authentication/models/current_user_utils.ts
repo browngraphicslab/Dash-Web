@@ -79,6 +79,9 @@ export class CurrentUserUtils {
             Doc.GetProto(overlays).backgroundColor = "#aca3a6";
             doc.overlays = overlays;
         }
+        if (doc.linkFollowBox === undefined) {
+            PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
+        }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
         doc.preventTreeViewOpen = true;
@@ -112,17 +115,17 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
         });
-        try {
-            const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
-            NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
-            await Gateway.Instance.ClearCatalog();
-            const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-            let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
-            let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-            // if (catprom) await Promise.all(catprom);
-        } catch (e) {
+        // try {
+        //     const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
+        //     NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
+        //     await Gateway.Instance.ClearCatalog();
+        //     const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
+        //     let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
+        //     let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
+        //     // if (catprom) await Promise.all(catprom);
+        // } catch (e) {
 
-        }
+        // }
     }
 
     /* Northstar catalog ... really just for testing so this should eventually go away */
