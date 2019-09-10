@@ -1,6 +1,7 @@
 import { textblockTypeInputRule, smartQuotes, emDash, ellipsis, InputRule } from "prosemirror-inputrules";
 import { schema } from "./RichTextSchema";
 import { wrappingInputRule } from "./prosemirrorPatches";
+import { NodeSelection } from "prosemirror-state";
 
 export const inpRules = {
     rules: [
@@ -58,5 +59,27 @@ export const inpRules = {
             (state, match, start, end) => {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }))
             }),
+        new InputRule(
+            new RegExp(/^\^\^\s$/),
+            (state, match, start, end) => {
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                let sm = state.storedMarks || undefined;
+                return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
+            }),
+        new InputRule(
+            new RegExp(/\^f\s$/),
+            (state, match, start, end) => {
+                let newNode = schema.nodes.footnote.create({});
+                let tr = state.tr;
+                tr.deleteRange(start, end).replaceSelectionWith(newNode); // replace insertion with a footnote.
+                return tr.setSelection(new NodeSelection( // select the footnote node to open its display
+                    tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
+                        tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize)));
+            }),
+        // let newNode = schema.nodes.footnote.create({});
+        // if (dispatch && state.selection.from === state.selection.to) {
+        //     return true;
+        // }
     ]
 };

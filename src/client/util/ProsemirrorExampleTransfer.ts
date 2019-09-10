@@ -52,18 +52,18 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Ctrl->", wrapIn(schema.nodes.blockquote));
 
-    bind("^", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        let newNode = schema.nodes.footnote.create({});
-        if (dispatch && state.selection.from === state.selection.to) {
-            let tr = state.tr;
-            tr.replaceSelectionWith(newNode); // replace insertion with a footnote.
-            dispatch(tr.setSelection(new NodeSelection( // select the footnote node to open its display
-                tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
-                    tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize))));
-            return true;
-        }
-        return false;
-    });
+    // bind("^", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+    //     let newNode = schema.nodes.footnote.create({});
+    //     if (dispatch && state.selection.from === state.selection.to) {
+    //         let tr = state.tr;
+    //         tr.replaceSelectionWith(newNode); // replace insertion with a footnote.
+    //         dispatch(tr.setSelection(new NodeSelection( // select the footnote node to open its display
+    //             tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
+    //                 tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize))));
+    //         return true;
+    //     }
+    //     return false;
+    // });
 
 
     let cmd = chainCommands(exitCode, (state, dispatch) => {

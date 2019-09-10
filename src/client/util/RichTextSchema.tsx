@@ -11,6 +11,7 @@ import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { DocServer } from "../DocServer";
 import { Cast, NumCast } from "../../new_fields/Types";
 import { DocumentManager } from "./DocumentManager";
+import ParagraphNodeSpec from "./ParagraphNodeSpec";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -22,6 +23,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     doc: {
         content: "block+"
     },
+
 
     footnote: {
         group: "inline",
@@ -37,14 +39,16 @@ export const nodes: { [index: string]: NodeSpec } = {
         parseDOM: [{ tag: "footnote" }]
     },
 
-    // :: NodeSpec A plain paragraph textblock. Represented in the DOM
-    // as a `<p>` element.
-    paragraph: {
-        content: "inline*",
-        group: "block",
-        parseDOM: [{ tag: "p" }],
-        toDOM() { return pDOM; }
-    },
+    // // :: NodeSpec A plain paragraph textblock. Represented in the DOM
+    // // as a `<p>` element.
+    // paragraph: {
+    //     content: "inline*",
+    //     group: "block",
+    //     parseDOM: [{ tag: "p" }],
+    //     toDOM() { return pDOM; }
+    // },
+
+    paragraph: ParagraphNodeSpec,
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
