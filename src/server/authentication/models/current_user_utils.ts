@@ -115,17 +115,17 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
         });
-        try {
-            const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
-            NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
-            await Gateway.Instance.ClearCatalog();
-            const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-            let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
-            let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-            // if (catprom) await Promise.all(catprom);
-        } catch (e) {
+        // try {
+        //     const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
+        //     NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
+        //     await Gateway.Instance.ClearCatalog();
+        //     const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
+        //     let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
+        //     let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
+        //     // if (catprom) await Promise.all(catprom);
+        // } catch (e) {
 
-        }
+        // }
     }
 
     /* Northstar catalog ... really just for testing so this should eventually go away */

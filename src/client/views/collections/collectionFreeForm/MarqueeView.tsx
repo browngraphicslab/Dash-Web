@@ -1,11 +1,11 @@
 import * as htmlToImage from "html-to-image";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, FieldResult } from "../../../../new_fields/Doc";
+import { Doc, FieldResult, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
-import { Cast, NumCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
 import { Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -20,6 +20,8 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
 import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
+import { string } from "prop-types";
+import { listSpec } from "../../../../new_fields/Schema";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -272,14 +274,30 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     return d;
                 });
             }
+            let defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+            let colorPalette = Cast(this.props.container.props.Document.colorPalette, listSpec("string"));
+            if (!colorPalette) this.props.container.props.Document.colorPalette = new List<string>(defaultPalette);
+            let palette = Array.from(Cast(this.props.container.props.Document.colorPalette, listSpec("string")) as string[]);
+            let usedPaletted = new Map<string, number>();
+            [...this.props.activeDocuments(), this.props.container.props.Document].map(child => {
+                let bg = StrCast(child.backgroundColor);
+                if (palette.indexOf(bg) !== -1) {
+                    palette.splice(palette.indexOf(bg), 1);
+                    if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
+                    else usedPaletted.set(bg, 1);
+                }
+            });
+            let usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
+            let chosenColor = usedPaletted.get("white") || usedPaletted.get("rgb(255,255,255)") && usedPaletted.size === 1 ? "white" : palette.length ? palette[0] : usedSequnce[0];
             let inkData = this.ink ? this.ink.inkData : undefined;
             let newCollection = Docs.Create.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panX: 0,
                 panY: 0,
-                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
-                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
+                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
+                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
                 width: bounds.width,
                 height: bounds.height,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
