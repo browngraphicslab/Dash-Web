@@ -1,14 +1,6 @@
-import {
-    inputRules,
-    wrappingInputRule,
-    textblockTypeInputRule,
-    smartQuotes,
-    emDash,
-    ellipsis
-} from "prosemirror-inputrules";
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model";
-
+import { textblockTypeInputRule, smartQuotes, emDash, ellipsis, InputRule } from "prosemirror-inputrules";
 import { schema } from "./RichTextSchema";
+import { wrappingInputRule } from "./prosemirrorPatches";
 
 export const inpRules = {
     rules: [
@@ -21,17 +13,29 @@ export const inpRules = {
 
         // 1. ordered list
         wrappingInputRule(
-            /^(\d+)\.\s$/,
+            /^1\.\s$/,
             schema.nodes.ordered_list,
-            match => ({ order: +match[1] }),
-            (match, node) => node.childCount + node.attrs.order === +match[1]
+            () => {
+                return ({ mapStyle: "decimal", bulletStyle: 1 })
+            },
+            (match: any, node: any) => {
+                return node.childCount + node.attrs.order === +match[1];
+            },
+            (type: any) => ({ type: type, attrs: { mapStyle: "decimal", bulletStyle: 1 } })
         ),
         // a. alphabbetical list
         wrappingInputRule(
-            /^([a-z]+)\.\s$/,
-            schema.nodes.alphabet_list,
-            match => ({ order: +match[1] }),
-            (match, node) => node.childCount + node.attrs.order === +match[1]
+            /^a\.\s$/,
+            schema.nodes.ordered_list,
+            // match => {
+            () => {
+                return ({ mapStyle: "alpha", bulletStyle: 1 })
+                // return ({ order: +match[1] })
+            },
+            (match: any, node: any) => {
+                return node.childCount + node.attrs.order === +match[1];
+            },
+            (type: any) => ({ type: type, attrs: { mapStyle: "alpha", bulletStyle: 1 } })
         ),
 
         // * bullet list
@@ -42,9 +46,17 @@ export const inpRules = {
 
         // # heading
         textblockTypeInputRule(
-            new RegExp("^(#{1,6})\\s$"),
+            new RegExp(/^(#{1,6})\s$/),
             schema.nodes.heading,
-            match => ({ level: match[1].length })
-        )
+            match => {
+                return ({ level: match[1].length });
+            }
+        ),
+
+        new InputRule(
+            new RegExp(/^#([0-9]+)\s$/),
+            (state, match, start, end) => {
+                return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }))
+            }),
     ]
 };

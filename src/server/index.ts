@@ -811,8 +811,8 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 ]);
 
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
-    let sector: GoogleApiServerUtils.Service = req.params.sector;
-    let action: GoogleApiServerUtils.Action = req.params.action;
+    let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
+    let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
     GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {

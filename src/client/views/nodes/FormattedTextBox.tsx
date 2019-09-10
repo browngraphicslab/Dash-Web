@@ -38,6 +38,7 @@ import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
+import { inputRules } from 'prosemirror-inputrules';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -355,8 +356,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._keymap["ACTIVE"] = this.extensionDoc.text;  // hack to ignore an initial carriage return only when creating a textbox from the action menu
         return {
             schema,
-            inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
+                inputRules(inpRules),
                 this.tooltipTextMenuPlugin(),
                 history(),
                 keymap(this._keymap),

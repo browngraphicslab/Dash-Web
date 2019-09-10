@@ -2,11 +2,13 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
+var prosemirrorInputRules = require('prosemirror-inputrules');
 var prosemirrorTransform = require('prosemirror-transform');
 var prosemirrorModel = require('prosemirror-model');
 
 exports.liftListItem = liftListItem;
 exports.sinkListItem = sinkListItem;
+exports.wrappingInputRule = wrappingInputRule;
 // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
 // Create a command to lift the list item around the selection up into
 // a wrapping list.
@@ -89,4 +91,49 @@ function sinkListItem(itemType) {
         }
         return true
     }
+}
+
+function findWrappingOutside(range, type) {
+    var parent = range.parent;
+    var startIndex = range.startIndex;
+    var endIndex = range.endIndex;
+    var around = parent.contentMatchAt(startIndex).findWrapping(type);
+    if (!around) { return null }
+    var outer = around.length ? around[0] : type;
+    return parent.canReplaceWith(startIndex, endIndex, outer) ? around : null
+}
+
+function findWrappingInside(range, type) {
+    var parent = range.parent;
+    var startIndex = range.startIndex;
+    var endIndex = range.endIndex;
+    var inner = parent.child(startIndex);
+    var inside = type.contentMatch.findWrapping(inner.type);
+    if (!inside) { return null }
+    var lastType = inside.length ? inside[inside.length - 1] : type;
+    var innerMatch = lastType.contentMatch;
+    for (var i = startIndex; innerMatch && i < endIndex; i++) { innerMatch = innerMatch.matchType(parent.child(i).type); }
+    if (!innerMatch || !innerMatch.validEnd) { return null }
+    return inside
+}
+function findWrapping(range, nodeType, attrs, innerRange, customWithAttrs = null) {
+    if (innerRange === void 0) innerRange = range;
+    let withAttrs = (type) => ({ type: type, attrs: null });
+    var around = findWrappingOutside(range, nodeType);
+    var inner = around && findWrappingInside(innerRange, nodeType);
+    if (!inner) { return null }
+    return around.map(withAttrs).concat({ type: nodeType, attrs: attrs }).concat(inner.map(customWithAttrs ? customWithAttrs : withAttrs))
+}
+function wrappingInputRule(regexp, nodeType, getAttrs, joinPredicate, customWithAttrs = null) {
+    return new prosemirrorInputRules.InputRule(regexp, function (state, match, start, end) {
+        var attrs = getAttrs instanceof Function ? getAttrs(match) : getAttrs;
+        var tr = state.tr.delete(start, end);
+        var $start = tr.doc.resolve(start), range = $start.blockRange(), wrapping = range && findWrapping(range, nodeType, attrs, undefined, customWithAttrs);
+        if (!wrapping) { return null }
+        tr.wrap(range, wrapping);
+        var before = tr.doc.resolve(start - 1).nodeBefore;
+        if (before && before.type == nodeType && prosemirrorTransform.canJoin(tr.doc, start - 1) &&
+            (!joinPredicate || joinPredicate(match, before))) { tr.join(start - 1); }
+        return tr
+    })
 }
