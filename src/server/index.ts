@@ -38,6 +38,7 @@ import flash = require('connect-flash');
 import { Search } from './Search';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
+import * as request_promise from 'request-promise';
 var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
@@ -576,9 +577,9 @@ app.post(
         form.parse(req, async (_err, _fields, files) => {
             let results: FileResponse[] = [];
             for (const key in files) {
-                const { name, type, path: location } = files[key];
+                const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
-                await UploadUtils.UploadImage(uploadDirectory + filename, path.basename(name));
+                await UploadUtils.UploadImage(uploadDirectory + filename, filename);
                 results.push({ name, type, path: `/files/${filename}` });
                 console.log(path.basename(name));
             }
@@ -790,9 +791,22 @@ const tokenPath = path.join(__dirname, "./credentials/google_docs_token.json");
 
 const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
-    ["retrieve", (api, params) => api.get(params)],
+    ["retrieve", (api, params) => api.get(params, { params: "fields=inlineObjects" })],
     ["update", (api, params) => api.batchUpdate(params)],
 ]);
+
+// app.post(RouteStore.googleDocsGet, async (req, res) => {
+//     const token = await GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, tokenPath });
+//     request_promise.get({
+//         uri: `https://docs.googleapis.com/v1/documents/${req.body.documentId}?fields=inlineObjects`,
+//         headers: {
+//             'Authorization': `Bearer ${token}`
+//         }
+//     }).then(response => {
+//         console.log(response);
+//         res.send(response);
+//     });
+// });
 
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector: GoogleApiServerUtils.Service = req.params.sector;

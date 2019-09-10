@@ -253,7 +253,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let path = Utils.prepend(file);
+                            let path = Utils.prepend(file.path);
                             Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });

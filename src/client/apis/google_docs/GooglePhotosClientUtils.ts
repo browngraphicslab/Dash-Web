@@ -51,17 +51,26 @@ export namespace GooglePhotosClientUtils {
         description: string;
     }
 
-    export const UploadImageDocuments = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption") => {
+    export const UploadImages = async (sources: (Doc | string)[], album?: AlbumReference, descriptionKey = "caption") => {
         if (album && "title" in album) {
             album = await (await endpoint()).albums.create(album.title);
         }
         const media: MediaInput[] = [];
-        sources.forEach(document => {
-            const data = Cast(Doc.GetProto(document).data, ImageField);
-            data && media.push({
-                url: data.url.href,
-                description: parseDescription(document, descriptionKey),
-            });
+        sources.forEach(source => {
+            let url: string;
+            let description: string;
+            if (source instanceof Doc) {
+                const data = Cast(Doc.GetProto(source).data, ImageField);
+                if (!data) {
+                    return;
+                }
+                url = data.url.href;
+                description = parseDescription(source, descriptionKey);
+            } else {
+                url = source;
+                description = Utils.GenerateGuid();
+            }
+            media.push({ url, description });
         });
         if (media.length) {
             return PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });

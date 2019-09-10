@@ -591,7 +591,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         if (Cast(this.props.Document.data, ImageField)) {
-            cm.addItem({ description: "Export to Google Photos", event: () => GooglePhotosClientUtils.UploadImageDocuments([this.props.Document]), icon: "caret-square-right" });
+            cm.addItem({ description: "Export to Google Photos", event: () => GooglePhotosClientUtils.UploadImages([this.props.Document]), icon: "caret-square-right" });
         }
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];

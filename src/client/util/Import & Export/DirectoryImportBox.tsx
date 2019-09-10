@@ -117,7 +117,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             console.log(`(${this.quota - this.remaining}/${this.quota}) ${upload.name}`);
         }));
 
-        await GooglePhotosClientUtils.UploadImageDocuments(docs, { title: directory });
+        await GooglePhotosClientUtils.UploadImages(docs, { title: directory });
         console.log("Finished upload!");
 
         for (let i = 0; i < docs.length; i++) {

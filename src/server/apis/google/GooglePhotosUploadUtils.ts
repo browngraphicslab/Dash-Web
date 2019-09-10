@@ -151,6 +151,11 @@ export namespace DownloadUtils {
                         .on('close', resolve)
                         .on('error', reject);
                 });
+                if (!isLocal) {
+                    await new Promise<void>(resolve => {
+                        stream(url).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
+                    });
+                }
             }
             resolve(information);
         });

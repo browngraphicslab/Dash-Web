@@ -155,7 +155,7 @@ export class MainView extends React.Component {
         doc.caption = "Well isn't this a nice cat image!";
         let photos = await GooglePhotosClientUtils.endpoint();
         let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
-        console.log(await GooglePhotosClientUtils.UploadImageDocuments([doc], { id: albumId }));
+        console.log(await GooglePhotosClientUtils.UploadImages([doc], { id: albumId }));
     }
 
     componentWillUnMount() {
@@ -470,7 +470,7 @@ export class MainView extends React.Component {
         // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
         // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
-        let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
+        // let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc | Promise<Doc>][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
@@ -478,7 +478,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
-            [React.createRef<HTMLDivElement>(), "object-group", "Test Google Photos Search", googlePhotosSearch],
+            // [React.createRef<HTMLDivElement>(), "object-group", "Test Google Photos Search", googlePhotosSearch],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];

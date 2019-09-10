@@ -42,7 +42,7 @@ export namespace GoogleApiServerUtils {
 
     export type ApiResponse = Promise<GaxiosResponse>;
     export type ApiRouter = (endpoint: Endpoint, parameters: any) => ApiResponse;
-    export type ApiHandler = (parameters: any) => ApiResponse;
+    export type ApiHandler = (parameters: any, methodOptions?: any) => ApiResponse;
     export type Action = "create" | "retrieve" | "update";
 
     export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };

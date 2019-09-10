@@ -34,6 +34,7 @@ export enum RouteStore {
     googleDocs = "/googleDocs",
     googlePhotosAccessToken = "/googlePhotosAccessToken",
     googlePhotosMediaUpload = "/googlePhotosMediaUpload",
-    googlePhotosMediaDownload = "/googlePhotosMediaDownload"
+    googlePhotosMediaDownload = "/googlePhotosMediaDownload",
+    googleDocsGet = "/googleDocsGet"
 
 }

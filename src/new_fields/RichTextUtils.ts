@@ -7,6 +7,11 @@ import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt } from "./Doc";
 import * as Color from "color";
 import { sinkListItem } from "prosemirror-schema-list";
+import { Utils, PostToServer } from "../Utils";
+import { RouteStore } from "../server/RouteStore";
+import { Docs } from "../client/documents/Documents";
+import { schema } from "../client/util/RichTextSchema";
+import { GooglePhotosClientUtils } from "../client/apis/google_docs/GooglePhotosClientUtils";
 
 export namespace RichTextUtils {
 
@@ -86,19 +91,36 @@ export namespace RichTextUtils {
     export namespace GoogleDocs {
 
         export const Export = (state: EditorState): GoogleApiClientUtils.Docs.Content => {
-            let textNodes: Node<any>[] = [];
+            let nodes: { [type: string]: Node<any>[] } = {
+                text: [],
+                image: []
+            };
             let text = ToPlainText(state);
             let content = state.doc.content;
-            content.forEach(node => node.content.forEach(node => node.type.name === "text" && textNodes.push(node)));
-            let linkRequests = ExtractLinks(textNodes);
+            content.forEach(node => node.content.forEach(node => {
+                const type = node.type.name;
+                let existing = nodes[type];
+                if (existing) {
+                    existing.push(node);
+                } else {
+                    nodes[type] = [node];
+                }
+            }));
+            let linkRequests = ExtractLinks(nodes.text);
+            let imageRequests = ExtractImages(nodes.image);
             return {
                 text,
-                requests: [...linkRequests]
+                requests: [...linkRequests, ...imageRequests]
             };
         };
 
         type BulletPosition = { value: number, sinks: number };
 
+        interface MediaItem {
+            baseUrl: string;
+            filename: string;
+            width: number;
+        }
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
             const document = await GoogleApiClientUtils.Docs.retrieve({ documentId });
             if (!document) {
@@ -109,6 +131,17 @@ export namespace RichTextUtils {
             const { text, paragraphs } = GoogleApiClientUtils.Docs.Utils.extractText(document);
             let state = FormattedTextBox.blankState();
             let structured = parseLists(paragraphs);
+            const inline = document.inlineObjects;
+            let inlineUrls: MediaItem[] = [];
+            if (inline) {
+                inlineUrls = Object.keys(inline).map(key => {
+                    const embedded = inline[key].inlineObjectProperties!.embeddedObject!;
+                    const baseUrl = embedded.imageProperties!.contentUri!;
+                    const filename = `upload_${Utils.GenerateGuid()}.png`;
+                    const width = embedded.size!.width!.magnitude!;
+                    return { baseUrl, filename, width };
+                });
+            }
 
             let position = 3;
             let lists: ListGroup[] = [];
@@ -149,6 +182,12 @@ export namespace RichTextUtils {
                         sink(state, dispatcher);
                     }
                 }
+            }
+
+            const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems: inlineUrls });
+            for (let i = 0; i < uploads.length; i++) {
+                const src = Utils.prepend(`/files/${uploads[i].fileNames.clean}`);
+                state = state.apply(state.tr.insert(0, schema.nodes.image.create({ src, width: inlineUrls[i].width })));
             }
 
             return { title, text, state };
@@ -250,6 +289,26 @@ export namespace RichTextUtils {
                 position += length;
             }
             return links;
+        };
+
+        const ExtractImages = async (nodes: Node<any>[]) => {
+            const images: docs_v1.Schema$Request[] = [];
+            let position = 1;
+            for (let node of nodes) {
+                const length = node.nodeSize;
+                const attrs = node.attrs;
+                const uri = attrs.src;
+                const result = (await GooglePhotosClientUtils.UploadImages([uri])).newMediaItemResults;
+                images.push({
+                    insertInlineImage: {
+                        uri: result[0].mediaItem.productUrl,
+                        objectSize: { width: { magnitude: parseFloat(attrs.width.replace("px", "")), unit: "PT" } },
+                        location: { index: position + length }
+                    }
+                });
+                position += length;
+            }
+            return images;
         };
 
         const Encode = (information: LinkInformation) => {
