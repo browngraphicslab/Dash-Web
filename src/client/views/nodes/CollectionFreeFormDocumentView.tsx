@@ -99,10 +99,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
-                    boxShadow: this.props.Document.opacity === 0 ? undefined : this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :
-                        this.clusterColor ? (
-                            this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :
-                                `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) : undefined,
+                    boxShadow:
+                        this.props.Document.opacity === 0 ? undefined :  // if it's not visible, then no shadow
+                            this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
+                                this.clusterColor ? (
+                                    this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
+                                        `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                    undefined,
                     borderRadius: this.borderRounding(),
                     transform: txf,
                     transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),

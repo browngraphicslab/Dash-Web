@@ -602,11 +602,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Into Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({ description: "OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
+        makes.push({ description: "OnClick foreach doc", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick", "docList(this.collectionContext.data).map(d => {", "});\n") });
         makes.push({
             description: "Into Portal", event: () => {
-                let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
-                DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
-                this.makeBtnClicked();
+                if (!DocListCast(this.props.Document.links).find(doc => {
+                    if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.props.Document.title + ".portal") return true;
+                    return false;
+                })) {
+                    let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
+                    DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
+                    Doc.GetProto(this.props.Document).isButton = true;
+                }
             }, icon: "window-restore"
         });
         makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" });

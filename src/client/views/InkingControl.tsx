@@ -64,7 +64,7 @@ export class InkingControl extends React.Component {
                             closest = i;
                         }
                     }
-                    cp[closest] = "rgb(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + ")";
+                    cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
                     view.props.ContainingCollectionView.props.Document.colorPalette = new List(cp);
                     targetDoc.backgroundColor = cp[closest];
                 } else
