@@ -266,8 +266,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (!(ruleProvider instanceof Doc)) ruleProvider = this.props.Document;
         let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
         let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
-        round && (newBox.borderRounding = round);
-        col && (newBox.backgroundColor = col);
+        round && (Doc.GetProto(newBox).borderRounding = round);
+        col && (Doc.GetProto(newBox).backgroundColor = col);
         newBox.ruleProvider = ruleProvider;
         this.addDocument(newBox, false);
     }
