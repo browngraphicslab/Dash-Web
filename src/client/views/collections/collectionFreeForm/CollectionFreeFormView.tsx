@@ -8,7 +8,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnOne, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { Docs } from "../../../documents/Documents";
@@ -262,14 +262,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 newBox.heading = 2;
             }
         }
-        let ruleProvider = Cast(this.props.Document.ruleProvider, Doc);
-        if (!(ruleProvider instanceof Doc)) ruleProvider = this.props.Document;
-        let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
-        let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
-        round && (Doc.GetProto(newBox).borderRounding = round);
-        col && (Doc.GetProto(newBox).backgroundColor = col);
-        newBox.ruleProvider = ruleProvider;
-        this.addDocument(newBox, false);
+        PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
+            if (!ruleProvider) ruleProvider = this.props.Document;
+            // saturation shift
+            // let col = NumCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
+            // let back = Utils.fromRGBAstr(StrCast(this.props.Document.backgroundColor));
+            // let hsl = Utils.RGBToHSL(back.r, back.g, back.b);
+            // let newcol = { h: hsl.h, s: hsl.s + col, l: hsl.l };
+            // col && (Doc.GetProto(newBox).backgroundColor = Utils.toRGBAstr(Utils.HSLtoRGB(newcol.h, newcol.s, newcol.l)));
+            // OR transparency set
+            let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
+            col && (Doc.GetProto(newBox).backgroundColor = col);
+
+            let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
+            round && (Doc.GetProto(newBox).borderRounding = round);
+            newBox.ruleProvider = ruleProvider;
+            this.addDocument(newBox, false);
+        });
     }
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
         this.props.addDocument(newBox, false);

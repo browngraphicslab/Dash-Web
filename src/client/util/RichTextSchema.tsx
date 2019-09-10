@@ -12,6 +12,7 @@ import { DocServer } from "../DocServer";
 import { Cast, NumCast } from "../../new_fields/Types";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
+import { times } from "async";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -421,6 +422,24 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ tag: "code" }],
         toDOM() { return codeDOM; }
     },
+
+    // pFontFamily: {
+    //     attrs: {
+    //         style: { default: 'font-family: "Times New Roman", Times, serif;' },
+    //     },
+    //     parseDOM: [{
+    //         tag: "span", getAttrs(dom: any) {
+    //             if (getComputedStyle(dom).font === "Times New Roman") return { style: `font-family: "Times New Roman", Times, serif;` };
+    //             if (getComputedStyle(dom).font === "Arial, Helvetica") return { style: `font-family: Arial, Helvetica, sans-serif;` };
+    //             if (getComputedStyle(dom).font === "Georgia") return { style: `font-family: Georgia, serif;` };
+    //             if (getComputedStyle(dom).font === "Comic Sans") return { style: `font-family: "Comic Sans MS", cursive, sans-serif;` };
+    //             if (getComputedStyle(dom).font === "Tahoma, Geneva") return { style: `font-family: Tahoma, Geneva, sans-serif;` };
+    //         }
+    //     }],
+    //     toDOM: (node: any) => ['span', {
+    //         style: node.attrs.style
+    //     }]
+    // },
 
 
     /* FONTS */

@@ -12,6 +12,7 @@ import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
+import { DocumentType } from '../../documents/DocumentTypes';
 
 export enum CollectionViewType {
     Invalid,
@@ -102,6 +103,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         Doc.GetProto(doc).page = curPage;
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
+        }
+        if (doc.type === DocumentType.BUTTON) {
+            doc.collectionContext = this.props.Document;  // used by docList() function in Doc.ts so that buttons can iterate over the documents in their collection
         }
         allowDuplicates = true;
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;

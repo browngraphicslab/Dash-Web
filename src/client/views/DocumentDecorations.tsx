@@ -621,6 +621,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
                 let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && BoolCast(doc.ignoreAspect)) {
+                    doc.ignoreAspect = false;
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
+                }
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;

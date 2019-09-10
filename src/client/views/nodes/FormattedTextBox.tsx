@@ -13,7 +13,7 @@ import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
-import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, DateCast, PromiseValue } from "../../../new_fields/Types";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Utils, numberRange, timenow } from '../../../Utils';
 import { DocServer } from "../../DocServer";
@@ -39,6 +39,7 @@ import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
 import { inputRules } from 'prosemirror-inputrules';
+import { select } from 'async';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -203,8 +204,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
 
-            this._keymap["ACTIVE"] = true; // hack to ignore an initial carriage return when creating a textbox from the action menu
-
             this._applyingChange = true;
             this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
@@ -353,7 +352,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     _keymap: any = undefined;
     @computed get config() {
         this._keymap = buildKeymap(schema);
-        this._keymap["ACTIVE"] = this.extensionDoc.text;  // hack to ignore an initial carriage return only when creating a textbox from the action menu
         return {
             schema,
             plugins: this.props.isOverlay ? [
@@ -659,7 +657,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
 
-        if (this.props.Document[Id] === FormattedTextBox.SelectOnLoad) {
+        let selectOnLoad = this.props.Document[Id] === FormattedTextBox.SelectOnLoad;
+        if (selectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
         }
@@ -667,15 +666,38 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
         let heading = this.props.Document.heading;
-        if (heading) {
-            let ruleProvider = Cast(this.props.Document.ruleProvider, Doc);
-            if (ruleProvider instanceof Doc) {
-                let font = StrCast(ruleProvider["ruleFont_" + heading]);
-                let size = NumCast(ruleProvider["ruleSize_" + heading]);
-                size && (this._editorView!.state.storedMarks = [...this._editorView!.state.storedMarks, schema.marks.pFontSize.create({ fontSize: size })]);
-                font && (this._editorView!.state.storedMarks = [...this._editorView!.state.storedMarks, font === "Arial" ? schema.marks.arial.create() : schema.marks.comicSans.create()]);
-            }
+        if (heading && selectOnLoad) {
+            PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
+                if (ruleProvider) {
+                    let align = StrCast(ruleProvider["ruleAlign_" + heading]);
+                    let font = StrCast(ruleProvider["ruleFont_" + heading]);
+                    let size = NumCast(ruleProvider["ruleSize_" + heading]);
+                    if (align) {
+                        let tr = this._editorView!.state.tr;
+                        tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
+                            replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: align }), true).
+                            setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
+                        this._editorView!.dispatch(tr);
+                    }
+                    let sm = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
+                    size && (sm = [...sm, schema.marks.pFontSize.create({ fontSize: size })]);
+                    font && (sm = [...sm, this.getFont(font)]);
+                    this._editorView!.dispatch(this._editorView!.state.tr.setStoredMarks(sm));
+                }
+            });
         }
+    }
+    getFont(font: string) {
+        switch (font) {
+            case "Arial": return schema.marks.arial.create();
+            case "Times New Roman": return schema.marks.timesNewRoman.create();
+            case "Georgia": return schema.marks.georgia.create();
+            case "Comic Sans MS": return schema.marks.comicSans.create();
+            case "Tahoma": return schema.marks.tahoma.create();
+            case "Impact": return schema.marks.impact.create();
+            case "ACrimson Textrial": return schema.marks.crimson.create();
+        }
+        return schema.marks.arial.create();
     }
 
     componentWillUnmount() {

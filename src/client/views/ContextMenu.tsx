@@ -250,6 +250,7 @@ export class ContextMenu extends React.Component {
             const item = this.flatItems[this.selectedIndex];
             item && item.event();
             this.closeMenu();
+            e.preventDefault();
         }
     }
 

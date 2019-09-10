@@ -2,6 +2,9 @@ import { textblockTypeInputRule, smartQuotes, emDash, ellipsis, InputRule } from
 import { schema } from "./RichTextSchema";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import { NodeSelection } from "prosemirror-state";
+import { NumCast, Cast } from "../../new_fields/Types";
+import { Doc } from "../../new_fields/Doc";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 export const inpRules = {
     rules: [
@@ -57,6 +60,12 @@ export const inpRules = {
         new InputRule(
             new RegExp(/^#([0-9]+)\s$/),
             (state, match, start, end) => {
+                let size = Number(match[1]);
+                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                if (ruleProvider && heading) {
+                    ruleProvider["ruleSize_" + heading] = size;
+                }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }))
             }),
         new InputRule(
@@ -64,7 +73,38 @@ export const inpRules = {
             (state, match, start, end) => {
                 let node = (state.doc.resolve(start) as any).nodeAfter;
                 let sm = state.storedMarks || undefined;
+                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                if (ruleProvider && heading) {
+                    ruleProvider["ruleAlign_" + heading] = "center";
+                }
                 return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
+            }),
+        new InputRule(
+            new RegExp(/^\[\[\s$/),
+            (state, match, start, end) => {
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                let sm = state.storedMarks || undefined;
+                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                if (ruleProvider && heading) {
+                    ruleProvider["ruleAlign_" + heading] = "left";
+                }
+                return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
+            }),
+        new InputRule(
+            new RegExp(/^\]\]\s$/),
+            (state, match, start, end) => {
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                let sm = state.storedMarks || undefined;
+                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                if (ruleProvider && heading) {
+                    ruleProvider["ruleAlign_" + heading] = "right";
+                }
+                return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
             }),
         new InputRule(
