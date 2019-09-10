@@ -757,10 +757,11 @@ export class FootnoteView {
         this.innerView.updateState(state);
 
         if (!tr.getMeta("fromOutside")) {
-            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
-            for (let steps of transactions) {
-                for (let step of steps) {
-                    outerTr.step(step.map(offsetMap));
+            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1)
+            for (let i = 0; i < transactions.length; i++) {
+                let steps = transactions[i].steps;
+                for (let j = 0; j < steps.length; j++) {
+                    outerTr.step(steps[j].map(offsetMap));
                 }
             }
             if (outerTr.docChanged) this.outerView.dispatch(outerTr);
