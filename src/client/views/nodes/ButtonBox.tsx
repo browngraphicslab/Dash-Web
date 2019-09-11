@@ -13,6 +13,8 @@ import { undoBatch } from '../../util/UndoManager';
 import { DocComponent } from '../DocComponent';
 import './ButtonBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { ContextMenu } from '../ContextMenu';
 
 
 library.add(faEdit as any);
@@ -41,11 +43,24 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
         }
     }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        let funcs: ContextMenuProps[] = [];
+        funcs.push({
+            description: "Clear Script Params", event: () => {
+                let params = Cast(this.props.Document.buttonParams, listSpec("string"));
+                params && params.map(p => this.props.Document[p] = undefined)
+            }, icon: "trash"
+        });
+
+        ContextMenu.Instance.addItem({ description: "OnClick...", subitems: funcs, icon: "asterisk" });
+    }
+
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData && e.target) {
-            Doc.GetProto(this.dataDoc)[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments);
+            this.props.Document[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments);
             e.stopPropagation();
         }
     }
@@ -55,7 +70,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         let missingParams = params && params.filter(p => this.props.Document[p] === undefined);
         params && params.map(async p => await DocListCastAsync(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
-            <div className="buttonBox-outerDiv" ref={this.createDropTarget} >
+            <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div className="buttonBox-mainButton" style={{ background: StrCast(this.props.Document.backgroundColor), color: StrCast(this.props.Document.color, "black") }} >
                     <div className="buttonBox-mainButtonCenter">
                         {(this.Document.text || this.Document.title)}

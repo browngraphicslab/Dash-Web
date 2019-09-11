@@ -446,10 +446,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     makeCustomViewClicked = (): void => {
-        let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) };
+        let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
         let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
-        let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: NumCast(this.props.Document.height) + 20 });
+        let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
         let metaKey = "data";
         let proto = Doc.GetProto(docTemplate);
         Doc.MakeTemplate(fieldTemplate, metaKey, proto, true);
@@ -460,15 +460,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
-        doc.isButton = !BoolCast(doc.isButton);
-        if (doc.isButton) {
-            if (!doc.nativeWidth) {
-                doc.nativeWidth = this.props.Document[WidthSym]();
-                doc.nativeHeight = this.props.Document[HeightSym]();
-            }
+        if (doc.isButton || doc.onClick) {
+            doc.isButton = false;
+            doc.onClick = undefined;
         } else {
-            doc.nativeWidth = doc.nativeHeight = undefined;
+            doc.isButton = true;
         }
+
+        // if (doc.isButton) {
+        //     if (!doc.nativeWidth) {
+        //         doc.nativeWidth = this.props.Document[WidthSym]();
+        //         doc.nativeHeight = this.props.Document[HeightSym]();
+        //     }
+        // } else {
+        //     doc.nativeWidth = doc.nativeHeight = undefined;
+        // }
     }
 
     @undoBatch
@@ -623,21 +629,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
+
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
-        makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Into Button", event: this.makeBtnClicked, icon: "concierge-bell" });
-        makes.push({ description: "Custom View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
-        makes.push({ description: "Custom Field", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document, true), icon: "concierge-bell" })
-        makes.push({ description: "OnClick Button script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript(this.props.Document, "onClick", this._mainCont, obj.x, obj.y) });
-        makes.push({ description: "OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
-        makes.push({ description: "OnClick foreach doc", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick", "docList(this.collectionContext.data).map(d => {", "});\n") });
+        makes.push({ description: "Custom Document View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
+        makes.push({ description: "Metadata Field View", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document, true), icon: "concierge-bell" })
         makes.push({ description: "Into Portal", event: this.makeIntoPortal, icon: "window-restore" });
         makes.push({ description: this.layoutDoc.ignoreClick ? "Selectable" : "Unselectable", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
         !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
+
+        let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+        let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+        onClicks.push({ description: this.props.Document.isButton || this.props.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
+        onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
+        onClicks.push({ description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("Foreach Collection Doc (d) => ", this.props.Document, "onClick", obj.x, obj.y, "docList(this.collectionContext.data).map(d => {", "});\n") });
+        !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
         layoutItems.push({ description: this.props.Document.ignoreAspect || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });

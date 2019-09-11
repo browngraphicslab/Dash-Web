@@ -18,6 +18,7 @@ export interface ScriptBoxProps {
     onCancel?: () => void;
     initialText?: string;
     showDocumentIcons?: boolean;
+    setParams?: (p: string[]) => void;
 }
 
 @observer
@@ -58,56 +59,30 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
             onFocus = this.onFocus;
             onBlur = this.onBlur;
         }
+        let params = <EditableView
+            contents={""}
+            display={"block"}
+            maxHeight={72}
+            height={35}
+            fontSize={28}
+            GetValue={() => ""}
+            SetValue={(value: string) => this.props.setParams && this.props.setParams(value.split(" ").filter(s => s !== " ")) ? true : true}
+        />;
         return (
             <div className="scriptBox-outerDiv">
+                <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                    <textarea className="scriptBox-textarea" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
+                    <div style={{ background: "beige" }} >{params}</div>
+                </div>
                 <div className="scriptBox-toolbar">
                     <button onClick={e => { this.props.onSave(this._scriptText, this.onError); e.stopPropagation(); }}>Save</button>
                     <button onClick={e => { this.props.onCancel && this.props.onCancel(); e.stopPropagation(); }}>Cancel</button>
                 </div>
-                <textarea className="scriptBox-textarea" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
             </div>
         );
     }
     //let l = docList(this.source[0].data).length; if (l) { let ind = this.target[0].index !== undefined ? (this.target[0].index+1) % l : 0;  this.target[0].index = ind;  this.target[0].proto = getProto(docList(this.source[0].data)[ind]);}
-    public static EditButtonScript(doc: Doc, fieldKey: string, content: any, clientX: number, clientY: number) {
-        let overlayDisposer: () => void = emptyFunction;
-        const script = ScriptCast(doc[fieldKey]);
-        let originalText = script && script.script.originalScript;
-        // tslint:disable-next-line: no-unnecessary-callback-wrapper
-        let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
-            const script = CompileScript(text, {
-                params: { this: Doc.name },
-                typecheck: false,
-                editable: true,
-                transformer: DocumentIconContainer.getTransformer()
-            });
-            if (!script.compiled) {
-                onError(script.errors.map(error => error.messageText).join("\n"));
-                return;
-            }
-
-            DragManager.StartButtonDrag([], text, "a script",
-                {}, this._params, (button: Doc) => { }, clientX, clientY);
-
-            doc[fieldKey] = new ScriptField(script);
-            overlayDisposer();
-        }} showDocumentIcons />;
-        let params = <EditableView
-            contents={""}
-            display={"block"}
-            height={72}
-            fontSize={12}
-            GetValue={() => ""}
-            SetValue={(value: string) => (this._params = value.split(" ").filter(s => s !== " ")) ? true : true}
-        />;
-        let box = <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            {scriptingBox}
-            {params}
-        </div>
-        overlayDisposer = OverlayView.Instance.addWindow(box, { x: 400, y: 200, width: 500, height: 400, title: `${doc.title || ""} OnClick` });
-    }
-    static _params: string[] = [];
-    public static EditClickScript(doc: Doc, fieldKey: string, prewrapper?: string, postwrapper?: string) {
+    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, prewrapper?: string, postwrapper?: string) {
         let overlayDisposer: () => void = emptyFunction;
         const script = ScriptCast(doc[fieldKey]);
         let originalText: string | undefined = undefined;
@@ -121,10 +96,9 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
             }
         }
         // tslint:disable-next-line: no-unnecessary-callback-wrapper
-        let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
-            if (prewrapper) {
-                text = prewrapper + text + (postwrapper ? postwrapper : "");
-            }
+        let params: string[] = [];
+        let setParams = (p: string[]) => params.splice(0, params.length, ...p);
+        let scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
             const script = CompileScript(text, {
                 params: { this: Doc.name },
                 typecheck: false,
@@ -135,9 +109,12 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 onError(script.errors.map(error => error.messageText).join("\n"));
                 return;
             }
+
+            params.length && DragManager.StartButtonDrag([], text, "a script", {}, params, (button: Doc) => { }, clientX, clientY);
+
             doc[fieldKey] = new ScriptField(script);
             overlayDisposer();
         }} showDocumentIcons />;
-        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: `${doc.title || ""} OnClick` });
+        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: title });
     }
 }

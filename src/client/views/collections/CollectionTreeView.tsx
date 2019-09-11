@@ -592,13 +592,14 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             <div id="body" className="collectionTreeView-dropTarget"
                 style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "lightgray") }}
                 onContextMenu={this.onContextMenu}
-                onWheel={(e: React.WheelEvent) => (e.target as any).scrollHeight > (e.target as any).clientHeight && e.stopPropagation()}
+                onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
                 ref={this.createTreeDropTarget}>
                 <EditableView
                     contents={this.resolvedDataDoc.title}
                     display={"block"}
-                    height={72}
+                    maxHeight={72}
+                    height={"auto"}
                     GetValue={() => StrCast(this.resolvedDataDoc.title)}
                     SetValue={undoBatch((value: string) => (Doc.GetProto(this.resolvedDataDoc).title = value) ? true : true)}
                     OnFillDown={undoBatch((value: string) => {

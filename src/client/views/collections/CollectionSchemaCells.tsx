@@ -214,7 +214,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents}
-                            height={Number(MAX_ROW_HEIGHT)}
+                            height={"auto"}
+                            maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
                                 let field = props.Document[props.fieldKey];
                                 if (Field.IsField(field)) {
