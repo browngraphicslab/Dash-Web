@@ -105,7 +105,7 @@ export namespace GooglePhotos {
                 }
                 collection.googlePhotosIdMapping = idMapping;
                 if (tag) {
-                    await Query.AppendImageMetadata(collection);
+                    await Query.TagChildImages(collection);
                 }
                 return { albumId: id, mediaItems };
             }
@@ -134,7 +134,7 @@ export namespace GooglePhotos {
 
     export namespace Query {
 
-        export const AppendImageMetadata = async (collection: Doc) => {
+        export const TagChildImages = async (collection: Doc) => {
             const idMapping = await Cast(collection.googlePhotosIdMapping, Doc);
             if (!idMapping) {
                 throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
