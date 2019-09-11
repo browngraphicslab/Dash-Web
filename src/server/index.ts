@@ -198,15 +198,12 @@ const solrURL = "http://localhost:8983/solr/#/dash";
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
-    console.log("GOT SEARCH");
     ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
     if (solrQuery.q === undefined) {
         res.send([]);
         return;
     }
-    console.log("CALLING SEARCH")
     let results = await Search.Instance.search(solrQuery);
-    console.log("RETURNING SEARCH")
     res.send(results);
 });
 

@@ -780,6 +780,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
         let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
+        let searchHighlight = (!this.props.Document.search_fields ? (null) :
+            <div key="search" style={{ position: "absolute", background: "yellow", bottom: "-20px", borderRadius: "5px", transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+                {StrCast(this.props.Document.search_fields)}
+            </div>);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -800,9 +804,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
-                {!showTitle && !showCaption ? this.contents :
+                {!showTitle && !showCaption ?
+                    this.props.Document.search_fields ? <div>
+                        {this.contents}
+                        {searchHighlight}
+                    </div> :
+                        this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
-
                         <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 29px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
@@ -828,6 +836,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
                             </div>
                         }
+                        {searchHighlight}
                     </div>
                 }
             </div>

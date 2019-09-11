@@ -136,8 +136,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
+    componentDidMount() {
+        this.props.doc.search_string = this.props.query;
+        this.props.doc.search_fields = this.props.highlighting.join(", ");
+    }
     componentWillUnmount() {
         this.props.doc.search_string = undefined;
+        this.props.doc.search_fields = undefined;
     }
 
     //@computed
@@ -177,7 +182,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     ContentScaling={scale}
                 />
             </div>;
-            this.props.doc.search_string = this.props.query;
             return docview;
         }
         let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
@@ -231,8 +235,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 Doc.BrushDoc(doc2);
             }
         } else {
-            DocumentManager.Instance.getAllDocumentViews(this.props.doc).forEach(element =>
-                Doc.BrushDoc(element.props.Document));
+            Doc.BrushDoc(this.props.doc);
         }
     }
 
@@ -246,8 +249,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 Doc.UnBrushDoc(doc2);
             }
         } else {
-            DocumentManager.Instance.getAllDocumentViews(this.props.doc).
-                forEach(element => Doc.UnBrushDoc(element.props.Document));
+            Doc.UnBrushDoc(this.props.doc);
         }
     }
 
