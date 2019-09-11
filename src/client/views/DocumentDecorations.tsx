@@ -283,7 +283,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onCloseUp = async (e: PointerEvent) => {
         e.stopPropagation();
         if (e.button === 0) {
-            const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+            const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             SelectionManager.SelectedDocuments().map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);

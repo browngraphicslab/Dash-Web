@@ -459,7 +459,7 @@ export namespace Doc {
         }
         if (expandedTemplateLayout === undefined) {
             setTimeout(() => dataDoc[expandedLayoutFieldKey] === undefined &&
-                (dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]")), 0);
+                (dataDoc[expandedLayoutFieldKey] = !BoolCast(templateLayoutDoc.suppressTemplateInstance) ? Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]") : templateLayoutDoc), 0);
         }
         return undefined; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
@@ -528,7 +528,7 @@ export namespace Doc {
         !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
         return otherdoc;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc, useTemplateDoc?: boolean) {
         if (!templateDoc) {
             target.layout = undefined;
             target.nativeWidth = undefined;
@@ -537,7 +537,7 @@ export namespace Doc {
             target.type = undefined;
             return;
         }
-        let temp = Doc.MakeDelegate(templateDoc);
+        let temp = useTemplateDoc ? templateDoc : Doc.MakeDelegate(templateDoc);
         target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         !templateDoc.nativeWidth && (target.nativeWidth = 0);
@@ -558,7 +558,7 @@ export namespace Doc {
         }
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
+    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc, suppressTemplateFlag?: boolean) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
@@ -576,6 +576,7 @@ export namespace Doc {
         fieldTemplate.templateField = metaKey;
         fieldTemplate.title = metaKey;
         fieldTemplate.isTemplate = true;
+        fieldTemplate.suppressTemplateInstance = suppressTemplateFlag;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
         /* move certain layout properties from the original data doc to the template layout to avoid
@@ -585,6 +586,9 @@ export namespace Doc {
         fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
         fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
         fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
+        fieldTemplate.panX = 0;
+        fieldTemplate.panY = 0;
+        fieldTemplate.scale = 1;
         fieldTemplate.showTitle = "title";
         setTimeout(() => fieldTemplate.proto = templateDataDoc);
     }
