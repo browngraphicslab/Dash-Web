@@ -288,8 +288,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     else usedPaletted.set(bg, 1);
                 }
             });
+            usedPaletted.delete("#f1efeb");
+            usedPaletted.delete("white");
+            usedPaletted.delete("rgba(255,255,255,1)");
             let usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
-            let chosenColor = usedPaletted.get("white") || usedPaletted.get("rgb(255,255,255)") && usedPaletted.size === 1 ? "white" : palette.length ? palette[0] : usedSequnce[0];
+            let chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
             let inkData = this.ink ? this.ink.inkData : undefined;
             let newCollection = Docs.Create.FreeformDocument(selected, {
                 x: bounds.left,

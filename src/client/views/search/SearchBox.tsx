@@ -141,7 +141,7 @@ export class SearchBox extends React.Component {
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
         const includeDeleted = FilterBox.Instance.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
@@ -304,14 +304,14 @@ export class SearchBox extends React.Component {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} highlighting={result[1]} />;
                             this._isSearch[i] = "search";
                         }
                     }
                     else {
                         result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} highlighting={result[1]} />;
                             this._isSearch[i] = "search";
                         }
                     }
