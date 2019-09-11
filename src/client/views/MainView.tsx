@@ -40,7 +40,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
-import { GooglePhotosClientUtils } from '../apis/google_docs/GooglePhotosClientUtils';
+import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../new_fields/URLField';
 import { LinkFollowBox } from './linking/LinkFollowBox';
 import { DocumentManager } from '../util/DocumentManager';
@@ -149,14 +149,14 @@ export class MainView extends React.Component {
         }, { fireImmediately: true });
     }
 
-    executeGooglePhotosRoutine = async () => {
-        let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        let doc = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
-        doc.caption = "Well isn't this a nice cat image!";
-        let photos = await GooglePhotosClientUtils.endpoint();
-        let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
-        console.log(await GooglePhotosClientUtils.UploadImages([doc], { id: albumId }));
-    }
+    // executeGooglePhotosRoutine = async () => {
+    //     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+    //     let doc = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
+    //     doc.caption = "Well isn't this a nice cat image!";
+    //     let photos = await GooglePhotos.endpoint();
+    //     let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
+    //     console.log(await GooglePhotos.UploadImages([doc], { id: albumId }));
+    // }
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);

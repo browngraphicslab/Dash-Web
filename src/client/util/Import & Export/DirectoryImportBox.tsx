@@ -18,7 +18,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, BoolCast, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
-import { GooglePhotosClientUtils } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 
 const unsupported = ["text/html", "text/plain"];
 interface FileResponse {
@@ -117,8 +117,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             console.log(`(${this.quota - this.remaining}/${this.quota}) ${upload.name}`);
         }));
 
-        await GooglePhotosClientUtils.UploadImages(docs, { title: directory });
-        console.log("Finished upload!");
+        await GooglePhotos.Transactions.UploadImages(docs, { title: directory });
 
         for (let i = 0; i < docs.length; i++) {
             let doc = docs[i];

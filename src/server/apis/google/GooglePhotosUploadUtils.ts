@@ -5,6 +5,7 @@ import { Utils } from '../../../Utils';
 import * as path from 'path';
 import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
+import { MediaItemCreationResult } from './SharedTypes';
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -52,8 +53,10 @@ export namespace GooglePhotosUploadUtils {
         return new Promise<any>(resolve => request(parameters, (error, _response, body) => resolve(error ? undefined : body)));
     };
 
-    export const CreateMediaItems = (newMediaItems: any[], album?: { id: string }) => {
-        return new Promise<any>((resolve, reject) => {
+
+
+    export const CreateMediaItems = (newMediaItems: any[], album?: { id: string }): Promise<MediaItemCreationResult> => {
+        return new Promise<MediaItemCreationResult>((resolve, reject) => {
             const parameters = {
                 method: 'POST',
                 headers: headers('json'),

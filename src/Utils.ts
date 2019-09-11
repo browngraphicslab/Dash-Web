@@ -37,6 +37,11 @@ export class Utils {
     public static prepend(extension: string): string {
         return window.location.origin + extension;
     }
+
+    public static fileUrl(filename: string): string {
+        return this.prepend(`/file/${filename}`);
+    }
+
     public static CorsProxy(url: string): string {
         return this.prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
     }

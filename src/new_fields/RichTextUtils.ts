@@ -11,7 +11,7 @@ import { Utils, PostToServer } from "../Utils";
 import { RouteStore } from "../server/RouteStore";
 import { Docs } from "../client/documents/Documents";
 import { schema } from "../client/util/RichTextSchema";
-import { GooglePhotosClientUtils } from "../client/apis/google_docs/GooglePhotosClientUtils";
+import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
 
 export namespace RichTextUtils {
 
@@ -90,7 +90,7 @@ export namespace RichTextUtils {
 
     export namespace GoogleDocs {
 
-        export const Export = (state: EditorState): GoogleApiClientUtils.Docs.Content => {
+        export const Export = async (state: EditorState): Promise<GoogleApiClientUtils.Docs.Content> => {
             let nodes: { [type: string]: Node<any>[] } = {
                 text: [],
                 image: []
@@ -107,7 +107,7 @@ export namespace RichTextUtils {
                 }
             }));
             let linkRequests = ExtractLinks(nodes.text);
-            let imageRequests = ExtractImages(nodes.image);
+            let imageRequests = await ExtractImages(nodes.image);
             return {
                 text,
                 requests: [...linkRequests, ...imageRequests]
@@ -298,10 +298,13 @@ export namespace RichTextUtils {
                 const length = node.nodeSize;
                 const attrs = node.attrs;
                 const uri = attrs.src;
-                const result = (await GooglePhotosClientUtils.UploadImages([uri])).newMediaItemResults;
+                const baseUrls = await GooglePhotos.Transactions.UploadThenFetch([uri]);
+                if (!baseUrls) {
+                    continue;
+                }
                 images.push({
                     insertInlineImage: {
-                        uri: result[0].mediaItem.productUrl,
+                        uri: baseUrls[0],
                         objectSize: { width: { magnitude: parseFloat(attrs.width.replace("px", "")), unit: "PT" } },
                         location: { index: position + length }
                     }

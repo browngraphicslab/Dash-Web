@@ -795,19 +795,6 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
     ["update", (api, params) => api.batchUpdate(params)],
 ]);
 
-// app.post(RouteStore.googleDocsGet, async (req, res) => {
-//     const token = await GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, tokenPath });
-//     request_promise.get({
-//         uri: `https://docs.googleapis.com/v1/documents/${req.body.documentId}?fields=inlineObjects`,
-//         headers: {
-//             'Authorization': `Bearer ${token}`
-//         }
-//     }).then(response => {
-//         console.log(response);
-//         res.send(response);
-//     });
-// });
-
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector: GoogleApiServerUtils.Service = req.params.sector;
     let action: GoogleApiServerUtils.Action = req.params.action;
@@ -841,11 +828,11 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         };
     }));
     if (!newMediaItems.every(item => item)) {
-        return res.status(STATUS.EXECUTION_ERROR).send(tokenError);
+        return _error(res, tokenError);
     }
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-        success => res.status(STATUS.OK).send(success),
-        () => res.status(STATUS.EXECUTION_ERROR).send(mediaError)
+        mediaItems => _success(res, mediaItems),
+        error => _error(res, mediaError, error)
     );
 });
 
@@ -871,7 +858,7 @@ app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
     _invalid(res, requestError);
 });
 
-const _error = (res: Response, message: string, error: any) => {
+const _error = (res: Response, message: string, error?: any) => {
     res.statusMessage = message;
     res.status(STATUS.EXECUTION_ERROR).send(error);
 };
