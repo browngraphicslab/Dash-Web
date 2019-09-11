@@ -63,10 +63,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private _lastTap: number = 0;
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
-
+    @observable private hoverActive = false;
 
     @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -372,6 +371,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         this.recordAudioAnnotation();
     }
 
+    considerGooglePhotosLink = () => {
+        const remoteUrl = StrCast(this.props.Document.googlePhotosUrl);
+        if (remoteUrl) {
+            return (
+                <img
+                    id={"google-photos"}
+                    src={"/assets/google_photos.png"}
+                    style={{ opacity: this.hoverActive ? 1 : 0 }}
+                    onClick={() => window.open(remoteUrl)}
+                />
+            );
+        }
+        return (null);
+    }
 
     render() {
         // let transform = this.props.ScreenToLocalTransform().inverse();
@@ -408,6 +421,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         return (
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
+                onPointerEnter={action(() => this.hoverActive = true)}
+                onPointerLeave={action(() => this.hoverActive = false)}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
                     <img id={id}
@@ -434,6 +449,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     <FontAwesomeIcon className="imageBox-audioFont"
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
+                {this.considerGooglePhotosLink()}
                 {/* {this.lightbox(paths)} */}
                 <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
