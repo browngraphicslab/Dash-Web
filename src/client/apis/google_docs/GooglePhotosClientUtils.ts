@@ -10,7 +10,10 @@ import { RichTextUtils } from "../../../new_fields/RichTextUtils";
 import { EditorState } from "prosemirror-state";
 import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { MediaItemCreationResult, NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
+import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
+import { AssertionError } from "assert";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
 
 export namespace GooglePhotos {
 
@@ -53,7 +56,14 @@ export namespace GooglePhotos {
         PERFORMANCES: 'PERFORMANCES',
         WHITEBOARDS: 'WHITEBOARDS',
         SCREENSHOTS: 'SCREENSHOTS',
-        UTILITY: 'UTILITY'
+        UTILITY: 'UTILITY',
+        ARTS: 'ARTS',
+        CRAFTS: 'CRAFTS',
+        FASHION: 'FASHION',
+        HOUSES: 'HOUSES',
+        GARDENS: 'GARDENS',
+        FLOWERS: 'FLOWERS',
+        HOLIDAYS: 'HOLIDAYS'
     };
 
     export namespace Export {
@@ -63,7 +73,15 @@ export namespace GooglePhotos {
             mediaItems: MediaItem[];
         }
 
-        export const CollectionToAlbum = async (collection: Doc, title?: string, descriptionKey?: string): Promise<Opt<AlbumCreationResult>> => {
+        export interface AlbumCreationOptions {
+            collection: Doc;
+            title?: string;
+            descriptionKey?: string;
+            tag?: boolean;
+        }
+
+        export const CollectionToAlbum = async (options: AlbumCreationOptions): Promise<Opt<AlbumCreationResult>> => {
+            const { collection, title, descriptionKey, tag } = options;
             const dataDocument = Doc.GetProto(collection);
             const images = ((await DocListCastAsync(dataDocument.data)) || []).filter(doc => Cast(doc.data, ImageField));
             if (!images || !images.length) {
@@ -71,9 +89,24 @@ export namespace GooglePhotos {
             }
             const resolved = title ? title : (StrCast(collection.title) || `Dash Collection (${collection[Id]}`);
             const { id } = await Create.Album(resolved);
-            const result = await Transactions.UploadImages(images, { id }, descriptionKey);
-            if (result) {
-                const mediaItems = result.newMediaItemResults.map(item => item.mediaItem);
+            const newMediaItemResults = await Transactions.UploadImages(images, { id }, descriptionKey);
+            if (newMediaItemResults) {
+                const mediaItems = newMediaItemResults.map(item => item.mediaItem);
+                if (mediaItems.length !== images.length) {
+                    throw new AssertionError({ actual: mediaItems.length, expected: images.length });
+                }
+                const idMapping = new Doc;
+                for (let i = 0; i < images.length; i++) {
+                    const image = images[i];
+                    const mediaItem = mediaItems[i];
+                    image.googlePhotosId = mediaItem.id;
+                    image.googlePhotosUrl = mediaItem.baseUrl || mediaItem.productUrl;
+                    idMapping[mediaItem.id] = image;
+                }
+                collection.googlePhotosIdMapping = idMapping;
+                if (tag) {
+                    await Query.AppendImageMetadata(collection);
+                }
                 return { albumId: id, mediaItems };
             }
         };
@@ -101,21 +134,32 @@ export namespace GooglePhotos {
 
     export namespace Query {
 
-        export const AppendImageMetadata = (sources: (Doc | string)[]) => {
-            let keys = Object.keys(ContentCategories);
-            let included: string[] = [];
-            let excluded: string[] = [];
-            for (let i = 0; i < keys.length; i++) {
-                for (let j = 0; j < keys.length; j++) {
-                    let value = ContentCategories[keys[i] as keyof typeof ContentCategories];
-                    if (j === i) {
-                        included.push(value);
-                    } else {
-                        excluded.push(value);
+        export const AppendImageMetadata = async (collection: Doc) => {
+            const idMapping = await Cast(collection.googlePhotosIdMapping, Doc);
+            if (!idMapping) {
+                throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
+            }
+            const images = await DocListCastAsync(collection.data);
+            images && images.forEach(image => image.googlePhotosTags = new List());
+            const values = Object.values(ContentCategories);
+            for (let value of values) {
+                console.log("Searching for ", value);
+                const results = await Search({ included: [value] });
+                if (results.mediaItems) {
+                    console.log(`${results.mediaItems.length} found!`);
+                    const ids = results.mediaItems.map(item => item.id);
+                    for (let id of ids) {
+                        const image = await Cast(idMapping[id], Doc);
+                        if (image) {
+                            const tags = Cast(image.googlePhotosTags, listSpec("string"))!;
+                            if (!tags.includes(value)) {
+                                tags.push(value);
+                                console.log(`${value}: ${id}`);
+                            }
+                        }
                     }
                 }
-                //...
-                included = excluded = [];
+                console.log();
             }
         };
 
@@ -125,20 +169,22 @@ export namespace GooglePhotos {
         }
 
         const DefaultSearchOptions: SearchOptions = {
-            pageSize: 20,
+            pageSize: 50,
             included: [],
             excluded: [],
             date: undefined,
             includeArchivedMedia: true,
+            excludeNonAppCreatedData: false,
             type: MediaType.ALL_MEDIA,
         };
 
         export interface SearchOptions {
             pageSize: number;
-            included: ContentCategories[];
-            excluded: ContentCategories[];
+            included: string[];
+            excluded: string[];
             date: Opt<Date | DateRange>;
             includeArchivedMedia: boolean;
+            excludeNonAppCreatedData: boolean;
             type: MediaType;
         }
 
@@ -173,7 +219,7 @@ export namespace GooglePhotos {
             filters.setMediaTypeFilter(new photos.MediaTypeFilter(options.type || MediaType.ALL_MEDIA));
 
             return new Promise<SearchResponse>(resolve => {
-                photos.mediaItems.search(filters, options.pageSize || 20).then(resolve);
+                photos.mediaItems.search(filters, options.pageSize || 100).then(resolve);
             });
         };
 
@@ -183,7 +229,7 @@ export namespace GooglePhotos {
 
     }
 
-    export namespace Create {
+    namespace Create {
 
         export const Album = async (title: string) => {
             return (await endpoint()).albums.create(title);
@@ -211,40 +257,34 @@ export namespace GooglePhotos {
             return uploads;
         };
 
-        export const UploadThenFetch = async (sources: (Doc | string)[], album?: AlbumReference, descriptionKey = "caption") => {
-            const result = await UploadImages(sources, album, descriptionKey);
-            if (!result) {
+        export const UploadThenFetch = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption") => {
+            const newMediaItems = await UploadImages(sources, album, descriptionKey);
+            if (!newMediaItems) {
                 return undefined;
             }
-            const baseUrls: string[] = await Promise.all(result.newMediaItemResults.map((result: any) => {
-                return new Promise<string>(resolve => Query.GetImage(result.mediaItem.id).then(item => resolve(item.baseUrl)));
+            const baseUrls: string[] = await Promise.all(newMediaItems.map(item => {
+                return new Promise<string>(resolve => Query.GetImage(item.mediaItem.id).then(item => resolve(item.baseUrl)));
             }));
             return baseUrls;
         };
 
-        export const UploadImages = async (sources: (Doc | string)[], album?: AlbumReference, descriptionKey = "caption"): Promise<Opt<MediaItemCreationResult>> => {
+        export const UploadImages = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption"): Promise<Opt<NewMediaItemResult[]>> => {
             if (album && "title" in album) {
                 album = await Create.Album(album.title);
             }
             const media: MediaInput[] = [];
             sources.forEach(source => {
-                let url: string;
-                let description: string;
-                if (source instanceof Doc) {
-                    const data = Cast(Doc.GetProto(source).data, ImageField);
-                    if (!data) {
-                        return;
-                    }
-                    url = data.url.href;
-                    description = parseDescription(source, descriptionKey);
-                } else {
-                    url = source;
-                    description = Utils.GenerateGuid();
+                const data = Cast(Doc.GetProto(source).data, ImageField);
+                if (!data) {
+                    return;
                 }
+                const url = data.url.href;
+                const description = parseDescription(source, descriptionKey);
                 media.push({ url, description });
             });
             if (media.length) {
-                return PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                const uploads: NewMediaItemResult[] = await PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                return uploads;
             }
         };
 

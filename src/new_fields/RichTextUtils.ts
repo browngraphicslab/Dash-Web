@@ -298,7 +298,7 @@ export namespace RichTextUtils {
                 const length = node.nodeSize;
                 const attrs = node.attrs;
                 const uri = attrs.src;
-                const baseUrls = await GooglePhotos.Transactions.UploadThenFetch([uri]);
+                const baseUrls = await GooglePhotos.Transactions.UploadThenFetch([Docs.Create.ImageDocument(uri)]);
                 if (!baseUrls) {
                     continue;
                 }

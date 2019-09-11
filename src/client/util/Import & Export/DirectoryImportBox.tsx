@@ -74,13 +74,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     handleSelection = async (e: React.ChangeEvent<HTMLInputElement>) => {
         runInAction(() => this.uploading = true);
 
-        let promises: Promise<void>[] = [];
         let docs: Doc[] = [];
 
         let files = e.target.files;
         if (!files || files.length === 0) return;
 
-        let directory = (files.item(0) as any).webkitRelativePath.split("/", 1);
+        let directory = (files.item(0) as any).webkitRelativePath.split("/", 1)[0];
 
         let validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
@@ -117,8 +116,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             console.log(`(${this.quota - this.remaining}/${this.quota}) ${upload.name}`);
         }));
 
-        await GooglePhotos.Transactions.UploadImages(docs, { title: directory });
-
         for (let i = 0; i < docs.length; i++) {
             let doc = docs[i];
             doc.size = sizes[i];
@@ -142,11 +139,11 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let parent = this.props.ContainingCollectionView;
         if (parent) {
             let importContainer = Docs.Create.StackingDocument(docs, options);
+            await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
             DocumentManager.Instance.jumpToDocument(importContainer, true);
-
         }
 
         runInAction(() => {

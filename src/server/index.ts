@@ -831,7 +831,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return _error(res, tokenError);
     }
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-        mediaItems => _success(res, mediaItems),
+        result => _success(res, result.newMediaItemResults),
         error => _error(res, mediaError, error)
     );
 });

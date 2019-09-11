@@ -594,7 +594,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             cm.addItem({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
         }
         if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-            cm.addItem({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum(this.props.Document).then(console.log), icon: "caret-square-right" });
+            cm.addItem({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+            cm.addItem({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.AppendImageMetadata(this.props.Document), icon: "caret-square-right" });
         }
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];

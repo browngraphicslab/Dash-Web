@@ -5,7 +5,7 @@ import { Utils } from '../../../Utils';
 import * as path from 'path';
 import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
-import { MediaItemCreationResult } from './SharedTypes';
+import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -55,24 +55,34 @@ export namespace GooglePhotosUploadUtils {
 
 
 
-    export const CreateMediaItems = (newMediaItems: any[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        return new Promise<MediaItemCreationResult>((resolve, reject) => {
+    export const CreateMediaItems = async (newMediaItems: any[], album?: { id: string }): Promise<MediaItemCreationResult> => {
+        const quota = newMediaItems.length;
+        let handled = 0;
+        const newMediaItemResults: NewMediaItemResult[] = [];
+        while (handled < quota) {
+            const cap = Math.min(newMediaItems.length, handled + 50);
+            const batch = newMediaItems.slice(handled, cap);
+            console.log(batch.length);
             const parameters = {
                 method: 'POST',
                 headers: headers('json'),
                 uri: prepend('mediaItems:batchCreate'),
-                body: { newMediaItems } as any,
+                body: { newMediaItems: batch } as any,
                 json: true
             };
             album && (parameters.body.albumId = album.id);
-            request(parameters, (error, _response, body) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(body);
-                }
-            });
-        });
+            newMediaItemResults.push(...(await new Promise<MediaItemCreationResult>((resolve, reject) => {
+                request(parameters, (error, _response, body) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(body);
+                    }
+                });
+            })).newMediaItemResults);
+            handled = cap;
+        }
+        return { newMediaItemResults };
     };
 
 }
