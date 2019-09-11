@@ -107,6 +107,7 @@ export namespace GooglePhotos {
                 if (tag) {
                     await Query.TagChildImages(collection);
                 }
+                collection.albumId = id;
                 return { albumId: id, mediaItems };
             }
         };
@@ -256,6 +257,19 @@ export namespace GooglePhotos {
             filename: string;
             baseUrl: string;
         }
+
+        export const AddTextEnrichment = async (collection: Doc, content?: string) => {
+            const photos = await endpoint();
+            const albumId = StrCast(collection.albumId);
+            if (albumId && albumId.length) {
+                const enrichment = new photos.TextEnrichment(content || Utils.prepend("/doc/" + collection[Id]));
+                const position = new photos.AlbumPosition(photos.AlbumPosition.POSITIONS.FIRST_IN_ALBUM);
+                const enrichmentItem = await photos.albums.addEnrichment(albumId, enrichment, position);
+                if (enrichmentItem) {
+                    return enrichmentItem.id;
+                }
+            }
+        };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
             const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, body);

@@ -103,7 +103,8 @@ export namespace DownloadUtils {
     const png = ".png";
     const pngs = [".png", ".PNG"];
     const jpgs = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-    const formats = [".jpg", ".png", ".gif"];
+    const imageFormats = [".jpg", ".png", ".gif"];
+    const videoFormats = [".mov", ".mp4"];
     const size = "content-length";
     const type = "content-type";
 
@@ -150,25 +151,27 @@ export namespace DownloadUtils {
                 resizers.forEach(element => element.resizer = element.resizer.png());
             } else if (jpgs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.jpeg());
-            } else if (!formats.includes(extension.toLowerCase())) {
-                return reject();
+            } else if (![...imageFormats, ...videoFormats].includes(extension.toLowerCase())) {
+                return resolve(undefined);
             }
-            for (let resizer of resizers) {
-                const suffix = resizer.suffix;
-                let mediaPath: string;
-                await new Promise<void>(resolve => {
-                    const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
-                    information.mediaPaths.push(mediaPath = uploadDirectory + filename);
-                    information.fileNames[suffix] = filename;
-                    stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
-                        .on('close', resolve)
-                        .on('error', reject);
-                });
-                if (!isLocal) {
+            if (imageFormats.includes(extension)) {
+                for (let resizer of resizers) {
+                    const suffix = resizer.suffix;
+                    let mediaPath: string;
                     await new Promise<void>(resolve => {
-                        stream(url).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
+                        const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
+                        information.mediaPaths.push(mediaPath = uploadDirectory + filename);
+                        information.fileNames[suffix] = filename;
+                        stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
+                            .on('close', resolve)
+                            .on('error', reject);
                     });
                 }
+            }
+            if (!isLocal) {
+                await new Promise<void>(resolve => {
+                    stream(url).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
+                });
             }
             resolve(information);
         });

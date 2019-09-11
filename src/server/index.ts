@@ -579,7 +579,7 @@ app.post(
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
-                await UploadUtils.UploadImage(uploadDirectory + filename, filename);
+                await UploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
                 results.push({ name, type, path: `/files/${filename}` });
                 console.log(path.basename(name));
             }
