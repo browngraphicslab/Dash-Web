@@ -397,8 +397,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     moveIconDoc(iconDoc: Doc) {
         let selView = SelectionManager.SelectedDocuments()[0];
-        let zoom = NumCast(selView.props.Document.zoomBasis, 1);
-        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).scale(1 / zoom).
+        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).
             transformPoint(this._minimizedX - 12, this._minimizedY - 12);
         iconDoc.x = where[0] + NumCast(selView.props.Document.x);
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);

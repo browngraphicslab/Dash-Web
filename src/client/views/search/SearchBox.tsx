@@ -220,7 +220,6 @@ export class SearchBox extends React.Component {
                 doc.width = size;
                 doc.height = size;
             }
-            doc.zoomBasis = 1;
             x += 250;
             if (x > 1000) {
                 x = 0;

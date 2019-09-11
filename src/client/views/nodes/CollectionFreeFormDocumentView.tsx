@@ -19,7 +19,6 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
 
 const schema = createSchema({
-    zoomBasis: "number",
     zIndex: "number",
 });
 
@@ -29,22 +28,36 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
-    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg) scale(${this.zoom}) `; }
-    @computed get X() { return this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
-    @computed get Y() { return this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
-    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
-    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
-    @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
+    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
+    @computed get X() { return this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
+    @computed get Y() { return this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
+    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
+    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
     @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
+
+    @computed get renderScriptDim() {
+        if (this.Document.renderScript) {
+            let someView = Cast(this.Document.someView, Doc);
+            let minimap = Cast(this.Document.minimap, Doc);
+            if (someView instanceof Doc && minimap instanceof Doc) {
+                let x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
+                let y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
+                let w = NumCast(someView.width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
+                let h = NumCast(someView.height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
+                return { x: x, y: y, width: w, height: h };
+            }
+        }
+        return undefined;
+    }
 
     contentScaling = () => this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling()).scale(1 / this.zoom / this.scaleToOverridingWidth)
+        .scale(1 / this.contentScaling()).scale(1 / this.scaleToOverridingWidth)
 
     animateBetweenIcon = (icon: number[], stime: number, maximizing: boolean) => {
         this.props.bringToFront(this.props.Document);
@@ -77,21 +90,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     clusterColorFunc = (doc: Doc) => this.clusterColor;
 
     render() {
-        let txf = this.transform;
-        let w = this.width;
-        let h = this.height;
-        let renderScript = this.Document.renderScript;
-        if (renderScript) {
-            let someView = Cast(this.Document.someView, Doc);
-            let minimap = Cast(this.Document.minimap, Doc);
-            if (someView instanceof Doc && minimap instanceof Doc) {
-                let x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
-                let y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
-                w = NumCast(someView.width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
-                h = NumCast(someView.height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
-                txf = `translate(${x}px,${y}px)`;
-            }
-        }
         const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
@@ -107,10 +105,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                                         `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                     undefined,
                     borderRadius: this.borderRounding(),
-                    transform: txf,
+                    transform: this.transform,
                     transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
-                    width: w,
-                    height: h,
+                    width: this.width,
+                    height: this.height,
                     zIndex: this.Document.zIndex || 0,
                 }} >
                 <DocumentView {...this.props}

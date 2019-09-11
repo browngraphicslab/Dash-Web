@@ -180,8 +180,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openColFullScreen = (options: { context: Doc }) => {
         if (LinkFollowBox.destinationDoc) {
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
@@ -209,8 +209,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
@@ -286,8 +286,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
