@@ -99,6 +99,9 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         let params: string[] = [];
         let setParams = (p: string[]) => params.splice(0, params.length, ...p);
         let scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+            if (prewrapper) {
+                text = prewrapper + text + (postwrapper ? postwrapper : "");
+            }
             const script = CompileScript(text, {
                 params: { this: Doc.name },
                 typecheck: false,

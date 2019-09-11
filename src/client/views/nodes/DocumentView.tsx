@@ -643,7 +643,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: this.props.Document.isButton || this.props.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
-        onClicks.push({ description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("Foreach Collection Doc (d) => ", this.props.Document, "onClick", obj.x, obj.y, "docList(this.collectionContext.data).map(d => {", "});\n") });
+        onClicks.push({
+            description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => {
+                this.props.Document.collectionContext = this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document;
+                ScriptBox.EditButtonScript("Foreach Collection Doc (d) => ", this.props.Document, "onClick", obj.x, obj.y, "docList(this.collectionContext.data).map(d => {", "});\n");
+            }
+        });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         let existing = ContextMenu.Instance.findByDescription("Layout...");
