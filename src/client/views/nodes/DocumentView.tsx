@@ -601,6 +601,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Into Button", event: this.makeBtnClicked, icon: "concierge-bell" });
+        makes.push({ description: "OnClick Button script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript(this.props.Document, "onClick", this._mainCont, obj.x, obj.y) });
         makes.push({ description: "OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
         makes.push({ description: "OnClick foreach doc", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick", "docList(this.collectionContext.data).map(d => {", "});\n") });
         makes.push({

@@ -44,8 +44,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            Doc.GetProto(this.dataDoc).source = new List<Doc>(de.data.droppedDocuments);
+        if (de.data instanceof DragManager.DocumentDragData && e.target) {
+            Doc.GetProto(this.dataDoc)[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments);
             e.stopPropagation();
         }
     }

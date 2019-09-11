@@ -10,7 +10,7 @@ library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
-    event: () => void;
+    event: (stuff?: any) => void;
     undoable?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
@@ -44,7 +44,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             if (this.props.undoable !== false) {
                 batch = UndoManager.StartBatch(`Context menu event: ${this.props.description}`);
             }
-            await this.props.event();
+            await this.props.event({ x: e.clientX, y: e.clientY });
             batch && batch.end();
         }
     }
