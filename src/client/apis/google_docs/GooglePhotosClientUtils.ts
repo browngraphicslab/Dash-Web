@@ -140,27 +140,32 @@ export namespace GooglePhotos {
                 throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
             }
             const images = await DocListCastAsync(collection.data);
-            images && images.forEach(image => image.googlePhotosTags = new List());
+            images && images.forEach(image => image.googlePhotosTags = new List([ContentCategories.NONE]));
             const values = Object.values(ContentCategories);
             for (let value of values) {
-                console.log("Searching for ", value);
-                const results = await Search({ included: [value] });
-                if (results.mediaItems) {
-                    console.log(`${results.mediaItems.length} found!`);
-                    const ids = results.mediaItems.map(item => item.id);
-                    for (let id of ids) {
-                        const image = await Cast(idMapping[id], Doc);
-                        if (image) {
-                            const tags = Cast(image.googlePhotosTags, listSpec("string"))!;
-                            if (!tags.includes(value)) {
-                                tags.push(value);
-                                console.log(`${value}: ${id}`);
+                if (value !== ContentCategories.NONE) {
+                    const results = await Search({ included: [value] });
+                    if (results.mediaItems) {
+                        const ids = results.mediaItems.map(item => item.id);
+                        for (let id of ids) {
+                            const image = await Cast(idMapping[id], Doc);
+                            if (image) {
+                                const tags = Cast(image.googlePhotosTags, listSpec("string"))!;
+                                if (!tags.includes(value)) {
+                                    tags.push(value);
+                                }
                             }
                         }
                     }
                 }
-                console.log();
             }
+            images && images.forEach(image => {
+                const tags = Cast(image.googlePhotosTags, listSpec("string"))!;
+                if (tags.includes(ContentCategories.NONE) && tags.length > 1) {
+                    image.googlePhotosTags = new List(tags.splice(tags.indexOf(ContentCategories.NONE), 1));
+                }
+            });
+
         };
 
         interface DateRange {
