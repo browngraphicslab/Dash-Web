@@ -102,7 +102,7 @@ export class PreviewCursor extends React.Component<{}> {
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
-            if (!e.ctrlKey && !e.metaKey) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
+            if ((!e.ctrlKey || (e.keyCode >= 48 && e.keyCode <= 57)) && !e.metaKey) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
                 PreviewCursor.Visible = false;
             }

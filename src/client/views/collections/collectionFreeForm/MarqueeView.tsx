@@ -22,6 +22,7 @@ import React = require("react");
 import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
 import { string } from "prop-types";
 import { listSpec } from "../../../../new_fields/Schema";
+import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -97,6 +98,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         } else if (!e.ctrlKey) {
             this.props.addLiveTextDocument(
                 Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" }));
+        } else if (e.keyCode > 48 && e.keyCode <= 57) {
+            let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+            let text = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" });
+            text.layout = notes[(e.keyCode - 49) % notes.length];
+            this.props.addLiveTextDocument(text);
         }
         e.stopPropagation();
     }

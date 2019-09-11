@@ -66,6 +66,7 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     layout?: string;
+    isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;

@@ -7,7 +7,7 @@ import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/nort
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
 import { CollectionView } from "../../../client/views/collections/CollectionView";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
@@ -50,6 +50,16 @@ export class CurrentUserUtils {
             doc.workspaces = workspaces;
         }
         PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => workspaces && (workspaces.preventTreeViewOpen = true));
+        if (doc.noteTypes === undefined) {
+            let notes = [Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true })];
+            const noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
+            noteTypes.excludeFromLibrary = true;
+            doc.noteTypes = noteTypes;
+        }
+        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(vals => DocListCast(vals)));
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;

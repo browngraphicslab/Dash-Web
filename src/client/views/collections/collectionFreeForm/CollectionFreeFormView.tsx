@@ -39,6 +39,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocServer } from "../../../DocServer";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
+import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -272,7 +273,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             // col && (Doc.GetProto(newBox).backgroundColor = Utils.toRGBAstr(Utils.HSLtoRGB(newcol.h, newcol.s, newcol.l)));
             // OR transparency set
             let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
-            col && (Doc.GetProto(newBox).backgroundColor = col);
+            (newBox.backgroundColor === newBox.defaultBackgroundColor) && col && (Doc.GetProto(newBox).backgroundColor = col);
 
             let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
             round && (Doc.GetProto(newBox).borderRounding = round);
@@ -945,17 +946,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
 
         let noteItems: ContextMenuProps[] = [];
-        noteItems.push({ description: "1: Note", event: () => this.createText("Note", "yellow"), icon: "eye" });
-        noteItems.push({ description: "2: Idea", event: () => this.createText("Idea", "pink"), icon: "eye" });
-        noteItems.push({ description: "3: Topic", event: () => this.createText("Topic", "lightBlue"), icon: "eye" });
-        noteItems.push({ description: "4: Person", event: () => this.createText("Person", "lightGreen"), icon: "eye" });
+        let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+        notes.map((node, i) => noteItems.push({ description: (i + 1) + ": " + StrCast(node.title), event: () => this.createText(i), icon: "eye" }));
         layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" })
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
-    createText = (noteStyle: string, color: string) => {
+    createText = (noteStyle: number) => {
         let pt = this.getTransform().transformPoint(ContextMenu.Instance.pageX, ContextMenu.Instance.pageY);
-        this.addLiveTextBox(Docs.Create.TextDocument({ title: noteStyle, x: pt[0], y: pt[1], autoHeight: true, backgroundColor: color }))
+        let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: pt[0], y: pt[1], autoHeight: true, title: StrCast(notes[noteStyle % notes.length].title) });
+        text.layout = notes[noteStyle % notes.length];
+        this.addLiveTextBox(text);
     }
 
     private childViews = () => [
