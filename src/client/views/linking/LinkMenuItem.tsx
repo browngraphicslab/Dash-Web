@@ -3,8 +3,8 @@ import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc } from '../../../new_fields/Doc';
-import { Cast, StrCast } from '../../../new_fields/Types';
+import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
+import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
@@ -12,18 +12,12 @@ import { MainView } from '../MainView';
 import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenu.scss';
 import React = require("react");
-<<<<<<< HEAD:src/client/views/nodes/LinkMenuItem.tsx
-import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
-import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
-import { observable, action } from 'mobx';
-import { LinkManager } from '../../util/LinkManager';
-import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Utils } from '../../../Utils';
 import { Id } from '../../../new_fields/FieldSymbols';
-=======
->>>>>>> ec62b213439ab49134fa2dbbdf38a6d1ef5737cd:src/client/views/linking/LinkMenuItem.tsx
+import { DocumentManager } from '../../util/DocumentManager';
+import { undoBatch } from '../../util/UndoManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -40,57 +34,7 @@ interface LinkMenuItemProps {
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
-<<<<<<< HEAD:src/client/views/nodes/LinkMenuItem.tsx
     @action toggleShowMore() { this._showMore = !this._showMore; }
-
-    @undoBatch
-    onFollowLink = async (e: React.PointerEvent): Promise<void> => {
-        e.stopPropagation();
-        e.persist();
-        let jumpToDoc = this.props.destinationDoc;
-        let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
-        if (pdfDoc) {
-            jumpToDoc = pdfDoc;
-        }
-        let proto = Doc.GetProto(this.props.linkDoc);
-        let targetContext = await Cast(proto.targetContext, Doc);
-        let sourceContext = await Cast(proto.sourceContext, Doc);
-        let guid = StrCast(this.props.linkDoc.guid);
-        let self = this;
-
-        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-        if (e.ctrlKey) {
-            dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
-        }
-
-        if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext);
-        }
-        else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
-            if (guid) {
-                console.log('wegotthis', StrCast(self.props.linkDoc.anchor2), jumpToDoc[Id]);
-                jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(this.props.linkDoc.anchor2));
-                jumpToDoc.guid = guid;
-            } else { // retroactively fixing old in-text links by adding guid 
-                console.log('wegotthis', self.props.linkDoc.anchor2, jumpToDoc[Id]);
-                jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(this.props.linkDoc.anchor2));
-                let newguid = Utils.GenerateGuid();
-                this.props.linkDoc.guid = newguid;
-                jumpToDoc.guid = newguid;
-            }
-        }
-        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
-        }
-        else {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
-        }
-=======
-    @action toggleShowMore() {
-        this._showMore = !this._showMore;
->>>>>>> ec62b213439ab49134fa2dbbdf38a6d1ef5737cd:src/client/views/linking/LinkMenuItem.tsx
-    }
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();

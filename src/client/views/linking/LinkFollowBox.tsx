@@ -18,6 +18,7 @@ import { DocServer } from "../../DocServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { docs_v1 } from "googleapis";
+import { Utils } from "../../../Utils";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -245,15 +246,32 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let proto = Doc.GetProto(LinkFollowBox.linkDoc);
             let targetContext = await Cast(proto.targetContext, Doc);
             let sourceContext = await Cast(proto.sourceContext, Doc);
+            let guid = StrCast(LinkFollowBox.linkDoc.guid);
             const shouldZoom = options ? options.shouldZoom : false;
 
             let dockingFunc = (document: Doc) => { this._addDocTab && this._addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-
             if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
             }
             else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
+                if (LinkFollowBox.sourceDoc) {
+                    if (guid) {
+                        console.log("guid");
+                        console.log('wegotthis', StrCast(LinkFollowBox.sourceDoc[Id])); // need to find if jumptodoc is the doc to follow, take id
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
+                        LinkFollowBox.destinationDoc.guid = guid;
+                        // process to follow: if guid, then we want to find the linkhref and use that to figure out whether we can find the links that correspond to the guid.
+                    } else {
+                        console.log("no guid"); // retroactively fixing old in-text links by adding guid 
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
+                        let newguid = Utils.GenerateGuid();
+                        LinkFollowBox.linkDoc.guid = newguid;
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
+                        LinkFollowBox.destinationDoc.guid = newguid;
+                        // if we find a link that doesnt match a guid but matches the OG link ref that correspond to the original anchor, then we move forward
+                    }
+                }
             }
             else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, undefined, undefined,

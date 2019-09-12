@@ -138,6 +138,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         document.addEventListener("paste", this.paste);
 
+        this.props.Document.guid = undefined;
+        this.props.Document.linkHref = undefined;
+
+        console.log('formattextbox', this.props.Document[Id]);
         reaction(
             () => StrCast(this.props.Document.guid),
             async (guid) => {
@@ -158,8 +162,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         editor.focus();
                         editor.dispatch(tr.scrollIntoView());
                         editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
-                        this.props.Document.guid = "";
-                        this.props.Document.linkHref = "";
+                        this.props.Document.guid = undefined;
+                        this.props.Document.linkHref = undefined;
                     }
                 }
 
