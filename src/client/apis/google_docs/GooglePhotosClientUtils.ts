@@ -306,7 +306,7 @@ export namespace GooglePhotos {
                     return;
                 }
                 const url = data.url.href;
-                const description = parseDescription(source, descriptionKey);
+                const description = parseDescription(Doc.MakeAlias(source), descriptionKey);
                 media.push({ url, description });
             });
             if (media.length) {

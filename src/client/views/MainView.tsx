@@ -273,10 +273,8 @@ export class MainView extends React.Component {
                         if (initialized && received) {
                             DocServer.GetRefField(received).then(field => {
                                 if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
-                                    const target = Doc.MakeAlias(field);
-                                    const artificialParent = Docs.Create.FreeformDocument([target], { title: `View of ${StrCast(field.title)}` });
-                                    CollectionDockingView.Instance.AddRightSplit(artificialParent, undefined);
-                                    DocumentManager.Instance.jumpToDocument(target, true, undefined, undefined, undefined, artificialParent);
+                                    CollectionDockingView.Instance.AddRightSplit(field, undefined);
+                                    DocumentManager.Instance.jumpToDocument(field, true, undefined, undefined, undefined, undefined);
                                 }
                             });
                         }
