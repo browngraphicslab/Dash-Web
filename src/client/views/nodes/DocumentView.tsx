@@ -438,7 +438,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     makeNativeViewClicked = (): void => {
-        this.props.Document.customLayout = this.props.Document.layout;
+        (this.dataDoc || Doc.GetProto(this.props.Document)).customLayout = this.props.Document.layout;
         this.props.Document.layout = this.props.Document.nativeLayout;
         this.props.Document.type = this.props.Document.nativeType;
         this.props.Document.nativeWidth = this.props.Document.nativeNativeWidth;
