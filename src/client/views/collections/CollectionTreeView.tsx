@@ -52,6 +52,7 @@ export interface TreeViewProps {
     active: () => boolean;
     showHeaderFields: () => boolean;
     preventTreeViewOpen: boolean;
+    renderedIds: string[];
 }
 
 library.add(faTrashAlt);
@@ -274,7 +275,9 @@ class TreeView extends React.Component<TreeViewProps> {
                 let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
                     DocListCast(contents), this.props.treeViewId, doc, undefined, key, addDoc, remDoc, this.move,
-                    this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen);
+                    this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
+                    this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen,
+                    [...this.props.renderedIds, doc[Id]]);
             } else {
                 contentElement = <EditableView
                     key="editableView"
@@ -306,7 +309,8 @@ class TreeView extends React.Component<TreeViewProps> {
                     TreeView.GetChildElements(docs as Doc[], this.props.treeViewId, this.props.document.layout as Doc,
                         this.resolvedDataDoc, expandKey, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform,
-                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen)}
+                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen,
+                        [...this.props.renderedIds, this.props.document[Id]])}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
             return <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.props.document[Id] + this.props.document.title}>
@@ -392,7 +396,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     {this.renderTitle}
                 </div>
                 <div className="treeViewItem-border">
-                    {!this.treeViewOpen ? (null) : this.renderContent}
+                    {!this.treeViewOpen || this.props.renderedIds.indexOf(this.props.document[Id]) !== -1 ? (null) : this.renderContent}
                 </div>
             </li>
         </div>;
@@ -415,7 +419,8 @@ class TreeView extends React.Component<TreeViewProps> {
         panelWidth: () => number,
         renderDepth: number,
         showHeaderFields: () => boolean,
-        preventTreeViewOpen: boolean
+        preventTreeViewOpen: boolean,
+        renderedIds: string[]
     ) {
         let docs = docList.filter(child => !child.excludeFromLibrary && child.opacity !== 0);
         let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
@@ -502,7 +507,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 parentKey={key}
                 active={active}
                 showHeaderFields={showHeaderFields}
-                preventTreeViewOpen={preventTreeViewOpen} />;
+                preventTreeViewOpen={preventTreeViewOpen}
+                renderedIds={renderedIds} />;
         });
     }
 }
@@ -616,7 +622,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform,
                             this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth, () => this.props.Document.chromeStatus !== "disabled",
-                            BoolCast(this.props.Document.preventTreeViewOpen))
+                            BoolCast(this.props.Document.preventTreeViewOpen), [])
                     }
                 </ul>
             </div >
