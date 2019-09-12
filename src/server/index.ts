@@ -86,6 +86,7 @@ app.use(expressValidator());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
+    console.log(req.originalUrl);
     res.locals.user = req.user;
     next();
 });
@@ -831,7 +832,10 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const media: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
     const newMediaItems = await Promise.all(media.map(async element => {
-        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url).catch(error => _error(res, tokenError, error));
+        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url).catch(error => {
+            console.log("Dispatching upload error!");
+            console.log(error);
+        });
         return !uploadToken ? undefined : {
             description: element.description,
             simpleMediaItem: { uploadToken }

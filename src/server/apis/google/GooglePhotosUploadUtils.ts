@@ -52,6 +52,7 @@ export namespace GooglePhotosUploadUtils {
         };
         return new Promise<any>((resolve, reject) => request(parameters, (error, _response, body) => {
             if (error) {
+                console.log(error);
                 return reject(error);
             }
             resolve(body);
@@ -124,7 +125,8 @@ export namespace DownloadUtils {
 
     export const UploadImage = async (url: string, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
         const resolved = filename ? sanitize(filename) : generate(prefix, url);
-        const extension = (path.extname(url) || path.extname(resolved)).toLowerCase() || ".png";
+        let extension = path.extname(url) || path.extname(resolved);
+        extension && (extension = extension.toLowerCase());
         let information: UploadInformation = {
             mediaPaths: [],
             fileNames: { clean: resolved }
@@ -151,12 +153,13 @@ export namespace DownloadUtils {
                     suffix: size.suffix
                 }))
             ];
+            let nonVisual = false;
             if (pngs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.png());
             } else if (jpgs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.jpeg());
             } else if (![...imageFormats, ...videoFormats].includes(extension.toLowerCase())) {
-                return resolve(undefined);
+                nonVisual = true;
             }
             if (imageFormats.includes(extension)) {
                 for (let resizer of resizers) {
@@ -172,7 +175,7 @@ export namespace DownloadUtils {
                     });
                 }
             }
-            if (!isLocal) {
+            if (!isLocal || nonVisual) {
                 await new Promise<void>(resolve => {
                     stream(url).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
                 });

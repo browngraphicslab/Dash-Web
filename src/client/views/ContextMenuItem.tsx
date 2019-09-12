@@ -93,9 +93,9 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onMouseLeave={this.onPointerLeave}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>
                     {this.props.icon ? (
-                        <span className="icon-background">
+                        <span className="icon-background" onMouseEnter={this.onPointerLeave}>
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
                         </span>
                     ) : null}

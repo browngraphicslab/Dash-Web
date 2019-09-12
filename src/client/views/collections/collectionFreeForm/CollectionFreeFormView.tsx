@@ -895,6 +895,30 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
+
+        if (this.childDocs.some(d => d.isTemplate)) {
+            layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
+        }
+        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
+        layoutItems.push({
+            description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
+            event: async () => {
+                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
+                Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
+                this.props.Document.useClusters = !this.props.Document.useClusters;
+                this.updateClusters();
+            },
+            icon: !this.props.Document.useClusters ? "braille" : "braille"
+        });
+        this.props.Document.useClusters && layoutItems.push({
+            description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
+            event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
+            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
+        });
+        layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
+        layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
         layoutItems.push({
             description: "Import document", icon: "upload", event: () => {
                 const input = document.createElement("input");
@@ -925,26 +949,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 input.click();
             }
         });
-        layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
-        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
-        layoutItems.push({
-            description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
-            event: async () => {
-                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
-                Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
-                this.props.Document.useClusters = !this.props.Document.useClusters;
-                this.updateClusters();
-            },
-            icon: !this.props.Document.useClusters ? "braille" : "braille"
-        });
-        layoutItems.push({
-            description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
-            event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
-            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
-        });
-        layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
-        layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
 
         let noteItems: ContextMenuProps[] = [];
         if (CurrentUserUtils.UserDocument) {
