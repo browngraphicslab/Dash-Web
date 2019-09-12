@@ -39,7 +39,6 @@ import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
 import { inputRules } from 'prosemirror-inputrules';
-import { select } from 'async';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -79,15 +78,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _linkClicked = "";
     private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
-    private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
+    private _reactionDisposer: Opt<IReactionDisposer>;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
+    private _rulesReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
+    @observable private _fontSize = 13;
+    @observable private _fontFamily = "Arial";
+    @observable private _fontAlign = "";
     @observable private _entered = false;
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
     public static SelectOnLoad = "";
@@ -119,14 +122,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @undoBatch
     public setFontColor(color: string) {
-        this._editorView!.state.storedMarks
-        if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
-        if (this._editorView!.state.selection.to - this._editorView!.state.selection.from > this._editorView!.state.doc.nodeSize - 3) {
+        let view = this._editorView!;
+        if (view.state.selection.from === view.state.selection.to) return false;
+        if (view.state.selection.to - view.state.selection.from > view.state.doc.nodeSize - 3) {
             this.props.Document.color = color;
         }
-        let colorMark = this._editorView!.state.schema.mark(this._editorView!.state.schema.marks.pFontColor, { color: color });
-        this._editorView!.dispatch(this._editorView!.state.tr.addMark(this._editorView!.state.selection.from,
-            this._editorView!.state.selection.to, colorMark));
+        let colorMark = view.state.schema.mark(view.state.schema.marks.pFontColor, { color: color });
+        view.dispatch(view.state.tr.addMark(view.state.selection.from, view.state.selection.to, colorMark));
         return true;
     }
 
@@ -253,12 +255,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     }
                 }
             });
-            //     const fieldkey = 'search_string';
-            //     if (Object.keys(this.props.Document).indexOf(fieldkey) !== -1) {
-            //         this.props.Document[fieldkey] = undefined;
-            //     }
-            //     else this.props.Document.proto![fieldkey] = undefined;
-            // }
         }
     }
     setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
@@ -376,6 +372,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentDidMount() {
+
         if (!this.props.isOverlay) {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
                 () => {
@@ -458,6 +455,39 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.unhighlightSearchTerms();
             }
         }, { fireImmediately: true });
+
+
+        this._rulesReactionDisposer = reaction(() => {
+            let ruleProvider = Cast(this.props.Document.ruleProvider, Doc);
+            let heading = NumCast(this.props.Document.heading);
+            if (ruleProvider instanceof Doc) {
+                return {
+                    align: StrCast(ruleProvider["ruleAlign_" + heading], ""),
+                    font: StrCast(ruleProvider["ruleFont_" + heading], "Arial"),
+                    size: NumCast(ruleProvider["ruleSize_" + heading], 13)
+                };
+            }
+            return { align: "", font: "Arial", size: 13 };
+        },
+            action((rules: any) => {
+                this._fontFamily = rules.font;
+                this._fontSize = rules.size;
+                setTimeout(() => {
+                    let tr = this._editorView!.state.tr;
+                    let n = new NodeSelection(this._editorView!.state.doc.resolve(0));
+                    if (this._editorView!.state.doc.textContent === "") {
+                        tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
+                            replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true).
+                            setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
+                    } else if (n.node && n.node.type === this._editorView!.state.schema.nodes.paragraph) {
+                        tr = tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align });
+                    }
+                    this._editorView!.dispatch(tr);
+                    this.tryUpdateHeight();
+                }, 0);
+            }), { fireImmediately: true }
+        );
+
         setTimeout(() => this.tryUpdateHeight(), 0);
     }
 
@@ -665,27 +695,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         else if (this.props.isOverlay) this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
-        let heading = this.props.Document.heading;
-        if (heading && selectOnLoad) {
-            PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
-                if (ruleProvider) {
-                    let align = StrCast(ruleProvider["ruleAlign_" + heading]);
-                    let font = StrCast(ruleProvider["ruleFont_" + heading]);
-                    let size = NumCast(ruleProvider["ruleSize_" + heading]);
-                    if (align) {
-                        let tr = this._editorView!.state.tr;
-                        tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
-                            replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: align }), true).
-                            setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
-                        this._editorView!.dispatch(tr);
-                    }
-                    let sm = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
-                    size && (sm = [...sm, schema.marks.pFontSize.create({ fontSize: size })]);
-                    font && (sm = [...sm, this.getFont(font)]);
-                    this._editorView!.dispatch(this._editorView!.state.tr.setStoredMarks(sm));
-                }
-            });
-        }
     }
     getFont(font: string) {
         switch (font) {
@@ -701,6 +710,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
+        this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._textReactionDisposer && this._textReactionDisposer();
@@ -866,7 +876,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
+        this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
@@ -885,7 +895,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
@@ -901,7 +910,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || Doc.IsBrushed(this.props.Document) ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive,
-                    fontSize: "13px"
+                    fontSize: this._fontSize,
+                    fontFamily: this._fontFamily,
                 }}
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}

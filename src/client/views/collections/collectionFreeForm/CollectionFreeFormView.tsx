@@ -8,7 +8,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue, DateCast } from "../../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnOne, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { Docs } from "../../../documents/Documents";
@@ -257,12 +257,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-        newBox.heading = 1;
-        for (let i = 0; i < this.childDocs.length; i++) {
-            if (this.childDocs[i].heading == 1) {
-                newBox.heading = 2;
-            }
+        let heading = this.childDocs.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
+        heading = heading === 0 || this.childDocs.length === 0 ? 1 : heading === 1 ? 2 : 0;
+        if (heading === 0) {
+            let sorted = this.childDocs.filter(d => d.type === DocumentType.TEXT && d.data_ext instanceof Doc && d.data_ext.lastModified).sort((a, b) => DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date > DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? 1 :
+                DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date < DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? -1 : 0);
+            heading = NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
         }
+        newBox.heading = heading;
+
         PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
             if (!ruleProvider) ruleProvider = this.props.Document;
             // saturation shift

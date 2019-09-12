@@ -30,7 +30,7 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key.toLowerCase();
+        let keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
