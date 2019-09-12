@@ -87,7 +87,8 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            let subItems: ContextMenuProps[] = [];
+            let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
+            let subItems: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; delete this.props.Document.usePivotLayout; }, icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
@@ -103,7 +104,8 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
-            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
+            !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
+
             let existing = ContextMenu.Instance.findByDescription("Layout...");
             let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });

@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from '../../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
@@ -445,16 +445,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
+    makeNativeViewClicked = (): void => {
+        this.props.Document.customLayout = this.props.Document.layout;
+        this.props.Document.layout = this.props.Document.nativeLayout;
+        this.props.Document.type = this.props.Document.nativeType;
+    }
+    @undoBatch
     makeCustomViewClicked = (): void => {
-        let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
-        let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+        this.props.Document.nativeLayout = this.props.Document.layout;
+        this.props.Document.nativeType = this.props.Document.type;
+        PromiseValue(this.props.Document.customLayout).then(custom => {
+            if (custom) {
+                this.props.Document.type = DocumentType.TEMPLATE;
+                this.props.Document.layout = custom;
+            } else {
+                let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
+                let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
-        let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
-        let metaKey = "data";
-        let proto = Doc.GetProto(docTemplate);
-        Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
+                let metaKey = "data";
+                let proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
 
-        Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
+                Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
+            }
+        });
     }
 
     @undoBatch
@@ -630,10 +645,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
 
+        let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
+        let vms: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+        if (this.props.Document.type !== DocumentType.COL && this.props.Document.type !== DocumentType.TEMPLATE) {
+            vms.push({ description: "Custom Document View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
+        } else if (this.props.Document.nativeLayout) {
+            vms.push({ description: "Native Document View", event: this.makeNativeViewClicked, icon: "concierge-bell" });
+        }
+        !existingVm && cm.addItem({ description: "View Modes...", subitems: vms, icon: "eye" });
+
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
-        makes.push({ description: "Custom Document View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
         makes.push({ description: "Metadata Field View", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" })
         makes.push({ description: "Into Portal", event: this.makeIntoPortal, icon: "window-restore" });
         makes.push({ description: this.layoutDoc.ignoreClick ? "Selectable" : "Unselectable", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
