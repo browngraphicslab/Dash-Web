@@ -170,6 +170,8 @@ export namespace GooglePhotos {
                 if (tags.length > 1) {
                     const cleaned = concatenated.replace(ContentCategories.NONE + delimiter, "");
                     image.googlePhotosTags = cleaned.split(delimiter).sort((a, b) => (a < b) ? -1 : (a > b ? 1 : 0)).join(delimiter);
+                } else {
+                    image.googlePhotosTags = ContentCategories.NONE;
                 }
             });
 
