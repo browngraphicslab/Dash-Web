@@ -147,14 +147,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.renderDepth === 0; }
-    @computed get templates(): List<string> {
-        let field = this.props.Document.templates;
-        if (field && field instanceof List) {
-            return field;
-        }
-        return new List<string>();
-    }
-    set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     @action
@@ -449,6 +441,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.Document.customLayout = this.props.Document.layout;
         this.props.Document.layout = this.props.Document.nativeLayout;
         this.props.Document.type = this.props.Document.nativeType;
+        this.props.Document.nativeLayout = undefined;
     }
     @undoBatch
     makeCustomViewClicked = (): void => {
@@ -553,28 +546,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @action
-    addTemplate = (template: Template) => {
-        this.templates.push(template.Layout);
-        this.templates = this.templates;
-    }
-
-    @action
-    removeTemplate = (template: Template) => {
-        for (let i = 0; i < this.templates.length; i++) {
-            if (this.templates[i] === template.Layout) {
-                this.templates.splice(i, 1);
-                break;
-            }
-        }
-        this.templates = this.templates;
-    }
-    @action
-    clearTemplates = () => {
-        this.templates.length = 0;
-        this.templates = this.templates;
-    }
-
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
@@ -645,25 +616,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
 
-        let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
-        let vms: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
-        if (this.props.Document.type !== DocumentType.COL && this.props.Document.type !== DocumentType.TEMPLATE) {
-            vms.push({ description: "Custom Document View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
-        } else if (this.props.Document.nativeLayout) {
-            vms.push({ description: "Native Document View", event: this.makeNativeViewClicked, icon: "concierge-bell" });
-        }
-        !existingVm && cm.addItem({ description: "View Modes...", subitems: vms, icon: "eye" });
-
-        let existingMake = ContextMenu.Instance.findByDescription("Make...");
-        let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
-        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
-        makes.push({ description: "Metadata Field View", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" })
-        makes.push({ description: "Into Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        makes.push({ description: this.layoutDoc.ignoreClick ? "Selectable" : "Unselectable", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
-        !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
 
         let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+        onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
+        onClicks.push({ description: this.layoutDoc.ignoreClick ? "Select" : "Do Nothing", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.props.Document.isButton || this.props.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         onClicks.push({
@@ -676,6 +633,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
+        layoutItems.push({ description: this.props.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
+        if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.layout instanceof Doc) {
+            layoutItems.push({ description: "Make View of Metadata Field", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" })
+        }
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
         layoutItems.push({ description: this.props.Document.ignoreAspect || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
@@ -684,6 +645,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
             layoutItems.push({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
+        }
+        if (this.props.Document.type !== DocumentType.COL && this.props.Document.type !== DocumentType.TEMPLATE) {
+            layoutItems.push({ description: "Use Custom Layout", event: this.makeCustomViewClicked, icon: "concierge-bell" });
+        } else if (this.props.Document.nativeLayout) {
+            layoutItems.push({ description: "Use Native Layout", event: this.makeNativeViewClicked, icon: "concierge-bell" });
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         if (!ClientUtils.RELEASE) {
@@ -698,7 +664,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         !existingAnalyze && cm.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
         cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
         cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
-        cm.addItem({ description: "Move To Overlay", icon: "laptop-code", event: () => ((o: Doc) => o && Doc.AddDocToList(o, "data", this.props.Document))(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc) });
         cm.addItem({
             description: "Download document", icon: "download", event: async () => {
                 let y = JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {

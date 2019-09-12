@@ -2,26 +2,21 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { CompileScript, ScriptOptions, CompiledScript } from "../../util/Scripting";
+import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { listSpec } from "../../../new_fields/Schema";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { ImageField } from "../../../new_fields/URLField";
+import { Docs } from "../../documents/Documents";
+import { SetupDrag } from "../../util/DragManager";
+import { CompiledScript, CompileScript, ScriptOptions } from "../../util/Scripting";
+import { undoBatch } from "../../util/UndoManager";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
-import { NumCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { Doc, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { SetupDrag } from "../../util/DragManager";
-import { Docs } from "../../documents/Documents";
-import { RawDataOperationParameters } from "../../northstar/model/idea/idea";
-import { Templates } from "../Templates";
-import { List } from "../../../new_fields/List";
-import { TextField } from "../../util/ProsemirrorCopy/prompt";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { ImageField } from "../../../new_fields/URLField";
-import { SelectionManager } from "../../util/SelectionManager";
-import { listSpec } from "../../../new_fields/Schema";
-import { CollectionViewType } from "../collections/CollectionBaseView";
-import { undoBatch } from "../../util/UndoManager";
 
 export type KVPScript = {
     script: CompiledScript;

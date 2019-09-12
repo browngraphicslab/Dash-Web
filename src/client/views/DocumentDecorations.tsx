@@ -849,24 +849,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically();
-            let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
-                let temps = doc.props.Document.templates;
-                if (temps instanceof List) {
-                    temps.map(temp => {
-                        if (temp !== Templates.Bullet.Layout || i === 0) {
-                            res.push(temp);
-                        }
-                    });
-                }
-                return res;
-            }, [] as string[]);
             let checked = false;
-            docTemps.forEach(temp => {
-                if (template.Layout === temp) {
-                    checked = true;
-                }
-            });
+            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.props.Document["show" + template.Name] !== undefined));
             templates.set(template, checked);
         });
 
