@@ -17,7 +17,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { DocServer } from "../../DocServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { docs_v1 } from "googleapis";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -180,8 +180,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openColFullScreen = (options: { context: Doc }) => {
         if (LinkFollowBox.destinationDoc) {
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
@@ -198,13 +198,19 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     }
 
+    _addDocTab: (undefined | ((doc: Doc, dataDoc: Doc | undefined, where: string) => void));
+
+    setAddDocTab = (addFunc: (doc: Doc, dataDoc: Doc | undefined, where: string) => void) => {
+        this._addDocTab = addFunc;
+    }
+
     @undoBatch
     openLinkColRight = (options: { context: Doc, shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
@@ -239,22 +245,23 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let proto = Doc.GetProto(LinkFollowBox.linkDoc);
             let targetContext = await Cast(proto.targetContext, Doc);
             let sourceContext = await Cast(proto.sourceContext, Doc);
+            const shouldZoom = options ? options.shouldZoom : false;
 
-            let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+            let dockingFunc = (document: Doc) => { this._addDocTab && this._addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
             if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
             }
             else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, document => dockingFunc(sourceContext!));
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
             }
             else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, undefined, undefined,
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, undefined, undefined,
                     NumCast((LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 ? LinkFollowBox.linkDoc.anchor2Page : LinkFollowBox.linkDoc.anchor1Page)));
 
             }
             else {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, dockingFunc);
             }
 
             this.highlightDoc();
@@ -266,9 +273,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openLinkTab = () => {
         if (LinkFollowBox.destinationDoc) {
             let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
-            // THIS IS EMPTY FUNCTION
-            this.props.addDocTab(fullScreenAlias, undefined, "inTab");
-            console.log(this.props.addDocTab);
+            // this.prosp.addDocTab is empty -- use the link source's addDocTab 
+            this._addDocTab && this._addDocTab(fullScreenAlias, undefined, "inTab");
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -280,12 +286,12 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
-            this.props.addDocTab(options.context, undefined, "inTab");
+            this._addDocTab && this._addDocTab(options.context, undefined, "inTab");
             if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
@@ -321,7 +327,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    public defaultLinkBehavior: (options?: any) => void = this.openLinkTab;
+    public defaultLinkBehavior: (options?: any) => void = this.jumpToLink;
 
     @action
     currentLinkBehavior = () => {

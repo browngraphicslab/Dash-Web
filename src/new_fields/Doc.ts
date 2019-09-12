@@ -300,15 +300,15 @@ export namespace Doc {
     export function AreProtosEqual(doc?: Doc, other?: Doc) {
         if (!doc || !other) return false;
         let r = (doc === other);
-        let r2 = (doc.proto === other);
-        let r3 = (other.proto === doc);
-        let r4 = (doc.proto === other.proto && other.proto !== undefined);
+        let r2 = (Doc.GetProto(doc) === other);
+        let r3 = (Doc.GetProto(other) === doc);
+        let r4 = (Doc.GetProto(doc) === Doc.GetProto(other) && Doc.GetProto(other) !== undefined);
         return r || r2 || r3 || r4;
     }
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
+        return doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
     }
     export function GetDataDoc(doc: Doc): Doc {
         let proto = Doc.GetProto(doc);
@@ -327,6 +327,9 @@ export namespace Doc {
         return Array.from(results);
     }
 
+    export function IndexOf(toFind: Doc, list: Doc[]) {
+        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind))
+    }
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         if (target[key] === undefined) {
             Doc.GetProto(target)[key] = new List<Doc>();
@@ -522,9 +525,10 @@ export namespace Doc {
         otherdoc.type = DocumentType.TEMPLATE;
         !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
         !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
+        !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
         return otherdoc;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc, useTemplateDoc?: boolean) {
         if (!templateDoc) {
             target.layout = undefined;
             target.nativeWidth = undefined;
@@ -533,11 +537,12 @@ export namespace Doc {
             target.type = undefined;
             return;
         }
-        let temp = Doc.MakeDelegate(templateDoc);
+        let temp = useTemplateDoc ? templateDoc : Doc.MakeDelegate(templateDoc);
         target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         !templateDoc.nativeWidth && (target.nativeWidth = 0);
         !templateDoc.nativeHeight && (target.nativeHeight = 0);
+        !templateDoc.nativeHeight && (target.ignoreAspect = true);
         target.width = templateDoc.width;
         target.height = templateDoc.height;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
@@ -576,10 +581,13 @@ export namespace Doc {
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
         */
-        fieldTemplate.ignoreAspect = BoolCast(fieldTemplate.ignoreAspect);
+        fieldTemplate.ignoreAspect = fieldTemplate.ignoreAspect === undefined ? undefined : BoolCast(fieldTemplate.ignoreAspect);
         fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
         fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
         fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
+        fieldTemplate.panX = 0;
+        fieldTemplate.panY = 0;
+        fieldTemplate.scale = 1;
         fieldTemplate.showTitle = "title";
         setTimeout(() => fieldTemplate.proto = templateDataDoc);
     }
@@ -681,3 +689,4 @@ Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
+Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });

@@ -92,16 +92,26 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let sizes = [];
         let modifiedDates = [];
 
-        let formData = new FormData();
-        for (let uploaded_file of validated) {
-            formData.append(Utils.GenerateGuid(), uploaded_file);
-            sizes.push(uploaded_file.size);
-            modifiedDates.push(uploaded_file.lastModified);
-            runInAction(() => this.remaining++);
+        let i = 0;
+        const uploads: FileResponse[] = [];
+        const batchSize = 15;
+
+        while (i < validated.length) {
+            const cap = Math.min(validated.length, i + batchSize);
+            let formData = new FormData();
+            const batch = validated.slice(i, cap);
+
+            sizes.push(...batch.map(file => file.size));
+            modifiedDates.push(...batch.map(file => file.lastModified));
+
+            batch.forEach(file => formData.append(Utils.GenerateGuid(), file));
+            const parameters = { method: 'POST', body: formData };
+            uploads.push(...(await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json()));
+
+            runInAction(() => this.remaining += batch.length);
+            i = cap;
         }
 
-        const parameters = { method: 'POST', body: formData };
-        const uploads: FileResponse[] = await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json();
 
         await Promise.all(uploads.map(async upload => {
             const type = upload.type;
@@ -138,7 +148,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
-            let importContainer = Docs.Create.StackingDocument(docs, options);
+            let importContainer = Docs.Create.MasonryDocument(docs, options);
             await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);

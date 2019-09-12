@@ -1,26 +1,17 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye, faTimes, faArrowRight, faChevronDown, faChevronUp, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { DocumentManager } from "../../util/DocumentManager";
-import { undoBatch } from "../../util/UndoManager";
-import './LinkMenu.scss';
-import React = require("react");
-import { Doc, DocListCastAsync, WidthSym } from '../../../new_fields/Doc';
-import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
-import { observable, action, computed } from 'mobx';
-import { LinkManager } from '../../util/LinkManager';
+import { Doc } from '../../../new_fields/Doc';
+import { Cast, StrCast } from '../../../new_fields/Types';
 import { DragLinkAsDocument } from '../../util/DragManager';
-import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { SelectionManager } from '../../util/SelectionManager';
-import { CollectionViewType } from '../collections/CollectionBaseView';
-import { DocumentView } from '../nodes/DocumentView';
-import { SearchUtil } from '../../util/SearchUtil';
-import { LinkFollowBox } from './LinkFollowBox';
+import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
 import { MainView } from '../MainView';
-import { Docs } from '../../documents/Documents';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { LinkFollowBox } from './LinkFollowBox';
+import './LinkMenu.scss';
+import React = require("react");
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -37,7 +28,9 @@ interface LinkMenuItemProps {
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
-    @action toggleShowMore() { this._showMore = !this._showMore; }
+    @action toggleShowMore() {
+        this._showMore = !this._showMore;
+    }
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -75,6 +68,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
+
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.Instance.setAddDocTab(this.props.addDocTab);
+        }
         e.stopPropagation();
     }
 
@@ -98,7 +97,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action.bound
     async followDefault() {
         if (LinkFollowBox.Instance !== undefined) {
-            LinkFollowBox.Instance.props.Document.isMinimized = false;
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             LinkFollowBox.Instance.defaultLinkBehavior();
         }

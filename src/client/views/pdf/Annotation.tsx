@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -13,10 +13,7 @@ import { PresBox } from "../nodes/PresBox";
 
 interface IAnnotationProps {
     anno: Doc;
-    index: number;
-    ParentIndex: () => number;
     fieldExtensionDoc: Doc;
-    scrollTo?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     pinToPres: (document: Doc) => void;
 }
@@ -33,10 +30,7 @@ interface IRegionAnnotationProps {
     y: number;
     width: number;
     height: number;
-    index: number;
-    ParentIndex: () => number;
     fieldExtensionDoc: Doc;
-    scrollTo?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     pinToPres: (document: Doc) => void;
     document: Doc;
@@ -45,8 +39,10 @@ interface IRegionAnnotationProps {
 @observer
 class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     private _reactionDisposer?: IReactionDisposer;
-    private _scrollDisposer?: IReactionDisposer;
+    private _brushDisposer?: IReactionDisposer;
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
+
+    @observable private _brushed: boolean = false;
 
     componentDidMount() {
         this._reactionDisposer = reaction(
@@ -55,15 +51,18 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             { fireImmediately: true }
         );
 
-        this._scrollDisposer = reaction(
-            () => this.props.ParentIndex(),
-            (ind) => ind === this.props.index && this.props.scrollTo && this.props.scrollTo(this.props.y * scale)
-        );
+        this._brushDisposer = reaction(
+            () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.IsBrushed(FieldValue(Cast(this.props.document.group, Doc))!),
+            (brushed) => {
+                if (brushed !== undefined) {
+                    runInAction(() => this._brushed = brushed);
+                }
+            }
+        )
     }
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
-        this._scrollDisposer && this._scrollDisposer();
     }
 
     deleteAnnotation = () => {
@@ -126,7 +125,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 left: this.props.x,
                 width: this.props.width,
                 height: this.props.height,
-                backgroundColor: this.props.ParentIndex() === this.props.index ? "green" : StrCast(this.props.document.color)
+                backgroundColor: this._brushed ? "green" : StrCast(this.props.document.color)
             }} />);
     }
 }

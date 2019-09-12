@@ -6,7 +6,6 @@ import * as path from 'path';
 import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
 import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
-import { reject } from 'bluebird';
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -51,7 +50,7 @@ export namespace GooglePhotosUploadUtils {
             uri: prepend('uploads'),
             body
         };
-        return new Promise<any>(resolve => request(parameters, (error, _response, body) => {
+        return new Promise<any>((resolve, reject) => request(parameters, (error, _response, body) => {
             if (error) {
                 return reject(error);
             }
@@ -106,11 +105,12 @@ export namespace DownloadUtils {
         LARGE: { width: 900, suffix: "_l" },
     };
 
-    const png = ".png";
-    const pngs = [".png", ".PNG"];
-    const jpgs = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-    const imageFormats = [".jpg", ".png", ".gif"];
+    const gifs = [".gif"];
+    const pngs = [".png"];
+    const jpgs = [".jpg", ".jpeg"];
+    const imageFormats = [...pngs, ...jpgs, ...gifs];
     const videoFormats = [".mov", ".mp4"];
+
     const size = "content-length";
     const type = "content-type";
 
@@ -126,7 +126,7 @@ export namespace DownloadUtils {
 
     export const UploadImage = async (url: string, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
         const resolved = filename ? sanitize(filename) : generate(prefix, url);
-        const extension = path.extname(url) || path.extname(resolved) || png;
+        const extension = (path.extname(url) || path.extname(resolved)).toLowerCase() || ".png";
         let information: UploadInformation = {
             mediaPaths: [],
             fileNames: { clean: resolved }

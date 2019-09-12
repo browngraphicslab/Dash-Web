@@ -38,8 +38,8 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
             if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
-                const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+                const newPanX = NumCast(target.x) + NumCast(target.width) / 2;
+                const newPanY = NumCast(target.y) + NumCast(target.height) / 2;
                 col.panX = newPanX;
                 col.panY = newPanY;
             }

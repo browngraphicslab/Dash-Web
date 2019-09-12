@@ -112,7 +112,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <div className="keyValuePair-td-value-container">
                         <EditableView
                             contents={contents}
-                            height={36}
+                            maxHeight={36}
+                            height={"auto"}
                             GetValue={() => {
                                 return Field.toKeyValueString(props.Document, props.fieldKey);
                             }}

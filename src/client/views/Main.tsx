@@ -57,7 +57,6 @@ let swapDocs = async () => {
     (await Cast(CurrentUserUtils.UserDocument.workspaces, Doc))!.chromeStatus = "disabled";
     (await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))!.chromeStatus = "disabled";
     (await Cast(CurrentUserUtils.UserDocument.sidebar, Doc))!.chromeStatus = "disabled";
-    CurrentUserUtils.UserDocument.chromeStatus = "disabled";
     await swapDocs();
     document.getElementById('root')!.addEventListener('wheel', event => {
         if (event.ctrlKey) {

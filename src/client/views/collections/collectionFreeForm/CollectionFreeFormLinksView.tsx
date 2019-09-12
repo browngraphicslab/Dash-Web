@@ -31,8 +31,8 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         //                 let srcTarg = srcDoc;
         //                 let x1 = NumCast(srcDoc.x);
         //                 let x2 = NumCast(dstDoc.x);
-        //                 let x1w = NumCast(srcDoc.width, -1) / NumCast(srcDoc.zoomBasis, 1);
-        //                 let x2w = NumCast(dstDoc.width, -1) / NumCast(srcDoc.zoomBasis, 1);
+        //                 let x1w = NumCast(srcDoc.width, -1);
+        //                 let x2w = NumCast(dstDoc.width, -1);
         //                 if (x1w < 0 || x2w < 0 || i === j) { }
         //                 else {
         //                     let findBrush = (field: (Doc | Promise<Doc>)[]) => field.findIndex(brush => {
@@ -120,9 +120,9 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     render() {
         return (
             <div className="collectionfreeformlinksview-container">
-                {/* <svg className="collectionfreeformlinksview-svgCanvas">
+                <svg className="collectionfreeformlinksview-svgCanvas">
                     {this.uniqueConnections}
-                </svg> */}
+                </svg>
                 {this.props.children}
             </div>
         );

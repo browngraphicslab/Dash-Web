@@ -30,6 +30,7 @@ import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { ObjectField } from '../../new_fields/ObjectField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -147,13 +148,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
-                let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
-                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                let proto = Doc.GetProto(docTemplate);
-                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
-                if (text.startsWith(">>")) {
-                    proto.detailedLayout = proto.layout;
-                    proto.miniLayout = ImageBox.LayoutString(metaKey);
+                let containerView = fieldTemplateView.props.ContainingCollectionView;
+                if (containerView) {
+                    let docTemplate = containerView.props.Document;
+                    let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                    let proto = Doc.GetProto(docTemplate);
+                    if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
+                        const fd = fieldTemplate.data;
+                        fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
+                    }
+                    Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                    if (text.startsWith(">>")) {
+                        proto.detailedLayout = proto.layout;
+                        proto.miniLayout = ImageBox.LayoutString(metaKey);
+                    }
                 }
             }
             else {
@@ -285,7 +293,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onCloseUp = async (e: PointerEvent) => {
         e.stopPropagation();
         if (e.button === 0) {
-            const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+            const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             SelectionManager.SelectedDocuments().map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
@@ -399,8 +407,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     moveIconDoc(iconDoc: Doc) {
         let selView = SelectionManager.SelectedDocuments()[0];
-        let zoom = NumCast(selView.props.Document.zoomBasis, 1);
-        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).scale(1 / zoom).
+        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).
             transformPoint(this._minimizedX - 12, this._minimizedY - 12);
         iconDoc.x = where[0] + NumCast(selView.props.Document.x);
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
@@ -430,6 +437,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        SelectionManager.SelectedDocuments().map(dv => {
+            let cv = dv.props.ContainingCollectionView;
+            let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+            let heading = NumCast(dv.props.Document.heading);
+            cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
+        })
         e.stopPropagation();
         e.preventDefault();
     }
@@ -617,6 +630,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
                 let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && BoolCast(doc.ignoreAspect)) {
+                    doc.ignoreAspect = false;
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
+                }
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;

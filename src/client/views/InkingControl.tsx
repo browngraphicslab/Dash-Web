@@ -9,9 +9,11 @@ import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { undoBatch, UndoManager } from "../util/UndoManager";
-import { StrCast } from "../../new_fields/Types";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { StrCast, NumCast, Cast } from "../../new_fields/Types";
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
+import { listSpec } from "../../new_fields/Schema";
+import { List } from "../../new_fields/List";
+import { Utils } from "../../Utils";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -49,7 +51,36 @@ export class InkingControl extends React.Component {
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
-                targetDoc.backgroundColor = this._selectedColor;
+                if (view.props.ContainingCollectionView && view.props.ContainingCollectionView.props.Document.colorPalette) {
+                    let cp = Cast(view.props.ContainingCollectionView.props.Document.colorPalette, listSpec("string")) as string[];
+                    let closest = 0;
+                    let dist = 10000000;
+                    let ccol = Utils.fromRGBAstr(StrCast(targetDoc.backgroundColor));
+                    for (let i = 0; i < cp.length; i++) {
+                        let cpcol = Utils.fromRGBAstr(cp[i]);
+                        let d = Math.sqrt((ccol.r - cpcol.r) * (ccol.r - cpcol.r) + (ccol.b - cpcol.b) * (ccol.b - cpcol.b) + (ccol.g - cpcol.g) * (ccol.g - cpcol.g));
+                        if (d < dist) {
+                            dist = d;
+                            closest = i;
+                        }
+                    }
+                    cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
+                    view.props.ContainingCollectionView.props.Document.colorPalette = new List(cp);
+                    targetDoc.backgroundColor = cp[closest];
+                } else {
+                    targetDoc.backgroundColor = this._selectedColor;
+                }
+                if (view.props.Document.heading) {
+                    let cv = view.props.ContainingCollectionView;
+                    let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+                    let parback = cv && StrCast(cv.props.Document.backgroundColor);
+                    cv && parback && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb));
+                    // if (parback && cv && parback.indexOf("rgb") !== -1) {
+                    //     let parcol = Utils.fromRGBAstr(parback);
+                    //     let hsl = Utils.RGBToHSL(parcol.r, parcol.g, parcol.b);
+                    //     cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = color.hsl.s - hsl.s);
+                    // }
+                }
                 return {
                     target: targetDoc,
                     previous: oldColor
@@ -62,7 +93,6 @@ export class InkingControl extends React.Component {
             });
         }
     });
-
     @action
     switchWidth = (width: string): void => {
         this._selectedWidth = width;

@@ -66,6 +66,7 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     layout?: string;
+    isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
@@ -424,8 +425,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
-        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
+        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
@@ -614,13 +615,13 @@ export namespace Docs {
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDocProto = new Doc();
+        let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 

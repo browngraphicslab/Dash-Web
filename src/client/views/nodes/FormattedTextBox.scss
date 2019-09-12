@@ -118,6 +118,9 @@ footnote::after {
     width: max-content;
 }
 
+.prosemirror-attribution {
+    font-size: 8px;
+}
 .footnote-tooltip::before {
     border: 5px solid silver;
     border-top-width: 0px;
@@ -129,6 +132,26 @@ footnote::after {
     content: " ";
     height: 0;
     width: 0;
+}
+
+.formattedTextBox-summarizer {
+    opacity :0.5;
+    position: relative;
+    width:40px;
+    height:20px;
+}
+.formattedTextBox-summarizer::after{
+    content: "←" ;
+}
+
+.formattedTextBox-summarizer-collapsed {
+    opacity :0.5;
+    position: relative;
+    width:40px;
+    height:20px;
+}
+.formattedTextBox-summarizer-collapsed::after {
+    content: "...";
 }
 
 ol { counter-reset: deci1 0;}

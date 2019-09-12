@@ -12,6 +12,7 @@ import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
+import { DocumentType } from '../../documents/DocumentTypes';
 
 export enum CollectionViewType {
     Invalid,
@@ -126,7 +127,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
 
