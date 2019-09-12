@@ -264,7 +264,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         // process to follow: if guid, then we want to find the linkhref and use that to figure out whether we can find the links that correspond to the guid.
                     } else {
                         console.log("no guid"); // retroactively fixing old in-text links by adding guid 
-                        console.log('source and dest ids respectively are', StrCast(LinkFollowBox.sourceDoc[Id]), StrCast(LinkFollowBox.destinationDoc[Id]));
+                        console.log('source and dest ids respectively are', StrCast(LinkFollowBox.sourceDoc[Id]), StrCast(LinkFollowBox.destinationDoc[Id]), 'as well as the linkdoc id', LinkFollowBox.linkDoc[Id]);
                         jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
                         let newguid = Utils.GenerateGuid();
                         LinkFollowBox.linkDoc.guid = newguid;
