@@ -452,9 +452,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
         let metaKey = "data";
         let proto = Doc.GetProto(docTemplate);
-        Doc.MakeTemplate(fieldTemplate, metaKey, proto, true);
+        Doc.MakeTemplate(fieldTemplate, metaKey, proto);
 
-        Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, true);
+        Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
     }
 
     @undoBatch
@@ -634,7 +634,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         makes.push({ description: "Custom Document View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
-        makes.push({ description: "Metadata Field View", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document, true), icon: "concierge-bell" })
+        makes.push({ description: "Metadata Field View", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" })
         makes.push({ description: "Into Portal", event: this.makeIntoPortal, icon: "window-restore" });
         makes.push({ description: this.layoutDoc.ignoreClick ? "Selectable" : "Unselectable", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
         !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });

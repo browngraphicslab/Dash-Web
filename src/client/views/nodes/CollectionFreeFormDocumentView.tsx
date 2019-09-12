@@ -74,10 +74,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
-        let br = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.borderRounding : this.props.Document.borderRounding);
+        let br = StrCast(this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout.borderRounding : this.props.Document.borderRounding);
         if (br.endsWith("%")) {
             let percent = Number(br.substr(0, br.length - 1)) / 100;
-            let nativeDim = Math.min(NumCast(this.props.Document.nativeWidth), NumCast(this.props.Document.nativeHeight));
+            let nativeDim = Math.min(NumCast(this.layoutDoc.nativeWidth), NumCast(this.layoutDoc.nativeHeight));
             let minDim = percent * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
             return minDim;
         }
@@ -89,6 +89,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     clusterColorFunc = (doc: Doc) => this.clusterColor;
 
+    get layoutDoc() {
+        // if this document's layout field contains a document (ie, a rendering template), then we will use that
+        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
+        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+    }
+
     render() {
         const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
@@ -98,15 +104,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     position: "absolute",
                     backgroundColor: "transparent",
                     boxShadow:
-                        this.props.Document.opacity === 0 ? undefined :  // if it's not visible, then no shadow
-                            this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                                this.clusterColor ? (
-                                    this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
-                                        `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                                    undefined,
+                        this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
+                            this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
+                                this.layoutDoc.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
+                                    this.clusterColor ? (
+                                        `${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                        StrCast(this.layoutDoc.boxShadow, ""),
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
+                    transition: hasPosition ? "transform 1s" : StrCast(this.layoutDoc.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,

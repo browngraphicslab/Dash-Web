@@ -459,7 +459,7 @@ export namespace Doc {
         }
         if (expandedTemplateLayout === undefined) {
             setTimeout(() => dataDoc[expandedLayoutFieldKey] === undefined &&
-                (dataDoc[expandedLayoutFieldKey] = !BoolCast(templateLayoutDoc.suppressTemplateInstance) ? Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]") : templateLayoutDoc), 0);
+                (dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]")), 0);
         }
         return undefined; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
@@ -558,7 +558,7 @@ export namespace Doc {
         }
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc, suppressTemplateFlag?: boolean) {
+    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
@@ -576,7 +576,6 @@ export namespace Doc {
         fieldTemplate.templateField = metaKey;
         fieldTemplate.title = metaKey;
         fieldTemplate.isTemplate = true;
-        fieldTemplate.suppressTemplateInstance = suppressTemplateFlag;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
         /* move certain layout properties from the original data doc to the template layout to avoid

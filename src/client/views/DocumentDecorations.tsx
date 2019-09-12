@@ -30,6 +30,7 @@ import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { ObjectField } from '../../new_fields/ObjectField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -145,13 +146,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
-                let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
-                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                let proto = Doc.GetProto(docTemplate);
-                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
-                if (text.startsWith(">>")) {
-                    proto.detailedLayout = proto.layout;
-                    proto.miniLayout = ImageBox.LayoutString(metaKey);
+                let containerView = fieldTemplateView.props.ContainingCollectionView;
+                if (containerView) {
+                    let docTemplate = containerView.props.Document;
+                    let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                    let proto = Doc.GetProto(docTemplate);
+                    if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
+                        const fd = fieldTemplate.data;
+                        fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
+                    }
+                    Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                    if (text.startsWith(">>")) {
+                        proto.detailedLayout = proto.layout;
+                        proto.miniLayout = ImageBox.LayoutString(metaKey);
+                    }
                 }
             }
             else {
