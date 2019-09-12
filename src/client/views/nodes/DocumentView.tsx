@@ -441,47 +441,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    makeNativeViewClicked = (): void => {
-        this.props.Document.customLayout = this.props.Document.layout;
-        this.props.Document.layout = this.props.Document.nativeLayout;
-        this.props.Document.type = this.props.Document.nativeType;
-        this.props.Document.nativeWidth = this.props.Document.nativeNativeWidth;
-        this.props.Document.nativeHeight = this.props.Document.nativeNativeHeight;
-        this.props.Document.ignoreAspect = this.props.Document.nativeIgnoreAspect;
-        this.props.Document.nativeLayout = undefined;
-        this.props.Document.nativeNativeWidth = undefined;
-        this.props.Document.nativeNativeHeight = undefined;
-        this.props.Document.nativeIgnoreAspect = undefined;
-    }
-    @undoBatch
-    makeCustomViewClicked = (): void => {
-        this.props.Document.nativeLayout = this.props.Document.layout;
-        this.props.Document.nativeType = this.props.Document.type;
-        this.props.Document.nativeNativeWidth = this.props.Document.nativeWidth;
-        this.props.Document.nativeNativeHeight = this.props.Document.nativeHeight;
-        this.props.Document.nativeIgnoreAspect = this.props.Document.ignoreAspect;
-        PromiseValue(Cast(this.props.Document.customLayout, Doc)).then(custom => {
-            if (custom) {
-                this.props.Document.type = DocumentType.TEMPLATE;
-                this.props.Document.layout = custom;
-                !custom.nativeWidth && (this.props.Document.nativeWidth = 0);
-                !custom.nativeHeight && (this.props.Document.nativeHeight = 0);
-                !custom.nativeWidth && (this.props.Document.ignoreAspect = true);
-            } else {
-                let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
-                let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
-
-                let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
-                let metaKey = "data";
-                let proto = Doc.GetProto(docTemplate);
-                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
-
-                Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
-            }
-        });
-    }
-
-    @undoBatch
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         if (doc.isButton || doc.onClick) {
@@ -577,7 +536,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     makeIntoPortal = (): void => {
         if (!DocListCast(this.props.Document.links).find(doc => {
-            if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.props.Document.title + ".portal") return true;
+            if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc).title === this.props.Document.title + ".portal") return true;
             return false;
         })) {
             let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
@@ -611,6 +570,46 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
+    public static makeNativeViewClicked = undoBatch((document: Doc): void => {
+        document.customLayout = document.layout;
+        document.layout = document.nativeLayout;
+        document.type = document.nativeType;
+        document.nativeWidth = document.nativeNativeWidth;
+        document.nativeHeight = document.nativeNativeHeight;
+        document.ignoreAspect = document.nativeIgnoreAspect;
+        document.nativeLayout = undefined;
+        document.nativeNativeWidth = undefined;
+        document.nativeNativeHeight = undefined;
+        document.nativeIgnoreAspect = undefined;
+    });
+
+    public static makeCustomViewClicked = undoBatch((document: Doc): void => {
+        document.nativeLayout = document.layout;
+        document.nativeType = document.type;
+        document.nativeNativeWidth = document.nativeWidth;
+        document.nativeNativeHeight = document.nativeHeight;
+        document.nativeIgnoreAspect = document.ignoreAspect;
+        PromiseValue(Cast(document.customLayout, Doc)).then(custom => {
+            if (custom) {
+                document.type = DocumentType.TEMPLATE;
+                document.layout = custom;
+                !custom.nativeWidth && (document.nativeWidth = 0);
+                !custom.nativeHeight && (document.nativeHeight = 0);
+                !custom.nativeWidth && (document.ignoreAspect = true);
+            } else {
+                let options = { title: "data", width: NumCast(document.width), height: NumCast(document.height) + 25, x: -NumCast(document.width) / 2, y: -NumCast(document.height) / 2, };
+                let fieldTemplate = document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+
+                let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(document.title) + "layout", width: NumCast(document.width) + 20, height: Math.max(100, NumCast(document.height) + 45) });
+                let metaKey = "data";
+                let proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+
+                Doc.ApplyTemplateTo(docTemplate, document, undefined, false);
+            }
+        });
+    });
+
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
         e.persist();
@@ -642,7 +641,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
-        makes.push({ description: "Custom Document View", event: this.makeCustomViewClicked, icon: "concierge-bell" });
+        makes.push({ description: "Custom Document View", event: () => DocumentView.makeCustomViewClicked(this.props.Document), icon: "concierge-bell" });
         makes.push({ description: "Metadata Field View", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" });
         makes.push({ description: "Into Portal", event: this.makeIntoPortal, icon: "window-restore" });
         makes.push({ description: this.layoutDoc.ignoreClick ? "Selectable" : "Unselectable", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
@@ -667,7 +666,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
         layoutItems.push({ description: this.props.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.layout instanceof Doc) {
-            layoutItems.push({ description: "Make View of Metadata Field", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" })
+            layoutItems.push({ description: "Make View of Metadata Field", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" });
         }
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
@@ -679,9 +678,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             layoutItems.push({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
         if (this.props.Document.type !== DocumentType.COL && this.props.Document.type !== DocumentType.TEMPLATE) {
-            layoutItems.push({ description: "Use Custom Layout", event: this.makeCustomViewClicked, icon: "concierge-bell" });
+            layoutItems.push({ description: "Use Custom Layout", event: () => DocumentView.makeCustomViewClicked(this.props.Document), icon: "concierge-bell" });
         } else if (this.props.Document.nativeLayout) {
-            layoutItems.push({ description: "Use Native Layout", event: this.makeNativeViewClicked, icon: "concierge-bell" });
+            layoutItems.push({ description: "Use Native Layout", event: () => DocumentView.makeNativeViewClicked(this.props.Document), icon: "concierge-bell" });
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         if (!ClientUtils.RELEASE) {

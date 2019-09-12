@@ -57,9 +57,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     toggleCustom = (e: React.MouseEvent): void => {
         this.props.docs.map(dv => {
             if (dv.Document.type !== DocumentType.COL && dv.Document.type !== DocumentType.TEMPLATE) {
-                dv.makeCustomViewClicked();
+                DocumentView.makeCustomViewClicked(dv.props.Document);
             } else if (dv.Document.nativeLayout) {
-                dv.makeNativeViewClicked();
+                DocumentView.makeNativeViewClicked(dv.props.Document);
             }
         });
     }

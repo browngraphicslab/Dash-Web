@@ -14,6 +14,7 @@ import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/Share
 import { AssertionError } from "assert";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { DocumentView } from "../../views/nodes/DocumentView";
 
 export namespace GooglePhotos {
 
@@ -97,10 +98,10 @@ export namespace GooglePhotos {
                 }
                 const idMapping = new Doc;
                 for (let i = 0; i < images.length; i++) {
-                    const image = images[i];
+                    const image = Doc.GetProto(images[i]);
                     const mediaItem = mediaItems[i];
                     image.googlePhotosId = mediaItem.id;
-                    image.googlePhotosUrl = mediaItem.baseUrl || mediaItem.productUrl;
+                    image.googlePhotosUrl = mediaItem.productUrl || mediaItem.baseUrl;
                     idMapping[mediaItem.id] = image;
                 }
                 collection.googlePhotosIdMapping = idMapping;
@@ -143,7 +144,7 @@ export namespace GooglePhotos {
                 throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
             }
             const tagMapping = new Map<string, string>();
-            const images = await DocListCastAsync(collection.data);
+            const images = (await DocListCastAsync(collection.data))!.map(Doc.GetProto);
             images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
             const values = Object.values(ContentCategories);
             for (let value of values) {
@@ -306,7 +307,9 @@ export namespace GooglePhotos {
                     return;
                 }
                 const url = data.url.href;
-                const description = parseDescription(Doc.MakeAlias(source), descriptionKey);
+                const target = Doc.MakeAlias(source);
+                const description = parseDescription(target, descriptionKey);
+                DocumentView.makeCustomViewClicked(target);
                 media.push({ url, description });
             });
             if (media.length) {
