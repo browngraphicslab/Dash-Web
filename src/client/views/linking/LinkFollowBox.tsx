@@ -268,7 +268,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
                         let newguid = Utils.GenerateGuid();
                         LinkFollowBox.linkDoc.guid = newguid;
-                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
                         LinkFollowBox.destinationDoc.guid = newguid;
                         // if we find a link that doesnt match a guid but matches the OG link ref that correspond to the original anchor, then we move forward
                     }
