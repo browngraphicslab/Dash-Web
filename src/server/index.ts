@@ -821,7 +821,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const media: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
     const newMediaItems = await Promise.all(media.map(async element => {
-        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url).catch(error => _error(res, tokenError, error));
         return !uploadToken ? undefined : {
             description: element.description,
             simpleMediaItem: { uploadToken }

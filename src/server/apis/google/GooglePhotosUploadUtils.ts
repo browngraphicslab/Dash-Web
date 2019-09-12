@@ -6,6 +6,7 @@ import * as path from 'path';
 import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
 import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
+import { reject } from 'bluebird';
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -50,7 +51,12 @@ export namespace GooglePhotosUploadUtils {
             uri: prepend('uploads'),
             body
         };
-        return new Promise<any>(resolve => request(parameters, (error, _response, body) => resolve(error ? undefined : body)));
+        return new Promise<any>(resolve => request(parameters, (error, _response, body) => {
+            if (error) {
+                return reject(error);
+            }
+            resolve(body);
+        }));
     };
 
 

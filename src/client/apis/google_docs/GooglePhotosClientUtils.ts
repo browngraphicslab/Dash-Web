@@ -135,13 +135,15 @@ export namespace GooglePhotos {
 
     export namespace Query {
 
+        const delimiter = ", ";
         export const TagChildImages = async (collection: Doc) => {
             const idMapping = await Cast(collection.googlePhotosIdMapping, Doc);
             if (!idMapping) {
                 throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
             }
+            const tagMapping = new Map<string, string>();
             const images = await DocListCastAsync(collection.data);
-            images && images.forEach(image => image.googlePhotosTags = new List([ContentCategories.NONE]));
+            images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
             const values = Object.values(ContentCategories);
             for (let value of values) {
                 if (value !== ContentCategories.NONE) {
@@ -151,9 +153,10 @@ export namespace GooglePhotos {
                         for (let id of ids) {
                             const image = await Cast(idMapping[id], Doc);
                             if (image) {
-                                const tags = Cast(image.googlePhotosTags, listSpec("string"))!;
+                                const key = image[Id];
+                                const tags = tagMapping.get(key)!;
                                 if (!tags.includes(value)) {
-                                    tags.push(value);
+                                    tagMapping.set(key, tags + delimiter + value);
                                 }
                             }
                         }
@@ -161,9 +164,11 @@ export namespace GooglePhotos {
                 }
             }
             images && images.forEach(image => {
-                const tags = Cast(image.googlePhotosTags, listSpec("string"))!;
-                if (tags.includes(ContentCategories.NONE) && tags.length > 1) {
-                    image.googlePhotosTags = new List(tags.splice(tags.indexOf(ContentCategories.NONE), 1));
+                const concatenated = tagMapping.get(image[Id])!;
+                const tags = concatenated.split(delimiter);
+                if (tags.length > 1) {
+                    const cleaned = concatenated.replace(ContentCategories.NONE + delimiter, "");
+                    image.googlePhotosTags = cleaned.split(delimiter).sort((a, b) => (a < b) ? -1 : (a > b ? 1 : 0)).join(delimiter);
                 }
             });
 

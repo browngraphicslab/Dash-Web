@@ -98,7 +98,7 @@ export namespace PivotView {
         groups.forEach((val, key) => minSize = Math.min(minSize, val.length));
 
         const numCols = NumCast(collection.pivotNumColumns) || Math.ceil(Math.sqrt(minSize));
-        const fontSize = NumCast(collection.pivotFontSize);
+        const fontSize = NumCast(collection.pivotFontSize, 30);
 
         const docMap = new Map<Doc, ViewDefBounds>();
         const groupNames: PivotData[] = [];
@@ -113,7 +113,8 @@ export namespace PivotView {
                 x,
                 y: width + 50,
                 width: width * 1.25 * numCols,
-                height: 100, fontSize: fontSize
+                height: 100,
+                fontSize
             });
             for (const doc of val) {
                 docMap.set(doc, {
@@ -701,7 +702,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return result.result === undefined ? { x: Cast(doc.x, "number"), y: Cast(doc.y, "number"), z: Cast(doc.z, "number"), width: Cast(doc.width, "number"), height: Cast(doc.height, "number") } : result.result;
     }
 
-    viewDefsToJSX = (views: any[]) => {
+    viewDefsToJSX = (views: PivotView.PivotData[]) => {
         let elements: ViewDefResult[] = [];
         if (Array.isArray(views)) {
             elements = views.reduce<typeof elements>((prev, ele) => {
@@ -713,12 +714,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return elements;
     }
 
-    private viewDefToJSX(viewDef: any): Opt<ViewDefResult> {
+    private viewDefToJSX(viewDef: PivotView.PivotData): Opt<ViewDefResult> {
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string");
             const x = Cast(viewDef.x, "number");
             const y = Cast(viewDef.y, "number");
-            const z = Cast(viewDef.z, "number");
+            // const z = Cast(viewDef.z, "number");
             const width = Cast(viewDef.width, "number");
             const height = Cast(viewDef.height, "number");
             const fontSize = Cast(viewDef.fontSize, "number");
@@ -730,7 +731,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 ele: <div className="collectionFreeform-customText" style={{
                     transform: `translate(${x}px, ${y}px)`,
                     width, height, fontSize
-                }}>{text}</div>, bounds: { x: x!, y: y!, z: z, width: width!, height: height! }
+                }}>{text}</div>, bounds: { x: x!, y: y!, width: width!, height: height! }
             };
         }
     }
