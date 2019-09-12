@@ -43,6 +43,8 @@ import React = require("react");
 import { DocumentType } from '../../documents/DocumentTypes';
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../../new_fields/URLField';
+import { IDisposable } from '../../northstar/utils/IDisposable';
+import SharingManager from '../../util/SharingManager';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -673,10 +675,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         if (!ClientUtils.RELEASE) {
-            let copies: ContextMenuProps[] = [];
-            copies.push({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-            copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
-            cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
+            // let copies: ContextMenuProps[] = [];
+            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
         let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
         let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -700,34 +701,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
 
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        type User = { email: string, userDocumentId: string };
-        let usersMenu: ContextMenuProps[] = [];
-        try {
-            let stuff = await rp.get(Utils.prepend(RouteStore.getUsers));
-            const users: User[] = JSON.parse(stuff);
-            usersMenu = users.filter(({ email }) => email !== Doc.CurrentUserEmail).map(({ email, userDocumentId }) => ({
-                description: email, event: async () => {
-                    const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
-                    if (!userDocument) {
-                        throw new Error(`Couldn't get user document of user ${email}`);
-                    }
-                    const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-                    if (notifDoc instanceof Doc) {
-                        const data = await Cast(notifDoc.data, listSpec(Doc));
-                        const sharedDoc = Doc.MakeAlias(this.props.Document);
-                        if (data) {
-                            data.push(sharedDoc);
-                        } else {
-                            notifDoc.data = new List([sharedDoc]);
-                        }
-                    }
-                }, icon: "male"
-            }));
-        } catch {
-
-        }
         runInAction(() => {
-            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             if (!ClientUtils.RELEASE) {
                 let setWriteMode = (mode: DocServer.WriteMode) => {
                     DocServer.AclsMode = mode;
@@ -751,6 +725,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 cm.addItem({ description: "Collaboration ACLs...", subitems: aclsMenu, icon: "share" });
                 cm.addItem({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
             }
+        });
+        runInAction(() => {
+            cm.addItem({
+                description: "Share",
+                event: () => SharingManager.Instance.open(this),
+                icon: "external-link-alt"
+            });
 
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event

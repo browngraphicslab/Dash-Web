@@ -6,6 +6,7 @@ import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
+import SharingManager from "../util/SharingManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -72,6 +73,7 @@ export default class KeyManager {
                 main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
+                SharingManager.Instance.close();
                 break;
             case "delete":
             case "backspace":

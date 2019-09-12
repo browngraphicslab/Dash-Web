@@ -108,6 +108,7 @@ export namespace GooglePhotos {
                     await Query.TagChildImages(collection);
                 }
                 collection.albumId = id;
+                Transactions.AddTextEnrichment(collection, `Find me at ${Utils.prepend(`/doc/${collection[Id]}?sharing=true`)}`);
                 return { albumId: id, mediaItems };
             }
         };
@@ -313,7 +314,7 @@ export namespace GooglePhotos {
         };
 
         const parseDescription = (document: Doc, descriptionKey: string) => {
-            let description: string = Utils.prepend("/doc/" + document[Id]);
+            let description: string = Utils.prepend(`/doc/${document[Id]}?sharing=true`);
             const target = document[descriptionKey];
             if (typeof target === "string") {
                 description = target;

@@ -947,18 +947,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
 
         let noteItems: ContextMenuProps[] = [];
-        let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-        notes.map((node, i) => noteItems.push({ description: (i + 1) + ": " + StrCast(node.title), event: () => this.createText(i), icon: "eye" }));
-        layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" })
+        if (CurrentUserUtils.UserDocument) {
+            let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+            notes.map((node, i) => noteItems.push({ description: (i + 1) + ": " + StrCast(node.title), event: () => this.createText(i), icon: "eye" }));
+        }
+        layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" });
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
     createText = (noteStyle: number) => {
         let pt = this.getTransform().transformPoint(ContextMenu.Instance.pageX, ContextMenu.Instance.pageY);
-        let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: pt[0], y: pt[1], autoHeight: true, title: StrCast(notes[noteStyle % notes.length].title) });
-        text.layout = notes[noteStyle % notes.length];
-        this.addLiveTextBox(text);
+        if (CurrentUserUtils.UserDocument) {
+            let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+            let text = Docs.Create.TextDocument({ width: 200, height: 100, x: pt[0], y: pt[1], autoHeight: true, title: StrCast(notes[noteStyle % notes.length].title) });
+            text.layout = notes[noteStyle % notes.length];
+            this.addLiveTextBox(text);
+        }
     }
 
     private childViews = () => [

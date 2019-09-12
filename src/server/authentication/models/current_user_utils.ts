@@ -2,7 +2,6 @@ import { action, computed, observable, runInAction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs } from "../../../client/documents/Documents";
-import { Gateway, NorthstarSettings } from "../../../client/northstar/manager/Gateway";
 import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
@@ -23,6 +22,9 @@ export class CurrentUserUtils {
     @computed public static get UserDocument() { return Doc.UserDoc(); }
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
+
+    @observable public static GuestTarget: Doc | undefined;
+    @observable public static GuestWorkspace: Doc | undefined;
 
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
@@ -59,7 +61,7 @@ export class CurrentUserUtils {
             noteTypes.excludeFromLibrary = true;
             doc.noteTypes = noteTypes;
         }
-        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(vals => DocListCast(vals)));
+        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;
@@ -112,7 +114,7 @@ export class CurrentUserUtils {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
-            if (id) {
+            if (id && id !== "guest") {
                 return DocServer.GetRefField(id).then(async field => {
                     if (field instanceof Doc) {
                         await this.updateUserDocument(field);

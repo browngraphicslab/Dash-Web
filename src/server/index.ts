@@ -21,10 +21,10 @@ import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
-import { DashUserModel } from './authentication/models/user_model';
+import User, { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput, SourceSpecified } from "./Message";
 import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
@@ -36,9 +36,7 @@ const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import { Search } from './Search';
-import _ = require('lodash');
 import * as Archiver from 'archiver';
-import * as request_promise from 'request-promise';
 var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
@@ -47,6 +45,7 @@ import { GooglePhotosUploadUtils, DownloadUtils as UploadUtils } from './apis/go
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+import * as qs from 'query-string';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -113,7 +112,9 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        if (req.user) {
+        let sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
+        sharing = sharing && req.originalUrl.startsWith("/doc/");
+        if (req.user || sharing) {
             handler(req.user, res, req);
         } else {
             req.session!.target = req.originalUrl;
@@ -507,21 +508,20 @@ addSecureRoute(
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     },
     undefined,
-    RouteStore.home,
-    RouteStore.openDocumentWithId
+    RouteStore.home, RouteStore.openDocumentWithId
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(user.userDocumentId || ""),
-    undefined,
+    (user, res) => res.send(user.userDocumentId),
+    (res) => res.send(undefined),
     RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(JSON.stringify({ id: user.id, email: user.email })),
-    undefined,
+    (user, res) => { res.send(JSON.stringify({ id: user.id, email: user.email })); },
+    (res) => res.send(JSON.stringify({ id: "__guest__", email: "" })),
     RouteStore.getCurrUser
 );
 
@@ -666,21 +666,31 @@ app.use(RouteStore.corsProxy, (req, res) => {
     }).pipe(res);
 });
 
-app.get(RouteStore.delete, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteFields().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            res.send("no");
+            return;
+        }
+        deleteFields().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.delete
+);
 
-app.get(RouteStore.deleteAll, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteAll().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            res.send("no");
+            return;
+        }
+        deleteAll().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.deleteAll
+);
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
@@ -766,8 +776,8 @@ function setField(socket: Socket, newValue: Transferable) {
     }
 }
 
-function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-    Database.Instance.getDocument(id, callback, "newDocuments");
+function GetRefField([args, callback]: [SourceSpecified, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(args.id, callback, args.mongoCollection || "newDocuments");
 }
 
 function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {

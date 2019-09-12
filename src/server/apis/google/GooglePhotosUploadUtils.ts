@@ -58,8 +58,6 @@ export namespace GooglePhotosUploadUtils {
         }));
     };
 
-
-
     export const CreateMediaItems = async (newMediaItems: any[], album?: { id: string }): Promise<MediaItemCreationResult> => {
         const quota = newMediaItems.length;
         let handled = 0;
