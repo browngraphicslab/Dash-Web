@@ -37,7 +37,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     @observable private entries: ImportMetadataEntry[] = [];
 
     @observable private quota = 1;
-    @observable private remaining = 1;
+    @observable private completed = 0;
 
     @observable private uploading = false;
     @observable private removeHover = false;
@@ -87,7 +87,10 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             file && !unsupported.includes(file.type) && validated.push(file);
         }
 
-        runInAction(() => this.quota = validated.length);
+        runInAction(() => {
+            this.quota = validated.length;
+            this.completed = 0;
+        });
 
         let sizes = [];
         let modifiedDates = [];
@@ -108,7 +111,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             const parameters = { method: 'POST', body: formData };
             uploads.push(...(await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json()));
 
-            runInAction(() => this.remaining += batch.length);
+            runInAction(() => this.completed += batch.length);
             i = cap;
         }
 
@@ -122,8 +125,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 title: upload.name
             };
             const document = await Docs.Get.DocumentFromType(type, path, options);
-            document && docs.push(document) && runInAction(() => this.remaining--);
-            console.log(`(${this.quota - this.remaining}/${this.quota}) ${upload.name}`);
+            document && docs.push(document);
         }));
 
         for (let i = 0; i < docs.length; i++) {
@@ -159,7 +161,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         runInAction(() => {
             this.uploading = false;
             this.quota = 1;
-            this.remaining = 1;
+            this.completed = 0;
         });
     }
 
@@ -208,12 +210,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let dimensions = 50;
         let entries = DocListCast(this.props.Document.data);
         let isEditing = this.editingMetadata;
-        let remaining = this.remaining;
+        let completed = this.completed;
         let quota = this.quota;
         let uploading = this.uploading;
         let showRemoveLabel = this.removeHover;
         let persistent = this.persistent;
-        let percent = `${100 - (remaining / quota * 100)}`;
+        let percent = `${completed / quota * 100}`;
         percent = percent.split(".")[0];
         percent = percent.startsWith("100") ? "99" : percent;
         let marginOffset = (percent.length === 1 ? 5 : 0) - 1.6;
