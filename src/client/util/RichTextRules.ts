@@ -64,7 +64,8 @@ export const inpRules = {
                 let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
-                    ruleProvider["ruleSize_" + heading] = size;
+                    (Cast(FormattedTextBox.InputBoxOverlay!.props.Document, Doc) as Doc).heading = Number(match[1]);
+                    return state.tr.deleteRange(start, end);
                 }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }))
             }),

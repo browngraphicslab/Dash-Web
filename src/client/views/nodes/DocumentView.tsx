@@ -464,7 +464,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 !custom.nativeWidth && (this.props.Document.ignoreAspect = true);
             } else {
                 let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
-                let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+                let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
+                    this.props.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
+                        Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
                 let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
                 let metaKey = "data";
@@ -576,9 +578,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.props.Document.title + ".portal") return true;
             return false;
         })) {
-            let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
-            DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
-            Doc.GetProto(this.props.Document).isButton = true;
+            let portalID = (this.props.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
+            DocServer.GetRefField(portalID).then(existingPortal => {
+                let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: portalID });
+                DocUtils.MakeLink(this.props.Document, portal, undefined, portalID);
+                Doc.GetProto(this.props.Document).isButton = true;
+            })
         }
     }
 
@@ -646,8 +651,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
         layoutItems.push({ description: this.props.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
-        if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.layout instanceof Doc) {
-            layoutItems.push({ description: "Make View of Metadata Field", event: () => this.props.ContainingCollectionView && Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.ContainingCollectionView.props.Document), icon: "concierge-bell" })
+        if (this.props.DataDoc) {
+            layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.DataDoc!), icon: "concierge-bell" })
         }
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });

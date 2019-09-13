@@ -121,7 +121,7 @@ export namespace Docs {
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 }
+                options: { curPage: 0 }
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
@@ -137,7 +137,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 },
+                options: { curPage: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -608,13 +608,10 @@ export namespace Docs {
 export namespace DocUtils {
 
     export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
-        if (targetID.startsWith("-")) {
-            targetID = targetID.substr(1, targetID.length - 1);
-            Doc.GetProto(promoteDoc).title = targetID;
-        }
+        targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
         DocServer.GetRefField(targetID).then(doc => {
             let copy = doc instanceof Doc ? doc : Doc.MakeCopy(promoteDoc, true, targetID);
-            !doc && (Doc.GetProto(copy).title = targetID);
+            !doc && (copy.title = undefined) && (Doc.GetProto(copy).title = targetID);
             addDoc && addDoc(copy);
             !doc && remDoc && remDoc(promoteDoc);
             if (!doc) {

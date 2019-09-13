@@ -558,7 +558,8 @@ export namespace Doc {
         }
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
+    export function MakeTemplate(fieldTemplate: Doc, metaKeyRaw: string, templateDataDoc: Doc) {
+        let metaKey = metaKeyRaw.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;

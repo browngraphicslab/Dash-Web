@@ -262,13 +262,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onDotDown(index: number) {
         this.Document.curPage = index;
     }
-
-    @computed get fieldExtensionDoc() {
-        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
-    }
-
     @computed private get url() {
-        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        let data = Cast(Doc.GetProto(this.props.Document)[this.props.fieldKey], ImageField);
         return data ? data.url.href : undefined;
     }
 
