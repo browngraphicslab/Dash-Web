@@ -34,6 +34,7 @@ export interface CollectionViewProps extends FieldViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    ruleProvider: Doc | undefined;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {

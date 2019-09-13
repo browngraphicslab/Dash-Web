@@ -165,6 +165,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
+                    ruleProvider={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}

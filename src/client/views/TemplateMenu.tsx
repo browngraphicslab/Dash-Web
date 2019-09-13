@@ -51,16 +51,16 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
     dragRef = React.createRef<HTMLUListElement>();
 
-    constructor(props: TemplateMenuProps) {
-        super(props);
-    }
-
     toggleCustom = (e: React.MouseEvent): void => {
         this.props.docs.map(dv => {
-            if (dv.Document.type !== DocumentType.COL && dv.Document.type !== DocumentType.TEMPLATE) {
-                dv.makeCustomViewClicked();
-            } else if (dv.Document.nativeLayout) {
-                dv.makeNativeViewClicked();
+            if (dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.DataDoc) {
+                Doc.MakeMetadataFieldTemplate(dv.props.Document, dv.props.ContainingCollectionView.props.DataDoc)
+            } else {
+                if (dv.Document.type !== DocumentType.COL && dv.Document.type !== DocumentType.TEMPLATE) {
+                    dv.makeCustomViewClicked();
+                } else if (dv.Document.nativeLayout) {
+                    dv.makeNativeViewClicked();
+                }
             }
         });
     }

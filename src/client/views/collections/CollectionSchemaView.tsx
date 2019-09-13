@@ -995,6 +995,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
+                        ruleProvider={undefined}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}

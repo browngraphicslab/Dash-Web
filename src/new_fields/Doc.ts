@@ -560,7 +560,7 @@ export namespace Doc {
 
     export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-        let metadataFieldName = StrCast(fieldTemplate.title);
+        let metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
         if (fieldTemplate.layout instanceof Doc) {

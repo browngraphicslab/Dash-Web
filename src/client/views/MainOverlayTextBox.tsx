@@ -72,7 +72,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         if (this._textTargetDiv) {
             this._textTargetDiv.style.color = this._textColor;
         }
-        this._textAutoHeight = autoHeight;
         this.TextFieldKey = textFieldKey!;
         let txf = tx ? tx : () => Transform.Identity();
         this._textXf = txf;
@@ -143,6 +142,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 Document={FormattedTextBox.InputBoxOverlay.props.Document}
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                                 onClick={undefined}
+                                ruleProvider={this._textBox ? this._textBox.props.ruleProvider : undefined}
                                 ChromeHeight={this.ChromeHeight}
                                 isSelected={returnTrue} select={emptyFunction} renderDepth={0}
                                 ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}

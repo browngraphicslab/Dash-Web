@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, runInAction, trace, observable } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -9,12 +9,13 @@ import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from '../../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DictationManager } from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
@@ -35,12 +36,10 @@ import { MainView } from '../MainView';
 import { OverlayView } from '../OverlayView';
 import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
-import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
-import { DocumentType } from '../../documents/DocumentTypes';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -89,6 +88,7 @@ export interface DocumentViewProps {
     renderDepth: number;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     ContentScaling: () => number;
+    ruleProvider: Doc | undefined;
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus: (doc: Doc, willZoom: boolean, scale?: number) => void;
@@ -470,6 +470,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this.props.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
                         Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
+                fieldTemplate.backgroundColor = StrCast(this.props.Document.backgroundColor);
+                fieldTemplate.heading = 1;
+
                 let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
                 let proto = Doc.GetProto(docTemplate);
                 Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
@@ -800,7 +803,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
 
     render() {
-        let ruleProvider = this.props.Document.ruleProvider as Doc;
+        let ruleProvider = this.props.ruleProvider;
         let ruleColor = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(this.props.Document.heading)]) : undefined;
         let ruleRounding = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleRounding_" + NumCast(this.props.Document.heading)]) : undefined;
         let colorSet = this.layoutDoc.backgroundColor !== this.layoutDoc.defaultBackgroundColor;

@@ -329,7 +329,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
                 summary.proto!.subBulletDocs = new List<Doc>(selected);
-                summary.templates = new List<string>([Templates.Bullet.Layout]);
                 let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                 container.viewType = CollectionViewType.Stacking;
                 container.autoHeight = true;
@@ -356,7 +355,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.props.addLiveTextDocument(summary);
             }
             else {
-                newCollection.ruleProvider = this.props.container.props.Document.isRuleProvider ? this.props.container.props.Document : this.props.container.props.Document.ruleProvider;
                 this.props.addDocument(newCollection, false);
                 this.props.selectDocuments([newCollection]);
             }

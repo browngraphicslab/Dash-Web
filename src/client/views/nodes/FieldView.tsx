@@ -30,6 +30,7 @@ export interface FieldViewProps {
     leaveNativeSize?: boolean;
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;
     onClick?: ScriptField;

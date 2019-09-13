@@ -458,7 +458,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
 
         this._rulesReactionDisposer = reaction(() => {
-            let ruleProvider = Cast(this.props.Document.ruleProvider, Doc);
+            let ruleProvider = this.props.ruleProvider;
             let heading = NumCast(this.props.Document.heading);
             if (ruleProvider instanceof Doc) {
                 return {

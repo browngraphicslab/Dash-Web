@@ -61,7 +61,7 @@ export const inpRules = {
             new RegExp(/^#([0-9]+)\s$/),
             (state, match, start, end) => {
                 let size = Number(match[1]);
-                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     (Cast(FormattedTextBox.InputBoxOverlay!.props.Document, Doc) as Doc).heading = Number(match[1]);
@@ -74,7 +74,7 @@ export const inpRules = {
             (state, match, start, end) => {
                 let node = (state.doc.resolve(start) as any).nodeAfter;
                 let sm = state.storedMarks || undefined;
-                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "center";
@@ -88,7 +88,7 @@ export const inpRules = {
             (state, match, start, end) => {
                 let node = (state.doc.resolve(start) as any).nodeAfter;
                 let sm = state.storedMarks || undefined;
-                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "left";
@@ -100,7 +100,7 @@ export const inpRules = {
             (state, match, start, end) => {
                 let node = (state.doc.resolve(start) as any).nodeAfter;
                 let sm = state.storedMarks || undefined;
-                let ruleProvider = Cast(FormattedTextBox.InputBoxOverlay!.props.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "right";

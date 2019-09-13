@@ -74,7 +74,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
-        let ruleProvider = this.props.Document.ruleProvider as Doc;
+        let ruleProvider = this.props.ruleProvider;
         let ruleRounding = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleRounding_" + NumCast(this.props.Document.heading)]) : undefined;
         let br = StrCast(this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout.borderRounding : this.props.Document.borderRounding);
         br = !br && ruleRounding ? ruleRounding : br;

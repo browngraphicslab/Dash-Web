@@ -365,14 +365,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
                     let docViews = SelectionManager.ViewsSortedVertically();
                     let topDocView = docViews[0];
-                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
-                    if (ind !== -1) {
-                        topDocView.templates.splice(ind, 1);
-                        topDocView.props.Document.subBulletDocs = undefined;
-                    } else {
-                        topDocView.addTemplate(Templates.Bullet);
-                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
-                    }
+                    topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
                 }
             }
             this._removeIcon = false;
@@ -439,7 +432,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let usingRule = false;
         SelectionManager.SelectedDocuments().map(dv => {
             let cv = dv.props.ContainingCollectionView;
-            let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+            let ruleProvider = cv && cv.props.ruleProvider;
             let heading = NumCast(dv.props.Document.heading);
             ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
             usingRule = usingRule || (ruleProvider && heading ? true : false);

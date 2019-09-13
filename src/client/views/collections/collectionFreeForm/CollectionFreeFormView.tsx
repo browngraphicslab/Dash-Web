@@ -257,18 +257,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-        let heading = this.childDocs.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
-        heading = heading === 0 || this.childDocs.length === 0 ? 1 : heading === 1 ? 2 : 0;
+        let maxHeading = this.childDocs.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
+        let heading = maxHeading === 0 || this.childDocs.length === 0 ? 1 : maxHeading === 1 ? 2 : 0;
         if (heading === 0) {
             let sorted = this.childDocs.filter(d => d.type === DocumentType.TEXT && d.data_ext instanceof Doc && d.data_ext.lastModified).sort((a, b) => DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date > DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? 1 :
                 DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date < DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? -1 : 0);
-            heading = !sorted.length ? 1 : NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
+            heading = !sorted.length ? Math.max(1, maxHeading) : NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
         }
-        newBox.heading = heading;
-
-        if (Cast(this.props.Document.ruleProvider, Doc) as Doc) {
-            newBox.ruleProvider = Doc.GetProto(Cast(this.props.Document.ruleProvider, Doc) as Doc);
-        }
+        !this.props.Document.isRuleProvider && (newBox.heading = heading);
         this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
@@ -698,6 +694,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
+            ruleProvider: this.props.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider,
             onClick: this.props.onClick,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
@@ -723,6 +720,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
+            ruleProvider: this.props.ruleProvider,
             onClick: this.props.onClick,
             ScreenToLocalTransform: this.getTransform,
             renderDepth: this.props.renderDepth,
@@ -817,6 +815,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     if (pair.layout && !(pair.data instanceof Promise)) {
                         prev.push({
                             ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                                ruleProvider={this.props.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
                                 jitterRotation={NumCast(this.props.Document.jitterRotation)}
                                 x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                                 width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
@@ -873,6 +872,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }, "arrange contents");
     }
 
+    autoFormat = () => {
+        this.props.Document.isRuleProvider = !this.props.Document.isRuleProvider;
+        this.childDocs.map(child => child.heading = undefined);
+    }
+
     analyzeStrokes = async () => {
         let data = Cast(this.fieldExtensionDoc[this.inkKey], InkField);
         if (!data) {
@@ -900,11 +904,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             },
             icon: !this.props.Document.useClusters ? "braille" : "braille"
         });
-        layoutItems.push({
-            description: `${this.props.Document.isRuleProvider ? "Stop Auto Format" : "Auto Format"}`,
-            event: () => this.props.Document.isRuleProvider = !this.props.Document.isRuleProvider,
-            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
-        });
+        layoutItems.push({ description: `${this.props.Document.isRuleProvider ? "Stop Auto Format" : "Auto Format"}`, event: this.autoFormat, icon: !this.props.Document.isRuleProvider ? "chalkboard" : "chalkboard" });
         layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
@@ -1034,7 +1034,6 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & 
 @observer
 class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
-        let props = this.props;
         return (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
             renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
