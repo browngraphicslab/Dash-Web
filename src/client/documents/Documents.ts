@@ -630,7 +630,7 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
@@ -649,6 +649,7 @@ export namespace DocUtils {
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
             linkDocProto.anchor1Groups = new List<Doc>([]);
+            linkDocProto.anchor1anchored = anchored1;
             linkDocProto.anchor2 = target;
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);

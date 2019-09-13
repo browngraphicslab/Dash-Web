@@ -354,7 +354,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }
                 else if (linkedDocs.length) {
                     SelectionManager.DeselectAll();
-                    let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document));
+                    let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document) && !d.anchor1anchored);
+                    let firstUnshown = first.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
+                    if (firstUnshown.length) first = [firstUnshown[0]];
                     let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
 
                     // @TODO: shouldn't always follow target context

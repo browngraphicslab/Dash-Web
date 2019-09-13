@@ -189,7 +189,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         DocServer.GetRefField(id).then(linkDoc => {
                             this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
                             if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                            else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id);
+                            else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
                         })
                     });
                     const link = this._editorView!.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
@@ -898,8 +898,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground ||
-            (this.props.Document.isButton && !this.props.isSelected()) ? "none" : "all";
+        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
+            //||  (this.props.Document.isButton && !this.props.isSelected()) 
+            ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
@@ -924,7 +925,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap" }} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: (this.props.Document.isButton && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
             </div>
         );
     }
