@@ -473,17 +473,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this._fontFamily = rules.font;
                 this._fontSize = rules.size;
                 setTimeout(() => {
-                    let tr = this._editorView!.state.tr;
-                    let n = new NodeSelection(this._editorView!.state.doc.resolve(0));
-                    if (this._editorView!.state.doc.textContent === "") {
-                        tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
-                            replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true).
-                            setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
-                    } else if (n.node && n.node.type === this._editorView!.state.schema.nodes.paragraph) {
-                        tr = tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align });
+                    if (this._editorView!.state.doc.childCount) {
+                        let tr = this._editorView!.state.tr;
+                        let n = new NodeSelection(this._editorView!.state.doc.resolve(0));
+                        if (this._editorView!.state.doc.textContent === "") {
+                            tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
+                                replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true).
+                                setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
+                        } else if (n.node && n.node.type === this._editorView!.state.schema.nodes.paragraph) {
+                            tr = tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align });
+                        }
+                        this._editorView!.dispatch(tr);
+                        this.tryUpdateHeight();
                     }
-                    this._editorView!.dispatch(tr);
-                    this.tryUpdateHeight();
                 }, 0);
             }), { fireImmediately: true }
         );
