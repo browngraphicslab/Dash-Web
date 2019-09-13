@@ -160,7 +160,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         const fd = fieldTemplate.data;
                         fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
                     }
-                    Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                    fieldTemplate.title = metaKey;
+                    Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
                     if (text.startsWith(">>")) {
                         proto.detailedLayout = proto.layout;
                         proto.miniLayout = ImageBox.LayoutString(metaKey);

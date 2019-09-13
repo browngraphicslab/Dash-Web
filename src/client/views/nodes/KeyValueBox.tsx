@@ -198,7 +198,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             return;
         }
         let previousViewType = fieldTemplate.viewType;
-        Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(parentStackingDoc));
+        Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(parentStackingDoc));
         previousViewType && (fieldTemplate.viewType = previousViewType);
 
         Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);

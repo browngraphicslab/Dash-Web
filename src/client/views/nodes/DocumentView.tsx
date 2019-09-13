@@ -469,9 +469,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
                 let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
-                let metaKey = "data";
                 let proto = Doc.GetProto(docTemplate);
-                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
 
                 Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
                 Doc.GetProto(this.dataDoc || this.props.Document).customLayout = this.props.Document.layout;
@@ -652,7 +651,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
         layoutItems.push({ description: this.props.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         if (this.props.DataDoc) {
-            layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeTemplate(this.props.Document, StrCast(this.props.Document.title), this.props.DataDoc!), icon: "concierge-bell" })
+            layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc!), icon: "concierge-bell" })
         }
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });

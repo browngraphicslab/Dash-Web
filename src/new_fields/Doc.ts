@@ -558,24 +558,24 @@ export namespace Doc {
         }
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKeyRaw: string, templateDataDoc: Doc) {
-        let metaKey = metaKeyRaw.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
+    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
+        let metadataFieldName = StrCast(fieldTemplate.title);
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
         if (fieldTemplate.layout instanceof Doc) {
             fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
         }
-        let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+        let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
         if (backgroundLayout) {
-            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
         }
 
         let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
         layoutDelegate.layout = layout;
 
-        fieldTemplate.templateField = metaKey;
-        fieldTemplate.title = metaKey;
+        fieldTemplate.templateField = metadataFieldName;
+        fieldTemplate.title = metadataFieldName;
         fieldTemplate.isTemplate = true;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
@@ -590,6 +590,8 @@ export namespace Doc {
         fieldTemplate.panY = 0;
         fieldTemplate.scale = 1;
         fieldTemplate.showTitle = "title";
+        let data = fieldTemplate.data;
+        !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (templateDataDoc[metadataFieldName] = ObjectField.MakeCopy(data));
         setTimeout(() => fieldTemplate.proto = templateDataDoc);
     }
 
