@@ -284,8 +284,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && StrCast(draggedDoc.layout) !== "") {
-                this.props.Document.layout = draggedDoc;
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT) {
+                this.props.Document.layout = draggedDoc.layout instanceof Doc ? draggedDoc.layout : draggedDoc;
                 draggedDoc.isTemplate = true;
                 e.stopPropagation();
             }

@@ -793,9 +793,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
 
     render() {
-        let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
+        let ruleProvider = this.props.Document.ruleProvider as Doc;
+        let ruleColor = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(this.props.Document.heading)]) : undefined;
+        let ruleRounding = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleRounding_" + NumCast(this.props.Document.heading)]) : undefined;
+        let colorSet = this.layoutDoc.backgroundColor !== this.layoutDoc.defaultBackgroundColor;
+        let clusterCol = this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground;
+
+        let backgroundColor = this.layoutDoc.isBackground || (clusterCol && !colorSet) ?
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
-            StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
+            ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
         let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
@@ -811,7 +817,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
+        let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding, ruleRounding);
         let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         let searchHighlight = (!this.props.Document.search_fields ? (null) :
             <div key="search" style={{ position: "absolute", background: "yellow", bottom: "-20px", borderRadius: "5px", transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>

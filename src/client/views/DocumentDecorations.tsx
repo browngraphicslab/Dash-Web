@@ -424,23 +424,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointermove", this.onRadiusMove);
             document.addEventListener("pointerup", this.onRadiusUp);
         }
-        if (!this._isMoving) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-                map(d => d.borderRounding = "0%");
-        }
     }
 
     onRadiusMove = (e: PointerEvent): void => {
         this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        dist = dist < 3 ? 0 : dist;
+        let usingRule = false;
         SelectionManager.SelectedDocuments().map(dv => {
             let cv = dv.props.ContainingCollectionView;
             let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
             let heading = NumCast(dv.props.Document.heading);
-            cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
+            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
+            usingRule = usingRule || (ruleProvider && heading ? true : false);
         })
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
     }

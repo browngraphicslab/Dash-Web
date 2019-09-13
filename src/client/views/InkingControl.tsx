@@ -73,7 +73,7 @@ export class InkingControl extends React.Component {
                     let cv = view.props.ContainingCollectionView;
                     let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
                     let parback = cv && StrCast(cv.props.Document.backgroundColor);
-                    cv && parback && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb));
+                    cv && parback && (Doc.GetProto(ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb));
                     // if (parback && cv && parback.indexOf("rgb") !== -1) {
                     //     let parcol = Utils.fromRGBAstr(parback);
                     //     let hsl = Utils.RGBToHSL(parcol.r, parcol.g, parcol.b);
