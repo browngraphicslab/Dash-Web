@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -195,6 +195,7 @@ export class MainView extends React.Component {
         library.add(faArrowUp);
         library.add(faCloudUploadAlt);
         library.add(faBolt);
+        library.add(faVideo);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -456,6 +457,7 @@ export class MainView extends React.Component {
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
         // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
         // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
+        let addWebCam = action(() => Docs.Create.WebCamDocument("", {}));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
@@ -464,6 +466,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
+            [React.createRef<HTMLDivElement>(), "video", "Add WebCam", addWebCam]
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);

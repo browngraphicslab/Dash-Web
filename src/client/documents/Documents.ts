@@ -22,7 +22,7 @@ import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField, WebCamField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast } from "../../new_fields/Types";
@@ -46,6 +46,7 @@ import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
+import { DashWebCam } from "../views/webcam/DashWebCam";
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
@@ -176,6 +177,9 @@ export namespace Docs {
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
+            }],
+            [DocumentType.WEBCAM, {
+                layout: { view: DashWebCam }
             }]
         ]);
 
@@ -355,6 +359,10 @@ export namespace Docs {
 
         export function YoutubeDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.YOUTUBE), new YoutubeField(new URL(url)), options);
+        }
+
+        export function WebCamDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
