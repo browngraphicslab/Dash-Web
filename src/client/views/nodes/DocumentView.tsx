@@ -438,7 +438,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     makeNativeViewClicked = (): void => {
-        (this.dataDoc || Doc.GetProto(this.props.Document)).customLayout = this.props.Document.layout;
         this.props.Document.layout = this.props.Document.nativeLayout;
         this.props.Document.type = this.props.Document.nativeType;
         this.props.Document.nativeWidth = this.props.Document.nativeNativeWidth;
@@ -473,6 +472,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.MakeTemplate(fieldTemplate, metaKey, proto);
 
                 Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
+                Doc.GetProto(this.dataDoc || this.props.Document).customLayout = this.props.Document.layout;
             }
         });
     }
@@ -690,6 +690,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
 
+        cm.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, StrCast(this.props.Document.title), this.props.addDocument, this.props.removeDocument), icon: "file" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];

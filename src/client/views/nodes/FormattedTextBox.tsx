@@ -293,7 +293,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     recordKeyHandler = (e: KeyboardEvent) => {
-        if (this.props.Document === SelectionManager.SelectedDocuments()[0].props.Document) {
+        if (SelectionManager.SelectedDocuments().length && this.props.Document === SelectionManager.SelectedDocuments()[0].props.Document) {
             if (e.key === "R" && e.altKey) {
                 e.stopPropagation();
                 e.preventDefault();
@@ -473,7 +473,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this._fontFamily = rules.font;
                 this._fontSize = rules.size;
                 setTimeout(() => {
-                    if (this._editorView!.state.doc.childCount) {
+                    if (this._editorView!.state.doc.childCount && this._proseRef) {
                         let tr = this._editorView!.state.tr;
                         let n = new NodeSelection(this._editorView!.state.doc.resolve(0));
                         if (this._editorView!.state.doc.textContent === "") {

@@ -3,12 +3,12 @@ import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faChe
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { URLField } from '../../new_fields/URLField';
 import { emptyFunction, Utils } from "../../Utils";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -31,6 +31,7 @@ import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { ObjectField } from '../../new_fields/ObjectField';
+import { DocServer } from '../DocServer';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -142,6 +143,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text.startsWith("::")) {
+                let targetID = text.slice(2, text.length);
+                let promoteDoc = SelectionManager.SelectedDocuments()[0];
+                DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             } else if (text.startsWith(">")) {
                 let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
                 SelectionManager.DeselectAll();

@@ -20,7 +20,7 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt } from "../../new_fields/Doc";
+import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
@@ -607,6 +607,32 @@ export namespace Docs {
 
 export namespace DocUtils {
 
+    export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
+        if (targetID.startsWith("-")) {
+            targetID = targetID.substr(1, targetID.length - 1);
+            Doc.GetProto(promoteDoc).title = targetID;
+        }
+        DocServer.GetRefField(targetID).then(doc => {
+            let copy = doc instanceof Doc ? doc : Doc.MakeCopy(promoteDoc, true, targetID);
+            !doc && (Doc.GetProto(copy).title = targetID);
+            addDoc && addDoc(copy);
+            !doc && remDoc && remDoc(promoteDoc);
+            if (!doc) {
+                DocListCastAsync(promoteDoc.links).then(links => {
+                    links && links.map(async link => {
+                        if (link) {
+                            let a1 = await Cast(link.anchor1, Doc);
+                            if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
+                            let a2 = await Cast(link.anchor2, Doc);
+                            if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
+                            LinkManager.Instance.deleteLink(link);
+                            LinkManager.Instance.addLink(link);
+                        }
+                    })
+                })
+            }
+        });
+    }
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
