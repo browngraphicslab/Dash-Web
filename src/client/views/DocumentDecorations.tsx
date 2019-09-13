@@ -3,12 +3,12 @@ import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faChe
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { URLField } from '../../new_fields/URLField';
 import { emptyFunction, Utils } from "../../Utils";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -31,6 +31,7 @@ import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { ObjectField } from '../../new_fields/ObjectField';
+import { DocServer } from '../DocServer';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -142,6 +143,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text.startsWith("::")) {
+                let targetID = text.slice(2, text.length);
+                let promoteDoc = SelectionManager.SelectedDocuments()[0];
+                DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             } else if (text.startsWith(">")) {
                 let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
                 SelectionManager.DeselectAll();
@@ -424,23 +429,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointermove", this.onRadiusMove);
             document.addEventListener("pointerup", this.onRadiusUp);
         }
-        if (!this._isMoving) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-                map(d => d.borderRounding = "0%");
-        }
     }
 
     onRadiusMove = (e: PointerEvent): void => {
         this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        dist = dist < 3 ? 0 : dist;
+        let usingRule = false;
         SelectionManager.SelectedDocuments().map(dv => {
             let cv = dv.props.ContainingCollectionView;
             let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
             let heading = NumCast(dv.props.Document.heading);
-            cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
+            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
+            usingRule = usingRule || (ruleProvider && heading ? true : false);
         })
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
     }

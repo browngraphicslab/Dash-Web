@@ -9,6 +9,7 @@ import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template, Templates } from "./Templates";
 import React = require("react");
+import { Doc } from "../../new_fields/Doc";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -99,16 +100,16 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            this.props.docs.map(d => d.props.Document["show" + template.Name] = template.Name.toLowerCase());
+            this.props.docs.map(d => Doc.GetProto(d.layoutDoc)["show" + template.Name] = template.Name.toLowerCase());
         } else {
-            this.props.docs.map(d => d.props.Document["show" + template.Name] = undefined);
+            this.props.docs.map(d => Doc.GetProto(d.layoutDoc)["show" + template.Name] = undefined);
         }
     }
 
     @undoBatch
     @action
     clearTemplates = (event: React.MouseEvent) => {
-        Templates.TemplateList.map(template => this.props.docs.map(d => d.props.Document["show" + template.Name] = false));
+        Templates.TemplateList.map(template => this.props.docs.map(d => d.layoutDoc["show" + template.Name] = false));
     }
 
     @action

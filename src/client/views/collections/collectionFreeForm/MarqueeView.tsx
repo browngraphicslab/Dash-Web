@@ -356,7 +356,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.props.addLiveTextDocument(summary);
             }
             else {
-                newCollection.ruleProvider = this.props.container.props.Document;
+                newCollection.ruleProvider = this.props.container.props.Document.isRuleProvider ? this.props.container.props.Document : this.props.container.props.Document.ruleProvider;
                 this.props.addDocument(newCollection, false);
                 this.props.selectDocuments([newCollection]);
             }

@@ -475,13 +475,13 @@ export namespace Doc {
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
 
-    export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
-        const copy = new Doc;
+    export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
+        const copy = new Doc(copyProtoId, true);
         Object.keys(doc).forEach(key => {
             const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
-                if (field instanceof Doc) {
-                    copy[key] = Doc.MakeCopy(field);
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.MakeCopy(doc[key]!, false);
                 }
             } else {
                 if (field instanceof RefField) {

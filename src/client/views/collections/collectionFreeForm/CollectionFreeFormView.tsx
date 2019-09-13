@@ -262,27 +262,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (heading === 0) {
             let sorted = this.childDocs.filter(d => d.type === DocumentType.TEXT && d.data_ext instanceof Doc && d.data_ext.lastModified).sort((a, b) => DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date > DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? 1 :
                 DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date < DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? -1 : 0);
-            heading = NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
+            heading = !sorted.length ? 1 : NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
         }
         newBox.heading = heading;
 
-        PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
-            if (!ruleProvider) ruleProvider = this.props.Document;
-            // saturation shift
-            // let col = NumCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
-            // let back = Utils.fromRGBAstr(StrCast(this.props.Document.backgroundColor));
-            // let hsl = Utils.RGBToHSL(back.r, back.g, back.b);
-            // let newcol = { h: hsl.h, s: hsl.s + col, l: hsl.l };
-            // col && (Doc.GetProto(newBox).backgroundColor = Utils.toRGBAstr(Utils.HSLtoRGB(newcol.h, newcol.s, newcol.l)));
-            // OR transparency set
-            let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
-            (newBox.backgroundColor === newBox.defaultBackgroundColor) && col && (Doc.GetProto(newBox).backgroundColor = col);
-
-            let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
-            round && (Doc.GetProto(newBox).borderRounding = round);
-            newBox.ruleProvider = ruleProvider;
-            this.addDocument(newBox, false);
-        });
+        if (Cast(this.props.Document.ruleProvider, Doc) as Doc) {
+            newBox.ruleProvider = Doc.GetProto(Cast(this.props.Document.ruleProvider, Doc) as Doc);
+        }
+        this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
         this.props.addDocument(newBox, false);
@@ -898,7 +885,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
 
-        if (this.childDocs.some(d => d.isTemplate)) {
+        if (this.childDocs.some(d => BoolCast(d.isTemplate))) {
             layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
         }
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
@@ -913,9 +900,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             },
             icon: !this.props.Document.useClusters ? "braille" : "braille"
         });
-        this.props.Document.useClusters && layoutItems.push({
-            description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
-            event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
+        layoutItems.push({
+            description: `${this.props.Document.isRuleProvider ? "Stop Auto Format" : "Auto Format"}`,
+            event: () => this.props.Document.isRuleProvider = !this.props.Document.isRuleProvider,
             icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
         });
         layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });

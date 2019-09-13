@@ -74,7 +74,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
+        let ruleProvider = this.props.Document.ruleProvider as Doc;
+        let ruleRounding = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleRounding_" + NumCast(this.props.Document.heading)]) : undefined;
         let br = StrCast(this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout.borderRounding : this.props.Document.borderRounding);
+        br = !br && ruleRounding ? ruleRounding : br;
         if (br.endsWith("%")) {
             let percent = Number(br.substr(0, br.length - 1)) / 100;
             let nativeDim = Math.min(NumCast(this.layoutDoc.nativeWidth), NumCast(this.layoutDoc.nativeHeight));
