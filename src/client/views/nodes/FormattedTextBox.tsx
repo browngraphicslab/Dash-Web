@@ -467,23 +467,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     size: NumCast(ruleProvider["ruleSize_" + heading], 13)
                 };
             }
-            return { align: "", font: "Arial", size: 13 };
+            return undefined;
         },
             action((rules: any) => {
-                this._fontFamily = rules.font;
-                this._fontSize = rules.size;
-                setTimeout(() => {
-                    let tr = this._editorView!.state.tr;
-                    let n = new NodeSelection(this._editorView!.state.doc.resolve(0));
-                    if (this._editorView!.state.doc.textContent === "") {
-                        tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
-                            replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true).
-                            setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
-                    } else if (n.node && n.node.type === this._editorView!.state.schema.nodes.paragraph) {
-                        tr = tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align });
+                this._fontFamily = rules ? rules.font : "Arial";
+                this._fontSize = rules ? rules.size : 13;
+                rules && setTimeout(() => {
+                    const view = this._editorView!;
+                    if (this._proseRef) {
+                        let n = new NodeSelection(view.state.doc.resolve(0));
+                        if (this._editorView!.state.doc.textContent === "") {
+                            view.dispatch(view.state.tr.setSelection(new TextSelection(view.state.doc.resolve(0), view.state.doc.resolve(2))).
+                                replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true));
+                        } else if (n.node && n.node.type === view.state.schema.nodes.paragraph) {
+                            view.dispatch(view.state.tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align }));
+                        }
+                        this.tryUpdateHeight();
                     }
-                    this._editorView!.dispatch(tr);
-                    this.tryUpdateHeight();
                 }, 0);
             }), { fireImmediately: true }
         );

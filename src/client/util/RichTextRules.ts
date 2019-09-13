@@ -77,8 +77,10 @@ export const inpRules = {
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "center";
+                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }
-                return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+                return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
             }),
         new InputRule(
             new RegExp(/^\[\[\s$/),
