@@ -24,7 +24,7 @@ interface WebcamProps {
 }
 
 @observer
-export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & React.HTMLAttributes<HTMLVideoElement>, WebcamState> {
+export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & React.HTMLAttributes<HTMLVideoElement>> {
     static defaultProps = {
         audio: true,
         imageSmoothing: true,
@@ -54,11 +54,11 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
     componentDidMount() {
         if (!hasGetUserMedia()) return;
 
-        const { state } = this;
+        // const { state } = this;
 
         DashWebCam.mountedInstances.push(this);
 
-        if (!state.hasUserMedia && !DashWebCam.userMediaRequested) {
+        if (!this.hasUserMedia && !DashWebCam.userMediaRequested) {
             this.requestUserMedia();
         }
     }
@@ -154,7 +154,7 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
         navigator.getUserMedia =
             navigator.mediaDevices.getUserMedia;
 
-        const sourceSelected = (audioConstraints, videoConstraints) => {
+        const sourceSelected = (audioConstraints: any, videoConstraints: any) => {
             const constraints: MediaStreamConstraints = {
                 video: typeof videoConstraints !== "undefined" ? videoConstraints : true
             };
@@ -181,9 +181,9 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
         if ("mediaDevices" in navigator) {
             sourceSelected(props.audioConstraints, props.videoConstraints);
         } else {
-            const optionalSource = id => ({ optional: [{ sourceId: id }] });
+            const optionalSource = (id: any) => ({ optional: [{ sourceId: id }] });
 
-            const constraintToSourceId = constraint => {
+            const constraintToSourceId = (constraint: any) => {
                 const { deviceId } = constraint;
 
                 if (typeof deviceId === "string") {
@@ -206,7 +206,7 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
                 let audioSource = null;
                 let videoSource = null;
 
-                sources.forEach(source => {
+                sources.forEach((source: { kind: string; id: any; }) => {
                     if (source.kind === "audio") {
                         audioSource = source.id;
                     } else if (source.kind === "video") {
@@ -234,12 +234,12 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
         DashWebCam.userMediaRequested = true;
     }
 
-    handleUserMedia(err, stream?: MediaStream) {
+    handleUserMedia(err: string | null, stream?: MediaStream) {
         const { props } = this;
 
         if (err || !stream) {
             this.setState({ hasUserMedia: false });
-            props.onUserMediaError(err);
+            props.onUserMediaError(err!);
 
             return;
         }
