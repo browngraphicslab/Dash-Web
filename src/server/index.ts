@@ -86,7 +86,6 @@ app.use(expressValidator());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
-    console.log(req.originalUrl);
     res.locals.user = req.user;
     next();
 });

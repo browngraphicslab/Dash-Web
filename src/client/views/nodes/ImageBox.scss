@@ -49,6 +49,19 @@
     cursor: pointer;
 }
 
+#google-tags {
+    transition: all 0.5s ease 0s;
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    border: 2px solid black;
+    border-radius: 50%;
+    padding: 3px;
+    background: white;
+}
+
 .imageBox-button {
     padding: 0vw;
     border: none;

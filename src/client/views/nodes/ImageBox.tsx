@@ -219,7 +219,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             let modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
-            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" })
+            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
         }
@@ -381,6 +381,19 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     src={"/assets/google_photos.png"}
                     style={{ opacity: this.hoverActive ? 1 : 0 }}
                     onClick={() => window.open(remoteUrl)}
+                />
+            );
+        }
+        return (null);
+    }
+
+    considerGooglePhotosTags = () => {
+        const tags = StrCast(this.props.Document.googlePhotosTags);
+        if (tags) {
+            return (
+                <img
+                    id={"google-tags"}
+                    src={"/assets/google_tags.png"}
                 />
             );
         }
