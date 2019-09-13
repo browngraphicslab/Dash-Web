@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction } from "mobx";
+import { observable, ObservableMap, runInAction, action } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -566,18 +566,13 @@ export namespace Doc {
         if (fieldTemplate.layout instanceof Doc) {
             fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
         }
-        let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
         if (backgroundLayout) {
             backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
         }
 
-        let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
-        layoutDelegate.layout = layout;
-
         fieldTemplate.templateField = metadataFieldName;
         fieldTemplate.title = metadataFieldName;
         fieldTemplate.isTemplate = true;
-        fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
@@ -591,8 +586,14 @@ export namespace Doc {
         fieldTemplate.scale = 1;
         fieldTemplate.showTitle = "title";
         let data = fieldTemplate.data;
-        !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (templateDataDoc[metadataFieldName] = ObjectField.MakeCopy(data));
-        setTimeout(() => fieldTemplate.proto = templateDataDoc);
+        setTimeout(action(() => {
+            !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
+            let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
+            let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
+            layoutDelegate.layout = layout;
+            fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
+            fieldTemplate.proto = templateDataDoc;
+        }), 0);
     }
 
     export function ToggleDetailLayout(d: Doc) {
