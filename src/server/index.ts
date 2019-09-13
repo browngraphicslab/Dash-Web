@@ -46,6 +46,7 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
+const extensions = require("../client/util/UtilExtensions");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -827,20 +828,50 @@ app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.R
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
 
+export interface NewMediaItem {
+    description: string;
+    simpleMediaItem: {
+        uploadToken: string;
+    };
+}
+
+Array.prototype.batch = extensions.Batch;
+
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
-    const media: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
+    const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
-    const newMediaItems = await Promise.all(media.map(async element => {
-        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url).catch(error => {
-            console.log("Dispatching upload error!");
-            console.log(error);
+
+    const newMediaItems: NewMediaItem[] = [];
+    let failed = 0;
+    const size = 25;
+
+    try {
+        await mediaInput.batch({
+            size,
+            action: {
+                handler: async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
+                    await Promise.all(batch.map(async element => {
+                        console.log(`Uploading ${element.url} to Google's servers...`);
+                        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+                        if (uploadToken) {
+                            newMediaItems.push({
+                                description: element.description,
+                                simpleMediaItem: { uploadToken }
+                            });
+                        } else {
+                            console.log("FAIL!", element.url, element.description);
+                            failed++;
+                        }
+                    }));
+                },
+                interval: 3000
+            }
         });
-        return !uploadToken ? undefined : {
-            description: element.description,
-            simpleMediaItem: { uploadToken }
-        };
-    }));
-    if (!newMediaItems.every(item => item)) {
+    } catch (e) {
+        console.log("WHAT HAPPENED?");
+        console.log(e);
+    }
+    if (failed) {
         return _error(res, tokenError);
     }
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(

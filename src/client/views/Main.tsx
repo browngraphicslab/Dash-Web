@@ -20,14 +20,6 @@ String.prototype.hasNewline = function () {
     return this.endsWith("\n");
 };
 
-(Array.prototype as any).lastElement = function (this: any[]) {
-    if (!this.length) {
-        return undefined;
-    }
-    return this[this.length - 1];
-};
-
-
 let swapDocs = async () => {
     let oldDoc = await Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc);
     // Docs.Prototypes.MainLinkDocument().allLinks = new List<Doc>();

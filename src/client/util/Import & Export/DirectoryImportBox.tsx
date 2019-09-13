@@ -92,29 +92,28 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             this.completed = 0;
         });
 
-        let sizes = [];
-        let modifiedDates = [];
+        let sizes: number[] = [];
+        let modifiedDates: number[] = [];
 
-        let i = 0;
         const uploads: FileResponse[] = [];
-        const batchSize = 15;
 
-        while (i < validated.length) {
-            const cap = Math.min(validated.length, i + batchSize);
-            let formData = new FormData();
-            const batch = validated.slice(i, cap);
+        await validated.batch({
+            size: 15,
+            action: {
+                handler: async (batch: File[]) => {
+                    sizes.push(...batch.map(file => file.size));
+                    modifiedDates.push(...batch.map(file => file.lastModified));
 
-            sizes.push(...batch.map(file => file.size));
-            modifiedDates.push(...batch.map(file => file.lastModified));
+                    let formData = new FormData();
+                    batch.forEach(file => formData.append(Utils.GenerateGuid(), file));
+                    const parameters = { method: 'POST', body: formData };
 
-            batch.forEach(file => formData.append(Utils.GenerateGuid(), file));
-            const parameters = { method: 'POST', body: formData };
-            uploads.push(...(await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json()));
+                    uploads.push(...(await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json()));
 
-            runInAction(() => this.completed += batch.length);
-            i = cap;
-        }
-
+                    runInAction(() => this.completed += batch.length);
+                }
+            }
+        });
 
         await Promise.all(uploads.map(async upload => {
             const type = upload.type;

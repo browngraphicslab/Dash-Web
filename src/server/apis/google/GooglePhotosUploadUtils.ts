@@ -6,6 +6,7 @@ import * as path from 'path';
 import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
 import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
+import { NewMediaItem } from '../..';
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -39,7 +40,7 @@ export namespace GooglePhotosUploadUtils {
     };
 
     export const DispatchGooglePhotosUpload = async (url: string) => {
-        const body = await request(url, { encoding: null });
+        const body = await request(url, { encoding: null }).catch(error => console.log("Error in streaming body!", error));
         const parameters = {
             method: 'POST',
             headers: {
@@ -56,36 +57,37 @@ export namespace GooglePhotosUploadUtils {
                 return reject(error);
             }
             resolve(body);
-        }));
+        }).catch(error => console.log("Error in literal uploading process to Google's servers!", error))).catch(error => console.log("Error in literal uploading process to Google's servers!", error));
     };
 
-    export const CreateMediaItems = async (newMediaItems: any[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        const quota = newMediaItems.length;
-        let handled = 0;
+    export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
         const newMediaItemResults: NewMediaItemResult[] = [];
-        while (handled < quota) {
-            const cap = Math.min(newMediaItems.length, handled + 50);
-            const batch = newMediaItems.slice(handled, cap);
-            console.log(batch.length);
-            const parameters = {
-                method: 'POST',
-                headers: headers('json'),
-                uri: prepend('mediaItems:batchCreate'),
-                body: { newMediaItems: batch } as any,
-                json: true
-            };
-            album && (parameters.body.albumId = album.id);
-            newMediaItemResults.push(...(await new Promise<MediaItemCreationResult>((resolve, reject) => {
-                request(parameters, (error, _response, body) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(body);
-                    }
-                });
-            })).newMediaItemResults);
-            handled = cap;
-        }
+        await newMediaItems.batch({
+            size: 50,
+            action: {
+                handler: async (batch: NewMediaItem[]) => {
+                    console.log(batch.length);
+                    const parameters = {
+                        method: 'POST',
+                        headers: headers('json'),
+                        uri: prepend('mediaItems:batchCreate'),
+                        body: { newMediaItems: batch } as any,
+                        json: true
+                    };
+                    album && (parameters.body.albumId = album.id);
+                    newMediaItemResults.push(...(await new Promise<MediaItemCreationResult>((resolve, reject) => {
+                        request(parameters, (error, _response, body) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve(body);
+                            }
+                        });
+                    })).newMediaItemResults);
+                },
+                interval: 1000
+            }
+        });
         return { newMediaItemResults };
     };
 
