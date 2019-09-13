@@ -848,7 +848,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
             let checked = false;
-            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.props.Document["show" + template.Name] !== undefined));
+            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.layoutDoc["show" + template.Name] !== undefined));
             templates.set(template, checked);
         });
 

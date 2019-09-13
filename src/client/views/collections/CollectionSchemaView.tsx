@@ -32,6 +32,7 @@ import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, Collection
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -161,6 +162,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
+                ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
                 width={this.previewWidth}
                 height={this.previewHeight}
                 getTransform={this.getPreviewTransform}
@@ -901,6 +903,7 @@ interface CollectionSchemaPreviewProps {
     fitToBox?: boolean;
     width: () => number;
     height: () => number;
+    ruleProvider: Doc | undefined;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     onClick?: ScriptField;
@@ -995,7 +998,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
-                        ruleProvider={undefined}
+                        ruleProvider={this.props.ruleProvider}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}

@@ -51,7 +51,13 @@ export class InkingControl extends React.Component {
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
-                if (view.props.ContainingCollectionView && view.props.ContainingCollectionView.props.Document.colorPalette) {
+                if (view.props.ContainingCollectionView) {
+                    if (!view.props.ContainingCollectionView.props.Document.colorPalette) {
+                        let defaultPalette = ["rg14,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                            "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+                        let colorPalette = Cast(view.props.ContainingCollectionView.props.Document.colorPalette, listSpec("string"));
+                        if (!colorPalette) view.props.ContainingCollectionView.props.Document.colorPalette = new List<string>(defaultPalette);
+                    }
                     let cp = Cast(view.props.ContainingCollectionView.props.Document.colorPalette, listSpec("string")) as string[];
                     let closest = 0;
                     let dist = 10000000;
