@@ -494,13 +494,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.Document.customNativeHeight = undefined;
                 this.props.Document.customIgnoreAspect = undefined;
             } else {
-                let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
+                let options = { title: "data", width: NumCast(this.props.Document.width), x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
                 let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
                     this.props.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
                         Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
                 fieldTemplate.backgroundColor = StrCast(this.props.Document.backgroundColor);
                 fieldTemplate.heading = 1;
+                fieldTemplate.autoHeight = true;
 
                 let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
                 let proto = Doc.GetProto(docTemplate);
