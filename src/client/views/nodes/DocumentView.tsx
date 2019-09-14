@@ -40,6 +40,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { CompileScript, Scripting } from '../../util/Scripting';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -440,29 +441,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     makeNativeViewClicked = (): void => {
-        this.props.Document.layout = this.props.Document.nativeLayout;
-        this.props.Document.nativeLayout = undefined;
-        this.props.Document.type = this.props.Document.nativeType;
-
-        this.props.Document.customAutoHeight = this.props.Document.autoHeight;
-        this.props.Document.customWidth = this.props.Document.width;
-        this.props.Document.customHeight = this.props.Document.height;
-        this.props.Document.customNativeWidth = this.props.Document.nativeWidth;
-        this.props.Document.customNativeHeight = this.props.Document.nativeHeight;
-        this.props.Document.customIgnoreAspect = this.props.Document.ignoreAspect;
-
-        this.props.Document.autoHeight = this.props.Document.nonCustomAutoHeight;
-        this.props.Document.width = this.props.Document.nonCustomWidth;
-        this.props.Document.height = this.props.Document.nonCustomHeight;
-        this.props.Document.nativeWidth = this.props.Document.nonCustomNativeWidth;
-        this.props.Document.nativeHeight = this.props.Document.nonCustomNativeHeight;
-        this.props.Document.ignoreAspect = this.props.Document.nonCustomIgnoreAspect;
-        this.props.Document.nonCustomAutoHeight = undefined;
-        this.props.Document.nonCustomWidth = undefined;
-        this.props.Document.nonCustomHeight = undefined;
-        this.props.Document.nonCustomNativeWidth = undefined;
-        this.props.Document.nonCustomNativeHeight = undefined;
-        this.props.Document.nonCustomIgnoreAspect = undefined;
+        makeNativeView(this.props.Document);
     }
     @undoBatch
     makeCustomViewClicked = (): void => {
@@ -620,6 +599,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             })
         }
     }
+    @undoBatch
+    @action
+    toggleCustomView = (): void => {
+        if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.DataDoc) {
+            Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc)
+        } else {
+            if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
+                this.makeCustomViewClicked();
+            } else if (this.Document.nativeLayout) {
+                this.makeNativeViewClicked();
+            }
+        }
+    }
 
     @undoBatch
     @action
@@ -671,6 +663,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
+        onClicks.push({
+            description: "Toggle Detail", event: () => {
+                let compiled = CompileScript("toggleDetail(this)", {
+                    params: { this: "Doc" },
+                    typecheck: false,
+                    editable: true,
+                });
+                if (compiled.compiled) {
+                    this.Document.onClick = new ScriptField(compiled);
+                }
+            }, icon: "window-restore"
+        });
         onClicks.push({ description: this.layoutDoc.ignoreClick ? "Select" : "Do Nothing", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.props.Document.isButton || this.props.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
@@ -922,3 +926,67 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         );
     }
 }
+
+
+let makeNativeView = (doc: any): void => {
+    doc.layout = doc.nativeLayout;
+    doc.nativeLayout = undefined;
+    doc.type = doc.nativeType;
+
+    doc.customAutoHeight = doc.autoHeight;
+    doc.customWidth = doc.width;
+    doc.customHeight = doc.height;
+    doc.customNativeWidth = doc.nativeWidth;
+    doc.customNativeHeight = doc.nativeHeight;
+    doc.customIgnoreAspect = doc.ignoreAspect;
+
+    doc.autoHeight = doc.nonCustomAutoHeight;
+    doc.width = doc.nonCustomWidth;
+    doc.height = doc.nonCustomHeight;
+    doc.nativeWidth = doc.nonCustomNativeWidth;
+    doc.nativeHeight = doc.nonCustomNativeHeight;
+    doc.ignoreAspect = doc.nonCustomIgnoreAspect;
+    doc.nonCustomAutoHeight = undefined;
+    doc.nonCustomWidth = undefined;
+    doc.nonCustomHeight = undefined;
+    doc.nonCustomNativeWidth = undefined;
+    doc.nonCustomNativeHeight = undefined;
+    doc.nonCustomIgnoreAspect = undefined;
+}
+let makeCustomView = (doc: any): void => {
+    doc.nativeLayout = doc.layout;
+    doc.nativeType = doc.type;
+    doc.nonCustomAutoHeight = doc.autoHeight;
+    doc.nonCustomWidth = doc.nativeWidth;
+    doc.nonCustomHeight = doc.nativeHeight;
+    doc.nonCustomNativeWidth = doc.nativeWidth;
+    doc.nonCustomNativeHeight = doc.nativeHeight;
+    doc.nonCustomIgnoreAspect = doc.ignoreAspect;
+    let custom = doc.customLayout as Doc;
+    if (custom instanceof Doc) {
+        doc.type = DocumentType.TEMPLATE;
+        doc.layout = custom;
+        !custom.nativeWidth && (doc.nativeWidth = 0);
+        !custom.nativeHeight && (doc.nativeHeight = 0);
+        !custom.nativeWidth && (doc.ignoreAspect = true);
+        doc.autoHeight = doc.autoHeight;
+        doc.width = doc.customWidth;
+        doc.height = doc.customHeight;
+        doc.nativeWidth = doc.customNativeWidth;
+        doc.nativeHeight = doc.customNativeHeight;
+        doc.ignoreAspect = doc.ignoreAspect;
+        doc.customAutoHeight = undefined;
+        doc.customWidth = undefined;
+        doc.customHeight = undefined;
+        doc.customNativeWidth = undefined;
+        doc.customNativeHeight = undefined;
+        doc.customIgnoreAspect = undefined;
+    }
+}
+Scripting.addGlobal(function toggleDetail(doc: any) {
+    if (doc.type !== DocumentType.COL && doc.type !== DocumentType.TEMPLATE) {
+        makeCustomView(doc);
+    } else if (doc.nativeLayout) {
+        makeNativeView(doc);
+    }
+});
