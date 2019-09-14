@@ -37,26 +37,6 @@ export class Thumbnail extends React.Component<NodeProps> {
         return faBell;
     }
 
-
-
-    focus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        thumbnail!.classList.toggle("selected", true);
-        thumbnail!.classList.toggle("unselected", false);
-        header!.classList.toggle("selection", true);
-        header!.classList.toggle("unselection", false);
-        this.props.toggleopac(true);
-    }
-
-    unfocus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        thumbnail!.classList.toggle("selected", false);
-        thumbnail!.classList.toggle("unselected", true);
-        header!.classList.toggle("selection", false);
-        header!.classList.toggle("unselection", true);
-        this.props.toggleopac(false);
-    }
-
-
-
     documentDisplay(d: Doc, width: number, height: number) {
         let nativeWidth = NumCast(d.nativeWidth, width);
         let nativeHeight = NumCast(d.nativeHeight, height);
@@ -110,10 +90,13 @@ export class Thumbnail extends React.Component<NodeProps> {
         if (this.classref.current!.classList.contains("unselection")) {
             this.classref.current!.classList.remove("unselection");
             this.classref.current!.classList.add("selection");
+            this.props.tog(true);
         }
         else {
             this.classref.current!.classList.remove("selection");
             this.classref.current!.classList.add("unselection");
+            this.props.tog(false);
+
         }
         if (e.altKey) {
             this.props.createportal();
@@ -140,22 +123,26 @@ export class Thumbnail extends React.Component<NodeProps> {
 
     @action
     tog() {
-        if (this.props.toggleopac && this.classref.current!.classList.contains("unselected")){
-            this.opacity=0.3;
+        console.log(this.props.toggleopac);
+        if (this.classref.current) {
+            if (this.props.toggleopac === true && this.classref.current.classList.contains("unselection")) {
+                this.opacity = 0.3;
+            }
+            else {
+                this.opacity = 1;
+            }
         }
-        else{
-            this.opacity=1;
-        }
+        console.log(this.opacity);
     }
 
-    opacity: number = 1;
+    opacity: number | undefined;
 
     render() {
         this.maketransition();
         this.getCaption();
         this.tog();
         return (
-            <div onClick={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: this.opacity, position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
+            <div onClick={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
                 <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                     <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                     <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
@@ -214,5 +201,5 @@ export interface NodeProps {
     docheight: number;
     transition: boolean;
     toggleopac: boolean;
-    settoggleopac: (booelan: boolean) => void;
+    tog: (booelan: boolean) => void;
 }

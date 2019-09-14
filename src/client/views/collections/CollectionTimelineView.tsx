@@ -654,13 +654,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+    private set opac(boolean: boolean) {
+        this.props.Document.opac = boolean;
+    }
+
+    private get opac() {
+        let doc = this.props.Document;
+        if (!doc.opac) {
+            console.log("huh");
+            doc.opac = false;
+        }
+        return BoolCast(doc.opac);
+    }
+
 
     private set sortstate(string) {
         this.props.Document.sortstate = string;
     }
-
-
-
 
 
     @action annotationUpdate = (newValue: string) => {
@@ -810,10 +820,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     opacset = (boolean: boolean) => {
+        console.log('hit');
         this.opac = boolean;
     }
 
-    @observable private opac: boolean = false;
 
     render() {
         this.props.Document._range = this._range;
@@ -823,7 +833,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
-        console.log(this.props.Document.transtate);
+        console.log(this.opac);
         return (
             <div className="collectionTimelineView" onKeyDown={this.onKeyDown_Selector} ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <Flyout
@@ -852,7 +862,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
-
                 <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "50px", position: "absolute", height: "80%", width: "100%", }}>
                     {this.rows}
                     {this.thumbnails.map(doc =>
@@ -867,11 +876,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             docheight={this.screenref.current ? this.screenref.current.style.height ? parseFloat(this.screenref.current.style.height) + 70 : 651 : 651}
                             createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
                             transition={BoolCast(this.props.Document.transtate)}
-                            toggleopac={this.opac}
-                            settoggleopac={this.opacset}
+                            toggleopac={BoolCast(this.props.Document.opac)}
+                            tog={this.opacset}
                         >
                         </Thumbnail>
-
                     )}
                     {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                     <div style={{
