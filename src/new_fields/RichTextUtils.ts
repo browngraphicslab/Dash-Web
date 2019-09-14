@@ -5,7 +5,7 @@ import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
 import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt } from "./Doc";
-import * as Color from "color";
+import Color from "color";
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils, PostToServer } from "../Utils";
 import { RouteStore } from "../server/RouteStore";
@@ -91,27 +91,11 @@ export namespace RichTextUtils {
     export namespace GoogleDocs {
 
         export const Export = async (state: EditorState): Promise<GoogleApiClientUtils.Docs.Content> => {
-            let nodes: { [type: string]: Node<any>[] } = {
-                text: [],
-                image: []
-            };
+            const nodes: Node<any>[] = [];
             let text = ToPlainText(state);
-            let content = state.doc.content;
-            content.forEach(node => node.content.forEach(node => {
-                const type = node.type.name;
-                let existing = nodes[type];
-                if (existing) {
-                    existing.push(node);
-                } else {
-                    nodes[type] = [node];
-                }
-            }));
-            let linkRequests = ExtractLinks(nodes.text);
-            let imageRequests = await ExtractImages(nodes.image);
-            return {
-                text,
-                requests: [...linkRequests, ...imageRequests]
-            };
+            state.doc.content.forEach(node => node.content.forEach(child => nodes.push(child)));
+            const requests = await marksToStyle(nodes);
+            return { text, requests };
         };
 
         type BulletPosition = { value: number, sinks: number };
@@ -186,8 +170,10 @@ export namespace RichTextUtils {
 
             const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems: inlineUrls });
             for (let i = 0; i < uploads.length; i++) {
-                const src = Utils.prepend(`/files/${uploads[i].fileNames.clean}`);
-                state = state.apply(state.tr.insert(0, schema.nodes.image.create({ src, width: inlineUrls[i].width })));
+                const src = Utils.fileUrl(uploads[i].fileNames.clean);
+                const width = inlineUrls[i].width;
+                const imageNode = schema.nodes.image.create({ src, width });
+                state = state.apply(state.tr.insert(0, imageNode));
             }
 
             return { title, text, state };
@@ -265,70 +251,91 @@ export namespace RichTextUtils {
             return marks;
         };
 
-        interface LinkInformation {
-            startIndex: number;
-            endIndex: number;
-            bold: boolean;
-            url: string;
-        }
-
-        const ExtractLinks = (nodes: Node<any>[]) => {
-            let links: docs_v1.Schema$Request[] = [];
+        const marksToStyle = async (nodes: Node<any>[]) => {
+            let requests: docs_v1.Schema$Request[] = [];
             let position = 1;
             for (let node of nodes) {
-                let link, length = node.nodeSize;
-                let marks = node.marks;
-                if (marks.length && (link = marks.find(mark => mark.type.name === "link"))) {
-                    links.push(Encode({
-                        startIndex: position,
-                        endIndex: position + length,
-                        url: link.attrs.href,
-                        bold: false
+                const length = node.nodeSize;
+                const marks = node.marks;
+                const attrs = node.attrs;
+                const textStyle: docs_v1.Schema$TextStyle = {};
+                const information: LinkInformation = {
+                    startIndex: position,
+                    endIndex: position + length,
+                    textStyle
+                };
+                if (marks.length) {
+
+                    const link = marks.find(mark => mark.type.name === "link");
+                    if (link) {
+                        textStyle.link = { url: link.attrs.href };
+                        textStyle.foregroundColor = fromRgb(0, 0, 1);
+                        textStyle.bold = true;
+                    }
+                    const bold = marks.find(mark => mark.type.name === "strong");
+                    bold && (textStyle.bold = true);
+                    const foregroundColor = marks.find(mark => mark.type.name === "pFontColor");
+                    foregroundColor && (textStyle.foregroundColor = fromHex(foregroundColor.attrs.color));
+                }
+                requests.push(EncodeStyleUpdate(information));
+                if (node.type.name === "image") {
+                    requests.push(await EncodeImage({
+                        startIndex: position + length,
+                        uri: attrs.src,
+                        width: attrs.width
                     }));
                 }
                 position += length;
             }
-            return links;
+            return requests;
         };
 
-        const ExtractImages = async (nodes: Node<any>[]) => {
-            const images: docs_v1.Schema$Request[] = [];
-            let position = 1;
-            for (let node of nodes) {
-                const length = node.nodeSize;
-                const attrs = node.attrs;
-                const uri = attrs.src;
-                const baseUrls = await GooglePhotos.Transactions.UploadThenFetch([Docs.Create.ImageDocument(uri)]);
-                if (!baseUrls) {
-                    continue;
-                }
-                images.push({
-                    insertInlineImage: {
-                        uri: baseUrls[0],
-                        objectSize: { width: { magnitude: parseFloat(attrs.width.replace("px", "")), unit: "PT" } },
-                        location: { index: position + length }
-                    }
-                });
-                position += length;
-            }
-            return images;
+        interface LinkInformation {
+            startIndex: number;
+            endIndex: number;
+            textStyle: docs_v1.Schema$TextStyle;
+        }
+
+        interface ImageInformation {
+            startIndex: number;
+            width: number;
+            uri: string;
+        }
+
+        const fromRgb = (red: number, green: number, blue: number): docs_v1.Schema$OptionalColor => {
+            return { color: { rgbColor: { red, green, blue } } };
         };
 
-        const Encode = (information: LinkInformation) => {
+        const fromHex = (color: string): docs_v1.Schema$OptionalColor => {
+            const converted = new Color().hex(color).rgb();
+            const { red, blue, green } = converted;
+            return fromRgb(red(), blue(), green());
+        };
+
+        const EncodeStyleUpdate = (information: LinkInformation): docs_v1.Schema$Request => {
+            const { startIndex, endIndex, textStyle } = information;
             return {
                 updateTextStyle: {
                     fields: "*",
-                    range: {
-                        startIndex: information.startIndex,
-                        endIndex: information.endIndex
-                    },
-                    textStyle: {
-                        bold: true,
-                        link: { url: information.url },
-                        foregroundColor: { color: { rgbColor: { red: 0.0, green: 0.0, blue: 1.0 } } }
-                    }
-                }
+                    range: { startIndex, endIndex },
+                    textStyle
+                } as docs_v1.Schema$UpdateTextStyleRequest
             };
+        };
+
+        const EncodeImage = async (information: ImageInformation) => {
+            const source = [Docs.Create.ImageDocument(information.uri)];
+            const baseUrls = await GooglePhotos.Transactions.UploadThenFetch(source);
+            if (baseUrls) {
+                return {
+                    insertInlineImage: {
+                        uri: baseUrls[0],
+                        objectSize: { width: { magnitude: information.width, unit: "PT" } },
+                        location: { index: information.startIndex }
+                    }
+                };
+            }
+            return {};
         };
     }
 
