@@ -445,8 +445,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.Document.type = this.props.Document.nativeType;
 
         this.props.Document.customAutoHeight = this.props.Document.autoHeight;
-        this.props.Document.customWidth = this.props.Document.nativeWidth;
-        this.props.Document.customHeight = this.props.Document.nativeHeight;
+        this.props.Document.customWidth = this.props.Document.width;
+        this.props.Document.customHeight = this.props.Document.height;
         this.props.Document.customNativeWidth = this.props.Document.nativeWidth;
         this.props.Document.customNativeHeight = this.props.Document.nativeHeight;
         this.props.Document.customIgnoreAspect = this.props.Document.ignoreAspect;
