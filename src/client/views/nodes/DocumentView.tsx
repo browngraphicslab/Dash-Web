@@ -441,22 +441,39 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     makeNativeViewClicked = (): void => {
         this.props.Document.layout = this.props.Document.nativeLayout;
-        this.props.Document.type = this.props.Document.nativeType;
-        this.props.Document.nativeWidth = this.props.Document.nativeNativeWidth;
-        this.props.Document.nativeHeight = this.props.Document.nativeNativeHeight;
-        this.props.Document.ignoreAspect = this.props.Document.nativeIgnoreAspect;
         this.props.Document.nativeLayout = undefined;
-        this.props.Document.nativeNativeWidth = undefined;
-        this.props.Document.nativeNativeHeight = undefined;
-        this.props.Document.nativeIgnoreAspect = undefined;
+        this.props.Document.type = this.props.Document.nativeType;
+
+        this.props.Document.customAutoHeight = this.props.Document.autoHeight;
+        this.props.Document.customWidth = this.props.Document.nativeWidth;
+        this.props.Document.customHeight = this.props.Document.nativeHeight;
+        this.props.Document.customNativeWidth = this.props.Document.nativeWidth;
+        this.props.Document.customNativeHeight = this.props.Document.nativeHeight;
+        this.props.Document.customIgnoreAspect = this.props.Document.ignoreAspect;
+
+        this.props.Document.autoHeight = this.props.Document.nonCustomAutoHeight;
+        this.props.Document.width = this.props.Document.nonCustomWidth;
+        this.props.Document.height = this.props.Document.nonCustomHeight;
+        this.props.Document.nativeWidth = this.props.Document.nonCustomNativeWidth;
+        this.props.Document.nativeHeight = this.props.Document.nonCustomNativeHeight;
+        this.props.Document.ignoreAspect = this.props.Document.nonCustomIgnoreAspect;
+        this.props.Document.nonCustomAutoHeight = undefined;
+        this.props.Document.nonCustomWidth = undefined;
+        this.props.Document.nonCustomHeight = undefined;
+        this.props.Document.nonCustomNativeWidth = undefined;
+        this.props.Document.nonCustomNativeHeight = undefined;
+        this.props.Document.nonCustomIgnoreAspect = undefined;
     }
     @undoBatch
     makeCustomViewClicked = (): void => {
         this.props.Document.nativeLayout = this.props.Document.layout;
         this.props.Document.nativeType = this.props.Document.type;
-        this.props.Document.nativeNativeWidth = this.props.Document.nativeWidth;
-        this.props.Document.nativeNativeHeight = this.props.Document.nativeHeight;
-        this.props.Document.nativeIgnoreAspect = this.props.Document.ignoreAspect;
+        this.props.Document.nonCustomAutoHeight = this.props.Document.autoHeight;
+        this.props.Document.nonCustomWidth = this.props.Document.nativeWidth;
+        this.props.Document.nonCustomHeight = this.props.Document.nativeHeight;
+        this.props.Document.nonCustomNativeWidth = this.props.Document.nativeWidth;
+        this.props.Document.nonCustomNativeHeight = this.props.Document.nativeHeight;
+        this.props.Document.nonCustomIgnoreAspect = this.props.Document.ignoreAspect;
         PromiseValue(Cast(this.props.Document.customLayout, Doc)).then(custom => {
             if (custom) {
                 this.props.Document.type = DocumentType.TEMPLATE;
@@ -464,6 +481,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 !custom.nativeWidth && (this.props.Document.nativeWidth = 0);
                 !custom.nativeHeight && (this.props.Document.nativeHeight = 0);
                 !custom.nativeWidth && (this.props.Document.ignoreAspect = true);
+                this.props.Document.autoHeight = this.props.Document.autoHeight;
+                this.props.Document.width = this.props.Document.customWidth;
+                this.props.Document.height = this.props.Document.customHeight;
+                this.props.Document.nativeWidth = this.props.Document.customNativeWidth;
+                this.props.Document.nativeHeight = this.props.Document.customNativeHeight;
+                this.props.Document.ignoreAspect = this.props.Document.ignoreAspect;
+                this.props.Document.customAutoHeight = undefined;
+                this.props.Document.customWidth = undefined;
+                this.props.Document.customHeight = undefined;
+                this.props.Document.customNativeWidth = undefined;
+                this.props.Document.customNativeHeight = undefined;
+                this.props.Document.customIgnoreAspect = undefined;
             } else {
                 let options = { title: "data", width: NumCast(this.props.Document.width), height: NumCast(this.props.Document.height) + 25, x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
                 let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :

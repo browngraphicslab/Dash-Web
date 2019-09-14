@@ -475,6 +475,29 @@ export namespace Doc {
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
 
+    export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {
+        Object.keys(doc).forEach(key => {
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            if (key === "proto" && copyProto) {
+                if (doc.proto instanceof Doc && overwrite.proto instanceof Doc) {
+                    overwrite[key] = Doc.Overwrite(doc[key]!, overwrite.proto);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    overwrite[key] = field;
+                } else if (field instanceof ObjectField) {
+                    overwrite[key] = ObjectField.MakeCopy(field);
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    overwrite[key] = field;
+                }
+            }
+        });
+
+        return overwrite;
+    }
+
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
         Object.keys(doc).forEach(key => {

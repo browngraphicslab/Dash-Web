@@ -610,23 +610,30 @@ export namespace DocUtils {
     export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
         targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
         DocServer.GetRefField(targetID).then(doc => {
-            let copy = doc instanceof Doc ? doc : Doc.MakeCopy(promoteDoc, true, targetID);
-            !doc && (copy.title = undefined) && (Doc.GetProto(copy).title = targetID);
-            addDoc && addDoc(copy);
-            !doc && remDoc && remDoc(promoteDoc);
-            if (!doc) {
-                DocListCastAsync(promoteDoc.links).then(links => {
-                    links && links.map(async link => {
-                        if (link) {
-                            let a1 = await Cast(link.anchor1, Doc);
-                            if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
-                            let a2 = await Cast(link.anchor2, Doc);
-                            if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
-                            LinkManager.Instance.deleteLink(link);
-                            LinkManager.Instance.addLink(link);
-                        }
+            if (promoteDoc !== doc) {
+                let copy = doc as Doc;
+                if (copy) {
+                    Doc.Overwrite(promoteDoc, copy, true);
+                } else {
+                    copy = Doc.MakeCopy(promoteDoc, true, targetID);
+                }
+                !doc && (copy.title = undefined) && (Doc.GetProto(copy).title = targetID);
+                addDoc && addDoc(copy);
+                remDoc && remDoc(promoteDoc);
+                if (!doc) {
+                    DocListCastAsync(promoteDoc.links).then(links => {
+                        links && links.map(async link => {
+                            if (link) {
+                                let a1 = await Cast(link.anchor1, Doc);
+                                if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
+                                let a2 = await Cast(link.anchor2, Doc);
+                                if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
+                                LinkManager.Instance.deleteLink(link);
+                                LinkManager.Instance.addLink(link);
+                            }
+                        })
                     })
-                })
+                }
             }
         });
     }

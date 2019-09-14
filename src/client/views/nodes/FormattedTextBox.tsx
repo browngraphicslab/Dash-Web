@@ -169,6 +169,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    linkOnDeselect: Map<string, string> = new Map();
+
+    doLinkOnDeselect() {
+        Array.from(this.linkOnDeselect.entries()).map(entry => {
+            let key = entry[0];
+            let value = entry[1];
+            let id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
+            DocServer.GetRefField(value).then(doc => {
+                DocServer.GetRefField(id).then(linkDoc => {
+                    this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                    DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
+                    if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
+                    else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
+                })
+            });
+        })
+        this.linkOnDeselect.clear();
+    }
+
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             let metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
@@ -183,15 +202,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (split.length > 1 && split[1]) {
                     let key = split[0];
                     let value = split[split.length - 1];
+                    this.linkOnDeselect.set(key, value);
 
                     let id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    DocServer.GetRefField(value).then(doc => {
-                        DocServer.GetRefField(id).then(linkDoc => {
-                            this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
-                            if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                            else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
-                        })
-                    });
                     const link = this._editorView!.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
                     const mval = this._editorView!.state.schema.marks.metadataVal.create();
                     let offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
@@ -875,6 +888,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
+        this.doLinkOnDeselect();
     }
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
