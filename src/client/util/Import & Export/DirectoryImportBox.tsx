@@ -19,6 +19,7 @@ import { List } from "../../../new_fields/List";
 import { Cast, BoolCast, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 const unsupported = ["text/html", "text/plain"];
 interface FileResponse {
@@ -147,7 +148,8 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             if (docs.length < 50) {
                 importContainer = Docs.Create.MasonryDocument(docs, options);
             } else {
-                importContainer = Docs.Create.SchemaDocument([], docs, options);
+                const headers = ["title", "size"].map(key => new SchemaHeaderField(key));
+                importContainer = Docs.Create.SchemaDocument(headers, docs, options);
             }
             await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             importContainer.singleColumn = false;
@@ -200,7 +202,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                     metadata.splice(index, 1);
                 }
             }
-
         }
     }
 
