@@ -2,6 +2,8 @@ import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { observable } from "mobx";
+import { DocumentDecorations } from "../DocumentDecorations";
+import { InkingControl } from "../InkingControl";
 
 
 
@@ -23,8 +25,13 @@ interface WebcamProps {
     videoConstraints?: MediaStreamConstraints["video"];
 }
 
+interface OuterWebcamProps {
+    local: FieldViewProps;
+    external: WebcamProps & React.HtmlHTMLAttributes<HTMLVideoElement>;
+}
+
 @observer
-export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & React.HTMLAttributes<HTMLVideoElement>> {
+export class DashWebCam extends React.Component<OuterWebcamProps> {
     static defaultProps = {
         audio: true,
         imageSmoothing: true,
@@ -63,13 +70,14 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
         }
     }
 
-    componentDidUpdate(nextProps: WebcamProps) {
-        const { props } = this;
+    componentDidUpdate(nextProps: OuterWebcamProps) {
+        const { external } = this.props;
+        const nextExternal = nextProps.external;
         if (
-            JSON.stringify(nextProps.audioConstraints) !==
-            JSON.stringify(props.audioConstraints) ||
-            JSON.stringify(nextProps.videoConstraints) !==
-            JSON.stringify(props.videoConstraints)
+            JSON.stringify(nextExternal.audioConstraints) !==
+            JSON.stringify(external.audioConstraints) ||
+            JSON.stringify(nextExternal.videoConstraints) !==
+            JSON.stringify(external.videoConstraints)
         ) {
             this.requestUserMedia();
         }
@@ -96,19 +104,19 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
     }
 
     getScreenshot() {
-        const { props } = this;
+        const { external } = this.props;
 
         if (!this.hasUserMedia) return null;
 
         const canvas = this.getCanvas();
         return (
             canvas &&
-            canvas.toDataURL(props.screenshotFormat, props.screenshotQuality)
+            canvas.toDataURL(external.screenshotFormat, external.screenshotQuality)
         );
     }
 
     getCanvas() {
-        const { props } = this;
+        const { external } = this.props;
 
         if (!this.video) {
             return null;
@@ -120,14 +128,14 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
             const canvas = document.createElement("canvas");
             const aspectRatio = this.video.videoWidth / this.video.videoHeight;
 
-            let canvasWidth = props.minScreenshotWidth || this.video.clientWidth;
+            let canvasWidth = external.minScreenshotWidth || this.video.clientWidth;
             let canvasHeight = canvasWidth / aspectRatio;
 
             if (
-                props.minScreenshotHeight &&
-                canvasHeight < props.minScreenshotHeight
+                external.minScreenshotHeight &&
+                canvasHeight < external.minScreenshotHeight
             ) {
-                canvasHeight = props.minScreenshotHeight;
+                canvasHeight = external.minScreenshotHeight;
                 canvasWidth = canvasHeight * aspectRatio;
             }
 
@@ -141,7 +149,7 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
         const { ctx, canvas } = this;
 
         if (ctx) {
-            ctx.imageSmoothingEnabled = props.imageSmoothing;
+            ctx.imageSmoothingEnabled = external.imageSmoothing;
             ctx.drawImage(this.video, 0, 0, canvas!.width, canvas!.height);
         }
 
@@ -149,7 +157,7 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
     }
 
     requestUserMedia() {
-        const { props } = this;
+        const { external } = this.props;
 
         navigator.getUserMedia =
             navigator.mediaDevices.getUserMedia;
@@ -159,7 +167,7 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
                 video: typeof videoConstraints !== "undefined" ? videoConstraints : true
             };
 
-            if (props.audio) {
+            if (external.audio) {
                 constraints.audio =
                     typeof audioConstraints !== "undefined" ? audioConstraints : true;
             }
@@ -179,7 +187,7 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
         };
 
         if ("mediaDevices" in navigator) {
-            sourceSelected(props.audioConstraints, props.videoConstraints);
+            sourceSelected(external.audioConstraints, external.videoConstraints);
         } else {
             const optionalSource = (id: any) => ({ optional: [{ sourceId: id }] });
 
@@ -214,12 +222,12 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
                     }
                 });
 
-                const audioSourceId = constraintToSourceId(props.audioConstraints);
+                const audioSourceId = constraintToSourceId(external.audioConstraints);
                 if (audioSourceId) {
                     audioSource = audioSourceId;
                 }
 
-                const videoSourceId = constraintToSourceId(props.videoConstraints);
+                const videoSourceId = constraintToSourceId(external.videoConstraints);
                 if (videoSourceId) {
                     videoSource = videoSourceId;
                 }
@@ -235,11 +243,11 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
     }
 
     handleUserMedia(err: string | null, stream?: MediaStream) {
-        const { props } = this;
+        const { external } = this.props;
 
         if (err || !stream) {
             this.setState({ hasUserMedia: false });
-            props.onUserMediaError(err!);
+            external.onUserMediaError(err!);
 
             return;
         }
@@ -258,9 +266,26 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
             });
         }
 
-        props.onUserMedia();
+        external.onUserMedia();
     }
 
+    _ignore = 0;
+    onPreWheel = (e: React.WheelEvent) => {
+        this._ignore = e.timeStamp;
+    }
+    onPrePointer = (e: React.PointerEvent) => {
+        this._ignore = e.timeStamp;
+    }
+    onPostPointer = (e: React.PointerEvent) => {
+        if (this._ignore !== e.timeStamp) {
+            e.stopPropagation();
+        }
+    }
+    onPostWheel = (e: React.WheelEvent) => {
+        if (this._ignore !== e.timeStamp) {
+            e.stopPropagation();
+        }
+    }
 
 
 
@@ -270,6 +295,9 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
 
     render() {
         const { props } = this;
+
+        const { external, local } = this.props;
+
 
         const {
             audio,
@@ -283,20 +311,37 @@ export class DashWebCam extends React.Component<FieldViewProps & WebcamProps & R
             videoConstraints,
             imageSmoothing,
             ...rest
-        } = props;
+        } = external;
 
+
+
+
+        let content =
+            <div className="webcam-cont" style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
+                <video
+                    autoPlay
+                    src={this.src}
+                    muted={audio}
+                    playsInline
+                    ref={ref => {
+                        this.video = ref;
+                    }}
+                    {...rest}
+
+                />
+            </div>;
+
+
+        let frozen = !local.isSelected() || DocumentDecorations.Instance.Interacting;
+        let classname = "webBox-cont" + (local.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
 
         return (
-            <video
-                autoPlay
-                src={this.src}
-                muted={audio}
-                playsInline
-                ref={ref => {
-                    this.video = ref;
-                }}
-                {...rest}
-            />
-        );
+            <>
+                <div className={classname}  >
+                    {content}
+                </div>
+                {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
+            </>);
+
     }
 }
