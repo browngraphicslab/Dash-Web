@@ -12,7 +12,8 @@ module.exports.Batch = function <T>(batchSize: number): T[][] {
 module.exports.ExecuteBatches = function <I, O>(batchSize: number, handler: BatchHandlerSync<I>): void {
     if (this.length) {
         for (let batch of this.batch(batchSize)) {
-            handler(batch);
+            const isFullBatch = batch.length === batchSize;
+            handler(batch, isFullBatch);
         }
     }
 };
@@ -23,7 +24,8 @@ module.exports.ConvertInBatches = function <I, O>(batchSize: number, handler: Ba
     }
     let collector: O[] = [];
     for (let batch of this.batch(batchSize)) {
-        collector.push(...handler(batch));
+        const isFullBatch = batch.length === batchSize;
+        collector.push(...handler(batch, isFullBatch));
     }
     return collector;
 };
@@ -31,7 +33,8 @@ module.exports.ConvertInBatches = function <I, O>(batchSize: number, handler: Ba
 module.exports.ExecuteInBatchesAsync = async function <I>(batchSize: number, handler: BatchHandler<I>): Promise<void> {
     if (this.length) {
         for (let batch of this.batch(batchSize)) {
-            await handler(batch);
+            const isFullBatch = batch.length === batchSize;
+            await handler(batch, isFullBatch);
         }
     }
 };
@@ -42,7 +45,8 @@ module.exports.ConvertInBatchesAsync = async function <I, O>(batchSize: number, 
     }
     let collector: O[] = [];
     for (let batch of this.batch(batchSize)) {
-        collector.push(...(await handler(batch)));
+        const isFullBatch = batch.length === batchSize;
+        collector.push(...(await handler(batch, isFullBatch)));
     }
     return collector;
 };
@@ -59,7 +63,9 @@ module.exports.ExecuteInBatchesAtInterval = async function <I>(batchSize: number
             const next = iterator.next();
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
-                    await handler(next.value);
+                    const batch = next.value;
+                    const isFullBatch = batch.length === batchSize;
+                    await handler(batch, isFullBatch);
                     resolve();
                 }, interval * 1000);
             });
@@ -84,7 +90,9 @@ module.exports.ConvertInBatchesAtInterval = async function <I, O>(batchSize: num
             const next = iterator.next();
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
-                    collector.push(...(await handler(next.value)));
+                    const batch = next.value;
+                    const isFullBatch = batch.length === batchSize;
+                    collector.push(...(await handler(batch, isFullBatch)));
                     resolve();
                 }, interval * 1000);
             });

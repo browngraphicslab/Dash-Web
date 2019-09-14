@@ -20,10 +20,10 @@ String.prototype.Truncate = function (length: number, replacement: string): Stri
     return target;
 };
 
-type BatchConverterSync<I, O> = (batch: I[]) => O[];
-type BatchHandlerSync<I> = (batch: I[]) => void;
-type BatchConverterAsync<I, O> = (batch: I[]) => Promise<O[]>;
-type BatchHandlerAsync<I> = (batch: I[]) => Promise<void>;
+type BatchConverterSync<I, O> = (batch: I[], isFullBatch: boolean) => O[];
+type BatchHandlerSync<I> = (batch: I[], isFullBatch: boolean) => void;
+type BatchConverterAsync<I, O> = (batch: I[], isFullBatch: boolean) => Promise<O[]>;
+type BatchHandlerAsync<I> = (batch: I[], isFullBatch: boolean) => Promise<void>;
 type BatchConverter<I, O> = BatchConverterSync<I, O> | BatchConverterAsync<I, O>;
 type BatchHandler<I> = BatchHandlerSync<I> | BatchHandlerAsync<I>;
 
