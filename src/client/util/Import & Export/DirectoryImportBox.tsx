@@ -101,23 +101,22 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let sizes: number[] = [];
         let modifiedDates: number[] = [];
 
-        const uploadLocally = async (batch: File[]) => {
-            sizes.push(...batch.map(file => file.size));
-            modifiedDates.push(...batch.map(file => file.lastModified));
-
-            let formData = new FormData();
-            batch.forEach(file => formData.append(Utils.GenerateGuid(), file));
-            const parameters = { method: 'POST', body: formData };
-
-            runInAction(() => this.completed += batch.length);
-            return (await fetch(Utils.prepend(RouteStore.upload), parameters)).json();
-        };
-
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-        const uploads = await validated.convertInBatchesAsync<FileResponse>(15, uploadLocally);
+        const uploads = await validated.convertInBatchesAsync<FileResponse>(15, async (batch: File[]) => {
+            const formData = new FormData();
+            const parameters = { method: 'POST', body: formData };
 
-        runInAction(() => this.phase = `Creating documents from uploads...`);
+            batch.forEach(file => {
+                sizes.push(file.size);
+                modifiedDates.push(file.lastModified);
+                formData.append(Utils.GenerateGuid(), file);
+            });
+
+            const responses = (await fetch(RouteStore.upload, parameters)).json();
+            runInAction(() => this.completed += batch.length);
+            return responses;
+        });
 
         await Promise.all(uploads.map(async upload => {
             const type = upload.type;
@@ -163,7 +162,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             runInAction(() => this.phase = 'External: uploading files to Google Photos...');
             importContainer.singleColumn = false;
             await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
-            runInAction(() => this.phase = 'All files uploaded to Google Photos...');
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
             DocumentManager.Instance.jumpToDocument(importContainer, true);
