@@ -52,20 +52,22 @@ module.exports.ExecuteInBatchesAtInterval = async function <I>(batchSize: number
         return;
     }
     const batches = this.batch(batchSize);
-    return new Promise<void>(resolve => {
+    return new Promise<void>(async resolve => {
         const iterator = batches[Symbol.iterator]();
         let completed = 0;
-        const tag = setInterval(async () => {
+        while (true) {
             const next = iterator.next();
-            if (next.done) {
-                clearInterval(tag);
-            } else {
-                await handler(next.value);
-                if (++completed === batches.length) {
+            await new Promise<void>(resolve => {
+                setTimeout(async () => {
+                    await handler(next.value);
                     resolve();
-                }
+                }, interval * 1000);
+            });
+            if (++completed === batches.length) {
+                break;
             }
-        }, interval * 1000);
+        }
+        resolve();
     });
 };
 
@@ -75,19 +77,21 @@ module.exports.ConvertInBatchesAtInterval = async function <I, O>(batchSize: num
     }
     let collector: O[] = [];
     const batches = this.batch(batchSize);
-    return new Promise<O[]>(resolve => {
+    return new Promise<O[]>(async resolve => {
         const iterator = batches[Symbol.iterator]();
         let completed = 0;
-        const tag = setInterval(async () => {
+        while (true) {
             const next = iterator.next();
-            if (next.done) {
-                clearInterval(tag);
-            } else {
-                collector.push(...(await handler(next.value)));
-                if (++completed === batches.length) {
-                    resolve(collector);
-                }
+            await new Promise<void>(resolve => {
+                setTimeout(async () => {
+                    collector.push(...(await handler(next.value)));
+                    resolve();
+                }, interval * 1000);
+            });
+            if (++completed === batches.length) {
+                resolve(collector);
+                break;
             }
-        }, interval * 1000);
+        }
     });
 };
