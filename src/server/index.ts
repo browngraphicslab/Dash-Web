@@ -834,7 +834,12 @@ export interface NewMediaItem {
 }
 
 Array.prototype.batch = extensions.Batch;
-Array.prototype.batchAction = extensions.BatchAction;
+Array.prototype.executeInBatches = extensions.ExecuteInBatches;
+Array.prototype.convertInBatches = extensions.ConvertInBatches;
+Array.prototype.executeInBatchesAsync = extensions.ExecuteInBatchesAsync;
+Array.prototype.convertInBatchesAsync = extensions.ConvertInBatchesAsync;
+Array.prototype.executeInBatchesAtInterval = extensions.ExecuteInBatchesAtInterval;
+Array.prototype.convertInBatchesAtInterval = extensions.ConvertInBatchesAtInterval;
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
@@ -858,7 +863,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return newMediaItems;
     };
 
-    const newMediaItems = await mediaInput.batchAction<NewMediaItem>(25, dispatchUpload, 3000);
+    const newMediaItems = await mediaInput.convertInBatchesAtInterval<NewMediaItem>(25, dispatchUpload, 3);
 
     if (failed) {
         return _error(res, tokenError);

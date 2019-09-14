@@ -95,7 +95,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let sizes: number[] = [];
         let modifiedDates: number[] = [];
 
-        const localUpload = async (batch: File[]) => {
+        const uploadLocally = async (batch: File[]) => {
             sizes.push(...batch.map(file => file.size));
             modifiedDates.push(...batch.map(file => file.lastModified));
 
@@ -107,7 +107,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             return (await fetch(Utils.prepend(RouteStore.upload), parameters)).json();
         };
 
-        const uploads = await validated.batchAction<FileResponse>(15, localUpload);
+        const uploads = await validated.convertInBatchesAsync<FileResponse>(15, uploadLocally);
 
         await Promise.all(uploads.map(async upload => {
             const type = upload.type;
