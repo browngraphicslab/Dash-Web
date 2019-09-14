@@ -50,7 +50,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         return (
             <>
                 <line key="linkLine" className="collectionfreeformlinkview-linkLine"
-                    style={{ strokeWidth: `${2 * 1 / 2}` }}
                     x1={`${x1}`} y1={`${y1}`}
                     x2={`${x2}`} y2={`${y2}`} />
                 {/* <circle key="linkCircle" className="collectionfreeformlinkview-linkCircle"
