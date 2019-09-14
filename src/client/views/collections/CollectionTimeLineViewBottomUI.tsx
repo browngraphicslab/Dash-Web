@@ -13,111 +13,6 @@ type Node = {
 
 
 export class BottomUI extends React.Component<BottomUIProps> {
-    @observable searchString: string | undefined;
-    @observable searchString2: string | undefined;
-    @observable searchString3: string | undefined;
-
-
-    @action.bound
-    onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.searchString = e.target.value;
-    }
-
-    @action.bound
-    onChange2(e: React.ChangeEvent<HTMLInputElement>) {
-        this.searchString2 = e.target.value;
-    }
-
-    @action.bound
-    onChange3(e: React.ChangeEvent<HTMLInputElement>) {
-        this.searchString3 = e.target.value;
-    }
-
-
-
-    @action.bound
-    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString!) - this.props.minvalue) * this.props.barwidth / this.props._range;
-            if (!isNaN(thing)) {
-                if (thing > this.props.barwidth) {
-                    this.props.rightboundSet(0);
-                }
-                else if
-                    (this.props.leftbound + thing >= this.props.barwidth) {
-                    this.props.rightboundSet(this.props.barwidth - this.props.leftbound - 1);
-                }
-                else {
-                    this.props.rightboundSet(this.props.barwidth - thing);
-                }
-
-
-            }
-
-            this.searchref.current ? this.searchref.current.reset() : null;
-            this.searchString = undefined;
-            this.searchString2 = undefined;
-        }
-        if (e.keyCode === 9) {
-            e.preventDefault;
-            e.stopPropagation();
-        }
-    }
-
-    @action.bound
-    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString2!) - this.props.minvalue) * this.props.barwidth / this.props._range;
-            if (!isNaN(thing)) {
-                if (thing < 0) {
-                    this.props.leftboundSet(0);
-                }
-                else if (thing >= this.props.barwidth - this.props.rightbound) {
-                    this.props.leftboundSet(this.props.barwidth - this.props.rightbound - 1);
-                }
-                else {
-                    this.props.leftboundSet(thing);
-                }
-            }
-            this.searchString2 = undefined;
-            this.searchString = undefined;
-            this.searchref.current!.reset();
-        }
-        if (e.keyCode === 9) {
-            e.preventDefault;
-            e.stopPropagation();
-        }
-    }
-
-    @action
-    enter3 = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString2!) - this.props.minvalue) * this.props.barwidth / this.props._range;
-            if (!isNaN(thing)) {
-                if (thing < 0) {
-                    this.props.leftboundSet(0);
-                }
-                else if (thing >= this.props.barwidth - this.props.rightbound) {
-                    this.props.leftboundSet(this.props.barwidth - this.props.rightbound - 1);
-                }
-                else {
-                    this.props.leftboundSet(thing);
-                }
-            }
-            this.props.setsortstate(this.searchString3!);
-        }
-        if (e.keyCode === 9) {
-            e.preventDefault;
-            e.stopPropagation();
-        }
-    }
-
-    private colorrefYellow = React.createRef<HTMLDivElement>();
-    private colorrefGreen = React.createRef<HTMLDivElement>();
-    private colorrefRed = React.createRef<HTMLDivElement>();
-    private colorrefBlue = React.createRef<HTMLDivElement>();
-    private searchref = React.createRef<HTMLFormElement>();
-    private searchref2 = React.createRef<HTMLFormElement>();
 
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
@@ -283,8 +178,6 @@ export interface BottomUIProps {
     _range: number;
     barwidth: number;
     minvalue: number;
-    sortstate: string;
-    setsortstate: (string: string) => void;
     barref: React.RefObject<HTMLDivElement>;
     screenref: React.RefObject<HTMLDivElement>;
     markerrender: () => void;

@@ -825,6 +825,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                     props.leftbound = thing;
                 }
             }
+            props.transtate = true;
             props.sortstate = this.searchString3;
         }
         if (e.keyCode === 9) {
@@ -858,9 +859,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
 
     render() {
-        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
-        let textWrapped = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
-
         return (
             <div className="collectionSchemaViewChrome-cont">
                 <div className="collectionTimelineViewBottomUI-grid">
@@ -888,7 +886,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                         </div>
 
                     </form>
-                    <div className="sortinputRIGHT">                    <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + StrCast(this.props.CollectionView.props.Document.sortstate)} onChange={this.onChange3} onKeyPress={this.enter3} />
+                    <div className="sortinputRIGHT">    <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + StrCast(this.props.CollectionView.props.Document.sortstate)} onChange={this.onChange3} onKeyPress={this.enter3} />
                     </div>
 
                 </div >

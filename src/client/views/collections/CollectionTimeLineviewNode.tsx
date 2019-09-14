@@ -44,6 +44,7 @@ export class Thumbnail extends React.Component<NodeProps> {
         thumbnail!.classList.toggle("unselected", false);
         header!.classList.toggle("selection", true);
         header!.classList.toggle("unselection", false);
+        this.props.toggleopac(true);
     }
 
     unfocus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
@@ -51,6 +52,7 @@ export class Thumbnail extends React.Component<NodeProps> {
         thumbnail!.classList.toggle("unselected", true);
         header!.classList.toggle("selection", false);
         header!.classList.toggle("unselection", true);
+        this.props.toggleopac(false);
     }
 
 
@@ -130,10 +132,30 @@ export class Thumbnail extends React.Component<NodeProps> {
 
     @observable caption: string = "No caption";
 
+    transitio: string = "";
+    @action
+    maketransition() {
+        this.props.transition ? this.transitio = "1s left ease, 1s top ease, 1s opacity ease" : this.transitio = "1s opacity ease";
+    }
+
+    @action
+    tog() {
+        if (this.props.toggleopac && this.classref.current!.classList.contains("unselected")){
+            this.opacity=0.3;
+        }
+        else{
+            this.opacity=1;
+        }
+    }
+
+    opacity: number = 1;
+
     render() {
+        this.maketransition();
         this.getCaption();
+        this.tog();
         return (
-            <div onClick={(e) => this.toggleSelection(e)} style={{ position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
+            <div onClick={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: this.opacity, position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
                 <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                     <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                     <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
@@ -150,7 +172,7 @@ export class Thumbnail extends React.Component<NodeProps> {
                         backgroundColor: "9c9396",
                         borderRadius: "10px 10px 0px 0px",
                         whiteSpace: "nowrap",
-                        textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: "-80px", zIndex: 99, width: this.props.scale, height: "30px"
+                        textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: -30 - this.props.scale, zIndex: 99, width: this.props.scale, height: "30px"
                     }}> {this.props.doc.title}</div>
                     <div style={{ width: this.props.scale, height: "30", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
                         <EditableView
@@ -190,4 +212,7 @@ export interface NodeProps {
     pinToPres: (document: Doc) => void;
     scrollTop: number;
     docheight: number;
+    transition: boolean;
+    toggleopac: boolean;
+    settoggleopac: (booelan: boolean) => void;
 }

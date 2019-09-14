@@ -531,7 +531,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             += this.rowscale) {
 
 
-            this.rows.push(<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", borderTop: "1px black dotted", height: "5px", position: "absolute", top: i, width: "100%", zIndex: 100 }} />);
+            this.rows.push(<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", borderTop: "1px black dashed", height: "5px", position: "absolute", top: i, width: "100%", zIndex: 100 }} />);
             this.rowval.push(i);
         }
     }
@@ -641,9 +641,24 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
 
+    private set transtate(boolean: boolean) {
+        this.props.Document.transtate = boolean;
+    }
+
+    private get transstate() {
+        let doc = this.props.Document;
+        if (!doc.transtate) {
+            doc.transtate = false;
+        }
+        return BoolCast(doc.sortstate);
+    }
+
+
+
     private set sortstate(string) {
         this.props.Document.sortstate = string;
     }
+
 
 
 
@@ -675,25 +690,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     leftboundSet = (number: number) => {
+        this.props.Document.transtate = false;
         runInAction(() => this.leftbound = number);
         this.markerrender();
     }
     @action
-    rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); }
-
-    @action
-    setsortsate = (string: string) => {
-        this.sortstate = string;
-        this.adjustY();
-        this.thumbnailloop();
-        this.createticks();
+    rightboundSet = (number: number) => {
+        this.props.Document.transtate = false;
+        this.rightbound = number; this.markerrender();
     }
 
+
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
+        e.persist();
         let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
         let mintick: React.RefObject<HTMLDivElement>;
 
-        let minticknum = 9999999999;
+        let minticknum = Infinity;
         for (let ticks of this.tickrefs) {
             if (ticks.current !== null) {
                 if (Math.abs(leftval - parseFloat(ticks.current.style.left!)) < minticknum) {
@@ -713,7 +726,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
             let d = new Doc;
             let closestRow = 0;
-            let closestRowVal = 99999999;
+            let closestRowVal = Infinity;
             let y = e.pageY - 70;
             for (let i = 0; i < this.rowval.length; i++) {
                 if (Math.abs(this.rowval[i] - y) < closestRowVal) {
@@ -786,13 +799,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     makeportal() {
+        console.timeLog("portal made");
         let portal = Docs.Create.FreeformDocument([], { width: 100, height: 100, title: this.props.Document.title + ".portal" });
-        DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
+        //DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
         //this.makeBtnClicked();
         this.props.addDocTab && this.props.addDocTab(portal, portal, "onBottom");
     }
 
+    @observable private transition: boolean | undefined;
 
+    @action
+    opacset = (boolean: boolean) => {
+        this.opac = boolean;
+    }
+
+    @observable private opac: boolean = false;
 
     render() {
         this.props.Document._range = this._range;
@@ -802,6 +823,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
+        console.log(this.props.Document.transtate);
         return (
             <div className="collectionTimelineView" onKeyDown={this.onKeyDown_Selector} ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <Flyout
@@ -823,17 +845,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     _range={this._range * 1.1}
                     barwidth={this.barwidth}
                     minvalue={this._values[0] - this._range * 0.05}
-                    sortstate={this.sortstate}
                     barref={this.barref}
                     screenref={this.screenref}
-                    markerrender={this.markerrender}
-                    setsortstate={this.setsortsate}>
+                    markerrender={this.markerrender}>
                 </BottomUI>
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
 
-                <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "50px", position: "absolute", height: "90%", width: "100%", }}>
+                <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "50px", position: "absolute", height: "80%", width: "100%", }}>
                     {this.rows}
                     {this.thumbnails.map(doc =>
                         <Thumbnail
@@ -845,13 +865,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             addDocTab={this.props.addDocTab}
                             pinToPres={this.props.pinToPres}
                             docheight={this.screenref.current ? this.screenref.current.style.height ? parseFloat(this.screenref.current.style.height) + 70 : 651 : 651}
-                            createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}>
+                            createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
+                            transition={BoolCast(this.props.Document.transtate)}
+                            toggleopac={this.opac}
+                            settoggleopac={this.opacset}
+                        >
                         </Thumbnail>
 
                     )}
-                    <div ref={this.timelineref} style={{ position: "absolute", height: "25px", width: "100%", zIndex: 0 }}>
-                        {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
-                    </div>
+                    {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                     <div style={{
                         position: "fixed", top: "300px", height: "25px", width: "100%", borderTop: "1px solid black"
                     }}>
