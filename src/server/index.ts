@@ -582,9 +582,7 @@ app.post(
                 const filename = path.basename(location);
                 await UploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
                 results.push({ name, type, path: `/files/${filename}` });
-                console.log(path.basename(name));
             }
-            console.log("All files traversed!");
             _success(res, results);
         });
     }
@@ -836,44 +834,36 @@ export interface NewMediaItem {
 }
 
 Array.prototype.batch = extensions.Batch;
+Array.prototype.batchAction = extensions.BatchAction;
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
 
-    const newMediaItems: NewMediaItem[] = [];
     let failed = 0;
-    const size = 25;
 
-    try {
-        await mediaInput.batch({
-            size,
-            action: {
-                handler: async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
-                    await Promise.all(batch.map(async element => {
-                        console.log(`Uploading ${element.url} to Google's servers...`);
-                        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
-                        if (uploadToken) {
-                            newMediaItems.push({
-                                description: element.description,
-                                simpleMediaItem: { uploadToken }
-                            });
-                        } else {
-                            console.log("FAIL!", element.url, element.description);
-                            failed++;
-                        }
-                    }));
-                },
-                interval: 3000
+    const dispatchUpload = async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
+        const newMediaItems: NewMediaItem[] = [];
+        for (let element of batch) {
+            const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+            if (!uploadToken) {
+                failed++;
+            } else {
+                newMediaItems.push({
+                    description: element.description,
+                    simpleMediaItem: { uploadToken }
+                });
             }
-        });
-    } catch (e) {
-        console.log("WHAT HAPPENED?");
-        console.log(e);
-    }
+        }
+        return newMediaItems;
+    };
+
+    const newMediaItems = await mediaInput.batchAction<NewMediaItem>(25, dispatchUpload, 3000);
+
     if (failed) {
         return _error(res, tokenError);
     }
+
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
         result => _success(res, result.newMediaItemResults),
         error => _error(res, mediaError, error)

@@ -20,22 +20,17 @@ String.prototype.Truncate = function (length: number, replacement: string): Stri
     return target;
 };
 
-interface Action<T> {
-    handler: (batch: T[]) => any;
-    interval?: number;
-}
 
-interface BatchParameters<T> {
-    size: number;
-    action?: Action<T>;
-}
+type BatchHandler<I, O> = (batch: I[]) => O[] | Promise<O[]>;
 
 interface Array<T> {
-    batch(parameters: BatchParameters<T>): Promise<T[][]>;
+    batch(batchSize: number): T[][];
+    batchAction<O>(batchSize: number, handler: BatchHandler<T, O>, interval?: number): Promise<O[]>;
     lastElement(): T;
 }
 
 Array.prototype.batch = extensions.Batch;
+Array.prototype.batchAction = extensions.BatchAction;
 
 Array.prototype.lastElement = function <T>() {
     if (!this.length) {

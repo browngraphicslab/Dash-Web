@@ -95,25 +95,19 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let sizes: number[] = [];
         let modifiedDates: number[] = [];
 
-        const uploads: FileResponse[] = [];
+        const localUpload = async (batch: File[]) => {
+            sizes.push(...batch.map(file => file.size));
+            modifiedDates.push(...batch.map(file => file.lastModified));
 
-        await validated.batch({
-            size: 15,
-            action: {
-                handler: async (batch: File[]) => {
-                    sizes.push(...batch.map(file => file.size));
-                    modifiedDates.push(...batch.map(file => file.lastModified));
+            let formData = new FormData();
+            batch.forEach(file => formData.append(Utils.GenerateGuid(), file));
+            const parameters = { method: 'POST', body: formData };
 
-                    let formData = new FormData();
-                    batch.forEach(file => formData.append(Utils.GenerateGuid(), file));
-                    const parameters = { method: 'POST', body: formData };
+            runInAction(() => this.completed += batch.length);
+            return (await fetch(Utils.prepend(RouteStore.upload), parameters)).json();
+        };
 
-                    uploads.push(...(await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json()));
-
-                    runInAction(() => this.completed += batch.length);
-                }
-            }
-        });
+        const uploads = await validated.batchAction<FileResponse>(15, localUpload);
 
         await Promise.all(uploads.map(async upload => {
             const type = upload.type;
@@ -149,7 +143,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
-            let importContainer = Docs.Create.MasonryDocument(docs, options);
+            let importContainer: Doc;
+            if (docs.length < 50) {
+                importContainer = Docs.Create.MasonryDocument(docs, options);
+            } else {
+                importContainer = Docs.Create.SchemaDocument([], docs, options);
+            }
             await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
