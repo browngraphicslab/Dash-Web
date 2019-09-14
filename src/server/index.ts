@@ -863,7 +863,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return newMediaItems;
     };
 
-    const newMediaItems = await mediaInput.convertInBatchesAtInterval<NewMediaItem>(25, dispatchUpload, 3);
+    const newMediaItems = await mediaInput.convertInBatchesAtInterval(25, dispatchUpload, 3);
 
     if (failed) {
         return _error(res, tokenError);
