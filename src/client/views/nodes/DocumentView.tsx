@@ -475,7 +475,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
                 let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
                 let proto = Doc.GetProto(docTemplate);
-                Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
+                Doc.MakeMetadataFieldTemplate(fieldTemplate, proto, true);
 
                 Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
                 Doc.GetProto(this.dataDoc || this.props.Document).customLayout = this.props.Document.layout;
@@ -811,7 +811,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         let backgroundColor = this.layoutDoc.isBackground || (clusterCol && !colorSet) ?
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
-            ruleColor ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
+            ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
         let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";

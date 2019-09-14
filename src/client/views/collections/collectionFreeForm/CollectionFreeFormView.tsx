@@ -875,6 +875,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     autoFormat = () => {
         this.props.Document.isRuleProvider = !this.props.Document.isRuleProvider;
         this.childDocs.map(child => child.heading = undefined);
+        this.childDocs.map(child => {
+            DocListCast(child.layout instanceof Doc ? child.layout.data : child.data).map(heading => {
+                let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, heading);
+                let disp = (child.data_ext instanceof Doc) && pair.layout && (child.data_ext[`Layout[${pair.layout[Id]}]`] as Doc);
+                if (disp && NumCast(disp.heading) > 0) {
+                    if (disp.backgroundColor !== disp.defaultBackgroundColor) {
+                        Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(disp.heading)] = disp.backgroundColor;
+                    }
+                }
+                if (pair.layout && NumCast(pair.layout.heading) > 0) {
+                    if (pair.layout.backgroundColor !== pair.layout.defaultBackgroundColor) {
+                        Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(pair.layout.heading)] = pair.layout.backgroundColor;
+                    }
+                }
+            })
+        })
     }
 
     analyzeStrokes = async () => {

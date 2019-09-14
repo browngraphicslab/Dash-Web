@@ -558,7 +558,7 @@ export namespace Doc {
         }
     }
 
-    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc) {
+    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
@@ -584,7 +584,7 @@ export namespace Doc {
         fieldTemplate.panX = 0;
         fieldTemplate.panY = 0;
         fieldTemplate.scale = 1;
-        fieldTemplate.showTitle = "title";
+        fieldTemplate.showTitle = suppressTitle ? undefined : "title";
         let data = fieldTemplate.data;
         setTimeout(action(() => {
             !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
@@ -592,6 +592,7 @@ export namespace Doc {
             let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
             layoutDelegate.layout = layout;
             fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
+            if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
             fieldTemplate.proto = templateDataDoc;
         }), 0);
     }
