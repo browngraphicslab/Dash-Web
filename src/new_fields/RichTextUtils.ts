@@ -1,11 +1,11 @@
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { Node, Fragment, Mark } from "prosemirror-model";
+import { Node, Fragment, Mark, MarkType } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
 import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt } from "./Doc";
-import Color from "color";
+import Color = require('color');
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils, PostToServer } from "../Utils";
 import { RouteStore } from "../server/RouteStore";
@@ -220,13 +220,33 @@ export namespace RichTextUtils {
             return text.length ? schema.text(text, styleToMarks(schema, run.textStyle)) : undefined;
         };
 
-        const MarkMapping = new Map<keyof docs_v1.Schema$TextStyle, string>([
+        const StyleToMark = new Map<keyof docs_v1.Schema$TextStyle, keyof typeof schema.marks>([
             ["bold", "strong"],
             ["italic", "em"],
             ["foregroundColor", "pFontColor"]
         ]);
 
-        const styleToMarks = (schema: any, textStyle?: docs_v1.Schema$TextStyle) => {
+        const MarkToStyle = new Map<keyof typeof schema.marks, keyof docs_v1.Schema$TextStyle>([
+            ["strong", "bold"],
+            ["em", "italic"],
+            ["pFontColor", "foregroundColor"],
+            ["timesNewRoman", "weightedFontFamily"],
+            ["georgia", "weightedFontFamily"],
+            ["comicSans", "weightedFontFamily"],
+            ["tahoma", "weightedFontFamily"],
+            ["impact", "weightedFontFamily"]
+        ]);
+
+        const FontFamilyMapping = new Map<string, string>([
+            ["timesNewRoman", "Times New Roman"],
+            ["arial", "Arial"],
+            ["georgia", "Georgia"],
+            ["comicSans", "Comic Sans MS"],
+            ["tahoma", "Tahoma"],
+            ["impact", "Impact"]
+        ]);
+
+        const styleToMarks = (schema: any, textStyle?: docs_v1.Schema$TextStyle): Opt<Mark[]> => {
             if (!textStyle) {
                 return undefined;
             }
@@ -236,12 +256,12 @@ export namespace RichTextUtils {
                 let targeted = key as keyof docs_v1.Schema$TextStyle;
                 if (value = textStyle[targeted]) {
                     let attributes: any = {};
-                    let converted = MarkMapping.get(targeted) || targeted;
+                    let converted = StyleToMark.get(targeted) || targeted;
 
                     value.url && (attributes.href = value.url);
                     if (value.color) {
-                        let object: { [key: string]: number } = value.color.rgbColor;
-                        attributes.color = Color.rgb(Object.values(object).map(value => value * 255)).hex();
+                        let object = value.color.rgbColor;
+                        attributes.color = Color.rgb(["red", "green", "blue"].map(color => object[color] * 255 || 0)).hex();
                     }
 
                     let mark = schema.mark(schema.marks[converted], attributes);
@@ -251,43 +271,67 @@ export namespace RichTextUtils {
             return marks;
         };
 
-        const marksToStyle = async (nodes: Node<any>[]) => {
+        const ignored = ["user_mark"];
+
+        const marksToStyle = async (nodes: Node<any>[]): Promise<docs_v1.Schema$Request[]> => {
             let requests: docs_v1.Schema$Request[] = [];
             let position = 1;
             for (let node of nodes) {
-                const length = node.nodeSize;
-                const marks = node.marks;
-                const attrs = node.attrs;
+                const { marks, attrs, nodeSize } = node;
                 const textStyle: docs_v1.Schema$TextStyle = {};
                 const information: LinkInformation = {
                     startIndex: position,
-                    endIndex: position + length,
+                    endIndex: position + nodeSize,
                     textStyle
                 };
                 if (marks.length) {
-
-                    const link = marks.find(mark => mark.type.name === "link");
-                    if (link) {
-                        textStyle.link = { url: link.attrs.href };
-                        textStyle.foregroundColor = fromRgb(0, 0, 1);
-                        textStyle.bold = true;
+                    let mark: Mark<any>;
+                    const markMap = BuildMarkMap(marks);
+                    Object.keys(schema.marks).map(markName => {
+                        if (!ignored.includes(markName) && (mark = markMap[markName])) {
+                            const converted = MarkToStyle.get(markName) || markName as keyof docs_v1.Schema$TextStyle;
+                            let value: any = true;
+                            if (converted) {
+                                const { attrs } = mark;
+                                switch (converted) {
+                                    case "link":
+                                        value = { url: attrs.href };
+                                        textStyle.foregroundColor = fromRgb.blue;
+                                        textStyle.bold = true;
+                                        break;
+                                    case "fontSize":
+                                        value = attrs.fontSize;
+                                        break;
+                                    case "foregroundColor":
+                                        value = fromHex(attrs.color);
+                                        break;
+                                    case "weightedFontFamily":
+                                        value = { fontFamily: FontFamilyMapping.get(markName) };
+                                }
+                                textStyle[converted] = value;
+                            }
+                        }
+                    });
+                    if (Object.keys(textStyle).length) {
+                        requests.push(EncodeStyleUpdate(information));
                     }
-                    const bold = marks.find(mark => mark.type.name === "strong");
-                    bold && (textStyle.bold = true);
-                    const foregroundColor = marks.find(mark => mark.type.name === "pFontColor");
-                    foregroundColor && (textStyle.foregroundColor = fromHex(foregroundColor.attrs.color));
                 }
-                requests.push(EncodeStyleUpdate(information));
                 if (node.type.name === "image") {
                     requests.push(await EncodeImage({
-                        startIndex: position + length,
+                        startIndex: position + nodeSize,
                         uri: attrs.src,
                         width: attrs.width
                     }));
                 }
-                position += length;
+                position += nodeSize;
             }
             return requests;
+        };
+
+        const BuildMarkMap = (marks: Mark<any>[]) => {
+            const markMap: { [type: string]: Mark<any> } = {};
+            marks.forEach(mark => markMap[mark.type.name] = mark);
+            return markMap;
         };
 
         interface LinkInformation {
@@ -302,14 +346,29 @@ export namespace RichTextUtils {
             uri: string;
         }
 
-        const fromRgb = (red: number, green: number, blue: number): docs_v1.Schema$OptionalColor => {
-            return { color: { rgbColor: { red, green, blue } } };
-        };
+        namespace fromRgb {
+
+            export const convert = (red: number, green: number, blue: number): docs_v1.Schema$OptionalColor => {
+                return {
+                    color: {
+                        rgbColor: {
+                            red: red / 255,
+                            green: green / 255,
+                            blue: blue / 255
+                        }
+                    }
+                };
+            };
+
+            export const red = convert(255, 0, 0);
+            export const green = convert(0, 255, 0);
+            export const blue = convert(0, 0, 255);
+
+        }
 
         const fromHex = (color: string): docs_v1.Schema$OptionalColor => {
-            const converted = new Color().hex(color).rgb();
-            const { red, blue, green } = converted;
-            return fromRgb(red(), blue(), green());
+            const c = Color(color);
+            return fromRgb.convert(c.red(), c.green(), c.blue());
         };
 
         const EncodeStyleUpdate = (information: LinkInformation): docs_v1.Schema$Request => {

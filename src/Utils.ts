@@ -39,7 +39,7 @@ export class Utils {
     }
 
     public static fileUrl(filename: string): string {
-        return this.prepend(`/file/${filename}`);
+        return this.prepend(`/files/${filename}`);
     }
 
     public static CorsProxy(url: string): string {
