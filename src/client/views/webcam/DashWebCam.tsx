@@ -344,7 +344,7 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
 
 
         let content =
-            <div className="webcam-cont" style={{ position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
+            <div className="webcam-cont" style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <video
                     autoPlay
                     src={this.src}
