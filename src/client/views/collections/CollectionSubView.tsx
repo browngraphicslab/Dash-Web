@@ -220,6 +220,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return;
             }
             if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                const albums = await GooglePhotos.Transactions.ListAlbums();
                 const albumId = matches[3];
                 const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
                 console.log(mediaItems);

@@ -214,9 +214,9 @@ export namespace GooglePhotos {
             let nextPageTokenStored: Opt<string> = undefined;
             let found = 0;
             do {
-                const { mediaItems, nextPageToken } = (await photos.search(albumId, pageSize, nextPageTokenStored)) as any;
-                mediaItems.push(...mediaItems);
-                nextPageTokenStored = nextPageToken;
+                const response: any = await photos.mediaItems.search(albumId, pageSize, nextPageTokenStored);
+                mediaItems.push(...response.mediaItems);
+                nextPageTokenStored = response.nextPageToken;
             } while (found);
             return mediaItems;
         };
@@ -279,6 +279,8 @@ export namespace GooglePhotos {
             filename: string;
             baseUrl: string;
         }
+
+        export const ListAlbums = async () => (await endpoint()).albums.list();
 
         export const AddTextEnrichment = async (collection: Doc, content?: string) => {
             const photos = await endpoint();
