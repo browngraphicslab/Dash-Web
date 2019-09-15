@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -7,16 +7,15 @@ import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import { Doc, DocListCast, HeightSym, Opt } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
+import { List } from '../../new_fields/List';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
-import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
 import { ClientUtils } from '../util/ClientUtils';
@@ -24,7 +23,7 @@ import { DictationManager } from '../util/DictationManager';
 import { SetupDrag } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
-import { UndoManager } from '../util/UndoManager';
+import { UndoManager, undoBatch } from '../util/UndoManager';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { CollectionTreeView } from './collections/CollectionTreeView';
@@ -37,17 +36,18 @@ import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
-import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
-
+import PresModeMenu from './presentationview/PresentationModeMenu';
+import { PresBox } from './nodes/PresBox';
+import { LinkFollowBox } from './linking/LinkFollowBox';
+import { DocumentManager } from '../util/DocumentManager';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
     @observable addMenuToggle = React.createRef<HTMLInputElement>();
-    @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
@@ -84,9 +84,6 @@ export class MainView extends React.Component {
     public isPointerDown = false;
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
-            if (!("presentationView" in doc)) {
-                doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
-            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -151,6 +148,7 @@ export class MainView extends React.Component {
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
+        //close presentation 
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
     }
@@ -158,6 +156,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
+
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
@@ -176,7 +175,7 @@ export class MainView extends React.Component {
         library.add(faCat);
         library.add(faFilePdf);
         library.add(faObjectGroup);
-        library.add(faTable);
+        library.add(faTv);
         library.add(faGlobeAsia);
         library.add(faUndoAlt);
         library.add(faRedoAlt);
@@ -318,7 +317,6 @@ export class MainView extends React.Component {
     @computed get dockingContent() {
         let flyoutWidth = this.flyoutWidth;
         let mainCont = this.mainContainer;
-        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutWidth}px`, transform: `translate(${flyoutWidth}px, 0px)` }} onDrop={this.onDrop}>
@@ -327,7 +325,9 @@ export class MainView extends React.Component {
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={emptyFunction}
+                            pinToPres={emptyFunction}
                             onClick={undefined}
+                            ruleProvider={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
@@ -335,7 +335,6 @@ export class MainView extends React.Component {
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
                             backgroundColor={returnEmptyString}
-                            selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
@@ -344,7 +343,6 @@ export class MainView extends React.Component {
                             zoomToScale={emptyFunction}
                             getScale={returnOne}
                         />}
-                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
@@ -391,14 +389,15 @@ export class MainView extends React.Component {
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
+            pinToPres={emptyFunction}
             removeDocument={undefined}
+            ruleProvider={undefined}
             onClick={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
             PanelWidth={this.flyoutWidthFunc}
             PanelHeight={this.getPHeight}
             renderDepth={0}
-            selectOnLoad={false}
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             parentActive={returnTrue}
@@ -413,7 +412,7 @@ export class MainView extends React.Component {
     get mainContent() {
         let sidebar = CurrentUserUtils.UserDocument.sidebar;
         if (!(sidebar instanceof Doc)) return (null);
-        return <div>
+        return <div className="mainContent" style={{ width: "100%", height: "100%", position: "absolute" }}>
             <div className="mainView-libraryHandle"
                 style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                 onPointerDown={this.onPointerDown}>
@@ -442,50 +441,40 @@ export class MainView extends React.Component {
         }
     }
 
+    toggleLinkFollowBox = (shouldClose: boolean) => {
+        if (LinkFollowBox.Instance) {
+            let dvs = DocumentManager.Instance.getDocumentViews(LinkFollowBox.Instance.props.Document);
+            // if it already exisits, close it
+            LinkFollowBox.Instance.props.Document.isMinimized = (dvs.length > 0 && shouldClose);
+        }
+    }
+
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
-
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
-        // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], [], { width: 200, height: 200, title: "a schema collection" }));
-        //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
-        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        let addPresNode = action(() => Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" }));
         let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
         let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
-        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
-        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
+        // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
+        // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            [React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
-            // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
-            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
-            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
-            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
+            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
+            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
+            //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
-        const setWriteMode = (mode: DocServer.WriteMode) => {
-            console.log(DocServer.WriteMode[mode]);
-            const mode1 = mode;
-            const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-            DocServer.setFieldWriteMode("x", mode1);
-            DocServer.setFieldWriteMode("y", mode1);
-            DocServer.setFieldWriteMode("width", mode1);
-            DocServer.setFieldWriteMode("height", mode1);
-
-            DocServer.setFieldWriteMode("panX", mode2);
-            DocServer.setFieldWriteMode("panY", mode2);
-            DocServer.setFieldWriteMode("scale", mode2);
-            DocServer.setFieldWriteMode("viewType", mode2);
-        };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
 
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
@@ -494,8 +483,6 @@ export class MainView extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
-                    <li key="presentation"><button className="add-button round-button" title="Open Presentation View" onClick={() => PresentationView.Instance.toggle(undefined)}><FontAwesomeIcon icon="table" size="sm" /></button></li>
-                    <li key="timeline"><button className="add-button round-button" title="Add Timeline"><FontAwesomeIcon icon="times" size="sm"/></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -504,13 +491,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    {ClientUtils.RELEASE ? [] : [
-                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    ]}
+                    <li key="linkFollow"><button className="add-button round-button" title="Open Link Follower" onClick={() => this.toggleLinkFollowBox(true)}><FontAwesomeIcon icon="link" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -549,7 +530,6 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action.bound
     toggleSearch = () => {
-        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 
@@ -578,12 +558,21 @@ export class MainView extends React.Component {
         );
     }
 
+    @computed get miniPresentation() {
+        let next = () => PresBox.CurrentPresentation.next();
+        let back = () => PresBox.CurrentPresentation.back();
+        let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
+        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document); });
+        return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>;
+    }
+
     render() {
         return (
             <div id="main-div">
                 {this.dictationOverlay}
                 <DocumentDecorations />
                 {this.mainContent}
+                {this.miniPresentation}
                 <PreviewCursor />
                 <ContextMenu />
                 {this.nodesMenu()}

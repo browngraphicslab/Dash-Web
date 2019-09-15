@@ -1,23 +1,9 @@
-import { action, IReactionDisposer, reaction } from "mobx";
-import { Dropdown, DropdownSubmenu, MenuItem, MenuItemSpec, renderGrouped, icons, } from "prosemirror-menu"; //no import css
-import { baseKeymap, lift } from "prosemirror-commands";
-import { history, redo, undo } from "prosemirror-history";
-import { keymap } from "prosemirror-keymap";
-import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType } from "prosemirror-model";
-import React = require("react");
-import "./TooltipTextMenu.scss";
-const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, bulletList, liftListItem, listItem } from 'prosemirror-schema-list';
-import {
-    faListUl,
-} from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FieldViewProps } from "../views/nodes/FieldView";
-import { throwStatement } from "babel-types";
+import "./TooltipTextMenu.scss";
+import React = require("react");
+const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
 
 const SVG = "http://www.w3.org/2000/svg";
 

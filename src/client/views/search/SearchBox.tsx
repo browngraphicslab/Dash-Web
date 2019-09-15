@@ -1,25 +1,23 @@
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction, flow, computed } from 'mobx';
-import "./SearchBox.scss";
-import "./FilterBox.scss";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { SetupDrag } from '../../util/DragManager';
-import { Docs } from '../../documents/Documents';
-import { NumCast, Cast } from '../../../new_fields/Types';
-import { Doc } from '../../../new_fields/Doc';
-import { SearchItem } from './SearchItem';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable, runInAction } from 'mobx';
+import { observer } from 'mobx-react';
+import * as React from 'react';
 import * as rp from 'request-promise';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { SearchUtil } from '../../util/SearchUtil';
+import { Cast, NumCast } from '../../../new_fields/Types';
 import { RouteStore } from '../../../server/RouteStore';
-import { FilterBox } from './FilterBox';
-import { ReadStream } from 'fs';
-import * as $ from 'jquery';
-import { MainView } from '../MainView';
 import { Utils } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
+import { SetupDrag } from '../../util/DragManager';
+import { SearchUtil } from '../../util/SearchUtil';
+import { MainView } from '../MainView';
+import { FilterBox } from './FilterBox';
+import "./FilterBox.scss";
+import "./SearchBox.scss";
+import { SearchItem } from './SearchItem';
 
 library.add(faTimes);
 
@@ -141,7 +139,7 @@ export class SearchBox extends React.Component {
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
         const includeDeleted = FilterBox.Instance.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
@@ -222,7 +220,6 @@ export class SearchBox extends React.Component {
                 doc.width = size;
                 doc.height = size;
             }
-            doc.zoomBasis = 1;
             x += 250;
             if (x > 1000) {
                 x = 0;
@@ -245,7 +242,6 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
-        console.log("closing search")
         FilterBox.Instance.closeFilter();
         this.closeResults();
         this._searchbarOpen = false;
@@ -305,14 +301,16 @@ export class SearchBox extends React.Component {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
+                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
                     }
                     else {
                         result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
+                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
                     }

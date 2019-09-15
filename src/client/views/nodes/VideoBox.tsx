@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, BoolCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -34,7 +34,7 @@ library.add(faVideo);
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
-    private _youtubePlayer: any = undefined;
+    private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
     private _youtubeContentCreated = false;
@@ -78,7 +78,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     @action public Pause = (update: boolean = true) => {
         this.Playing = false;
         update && this.player && this.player.pause();
-        update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
+        update && this._youtubePlayer && this._youtubePlayer.pauseVideo && this._youtubePlayer.pauseVideo();
         this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
         this.updateTimecode();
@@ -206,7 +206,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         if (field) {
             let url = field.url.href;
             let subitems: ContextMenuProps[] = [];
@@ -218,7 +218,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @computed get content() {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
@@ -230,7 +230,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @computed get youtubeVideoId() {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         return field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
     }
 
@@ -246,7 +246,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
                 started = false;
-                this._youtubePlayer.unMute();
+                this._youtubePlayer && this._youtubePlayer.unMute();
                 this.Pause();
                 return;
             }
@@ -271,6 +271,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     }
 
+    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
@@ -283,6 +285,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     render() {
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return <div style={{ pointerEvents: "all", width: "100%", height: "100%" }} onContextMenu={this.specificContextMenu}>
             {this.youtubeVideoId ? this.youtubeContent : this.content}
         </div>;

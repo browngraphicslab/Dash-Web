@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -78,27 +78,21 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let parent = this.props.parent;
         parent._docXfs.length = 0;
         return docs.map((d, i) => {
-            let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
+            const pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
+            if (!pair.layout || pair.data instanceof Promise) {
+                return (null);
+            }
             let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
             let height = () => parent.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(pair.layout, dref.current!);
-            this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            let dxf = () => parent.getDocTransform(pair.layout!, dref.current!);
+            parent._docXfs.push({ dxf: dxf, width: width, height: height });
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
             let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${parent.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
+                {parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
             </div>;
         });
-    }
-
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        let outerXf = Utils.GetScreenTransform(this.props.parent._masonryGridRef!);
-        let offset = this.props.parent.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        return this.props.parent.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1]).
-            scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
     }
 
     getValue = (value: string): any => {
@@ -159,8 +153,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, title: value });
+        let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, documentText: "@@@" + value, title: value, autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
+        let maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
+        let heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
+        newDoc.heading = heading;
         return this.props.parent.props.addDocument(newDoc);
     }
 

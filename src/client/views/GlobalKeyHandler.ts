@@ -30,7 +30,7 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key.toLowerCase();
+        let keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
@@ -105,7 +105,7 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                DictationManager.Controls.listen({ tryExecute: true });
+                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
         }
@@ -196,8 +196,6 @@ export default class KeyManager {
 
     async printClipboard() {
         let text: string = await navigator.clipboard.readText();
-        console.log(text)
-        console.log(document.activeElement)
     }
 
     private ctrl_shift = action((keyname: string) => {

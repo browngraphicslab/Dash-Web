@@ -6,7 +6,7 @@ import "./IconButton.scss";
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library, icon } from '@fortawesome/fontawesome-svg-core';
-import { DocumentType } from '../../documents/Documents';
+import { DocumentType } from "../../documents/DocumentTypes";
 import '../globalCssVariables.scss';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';

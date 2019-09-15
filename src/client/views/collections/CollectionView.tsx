@@ -77,26 +77,30 @@ export class CollectionView extends React.Component<FieldViewProps> {
         if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
             return [(null), this.SubViewHelper(type, renderProps)];
         }
-        else {
-            return [
-                (<CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />),
-                this.SubViewHelper(type, renderProps)
-            ];
-        }
+        return [
+            <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />,
+            this.SubViewHelper(type, renderProps)
+        ];
     }
 
     get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            let subItems: ContextMenuProps[] = [];
+            let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
+            let subItems: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; delete this.props.Document.usePivotLayout; }, icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
             subItems.push({ description: "Schema", event: () => this.props.Document.viewType = CollectionViewType.Schema, icon: "th-list" });
             subItems.push({ description: "Treeview", event: () => this.props.Document.viewType = CollectionViewType.Tree, icon: "tree" });
-            subItems.push({ description: "Stacking", event: () => this.props.Document.viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
+            subItems.push({
+                description: "Stacking", event: () => {
+                    this.props.Document.viewType = CollectionViewType.Stacking;
+                    this.props.Document.autoHeight = true
+                }, icon: "ellipsis-v"
+            });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
@@ -105,10 +109,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
-            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
+            !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
+
             let existing = ContextMenu.Instance.findByDescription("Layout...");
             let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-            layoutItems.push({ description: "Create Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
         }

@@ -14,7 +14,6 @@ import * as mobileDetect from 'mobile-detect';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
-import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -36,19 +35,20 @@ const port = 1050; // default port to listen
 const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
-import c = require("crypto");
 import { Search } from './Search';
-import { debug } from 'util';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
-import * as AdmZip from 'adm-zip';
-import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
+var AdmZip = require('adm-zip');
+import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
+import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
+import { GaxiosResponse } from 'gaxios';
+import { Opt } from '../new_fields/Doc';
+import { docs_v1 } from 'googleapis';
+import { Endpoint } from 'googleapis-common';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
-var SolrNode = require('solr-node');
-var shell = require('shelljs');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -116,7 +116,7 @@ function addSecureRoute(method: Method,
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
-            handler(req.user, res, req);
+            handler(req.user as any, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -171,6 +171,13 @@ const read_text_file = (relativePath: string) => {
     let target = path.join(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
         fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
+
+const write_text_file = (relativePath: string, contents: any) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<void>((resolve, reject) => {
+        fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
 
@@ -352,7 +359,7 @@ app.post("/uploadDoc", (req, res) => {
             for (const name in files) {
                 const path_2 = files[name].path;
                 const zip = new AdmZip(path_2);
-                zip.getEntries().forEach(entry => {
+                zip.getEntries().forEach((entry: any) => {
                     if (!entry.entryName.startsWith("files/")) return;
                     let dirname = path.dirname(entry.entryName) + "/";
                     let extname = path.extname(entry.entryName);
@@ -361,13 +368,17 @@ app.post("/uploadDoc", (req, res) => {
                     // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
-                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
-                    dirname = "/" + dirname;
+                    try {
+                        zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                        dirname = "/" + dirname;
 
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                    } catch (e) {
+                        console.log(e);
+                    }
                 });
                 const json = zip.getEntry("doc.json");
                 let docs: any;
@@ -436,7 +447,7 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
             console.log(pageNumber);
             pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
                 console.log("reading " + page);
-                let viewport = page.getViewport(1);
+                let viewport = page.getViewport(1 as any);
                 let canvasAndContext = factory.create(viewport.width, viewport.height);
                 let renderContext = {
                     canvasContext: canvasAndContext.context,
@@ -789,6 +800,32 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
             YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
     }
 }
+
+const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
+const token = path.join(__dirname, "./credentials/google_docs_token.json");
+
+const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
+    ["create", (api, params) => api.create(params)],
+    ["retrieve", (api, params) => api.get(params)],
+    ["update", (api, params) => api.batchUpdate(params)],
+]);
+
+app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
+    let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
+    let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
+        let handler = EndpointHandlerMap.get(action);
+        if (endpoint && handler) {
+            let execute = handler(endpoint, req.body).then(
+                response => res.send(response.data),
+                rejection => res.send(rejection)
+            );
+            execute.catch(exception => res.send(exception));
+            return;
+        }
+        res.send(undefined);
+    });
+});
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",

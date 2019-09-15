@@ -1,25 +1,3 @@
-export enum DocumentType {
-    NONE = "none",
-    TEXT = "text",
-    HIST = "histogram",
-    IMG = "image",
-    WEB = "web",
-    COL = "collection",
-    KVP = "kvp",
-    VID = "video",
-    AUDIO = "audio",
-    PDF = "pdf",
-    ICON = "icon",
-    IMPORT = "import",
-    LINK = "link",
-    LINKDOC = "linkdoc",
-    BUTTON = "button",
-    TEMPLATE = "template",
-    EXTENSION = "extension",
-    YOUTUBE = "youtube",
-    DRAGBOX = "dragbox",
-}
-
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
@@ -42,7 +20,7 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt } from "../../new_fields/Doc";
+import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
@@ -63,14 +41,20 @@ import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { DragBox } from "../views/nodes/DragBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
+import { DocumentType } from "./DocumentTypes";
+import { LinkFollowBox } from "../views/linking/LinkFollowBox";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
+    z?: number;
     type?: string;
     width?: number;
     height?: number;
@@ -82,6 +66,7 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     layout?: string;
+    isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
@@ -95,6 +80,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
+    autoHeight?: boolean;
     dbDoc?: Doc;
     // [key: string]: Opt<Field>;
 }
@@ -135,7 +121,7 @@ export namespace Docs {
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 }
+                options: { curPage: 0 }
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
@@ -151,7 +137,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 },
+                options: { curPage: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -180,9 +166,16 @@ export namespace Docs {
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
             }],
+            [DocumentType.PRES, {
+                layout: { view: PresBox },
+                options: {}
+            }],
             [DocumentType.DRAGBOX, {
                 layout: { view: DragBox },
                 options: { width: 40, height: 40 },
+            }],
+            [DocumentType.LINKFOLLOW, {
+                layout: { view: LinkFollowBox }
             }]
         ]);
 
@@ -304,7 +297,7 @@ export namespace Docs {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
-                protoProps.author = CurrentUserUtils.email;
+                protoProps.author = Doc.CurrentUserEmail;
             }
 
             if (!("creationDate" in protoProps)) {
@@ -351,6 +344,9 @@ export namespace Docs {
                 })
                 .catch((err: any) => console.log(err));
             return inst;
+        }
+        export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
@@ -424,8 +420,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
-        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
+        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
@@ -451,6 +447,10 @@ export namespace Docs {
 
         export function DragboxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
+        }
+
+        export function LinkFollowBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
@@ -607,13 +607,43 @@ export namespace Docs {
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc) {
+    export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
+        targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
+        DocServer.GetRefField(targetID).then(doc => {
+            if (promoteDoc !== doc) {
+                let copy = doc as Doc;
+                if (copy) {
+                    Doc.Overwrite(promoteDoc, copy, true);
+                } else {
+                    copy = Doc.MakeCopy(promoteDoc, true, targetID);
+                }
+                !doc && (copy.title = undefined) && (Doc.GetProto(copy).title = targetID);
+                addDoc && addDoc(copy);
+                remDoc && remDoc(promoteDoc);
+                if (!doc) {
+                    DocListCastAsync(promoteDoc.links).then(links => {
+                        links && links.map(async link => {
+                            if (link) {
+                                let a1 = await Cast(link.anchor1, Doc);
+                                if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
+                                let a2 = await Cast(link.anchor2, Doc);
+                                if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
+                                LinkManager.Instance.deleteLink(link);
+                                LinkManager.Instance.addLink(link);
+                            }
+                        })
+                    })
+                }
+            }
+        });
+    }
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDocProto = new Doc();
+        let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
@@ -626,6 +656,7 @@ export namespace DocUtils {
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
             linkDocProto.anchor1Groups = new List<Doc>([]);
+            linkDocProto.anchor1anchored = anchored1;
             linkDocProto.anchor2 = target;
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);

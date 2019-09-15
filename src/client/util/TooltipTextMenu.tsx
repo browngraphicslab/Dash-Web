@@ -3,8 +3,8 @@ import { faListUl } from '@fortawesome/free-solid-svg-icons';
 import { action, observable } from "mobx";
 import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
-import { liftListItem, wrapInList } from 'prosemirror-schema-list';
-import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { wrapInList } from 'prosemirror-schema-list';
+import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
@@ -18,6 +18,7 @@ import { DragManager } from "./DragManager";
 import { LinkManager } from "./LinkManager";
 import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
+import { Cast, NumCast } from '../../new_fields/Types';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -28,11 +29,11 @@ export class TooltipTextMenu {
     private view: EditorView;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
-    private listTypes: NodeType[];
+    private listTypes: (NodeType | any)[];
     private editorProps: FieldViewProps & FormattedTextBoxProps;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
-    private listTypeToIcon: Map<NodeType, string>;
+    private listTypeToIcon: Map<NodeType | any, string>;
     //private link: HTMLAnchorElement;
     private wrapper: HTMLDivElement;
     private extras: HTMLDivElement;
@@ -59,8 +60,6 @@ export class TooltipTextMenu {
 
     @observable
     private _storedMarks: Mark<any>[] | null | undefined;
-
-    public HackToFixTextSelectionGlitch: boolean = false;
 
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
@@ -165,13 +164,22 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
         this.fontSizeToNum.set(schema.marks.pFontSize, 10);
-        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 12);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 14);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 16);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 18);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 20);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 24);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 32);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 48);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 72);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
-        this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A");
         // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
@@ -300,10 +308,9 @@ export class TooltipTextMenu {
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                // let m = dragData.droppedDocuments;
                                 let linkDoc = dragData.linkDocument;
                                 let proto = Doc.GetProto(linkDoc);
-                                if (docView && docView.props.ContainingCollectionView) {
+                                if (proto && docView && docView.props.ContainingCollectionView) {
                                     proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
                                 }
                                 linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
@@ -315,8 +322,6 @@ export class TooltipTextMenu {
                 e.preventDefault();
             };
             this.linkEditor.appendChild(this.linkDrag);
-            // this.linkEditor.appendChild(this.linkText);
-            // this.linkEditor.appendChild(linkBtn);
             this.tooltip.appendChild(this.linkEditor);
         }
 
@@ -425,11 +430,13 @@ export class TooltipTextMenu {
     }
 
     public static insertStar(state: EditorState<any>, dispatch: any) {
-        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), textslice: state.selection.content().toJSON(), textlen: state.selection.to - state.selection.from });
-        if (dispatch) {
-            //console.log(newNode.attrs.text.toString());
-            dispatch(state.tr.replaceSelectionWith(newNode));
-        }
+        if (state.selection.empty) return false;
+        let mark = state.schema.marks.highlight.create();
+        let tr = state.tr;
+        tr.addMark(state.selection.from, state.selection.to, mark);
+        let content = tr.selection.content();
+        let newNode = schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
 
@@ -489,10 +496,20 @@ export class TooltipTextMenu {
             if (markType.name[0] === 'p') {
                 let size = this.fontSizeToNum.get(markType);
                 if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+                let ruleProvider = this.editorProps.ruleProvider;
+                let heading = NumCast(this.editorProps.Document.heading);
+                if (ruleProvider && heading) {
+                    ruleProvider["ruleSize_" + heading] = size;
+                }
             }
             else {
                 let fontName = this.fontStylesToName.get(markType);
                 if (fontName) { this.updateFontStyleDropdown(fontName); }
+                let ruleProvider = this.editorProps.ruleProvider;
+                let heading = NumCast(this.editorProps.Document.heading);
+                if (ruleProvider && heading) {
+                    ruleProvider["ruleFont_" + heading] = fontName;
+                }
             }
             //actually apply font
             return toggleMark(markType)(view.state, view.dispatch, view);
@@ -502,12 +519,37 @@ export class TooltipTextMenu {
         }
     }
 
+    updateBullets = (tx2: Transaction, style: string) => {
+        tx2.doc.descendants((node: any, offset: any, index: any) => {
+            if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
+                let path = (tx2.doc.resolve(offset) as any).path;
+                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
+                if (node.type === schema.nodes.ordered_list) depth++;
+                tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
+            }
+        });
+    };
     //remove all node typeand apply the passed-in one to the selected text
-    changeToNodeType(nodeType: NodeType | undefined, view: EditorView) {
-        //remove old
-        liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
-        if (nodeType) { //add new
+    changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
+        //remove oldif (nodeType) { //add new
+        if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
+        } else {
+            var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
+            if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
+                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
+                marks && tx2.ensureMarks([...marks]);
+                marks && tx2.setStoredMarks([...marks]);
+
+                view.dispatch(tx2);
+            })) {
+                let tx2 = view.state.tr;
+                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
+                marks && tx2.ensureMarks([...marks]);
+                marks && tx2.setStoredMarks([...marks]);
+
+                view.dispatch(tx2);
+            }
         }
     }
 
@@ -602,10 +644,9 @@ export class TooltipTextMenu {
                 if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
                     if (this._brushMarks && to - from > 0) {
                         this.view.dispatch(this.view.state.tr.removeMark(from, to));
-                        this._brushMarks.forEach((mark: Mark) => {
+                        Array.from(this._brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
                             const markType = mark.type;
                             this.changeToMarkInGroup(markType, this.view, []);
-
                         });
                     }
                 }
@@ -849,8 +890,6 @@ export class TooltipTextMenu {
                 this.updateFontSizeDropdown("Various");
             }
         }
-        !this.HackToFixTextSelectionGlitch &&
-            this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks)); // bcz: what's the purpose of this line?  It messes up text selection without the Hack.
 
         this.update_mark_doms();
     }

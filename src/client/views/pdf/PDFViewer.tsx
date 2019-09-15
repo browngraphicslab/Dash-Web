@@ -36,6 +36,7 @@ interface IViewerProps {
     active: () => boolean;
     setPanY?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
 }
 
@@ -75,7 +76,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.panY + (this._pageSizes[0] ? this._pageSizes[0].height : 0)) + this._pageBuffer);
     }
 
-    @computed get filteredAnnotations() {
+    @computed get allAnnotations() {
+        let annotations = DocListCast(this.props.fieldExtensionDoc.annotations);
+        return annotations.filter(anno => {
+            let run = this._script.run({ this: anno });
+            return run.success ? run.result : true;
+        })
+    }
+
+    @computed get nonDocAnnotations() {
         return this._annotations.filter(anno => {
             let run = this._script.run({ this: anno });
             return run.success ? run.result : true;
@@ -100,12 +109,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._filterReactionDisposer = reaction(
             () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
             action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
+                let oldScript = this._script.originalScript;
                 this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
+                if (this._script.originalScript !== oldScript) {
+                    this.Index = -1;
+                }
                 annos.forEach(d => {
                     let run = this._script.run(d);
                     d.opacity = !run.success || run.result ? 1 : 0;
                 });
-                this.Index = -1;
             }),
             { fireImmediately: true }
         );
@@ -151,18 +163,25 @@ export class PDFViewer extends React.Component<IViewerProps> {
         if (this._pageSizes.length === 0) {
             this._isPage = Array<string>(this.props.pdf.numPages);
             this._pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
+            this._visibleElements = Array<JSX.Element>(this.props.pdf.numPages);
             await Promise.all(this._pageSizes.map<Pdfjs.PDFPromise<any>>((val, i) =>
                 this.props.pdf.getPage(i + 1).then(action((page: Pdfjs.PDFPageProxy) => {
                     this._pageSizes.splice(i, 1, {
                         width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
                         height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
                     });
+                    this._visibleElements.splice(i, 1,
+                        <div key={`${this.props.url}-placeholder-${i + 1}`} className="pdfviewer-placeholder"
+                            style={{ width: this._pageSizes[i].width, height: this._pageSizes[i].height }}>
+                            "PAGE IS LOADING... "
+                </div>);
                     this.getPlaceholderPage(i);
                 }))));
             this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);
 
             let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.panY));
             this.props.setPanY && this.props.setPanY(startY);
+            this.props.scrollTo(startY);
         }
     }
 
@@ -288,12 +307,20 @@ export class PDFViewer extends React.Component<IViewerProps> {
     prevAnnotation = (e: React.MouseEvent) => {
         e.stopPropagation();
         this.Index = Math.max(this.Index - 1, 0);
+        let scrollToAnnotation = this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index];
+        this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
+        Doc.BrushDoc(scrollToAnnotation);
+        this.props.scrollTo(NumCast(scrollToAnnotation.y));
     }
 
     @action
     nextAnnotation = (e: React.MouseEvent) => {
         e.stopPropagation();
-        this.Index = Math.min(this.Index + 1, this.filteredAnnotations.length - 1);
+        this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
+        let scrollToAnnotation = this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index];
+        this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
+        Doc.BrushDoc(scrollToAnnotation);
+        this.props.scrollTo(NumCast(scrollToAnnotation.y));
     }
 
     sendAnnotations = (page: number) => {
@@ -406,8 +433,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
             </div>
             <div className="pdfViewer-text" ref={this._viewer} />
             <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
-                {this.filteredAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                    <Annotation {...this.props} ParentIndex={this.getIndex} anno={anno} index={index} key={`${anno[Id]}-annotation`} />)}
+                {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
+                    <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
             </div>
             <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
                 style={{ bottom: -this.props.panY, left: `${this._searching ? 0 : 100}%` }}>

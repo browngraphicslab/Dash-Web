@@ -33,7 +33,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
 
     @computed get containingCollectionDocument() { return this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document; }
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
+
     @computed get fieldExtensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true"); }
 
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
@@ -48,7 +50,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     componentDidMount() {
         this.props.setPdfBox && this.props.setPdfBox(this);
 
-        const pdfUrl = Cast(this.props.Document.data, PdfField);
+        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
@@ -78,7 +80,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @action
     public GotoPage(p: number) {
-        if (p > 0 && p <= NumCast(this.props.Document.numPages)) {
+        if (p > 0 && p <= NumCast(this.dataDoc.numPages)) {
             this.props.Document.curPage = p;
             this.props.Document.panY = (p - 1) * NumCast(this.dataDoc.nativeHeight);
         }
@@ -87,7 +89,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @action
     public ForwardPage() {
         let cp = this.GetPage() + 1;
-        if (cp <= NumCast(this.props.Document.numPages)) {
+        if (cp <= NumCast(this.dataDoc.numPages)) {
             this.props.Document.curPage = cp;
             this.props.Document.panY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
         }
@@ -185,11 +187,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
     }
 
+
     render() {
-        const pdfUrl = Cast(this.props.Document.data, PdfField);
+        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (!(pdfUrl instanceof PdfField) || !this._pdf ?
-            <div>{`pdf, ${this.props.Document.data}, not found`}</div> :
+            <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
             <div className={classname}
                 onScroll={this.onScroll}
                 style={{ marginTop: `${this.containingCollectionDocument ? NumCast(this.containingCollectionDocument.panY) : 0}px` }}
@@ -198,7 +201,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={NumCast(this.props.Document.panY)}
                     Document={this.props.Document} DataDoc={this.props.DataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY}
-                    addDocument={this.props.addDocument}
+                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.fieldExtensionDoc} />
                 {this.settingsPanel()}
             </div>);

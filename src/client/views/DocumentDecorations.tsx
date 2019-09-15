@@ -1,14 +1,14 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
+import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt, faShare } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { URLField } from '../../new_fields/URLField';
 import { emptyFunction, Utils } from "../../Utils";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -18,18 +18,20 @@ import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
-import { LinkMenu } from "./nodes/LinkMenu";
+import { LinkMenu } from "./linking/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
-import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { ObjectField } from '../../new_fields/ObjectField';
+import { DocServer } from '../DocServer';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -37,6 +39,16 @@ export const Flyout = higflyout.default;
 library.add(faLink);
 library.add(faTag);
 library.add(faTimes);
+library.add(faArrowAltCircleDown);
+library.add(faArrowAltCircleUp);
+library.add(faStopCircle);
+library.add(faCheckCircle);
+library.add(faCloudUploadAlt);
+library.add(faSyncAlt);
+library.add(faShare);
+
+const cloud: IconProp = "cloud-upload-alt";
+const fetch: IconProp = "sync-alt";
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -68,6 +80,52 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public Interacting = false;
     @observable private _isMoving = false;
 
+    @observable public pushIcon: IconProp = "arrow-alt-circle-up";
+    @observable public pullIcon: IconProp = "arrow-alt-circle-down";
+    @observable public pullColor: string = "white";
+    @observable public isAnimatingFetch = false;
+    @observable public openHover = false;
+    public pullColorAnimating = false;
+
+    private pullAnimating = false;
+    private pushAnimating = false;
+
+    public startPullOutcome = action((success: boolean) => {
+        if (!this.pullAnimating) {
+            this.pullAnimating = true;
+            this.pullIcon = success ? "check-circle" : "stop-circle";
+            setTimeout(() => runInAction(() => {
+                this.pullIcon = "arrow-alt-circle-down";
+                this.pullAnimating = false;
+            }), 1000);
+        }
+    });
+
+    public startPushOutcome = action((success: boolean) => {
+        if (!this.pushAnimating) {
+            this.pushAnimating = true;
+            this.pushIcon = success ? "check-circle" : "stop-circle";
+            setTimeout(() => runInAction(() => {
+                this.pushIcon = "arrow-alt-circle-up";
+                this.pushAnimating = false;
+            }), 1000);
+        }
+    });
+
+    public setPullState = action((unchanged: boolean) => {
+        this.isAnimatingFetch = false;
+        if (!this.pullColorAnimating) {
+            this.pullColorAnimating = true;
+            this.pullColor = unchanged ? "lawngreen" : "red";
+            setTimeout(this.clearPullColor, 1000);
+        }
+    });
+
+    private clearPullColor = action(() => {
+        this.pullColor = "white";
+        this.pullColorAnimating = false;
+    });
+
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
@@ -85,17 +143,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text.startsWith("::")) {
+                let targetID = text.slice(2, text.length);
+                let promoteDoc = SelectionManager.SelectedDocuments()[0];
+                DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             } else if (text.startsWith(">")) {
                 let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
-                let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
-                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                let proto = Doc.GetProto(docTemplate);
-                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
-                if (text.startsWith(">>")) {
-                    proto.detailedLayout = proto.layout;
-                    proto.miniLayout = ImageBox.LayoutString(metaKey);
+                let containerView = fieldTemplateView.props.ContainingCollectionView;
+                if (containerView) {
+                    let docTemplate = containerView.props.Document;
+                    let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                    let proto = Doc.GetProto(docTemplate);
+                    if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
+                        const fd = fieldTemplate.data;
+                        fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
+                    }
+                    fieldTemplate.title = metaKey;
+                    Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
+                    if (text.startsWith(">>")) {
+                        proto.detailedLayout = proto.layout;
+                        proto.miniLayout = ImageBox.LayoutString(metaKey);
+                    }
                 }
             }
             else {
@@ -144,14 +214,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.onBackgroundUp(e);
     }
 
+    @observable _forceUpdate = 0;
+    _lastBox = { x: 0, y: 0, r: 0, b: 0 };
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+        let x = this._forceUpdate;
+        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
                 Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+            if (transform.TranslateX === 0 && transform.TranslateY === 0) {
+                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...
+                return this._lastBox;
+            }
+
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             return {
@@ -159,6 +237,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        return this._lastBox;
     }
 
     onBackgroundDown = (e: React.PointerEvent): void => {
@@ -218,7 +297,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onCloseUp = async (e: PointerEvent) => {
         e.stopPropagation();
         if (e.button === 0) {
-            const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+            const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             SelectionManager.SelectedDocuments().map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
@@ -286,14 +365,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
                     let docViews = SelectionManager.ViewsSortedVertically();
                     let topDocView = docViews[0];
-                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
-                    if (ind !== -1) {
-                        topDocView.templates.splice(ind, 1);
-                        topDocView.props.Document.subBulletDocs = undefined;
-                    } else {
-                        topDocView.addTemplate(Templates.Bullet);
-                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
-                    }
+                    topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
                 }
             }
             this._removeIcon = false;
@@ -332,8 +404,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     moveIconDoc(iconDoc: Doc) {
         let selView = SelectionManager.SelectedDocuments()[0];
-        let zoom = NumCast(selView.props.Document.zoomBasis, 1);
-        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).scale(1 / zoom).
+        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).
             transformPoint(this._minimizedX - 12, this._minimizedY - 12);
         iconDoc.x = where[0] + NumCast(selView.props.Document.x);
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
@@ -352,16 +423,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointermove", this.onRadiusMove);
             document.addEventListener("pointerup", this.onRadiusUp);
         }
-        if (!this._isMoving) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-                map(d => d.borderRounding = "0%");
-        }
     }
 
     onRadiusMove = (e: PointerEvent): void => {
         this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        dist = dist < 3 ? 0 : dist;
+        let usingRule = false;
+        SelectionManager.SelectedDocuments().map(dv => {
+            let cv = dv.props.ContainingCollectionView;
+            let ruleProvider = cv && cv.props.ruleProvider;
+            let heading = NumCast(dv.props.Document.heading);
+            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
+            usingRule = usingRule || (ruleProvider && heading ? true : false);
+        })
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
@@ -550,6 +626,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
                 let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && BoolCast(doc.ignoreAspect)) {
+                    doc.ignoreAspect = false;
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
+                }
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
@@ -630,6 +711,74 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         );
     }
 
+    private get targetDoc() {
+        return SelectionManager.SelectedDocuments()[0].props.Document;
+    }
+
+    considerGoogleDocsPush = () => {
+        let canPush = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
+        if (!canPush) return (null);
+        let published = Doc.GetProto(this.targetDoc)[GoogleRef] !== undefined;
+        let icon: IconProp = published ? (this.pushIcon as any) : cloud;
+        return (
+            <div className={"linkButtonWrapper"}>
+                <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
+                    DocumentDecorations.hasPushedHack = false;
+                    this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
+                }}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
+                </div>
+            </div>
+        );
+    }
+
+    considerGoogleDocsPull = () => {
+        let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
+        let dataDoc = Doc.GetProto(this.targetDoc);
+        if (!canPull || !dataDoc[GoogleRef]) return (null);
+        let icon = dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
+        icon = this.openHover ? "share" : icon;
+        let animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
+        let title = `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
+        return (
+            <div className={"linkButtonWrapper"}>
+                <div
+                    title={title}
+                    className="linkButton-linker"
+                    style={{
+                        backgroundColor: this.pullColor,
+                        transition: "0.2s ease all"
+                    }}
+                    onPointerEnter={e => e.altKey && runInAction(() => this.openHover = true)}
+                    onPointerLeave={() => runInAction(() => this.openHover = false)}
+                    onClick={e => {
+                        if (e.altKey) {
+                            e.preventDefault();
+                            window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
+                        } else {
+                            this.clearPullColor();
+                            DocumentDecorations.hasPulledHack = false;
+                            this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
+                            dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                        }
+                    }}>
+                    <FontAwesomeIcon
+                        style={{
+                            WebkitAnimation: animation,
+                            MozAnimation: animation
+                        }}
+                        className="documentdecorations-icon"
+                        icon={icon}
+                        size="sm"
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    public static hasPushedHack = false;
+    public static hasPulledHack = false;
+
     considerTooltip = () => {
         let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
         let isTextDoc = thisDoc.data && thisDoc.data instanceof RichTextField;
@@ -685,6 +834,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
+
             let linkCount = LinkManager.Instance.getAllRelatedLinks(selFirst.props.Document).length;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
@@ -697,28 +847,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically(); // slice().sort((doc1, doc2) => {
-            //     if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.x)) return 1;
-            //     if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-            //     return 0;
-            // });
-            let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
-                let temps = doc.props.Document.templates;
-                if (temps instanceof List) {
-                    temps.map(temp => {
-                        if (temp !== Templates.Bullet.Layout || i === 0) {
-                            res.push(temp);
-                        }
-                    });
-                }
-                return res;
-            }, [] as string[]);
             let checked = false;
-            docTemps.forEach(temp => {
-                if (template.Layout === temp) {
-                    checked = true;
-                }
-            });
+            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.layoutDoc["show" + template.Name] !== undefined));
             templates.set(template, checked);
         });
 
@@ -782,6 +912,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     {this.metadataMenu}
                     {this.considerEmbed()}
+                    {this.considerGoogleDocsPush()}
+                    {this.considerGoogleDocsPull()}
                     {/* {this.considerTooltip()} */}
                 </div>
             </div >

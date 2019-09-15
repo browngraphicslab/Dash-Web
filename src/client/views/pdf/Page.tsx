@@ -19,8 +19,8 @@ interface IPageProps {
     numPages: number;
     page: number;
     pageLoaded: (page: Pdfjs.PDFPageViewport) => void;
-    fieldExtensionDoc: Doc,
-    Document: Doc,
+    fieldExtensionDoc: Doc;
+    Document: Doc;
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
@@ -70,7 +70,8 @@ export default class Page extends React.Component<IPageProps> {
             this.props.pageLoaded(viewport);
             let ctx = this._canvas.current.getContext("2d");
             if (ctx) {
-                page.render({ canvasContext: ctx, viewport: viewport }); // renders the page onto the canvas context
+                //@ts-ignore
+                page.render({ canvasContext: ctx, viewport: viewport, enableWebGL: true }); // renders the page onto the canvas context
                 page.getTextContent().then(res =>                   // renders text onto the text container
                     //@ts-ignore
                     Pdfjs.renderTextLayer({
@@ -112,7 +113,7 @@ export default class Page extends React.Component<IPageProps> {
                         if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
                             annotations && annotations.forEach(anno => anno.target = targetDoc);
-                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`)
+                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`);
                         }
                     }
                 },
@@ -151,6 +152,9 @@ export default class Page extends React.Component<IPageProps> {
             PDFMenu.Instance.fadeOut(true);
             if (e.target && (e.target as any).parentElement === this._textLayer.current) {
                 e.stopPropagation();
+                if (!e.ctrlKey) {
+                    this.props.sendAnnotations([], -1);
+                }
             }
             else {
                 // set marquee x and y positions to the spatially transformed position
@@ -161,14 +165,12 @@ export default class Page extends React.Component<IPageProps> {
                 }
                 this._marqueeing = true;
                 this._marquee.current && (this._marquee.current.style.opacity = "0.2");
+                this.props.sendAnnotations([], -1);
             }
             document.removeEventListener("pointermove", this.onSelectStart);
             document.addEventListener("pointermove", this.onSelectStart);
             document.removeEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.onSelectEnd);
-            if (!e.ctrlKey) {
-                this.props.sendAnnotations([], -1);
-            }
         }
     }
 
@@ -257,7 +259,7 @@ export default class Page extends React.Component<IPageProps> {
                 }
             }
         }
-        let text = selRange.extractContents().textContent;
+        let text = selRange.cloneContents().textContent;
         text && this.props.setSelectionText(text);
 
         // clear selection

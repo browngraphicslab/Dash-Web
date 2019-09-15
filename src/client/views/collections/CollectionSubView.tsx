@@ -11,11 +11,12 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
@@ -33,6 +34,7 @@ export interface CollectionViewProps extends FieldViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    ruleProvider: Doc | undefined;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) { 
@@ -82,7 +84,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;
-            let email = CurrentUserUtils.email;
+            let email = Doc.CurrentUserEmail;
             let pos = { x: position[0], y: position[1] };
             if (id && email) {
                 const proto = Doc.GetProto(doc);
@@ -112,7 +114,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
-            if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
                         Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)
@@ -212,7 +214,17 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
                 return;
             }
-
+            let matches: RegExpExecArray | null;
+            if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
+                let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
+                let proto = newBox.proto!;
+                proto.autoHeight = true;
+                proto[GoogleRef] = matches[2];
+                proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
+                proto.backgroundColor = "#eeeeff";
+                this.props.addDocument(newBox);
+                return;
+            }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
             // tslint:disable-next-line:prefer-for-of

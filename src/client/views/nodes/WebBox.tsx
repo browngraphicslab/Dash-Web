@@ -1,18 +1,29 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { FieldResult } from "../../../new_fields/Doc";
+import { FieldResult, Doc, Field } from "../../../new_fields/Doc";
 import { HtmlField } from "../../../new_fields/HtmlField";
-import { InkTool } from "../../../new_fields/InkField";
-import { Cast, NumCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
-import { Utils } from "../../../Utils";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
-import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
+import { InkTool } from "../../../new_fields/InkField";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
+import { observable, action, computed } from "mobx";
+import { listSpec } from "../../../new_fields/Schema";
+import { RefField } from "../../../new_fields/RefField";
+import { ObjectField } from "../../../new_fields/ObjectField";
+import { updateSourceFile } from "typescript";
+import { KeyValueBox } from "./KeyValueBox";
+import { setReactionScheduler } from "mobx/lib/internal";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { SelectionManager } from "../../util/SelectionManager";
+import { Docs } from "../../documents/Documents";
+
+library.add(faStickyNote);
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -64,6 +75,29 @@ export class WebBox extends React.Component<FieldViewProps> {
         }
     }
 
+
+    switchToText = () => {
+        let url: string = "";
+        let field = Cast(this.props.Document[this.props.fieldKey], WebField);
+        if (field) url = field.url.href;
+
+        let newBox = Docs.Create.TextDocument({
+            x: NumCast(this.props.Document.x),
+            y: NumCast(this.props.Document.y),
+            title: url,
+            width: 200,
+            height: 70,
+            documentText: "@@@" + url
+        });
+
+        SelectionManager.SelectedDocuments().map(dv => {
+            dv.props.addDocument && dv.props.addDocument(newBox, false);
+            dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+        });
+
+        Doc.BrushDoc(newBox);
+    }
+
     urlEditor() {
         return (
             <div className="webView-urlEditor" style={{ top: this.collapsed ? -70 : 0 }}>
@@ -86,9 +120,19 @@ export class WebBox extends React.Component<FieldViewProps> {
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
                             />
-                            <button className="submitUrl" onClick={this.submitURL}>
-                                SUBMIT URL
-                            </button>
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                minWidth: "100px",
+                            }}>
+                                <button className="submitUrl" onClick={this.submitURL}>
+                                    SUBMIT
+                                </button>
+                                <div className="switchToText" title="Convert web to text doc" onClick={this.switchToText} style={{ display: "flex", alignItems: "center", justifyContent: "center" }} >
+                                    <FontAwesomeIcon icon={faStickyNote} size={"lg"} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

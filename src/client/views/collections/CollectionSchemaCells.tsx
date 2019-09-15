@@ -40,6 +40,7 @@ export interface CellProps {
     fieldKey: string;
     renderDepth: number;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
@@ -148,11 +149,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
             fieldExt: "",
+            ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
             active: returnFalse,
@@ -160,6 +161,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             PanelHeight: returnZero,
             PanelWidth: returnZero,
             addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
             ContentScaling: returnOne
         };
 
@@ -213,7 +215,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents}
-                            height={Number(MAX_ROW_HEIGHT)}
+                            height={"auto"}
+                            maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
                                 let field = props.Document[props.fieldKey];
                                 if (Field.IsField(field)) {

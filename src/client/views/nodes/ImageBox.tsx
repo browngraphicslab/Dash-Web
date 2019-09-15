@@ -89,10 +89,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                if (de.mods === "CtrlKey") {
-                    Doc.ApplyTemplateTo(drop, this.props.Document, this.props.DataDoc);
-                    e.stopPropagation();
-                } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
+                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
                 } else if (de.mods === "MetaKey") {
@@ -219,12 +216,13 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
-            let modes: ContextMenuProps[] = [];
+            let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
+            let modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
+            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" })
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
-            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
     }
 
@@ -264,13 +262,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onDotDown(index: number) {
         this.Document.curPage = index;
     }
-
-    @computed get fieldExtensionDoc() {
-        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
-    }
-
     @computed private get url() {
-        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        let data = Cast(Doc.GetProto(this.props.Document)[this.props.fieldKey], ImageField);
         return data ? data.url.href : undefined;
     }
 
@@ -321,7 +314,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
                 let aspect = realsize.height / realsize.width;
-                if (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1) {
+                if (layoutdoc.nativeHeight !== 0 && layoutdoc.nativeWidth !== 0 && (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1)) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = realsize.height;

@@ -32,6 +32,7 @@ import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, Collection
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -161,6 +162,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
+                ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
                 width={this.previewWidth}
                 height={this.previewHeight}
                 getTransform={this.getPreviewTransform}
@@ -171,6 +173,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 active={this.props.active}
                 whenActiveChanged={this.props.whenActiveChanged}
                 addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 setPreviewScript={this.setPreviewScript}
                 previewScript={this.previewScript}
             />
@@ -200,6 +203,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 active={this.props.active}
                 onDrop={this.onDrop}
                 addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 isSelected={this.props.isSelected}
                 isFocused={this.isFocused}
                 setFocused={this.setFocused}
@@ -251,6 +255,7 @@ export interface SchemaTableProps {
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     isSelected: () => boolean;
     isFocused: (document: Doc) => boolean;
     setFocused: (document: Doc) => void;
@@ -377,6 +382,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         fieldKey: this.props.fieldKey,
                         renderDepth: this.props.renderDepth,
                         addDocTab: this.props.addDocTab,
+                        pinToPres: this.props.pinToPres,
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
                         isEditable: isEditable,
@@ -897,6 +903,7 @@ interface CollectionSchemaPreviewProps {
     fitToBox?: boolean;
     width: () => number;
     height: () => number;
+    ruleProvider: Doc | undefined;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     onClick?: ScriptField;
@@ -907,6 +914,7 @@ interface CollectionSchemaPreviewProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
 }
@@ -990,6 +998,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
+                        ruleProvider={this.props.ruleProvider}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
@@ -997,10 +1006,10 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         whenActiveChanged={this.props.whenActiveChanged}
                         ContainingCollectionView={this.props.CollectionView}
                         addDocTab={this.props.addDocTab}
+                        pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
                         renderDepth={this.props.renderDepth + 1}
-                        selectOnLoad={false}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}

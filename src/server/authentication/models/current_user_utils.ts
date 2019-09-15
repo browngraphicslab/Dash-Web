@@ -7,23 +7,20 @@ import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/nort
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
 import { CollectionView } from "../../../client/views/collections/CollectionView";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { RouteStore } from "../../RouteStore";
+import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
+import { RouteStore } from "../../RouteStore";
 
 export class CurrentUserUtils {
-    private static curr_email: string;
     private static curr_id: string;
-    @observable private static user_document: Doc;
     //TODO tfs: these should be temporary...
     private static mainDocId: string | undefined;
 
-    public static get email() { return this.curr_email; }
     public static get id() { return this.curr_id; }
-    @computed public static get UserDocument() { return this.user_document; }
+    @computed public static get UserDocument() { return Doc.UserDoc(); }
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
 
@@ -32,7 +29,7 @@ export class CurrentUserUtils {
         doc.viewType = CollectionViewType.Tree;
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
-        doc.title = this.email;
+        doc.title = Doc.CurrentUserEmail;
         this.updateUserDocument(doc);
         doc.data = new List<Doc>();
         doc.gridGap = 5;
@@ -52,11 +49,29 @@ export class CurrentUserUtils {
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
+        PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => workspaces && (workspaces.preventTreeViewOpen = true));
+        if (doc.noteTypes === undefined) {
+            let notes = [Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true })];
+            const noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
+            noteTypes.excludeFromLibrary = true;
+            doc.noteTypes = noteTypes;
+        }
+        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(vals => DocListCast(vals)));
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;
             recentlyClosed.boxShadow = "0 0";
             doc.recentlyClosed = recentlyClosed;
+        }
+        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && (recent.preventTreeViewOpen = true));
+        if (doc.curPresentation === undefined) {
+            const curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation" });
+            curPresentation.excludeFromLibrary = true;
+            curPresentation.boxShadow = "0 0";
+            doc.curPresentation = curPresentation;
         }
         if (doc.sidebar === undefined) {
             const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
@@ -68,8 +83,18 @@ export class CurrentUserUtils {
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
+        if (doc.overlays === undefined) {
+            const overlays = Docs.Create.FreeformDocument([], { title: "Overlays" });
+            overlays.excludeFromLibrary = true;
+            Doc.GetProto(overlays).backgroundColor = "#aca3a6";
+            doc.overlays = overlays;
+        }
+        if (doc.linkFollowBox === undefined) {
+            PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
+        }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
+        doc.preventTreeViewOpen = true;
     }
 
     public static loadCurrentUser() {
@@ -85,32 +110,32 @@ export class CurrentUserUtils {
 
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
-        this.curr_email = email;
+        Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
                 return DocServer.GetRefField(id).then(async field => {
                     if (field instanceof Doc) {
                         await this.updateUserDocument(field);
-                        runInAction(() => this.user_document = field);
+                        runInAction(() => Doc.SetUserDoc(field));
                     } else {
-                        runInAction(() => this.user_document = this.createUserDocument(id));
+                        runInAction(() => Doc.SetUserDoc(this.createUserDocument(id)));
                     }
                 });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
         });
-        try {
-            const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
-            NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
-            await Gateway.Instance.ClearCatalog();
-            const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-            let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
-            let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-            // if (catprom) await Promise.all(catprom);
-        } catch (e) {
+        // try {
+        //     const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
+        //     NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
+        //     await Gateway.Instance.ClearCatalog();
+        //     const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
+        //     let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
+        //     let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
+        //     // if (catprom) await Promise.all(catprom);
+        // } catch (e) {
 
-        }
+        // }
     }
 
     /* Northstar catalog ... really just for testing so this should eventually go away */

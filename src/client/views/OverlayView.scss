@@ -40,3 +40,8 @@
     height: 10px;
     cursor: nwse-resize;
 }
+
+.overlayView-doc {
+    z-index: 1;
+    position: absolute;
+}

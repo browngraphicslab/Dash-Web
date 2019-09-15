@@ -1,11 +1,11 @@
 import * as htmlToImage from "html-to-image";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, FieldResult } from "../../../../new_fields/Doc";
+import { Doc, FieldResult, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
-import { Cast, NumCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
 import { Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -20,6 +20,9 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
 import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
+import { string } from "prop-types";
+import { listSpec } from "../../../../new_fields/Schema";
+import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -93,9 +96,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
             });
         } else if (!e.ctrlKey) {
-            let newBox = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
-            newBox.proto!.autoHeight = true;
-            this.props.addLiveTextDocument(newBox);
+            this.props.addLiveTextDocument(
+                Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" }));
+        } else if (e.keyCode > 48 && e.keyCode <= 57) {
+            let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+            let text = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" });
+            text.layout = notes[(e.keyCode - 49) % notes.length];
+            this.props.addLiveTextDocument(text);
         }
         e.stopPropagation();
     }
@@ -203,7 +210,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress);
+            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
@@ -273,14 +280,33 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     return d;
                 });
             }
+            let defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+            let colorPalette = Cast(this.props.container.props.Document.colorPalette, listSpec("string"));
+            if (!colorPalette) this.props.container.props.Document.colorPalette = new List<string>(defaultPalette);
+            let palette = Array.from(Cast(this.props.container.props.Document.colorPalette, listSpec("string")) as string[]);
+            let usedPaletted = new Map<string, number>();
+            [...this.props.activeDocuments(), this.props.container.props.Document].map(child => {
+                let bg = StrCast(child.layout instanceof Doc ? child.layout.backgroundColor : child.backgroundColor);
+                if (palette.indexOf(bg) !== -1) {
+                    palette.splice(palette.indexOf(bg), 1);
+                    if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
+                    else usedPaletted.set(bg, 1);
+                }
+            });
+            usedPaletted.delete("#f1efeb");
+            usedPaletted.delete("white");
+            usedPaletted.delete("rgba(255,255,255,1)");
+            let usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
+            let chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
             let inkData = this.ink ? this.ink.inkData : undefined;
             let newCollection = Docs.Create.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panX: 0,
                 panY: 0,
-                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
-                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
+                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
+                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
                 width: bounds.width,
                 height: bounds.height,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
@@ -303,7 +329,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
                 summary.proto!.subBulletDocs = new List<Doc>(selected);
-                summary.templates = new List<string>([Templates.Bullet.Layout]);
                 let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                 container.viewType = CollectionViewType.Stacking;
                 container.autoHeight = true;
@@ -373,7 +398,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     marqueeSelect(selectBackgrounds: boolean = true) {
         let selRect = this.Bounds;
         let selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);
             var w = NumCast(doc.width);
@@ -383,12 +408,28 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
         });
         if (!selection.length && selectBackgrounds) {
-            this.props.activeDocuments().map(doc => {
+            this.props.activeDocuments().filter(doc => doc.z === undefined).map(doc => {
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);
                 var w = NumCast(doc.width);
                 var h = NumCast(doc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                    selection.push(doc);
+                }
+            });
+        }
+        if (!selection.length) {
+            let left = this._downX < this._lastX ? this._downX : this._lastX;
+            let top = this._downY < this._lastY ? this._downY : this._lastY;
+            let topLeft = this.props.getContainerTransform().transformPoint(left, top);
+            let size = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+            let otherBounds = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
+            this.props.activeDocuments().filter(doc => doc.z !== undefined).map(doc => {
+                var x = NumCast(doc.x);
+                var y = NumCast(doc.y);
+                var w = NumCast(doc.width);
+                var h = NumCast(doc.height);
+                if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
                     selection.push(doc);
                 }
             });
