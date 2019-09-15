@@ -171,7 +171,7 @@ export class MainView extends React.Component {
         // let photos = await GooglePhotos.endpoint();
         // let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
         // console.log(await GooglePhotos.UploadImages([doc], { id: albumId }));
-        GooglePhotos.Query.Search({ included: [GooglePhotos.ContentCategories.ANIMALS] }).then(console.log);
+        GooglePhotos.Query.ContentSearch({ included: [GooglePhotos.ContentCategories.ANIMALS] }).then(console.log);
     }
 
     componentWillUnMount() {

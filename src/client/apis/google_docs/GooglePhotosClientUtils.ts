@@ -121,7 +121,7 @@ export namespace GooglePhotos {
         export type CollectionConstructor = (data: Array<Doc>, options: DocumentOptions, ...args: any) => Doc;
 
         export const CollectionFromSearch = async (constructor: CollectionConstructor, requested: Opt<Partial<Query.SearchOptions>>): Promise<Doc> => {
-            let response = await Query.Search(requested);
+            let response = await Query.ContentSearch(requested);
             let uploads = await Transactions.WriteMediaItemsToServer(response);
             const children = uploads.map((upload: Transactions.UploadInformation) => {
                 let document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
@@ -149,7 +149,7 @@ export namespace GooglePhotos {
             const values = Object.values(ContentCategories);
             for (let value of values) {
                 if (value !== ContentCategories.NONE) {
-                    const results = await Search({ included: [value] });
+                    const results = await ContentSearch({ included: [value] });
                     if (results.mediaItems) {
                         const ids = results.mediaItems.map(item => item.id);
                         for (let id of ids) {
@@ -208,7 +208,20 @@ export namespace GooglePhotos {
             nextPageToken: string;
         }
 
-        export const Search = async (requested: Opt<Partial<SearchOptions>>): Promise<SearchResponse> => {
+        export const AlbumSearch = async (albumId: string, pageSize = 100): Promise<MediaItem[]> => {
+            const photos = await endpoint();
+            let mediaItems: MediaItem[] = [];
+            let nextPageTokenStored: Opt<string> = undefined;
+            let found = 0;
+            do {
+                const { mediaItems, nextPageToken } = (await photos.search(albumId, pageSize, nextPageTokenStored)) as any;
+                mediaItems.push(...mediaItems);
+                nextPageTokenStored = nextPageToken;
+            } while (found);
+            return mediaItems;
+        };
+
+        export const ContentSearch = async (requested: Opt<Partial<SearchOptions>>): Promise<SearchResponse> => {
             const options = requested || DefaultSearchOptions;
             const photos = await endpoint();
             const filters = new photos.Filters(options.includeArchivedMedia === undefined ? true : options.includeArchivedMedia);

@@ -22,6 +22,7 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -143,7 +144,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
+        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -217,6 +218,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 proto.backgroundColor = "#eeeeff";
                 this.props.addDocument(newBox);
                 return;
+            }
+            if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                const albumId = matches[3];
+                const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                console.log(mediaItems);
             }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
