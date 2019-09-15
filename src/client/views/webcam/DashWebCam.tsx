@@ -1,11 +1,12 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
-import { observable } from "mobx";
+import { observable, action } from "mobx";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
 
+//https://github.com/mozmorris/react-webcam is the source code used for the bigger part of this implementation. It's only modified to fit our current system.
 
 
 function hasGetUserMedia() {
@@ -26,10 +27,15 @@ interface WebcamProps {
     videoConstraints?: MediaStreamConstraints["video"];
 }
 
+interface WebcamState {
+    hasUserMedia: boolean;
+    src?: string;
+}
+
 @observer
 export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewProps & FieldViewProps & WebcamProps & React.HTMLAttributes<HTMLVideoElement> & {
     layoutKey: string,
-}> {
+}, WebcamState> {
     static defaultProps = {
         audio: true,
         imageSmoothing: true,
@@ -46,24 +52,24 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
     private stream: MediaStream | undefined;
     private video: HTMLVideoElement | null | undefined;
 
-    @observable private hasUserMedia: boolean | undefined;
-    @observable private src: string | undefined;
+    // @observable private hasUserMedia: boolean | undefined;
+    // @observable private src: string | undefined;
 
-    // constructor(props: any) {
-    //     super(props);
-    //     this.state = {
-    //         hasUserMedia: false
-    //     };
-    // }
+    constructor(props: any) {
+        super(props);
+        this.state = {
+            hasUserMedia: false
+        };
+    }
 
     componentDidMount() {
         if (!hasGetUserMedia()) return;
 
-        // const { state } = this;
+        const { state } = this;
 
         DashWebCam.mountedInstances.push(this);
 
-        if (!this.hasUserMedia && !DashWebCam.userMediaRequested) {
+        if (!state.hasUserMedia && !DashWebCam.userMediaRequested) {
             this.requestUserMedia();
         }
     }
@@ -81,12 +87,12 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
     }
 
     componentWillUnmount() {
-        //const { state } = this;
+        const { state } = this;
         const index = DashWebCam.mountedInstances.indexOf(this);
         DashWebCam.mountedInstances.splice(index, 1);
 
         DashWebCam.userMediaRequested = false;
-        if (DashWebCam.mountedInstances.length === 0 && this.hasUserMedia) {
+        if (DashWebCam.mountedInstances.length === 0 && state.hasUserMedia) {
             if (this.stream!.getVideoTracks && this.stream!.getAudioTracks) {
                 this.stream!.getVideoTracks().map(track => track.stop());
                 this.stream!.getAudioTracks().map(track => track.stop());
@@ -94,16 +100,16 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
                 ((this.stream as unknown) as MediaStreamTrack).stop();
             }
 
-            if (this.src) {
-                window.URL.revokeObjectURL(this.src);
+            if (state.src) {
+                window.URL.revokeObjectURL(state.src);
             }
         }
     }
 
     getScreenshot() {
-        const { props } = this;
+        const { state, props } = this;
 
-        if (!this.hasUserMedia) return null;
+        if (!state.hasUserMedia) return null;
 
         const canvas = this.getCanvas();
         return (
@@ -113,13 +119,13 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
     }
 
     getCanvas() {
-        const { props } = this;
+        const { state, props } = this;
 
         if (!this.video) {
             return null;
         }
 
-        if (!this.hasUserMedia || !this.video.videoHeight) return null;
+        if (!state.hasUserMedia || !this.video.videoHeight) return null;
 
         if (!this.ctx) {
             const canvas = document.createElement("canvas");
@@ -244,6 +250,7 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
 
         if (err || !stream) {
             this.setState({ hasUserMedia: false });
+            // action(() => this.hasUserMedia = false);
             props.onUserMediaError(err!);
 
             return;
@@ -251,16 +258,26 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
 
         this.stream = stream;
 
+        console.log("Stream done: ", stream);
+
         try {
             if (this.video) {
                 this.video.srcObject = stream;
+                console.log("Source  object: ", stream);
+
             }
             this.setState({ hasUserMedia: true });
+            // action(() => this.hasUserMedia = true);
+
         } catch (error) {
             this.setState({
                 hasUserMedia: true,
                 src: window.URL.createObjectURL(stream)
             });
+            console.log("State  src set: ", this.state.src);
+
+            // action(() => this.hasUserMedia = true);
+            // action(() => this.src = window.URL.createObjectURL(stream));
         }
 
         props.onUserMedia();
@@ -291,7 +308,7 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
 
 
     render() {
-        const { props } = this;
+        const { state, props } = this;
 
 
 
@@ -342,15 +359,21 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
             ...rest
         } = props;
 
+        console.log("Source produced: ", state.src);
+
+
 
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <video
                     autoPlay
-                    src={this.src}
-                    muted={audio}
+                    src={state.src}
+                    muted={!audio}
                     playsInline
                     ref={ref => {
+                        console.log("Source produced: ", state.src);
+                        console.log("HasUser Media produced: ", state.hasUserMedia);
+
                         this.video = ref;
                     }}
                     {...rest}
