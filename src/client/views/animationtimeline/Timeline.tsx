@@ -3,7 +3,7 @@ import "./Timeline.scss";
 import { listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
-import { observable, reaction, action, IReactionDisposer, computed, runInAction, observe } from "mobx";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction, observe, toJS } from "mobx";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
@@ -61,14 +61,12 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _timelineVisible = false; 
     @observable private _mouseToggled = false; 
     @observable private _doubleClickEnabled = false; 
-    @observable private _mutationDisposer:MutationObserver[] = []; 
     @observable private _reactionDisposer:IReactionDisposer[] = []; 
 
 
     @computed
     private get children(): List<Doc> {
         let extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
-       
         if (extendedDocument) {
             if (this.props.Document.data_ext) {
                 return Cast((Cast(this.props.Document.data_ext, Doc) as Doc).annotations, listSpec(Doc)) as List<Doc>;
@@ -86,7 +84,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         if (StrCast(this.props.Document.type) === "video") {
-            console.log("ran");
+            console.log("video");
             console.log(this.props.Document.duration);
             if (this.props.Document.duration) {
                 this._time = Math.round(NumCast(this.props.Document.duration)) * 1000;
@@ -358,7 +356,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         e.deltaY < 0 ? this.zoom(true) : this.zoom(false); 
         let currPixel = KeyframeFunc.convertPixelTime(prevTime, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
         this._infoContainer.current!.scrollLeft = currPixel - offset; 
-        this._visibleStart = currPixel - offset; 
+        this._visibleStart = currPixel - offset;    
     }
 
     @action
@@ -418,7 +416,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                                 <div key="timeline_scrubberhead" className="scrubberhead"></div>
                             </div>
                             <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{width: `${this._totalLength}px`}}>
-                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing = {this._tickSpacing} tickIncrement ={this._tickIncrement} collection = {this.props.Document}/>)}
+                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing = {this._tickSpacing} tickIncrement ={this._tickIncrement} collection = {this.props.Document} timelineVisible = {this._timelineVisible}/>)}
                             </div>
                         </div>
                         <div key="timeline_title"className="title-container" ref={this._titleContainer}>

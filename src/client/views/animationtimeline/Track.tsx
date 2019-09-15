@@ -8,9 +8,8 @@ import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_field
 import { List } from "../../../new_fields/List";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import { Transform } from "../../util/Transform";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { DateField } from "../../../new_fields/DateField";
 import { Copy } from "../../../new_fields/FieldSymbols";
+import { ObjectField } from "../../../new_fields/ObjectField";
 
 interface IProps {
     node: Doc;
@@ -20,19 +19,20 @@ interface IProps {
     time: number;
     tickIncrement: number;
     tickSpacing: number;
+    timelineVisible: boolean; 
     changeCurrentBarX: (x: number) => void;
 }
 
 @observer
 export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();
-    @observable private _reactionDisposers: IReactionDisposer[] = [];
     @observable private _currentBarXReaction: any;
+    @observable private _timelineVisibleReaction: any;
     @observable private _isOnKeyframe: boolean = false;
     @observable private _onKeyframe: (Doc | undefined) = undefined;
     @observable private _onRegionData: (Doc | undefined) = undefined;
-    @observable private _leftCurrKeyframe: (Doc | undefined) = undefined;
-
+    @observable private _storedState: (Doc | undefined) = undefined;
+    
     @computed
     private get regions() {
         return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
@@ -40,22 +40,31 @@ export class Track extends React.Component<IProps> {
 
     componentWillMount() {
         if (!this.props.node.regions) {
-            this.props.node.regions = new List<Doc>();
+            this.props.node.regions = new List<Doc>();            
         }
-        this.props.node.opacity = 1;
+      
+        
     }
 
     componentDidMount() {
-        runInAction(() => {
+        runInAction(async () => {
+            this._timelineVisibleReaction = this.timelineVisibleReaction(); 
             this._currentBarXReaction = this.currentBarXReaction();
             if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
-            this.props.node.hidden = false;
+            this.props.node.hidden = false;                   
+            this.props.node.opacity = 1; 
+            let state = new Doc();  
+            state.key = Doc.MakeCopy(await this.props.node, true);
+            console.log(this.props.node.x); 
+            this._storedState = state;             
         });
+
     }
 
     componentWillUnmount() {
         runInAction(() => {
             if (this._currentBarXReaction) this._currentBarXReaction();
+            if (this._timelineVisibleReaction) this._timelineVisibleReaction(); 
         });
     }
 
@@ -89,6 +98,15 @@ export class Track extends React.Component<IProps> {
         this._isOnKeyframe = false;
     }
 
+    @action 
+    revertState = () => {
+        let copyDoc = Doc.MakeCopy(this.props.node, true); 
+        this.applyKeys(this._storedState!); 
+        let newState = new Doc(); 
+        newState.key = copyDoc; 
+        this._storedState = newState; 
+    }
+
     @action
     currentBarXReaction = () => {
         return reaction(() => this.props.currentBarX, async () => {
@@ -100,9 +118,16 @@ export class Track extends React.Component<IProps> {
                 this.props.node.hidden = true;
                 this.props.node.opacity = 0;
             }
-        }, { fireImmediately: true });
+        });
     }
-
+    @action 
+    timelineVisibleReaction = () => {
+        return reaction(() => {
+            return this.props.timelineVisible; 
+        }, isVisible => {
+            this.revertState(); 
+        }); 
+    }
 
     @action
     timeChange = async (time: number) => {
@@ -116,7 +141,6 @@ export class Track extends React.Component<IProps> {
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 await this.applyKeys(currentkf);
-                this._leftCurrKeyframe = currentkf;
                 this._isOnKeyframe = true;
                 this._onKeyframe = currentkf;
                 this._onRegionData = regiondata;
@@ -129,39 +153,38 @@ export class Track extends React.Component<IProps> {
     @action
     private applyKeys = async (kf: Doc) => {
         let kfNode = await Cast(kf.key, Doc) as Doc;
-        let docFromApply = kfNode;
-        console.log(Doc.allKeys(docFromApply));
+        let docFromApply = kfNode;        
         if (this.filterKeys(Doc.allKeys(this.props.node)).length > this.filterKeys(Doc.allKeys(kfNode)).length) docFromApply = this.props.node;
         this.filterKeys(Doc.allKeys(docFromApply)).forEach(key => {
-            console.log(key);
             if (!kfNode[key]) {
                 this.props.node[key] = undefined;
             } else {
-                if (key === "data") {
-                    if (this.props.node.type === "text") {
-                        let nodeData = (kfNode[key] as RichTextField).Data;
-                        this.props.node[key] = new RichTextField(nodeData);
-                    }
-                } else if (key === "creationDate") {
-                    this.props.node[key] = new DateField();
+                let stored = kfNode[key];
+                if(stored instanceof ObjectField){                    
+                    this.props.node[key] = stored[Copy](); 
                 } else {
-                    let stored = kfNode[key];
-                    if (stored instanceof DateField) {
-                        stored = stored[Copy]();
-                    }
-                    this.props.node[key] = stored;
+                    this.props.node[key] = stored; 
                 }
-
             }
-
         });
     }
 
+    private filterList = [
+        "regions", 
+        "cursors", 
+        "hidden", 
+        "nativeHeight", 
+        "nativeWidth", 
+        "schemaColumns", 
+        "baseLayout", 
+        "backgroundLayout", 
+        "layout", 
+    ]; 
 
     @action
     private filterKeys = (keys: string[]): string[] => {
         return keys.reduce((acc: string[], key: string) => {
-            if (key !== "regions" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key !== "nativeWidth" && key !== "schemaColumns" && key !== "creationDate") acc.push(key);
+            if (!this.filterList.includes(key)) acc.push(key); 
             return acc;
         }, []);
     }
@@ -226,18 +249,11 @@ export class Track extends React.Component<IProps> {
                     this.props.node[key] = NumCast(leftNode[key]) + adjusted;
                 }
             } else {
-                if (key === "data") {
-                    if (this.props.node.type === "text") {
-                        let nodeData = StrCast((leftNode[key] as RichTextField).Data);
-                        let currentNodeData = StrCast((this.props.node[key] as RichTextField).Data);
-                        if (nodeData !== currentNodeData) {
-                            this.props.node[key] = new RichTextField(nodeData);
-                        }
-                    }
-                } else if (key === "creationDate") {
-
+                let stored = leftNode[key];
+                if(stored instanceof ObjectField){                    
+                    this.props.node[key] = stored[Copy](); 
                 } else {
-                    this.props.node[key] = leftNode[key];
+                    this.props.node[key] = stored; 
                 }
             }
         });
@@ -277,8 +293,6 @@ export class Track extends React.Component<IProps> {
         }
 
     }
-
-
     render() {
         return (
             <div className="track-container">

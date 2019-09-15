@@ -410,14 +410,17 @@ export class Keyframe extends React.Component<IProps> {
 
     @action 
     makeKeyframeMenu = (kf :Doc, e:MouseEvent) => {
-   
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
         runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
             CollectionDockingView.Instance.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
         }), 
-        TimelineMenu.Instance.addItem("button", "Delete", () => {}), 
+        TimelineMenu.Instance.addItem("button", "Delete", () => {
+            runInAction(() => {
+                console.log(this.keyframes.indexOf(kf));
+                this.keyframes.splice(this.keyframes.indexOf(kf), 1);
+            });         
+        }), 
         TimelineMenu.Instance.addItem("input", "Move", (val) => {kf.time = parseInt(val, 10);});  
-        
         TimelineMenu.Instance.addMenu("Keyframe"); 
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
     }
@@ -425,7 +428,8 @@ export class Keyframe extends React.Component<IProps> {
     @action 
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
-        TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}), 
+        TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}),         
+        TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{this.regions.splice(this.regions.indexOf(this.regiondata), 1);}),
         TimelineMenu.Instance.addItem("input", "fadeIn", (val) => {this.regiondata.fadeIn = parseInt(val, 10);}), 
         TimelineMenu.Instance.addItem("input", "fadeOut", (val) => {this.regiondata.fadeOut = parseInt(val, 10);}),
         TimelineMenu.Instance.addItem("input", "position", (val) => {this.regiondata.position = parseInt(val, 10);}),
@@ -435,23 +439,7 @@ export class Keyframe extends React.Component<IProps> {
     }
     @action
     private createKeyframeJSX = (kf: Doc, type = KeyframeFunc.KeyframeType.default) => {
-        if (type === KeyframeFunc.KeyframeType.default) {
-            return (
-                <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
-                    <div className="divider"></div>
-                    <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        this.makeKeyframeMenu(kf, e.nativeEvent); 
-                    }}></div>
-                </div>
-            );
-        }
-        return (
-            <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
-                <div className="divider"></div>
-            </div>
-        );
+        
     }
 
     onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
@@ -561,7 +549,23 @@ export class Keyframe extends React.Component<IProps> {
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     {this.keyframes.map(kf => {
-                        return this.createKeyframeJSX(kf, kf.type as KeyframeFunc.KeyframeType); 
+                        if (kf.type as KeyframeFunc.KeyframeType === KeyframeFunc.KeyframeType.default) {
+                            return (
+                                <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                                    <div className="divider"></div>
+                                    <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        this.makeKeyframeMenu(kf, e.nativeEvent); 
+                                    }}></div>
+                                </div>
+                            );
+                        }
+                        return (
+                            <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                                <div className="divider"></div>
+                            </div>
+                        );
                     })}
                     {this.keyframes.map( kf => {
                        if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
