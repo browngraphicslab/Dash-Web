@@ -253,7 +253,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dragDocView = SelectionManager.SelectedDocuments()[0];
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
-        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document), SelectionManager.SelectedDocuments().map(dv => dv.props.DataDoc ? dv.props.DataDoc : dv.props.Document));
+        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         dragData.xOffset = xoff;
         dragData.yOffset = yoff;
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
@@ -358,15 +358,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
-            if (!this._removeIcon) {
-                if (selectedDocs.length === 1) {
-                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].toggleMinimized());
-                } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
-                    Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
-                    let docViews = SelectionManager.ViewsSortedVertically();
-                    let topDocView = docViews[0];
-                    topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
-                }
+            if (!this._removeIcon && selectedDocs.length === 1) { // if you click on the top-left button when just 1 doc is selected, then collapse it.  not sure why we don't do it for multiple selections
+                this.getIconDoc(selectedDocs[0]).then(async icon => {
+                    let minimizedDoc = await Cast(selectedDocs[0].props.Document.minimizedDoc, Doc);
+                    if (minimizedDoc) {
+                        let scrpt = selectedDocs[0].props.ScreenToLocalTransform().scale(selectedDocs[0].props.ContentScaling()).inverse().transformPoint(
+                            NumCast(minimizedDoc.x) - NumCast(selectedDocs[0].Document.x), NumCast(minimizedDoc.y) - NumCast(selectedDocs[0].Document.y));
+                        selectedDocs[0].collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+                    }
+                });
             }
             this._removeIcon = false;
         }

@@ -67,7 +67,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             setTimeout(() => {
                 let newDocView = DocumentManager.Instance.getDocumentView(topDoc);
                 if (newDocView) {
-                    let de = new DragManager.DocumentDragData([topDoc], [undefined]);
+                    let de = new DragManager.DocumentDragData([topDoc]);
                     de.moveDocument = topDocView.props.moveDocument;
                     let xf = newDocView.ContentDiv!.getBoundingClientRect();
                     DragManager.StartDocumentDrag([newDocView.ContentDiv!], de, ex, ey, {

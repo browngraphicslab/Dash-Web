@@ -315,7 +315,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
             this.marqueeInkDelete(inkData);
 
-            if (e.key === "s") {
+            if (e.key === "s" || e.key === "S") {
                 selected.map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
@@ -324,35 +324,19 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     return d;
                 });
                 newCollection.chromeStatus = "disabled";
-                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                newCollection.proto!.summaryDoc = summary;
-                selected = [newCollection];
-                newCollection.x = bounds.left + bounds.width;
-                summary.proto!.subBulletDocs = new List<Doc>(selected);
-                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
-                container.viewType = CollectionViewType.Stacking;
-                container.autoHeight = true;
-                this.props.addLiveTextDocument(container);
-                // });
-            } else if (e.key === "S") {
-                selected.map(d => {
-                    this.props.removeDocument(d);
-                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
-                    return d;
-                });
-                newCollection.chromeStatus = "disabled";
-                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                newCollection.proto!.summaryDoc = summary;
-                selected = [newCollection];
-                newCollection.x = bounds.left + bounds.width;
-                //this.props.addDocument(newCollection, false);
-                summary.proto!.summarizedDocs = new List<Doc>(selected);
+                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                summary.autoHeight = true;
-
-                this.props.addLiveTextDocument(summary);
+                newCollection.proto!.summaryDoc = summary;
+                newCollection.x = bounds.left + bounds.width;
+                if (e.key === "s") { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
+                    let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
+                    container.viewType = CollectionViewType.Stacking;
+                    container.autoHeight = true;
+                    this.props.addLiveTextDocument(container);
+                } else if (e.key === "S") { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
+                    summary.proto!.summarizedDocs = new List<Doc>([newCollection]);
+                    this.props.addLiveTextDocument(summary);
+                }
             }
             else {
                 this.props.addDocument(newCollection, false);

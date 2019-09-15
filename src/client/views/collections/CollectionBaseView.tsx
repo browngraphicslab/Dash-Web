@@ -141,17 +141,16 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return false;
     }
 
+    // this is called with the document that was dragged and the collection to move it into.
+    // if the target collection is the same as this collection, then the move will be allowed.
+    // otherwise, the document being moved must be able to be removed from its container before
+    // moving it into the target.  
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        let self = this;
-        let targetDataDoc = this.props.Document;
-        if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
+        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
-        if (this.removeDocument(doc)) {
-            return addDocument(doc);
-        }
-        return false;
+        return this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
     render() {

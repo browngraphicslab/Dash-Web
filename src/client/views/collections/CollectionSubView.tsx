@@ -126,9 +126,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (de.data.dropAction || de.data.userDropAction) {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
-                    added = movedDocs.reduce((added: boolean, d) =>
-                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
+                    let movedDocs = de.data.draggedDocuments;// de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    // note that it's possible the drag function might create a drop document that's not the same as the
+                    // original dragged document.  So we explicitly call addDocument() with a droppedDocument and 
+                    added = movedDocs.reduce((added: boolean, d, i) =>
+                        de.data.moveDocument(d, this.props.Document, (doc: Doc) => this.props.addDocument(de.data.droppedDocuments[i])) || added, false);
                 } else {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }

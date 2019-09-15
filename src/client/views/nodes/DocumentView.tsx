@@ -138,7 +138,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _downY: number = 0;
     private _lastTap: number = 0;
     private _doubleTap = false;
-    private _hitExpander = false;
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
@@ -221,20 +220,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     get dataDoc() {
-        if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
-            // if there is no dataDoc (ie, we're not rendering a temlplate layout), but this document
-            // has a template layout document, then we will render the template layout but use 
-            // this document as the data document for the layout.
-            return this.props.Document;
-        }
+        // bcz: don't think we need this, but left it in in case strange behavior pops up.  DocumentContentsView has this functionality
+        // if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
+        //     // if there is no dataDoc (ie, we're not rendering a temlplate layout), but this document
+        //     // has a template layout document, then we will render the template layout but use 
+        //     // this document as the data document for the layout.
+        //     return this.props.Document;
+        // }
         return this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
     }
-    startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean, applyAsTemplate?: boolean) {
+    startDragging(x: number, y: number, dropAction: dropActionType, applyAsTemplate?: boolean) {
         if (this._mainCont.current) {
-            let allConnected = [this.props.Document, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
-            let alldataConnected = [this.dataDoc, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
-            let dragData = new DragManager.DocumentDragData(allConnected, alldataConnected);
+            let dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.xOffset = xoff;
@@ -247,14 +245,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 },
                 hideSource: !dropAction
             });
-        }
-    }
-    toggleMinimized = async () => {
-        let minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-        if (minimizedDoc) {
-            let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(
-                NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
-            this.collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
         }
     }
 
@@ -315,15 +305,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             SelectionManager.SelectDoc(this, e.ctrlKey);
             let isExpander = (e.target as any).id === "isExpander";
             if (BoolCast(this.props.Document.isButton) || this.props.Document.type === DocumentType.BUTTON || isExpander) {
-                let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
                 let linkedDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
                 let expandedDocs: Doc[] = [];
-                expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
-                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
+                // let expandedDocs = [ ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     SelectionManager.DeselectAll();
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
@@ -394,7 +382,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.nativeEvent.cancelBubble) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
-        this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         this._hitTemplateDrag = false;
         for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
             if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
@@ -416,7 +403,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.props.Document.lockedPosition)) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitExpander, this._hitTemplateDrag);
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers

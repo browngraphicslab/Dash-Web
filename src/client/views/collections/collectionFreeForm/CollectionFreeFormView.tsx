@@ -381,7 +381,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             SelectionManager.DeselectAll();
             prevSelected.map(dv => SelectionManager.SelectDoc(dv, true));
 
-            let de = new DragManager.DocumentDragData(eles, eles.map(d => undefined));
+            let de = new DragManager.DocumentDragData(eles);
             de.moveDocument = this.props.moveDocument;
             const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
             const [xoff, yoff] = this.getTransform().transformDirection(e.x - left, e.y - top);
