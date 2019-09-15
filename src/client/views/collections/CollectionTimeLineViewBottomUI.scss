@@ -4,7 +4,7 @@
 .collectionTimelineViewBottomUI-grid {
     display: grid;
     grid-template-columns: 100px 100px 100px 25px 25px 25px 25px 1fr 1fr 1fr;
-    grid-template-rows: 30px;
+    grid-template-rows: 100%;
     width: 100%;
     z-index: 10000;
 
@@ -13,6 +13,8 @@
         display: grid;
         grid-template-rows: 1;
         grid-column: 1/3;
+        align-self: center;
+
 
         .min {
             align-self: center;
@@ -66,18 +68,25 @@
     .sortinput {
         grid-column: 8/9;
         border: $intermediate-color 2px solid;
+        align-self: center;
     }
 
     .sortinputWRONG {
+        align-self: center;
         grid-column: 8/9;
         border: red 2px solid;
     }
 
     .sortinputRIGHT {
+        align-self: center;
         grid-column: 8/9;
     }
 
-
+    .rows {
+        align-self: center;
+        justify-self: center;
+        grid-column: 9/10;
+    }
 
 
 }

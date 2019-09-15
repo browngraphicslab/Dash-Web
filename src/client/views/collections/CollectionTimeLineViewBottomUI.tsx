@@ -16,6 +16,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
 
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
+        this.props.setdownbool(false);
         document.body.style.cursor = "grabbing";
         document.addEventListener("pointermove", this.onPointerMove_OnBar);
         e.stopPropagation();
@@ -25,7 +26,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     @action
     onPointerMove_OnBar = (e: PointerEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         let newx2 = this.props.rightbound - e.movementX;
         let newx = this.props.leftbound + e.movementX;
         if (newx2 < 0) {
@@ -43,17 +43,17 @@ export class BottomUI extends React.Component<BottomUIProps> {
     }
 
     onPointerUp = (e: PointerEvent): void => {
+
         document.removeEventListener("pointermove", this.onPointerMove_LeftBound);
         document.removeEventListener("pointermove", this.onPointerMove_RightBound);
         document.removeEventListener("pointermove", this.onPointerMove_OnBar);
-        document.removeEventListener("pointermove", this.onPointerMove_AdjustScale);
+        this.props.setdownbool(true);
         document.body.style.cursor = "default";
     }
 
     @action
     onPointerMove_LeftBound = (e: PointerEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         if (this.props.leftbound + e.movementX < 0) {
             this.props.leftboundSet(0);
         }
@@ -69,7 +69,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     @action
     onPointerMove_RightBound = (e: PointerEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         if (this.props.rightbound - e.movementX < 0) {
             this.props.rightboundSet(0);
         }
@@ -83,36 +82,26 @@ export class BottomUI extends React.Component<BottomUIProps> {
 
     @action
     onPointerDown_LeftBound = (e: React.PointerEvent): void => {
+
+
         document.addEventListener("pointermove", this.onPointerMove_LeftBound);
         e.stopPropagation();
-        e.preventDefault();
+        this.props.setdownbool(false);
     }
 
     @action
     onPointerDown2_RightBound = (e: React.PointerEvent): void => {
+
+
         document.addEventListener("pointermove", this.onPointerMove_RightBound);
         e.stopPropagation();
-        e.preventDefault();
+        this.props.setdownbool(false);
     }
-
-    @action
-    onPointerDown_AdjustScale = (e: React.PointerEvent): void => {
-        document.addEventListener("pointermove", this.onPointerMove_AdjustScale);
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-
-    @action
-    onPointerMove_AdjustScale = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointerup", this.onPointerUp);
-    }
-
 
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
+        this.props.setdownbool(false);
+
         let temp = this.props.barwidth - this.props.rightbound - this.props.leftbound;
         let newx = e.pageX - document.body.clientWidth + this.props.screenref.current!.clientWidth / 0.98;
         this.props.leftboundSet(newx);
@@ -128,7 +117,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
             this.props.rightboundSet(0);
         }
         e.stopPropagation();
-        e.preventDefault();
     }
 
     private borderref = React.createRef<HTMLInputElement>();
@@ -181,4 +169,5 @@ export interface BottomUIProps {
     barref: React.RefObject<HTMLDivElement>;
     screenref: React.RefObject<HTMLDivElement>;
     markerrender: () => void;
+    setdownbool: (boolean: boolean) => void;
 }

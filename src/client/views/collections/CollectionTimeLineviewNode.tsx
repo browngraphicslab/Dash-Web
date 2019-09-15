@@ -123,7 +123,6 @@ export class Thumbnail extends React.Component<NodeProps> {
 
     @action
     tog() {
-        console.log(this.props.toggleopac);
         if (this.classref.current) {
             if (this.props.toggleopac === true && this.classref.current.classList.contains("unselection")) {
                 this.opacity = 0.3;
@@ -132,7 +131,6 @@ export class Thumbnail extends React.Component<NodeProps> {
                 this.opacity = 1;
             }
         }
-        console.log(this.opacity);
     }
 
     opacity: number | undefined;
@@ -147,7 +145,7 @@ export class Thumbnail extends React.Component<NodeProps> {
                     <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                     <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
                         <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
-                            {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
+                            {this.props.pointerDown ? this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3) : null}
                         </div>
                     </div>
                 </div>
@@ -202,4 +200,5 @@ export interface NodeProps {
     transition: boolean;
     toggleopac: boolean;
     tog: (booelan: boolean) => void;
+    pointerDown: boolean;
 }

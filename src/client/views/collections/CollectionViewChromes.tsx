@@ -19,6 +19,7 @@ import { CollectionViewType } from "./CollectionBaseView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import KeyRestrictionRow from "./KeyRestrictionRow";
+import { check } from "express-validator/check";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -856,6 +857,10 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     private borderref = React.createRef<HTMLInputElement>();
     @observable searchString3: string | undefined;
 
+    @action.bound
+    toggleRows(e: React.ChangeEvent<HTMLInputElement>) {
+        this.props.CollectionView.props.Document.rowPrev = e.currentTarget.checked;
+    }
 
 
     render() {
@@ -884,11 +889,10 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                                     NumCast(this.props.CollectionView.props.Document.minvalue)))}
                                 className="searchBox-barChild searchBox-input" />
                         </div>
-
                     </form>
-                    <div className="sortinputRIGHT">    <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + StrCast(this.props.CollectionView.props.Document.sortstate)} onChange={this.onChange3} onKeyPress={this.enter3} />
+                    <div className="sortinputRIGHT"><input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + StrCast(this.props.CollectionView.props.Document.sortstate)} onChange={this.onChange3} onKeyPress={this.enter3} />
                     </div>
-
+                    <input className="rows" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" />
                 </div >
             </div>
         );
