@@ -42,6 +42,10 @@ export class Utils {
         return this.prepend(`/files/${filename}`);
     }
 
+    public static shareUrl(documentId: string): string {
+        return this.prepend(`/doc/${documentId}?sharing=true`);
+    }
+
     public static CorsProxy(url: string): string {
         return this.prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
     }

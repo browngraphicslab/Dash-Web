@@ -749,11 +749,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                 let targetContext = await Cast(proto.targetContext, Doc);
                                 let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
                                 if (jumpToDoc) {
-                                    if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-
-                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
-                                        return;
-                                    }
+                                    // if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, document => this.props.addDocTab(document, undefined, location ? location : "onRight"), NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                    return;
+                                    // }
                                 }
                                 if (targetContext) {
                                     DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));

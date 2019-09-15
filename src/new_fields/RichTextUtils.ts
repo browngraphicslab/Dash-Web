@@ -4,7 +4,7 @@ import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
 import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
-import { Opt } from "./Doc";
+import { Opt, Doc } from "./Doc";
 import Color = require('color');
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils, PostToServer } from "../Utils";
@@ -12,6 +12,11 @@ import { RouteStore } from "../server/RouteStore";
 import { Docs } from "../client/documents/Documents";
 import { schema } from "../client/util/RichTextSchema";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
+import { SchemaHeaderField } from "./SchemaHeaderField";
+import { DocServer } from "../client/DocServer";
+import { Cast } from "./Types";
+import { Id } from "./FieldSymbols";
+import { DocumentView } from "../client/views/nodes/DocumentView";
 
 export namespace RichTextUtils {
 
@@ -91,9 +96,15 @@ export namespace RichTextUtils {
     export namespace GoogleDocs {
 
         export const Export = async (state: EditorState): Promise<GoogleApiClientUtils.Docs.Content> => {
-            const nodes: Node<any>[] = [];
+            const nodes: (Node<any> | null)[] = [];
             let text = ToPlainText(state);
-            state.doc.content.forEach(node => node.content.forEach(child => nodes.push(child)));
+            state.doc.content.forEach(node => {
+                if (!node.childCount) {
+                    nodes.push(null);
+                } else {
+                    node.content.forEach(child => nodes.push(child));
+                }
+            });
             const requests = await marksToStyle(nodes);
             return { text, requests };
         };
@@ -223,8 +234,43 @@ export namespace RichTextUtils {
         const StyleToMark = new Map<keyof docs_v1.Schema$TextStyle, keyof typeof schema.marks>([
             ["bold", "strong"],
             ["italic", "em"],
-            ["foregroundColor", "pFontColor"]
+            ["foregroundColor", "pFontColor"],
+            ["fontSize", "pFontSize"]
         ]);
+
+        const styleToMarks = (schema: any, textStyle?: docs_v1.Schema$TextStyle) => {
+            if (!textStyle) {
+                return undefined;
+            }
+            let marks: Mark[] = [];
+            Object.keys(textStyle).forEach(key => {
+                let value: any;
+                let targeted = key as keyof docs_v1.Schema$TextStyle;
+                if (value = textStyle[targeted]) {
+                    let attributes: any = {};
+                    let converted = StyleToMark.get(targeted) || targeted;
+
+                    value.url && (attributes.href = value.url);
+                    if (value.color) {
+                        let object = value.color.rgbColor;
+                        attributes.color = Color.rgb(["red", "green", "blue"].map(color => object[color] * 255 || 0)).hex();
+                    }
+                    if (value.magnitude) {
+                        attributes.fontSize = value.magnitude;
+                    }
+
+                    let mapped = schema.marks[converted];
+                    if (!mapped) {
+                        alert(`No mapping found for ${converted}!`);
+                        return;
+                    }
+
+                    let mark = schema.mark(mapped, attributes);
+                    mark && marks.push(mark);
+                }
+            });
+            return marks;
+        };
 
         const MarkToStyle = new Map<keyof typeof schema.marks, keyof docs_v1.Schema$TextStyle>([
             ["strong", "bold"],
@@ -246,37 +292,16 @@ export namespace RichTextUtils {
             ["impact", "Impact"]
         ]);
 
-        const styleToMarks = (schema: any, textStyle?: docs_v1.Schema$TextStyle): Opt<Mark[]> => {
-            if (!textStyle) {
-                return undefined;
-            }
-            let marks: Mark[] = [];
-            Object.keys(textStyle).forEach(key => {
-                let value: any;
-                let targeted = key as keyof docs_v1.Schema$TextStyle;
-                if (value = textStyle[targeted]) {
-                    let attributes: any = {};
-                    let converted = StyleToMark.get(targeted) || targeted;
-
-                    value.url && (attributes.href = value.url);
-                    if (value.color) {
-                        let object = value.color.rgbColor;
-                        attributes.color = Color.rgb(["red", "green", "blue"].map(color => object[color] * 255 || 0)).hex();
-                    }
-
-                    let mark = schema.mark(schema.marks[converted], attributes);
-                    mark && marks.push(mark);
-                }
-            });
-            return marks;
-        };
-
         const ignored = ["user_mark"];
 
-        const marksToStyle = async (nodes: Node<any>[]): Promise<docs_v1.Schema$Request[]> => {
+        const marksToStyle = async (nodes: (Node<any> | null)[]): Promise<docs_v1.Schema$Request[]> => {
             let requests: docs_v1.Schema$Request[] = [];
             let position = 1;
             for (let node of nodes) {
+                if (node === null) {
+                    position += 2;
+                    continue;
+                }
                 const { marks, attrs, nodeSize } = node;
                 const textStyle: docs_v1.Schema$TextStyle = {};
                 const information: LinkInformation = {
@@ -284,37 +309,55 @@ export namespace RichTextUtils {
                     endIndex: position + nodeSize,
                     textStyle
                 };
-                if (marks.length) {
-                    let mark: Mark<any>;
-                    const markMap = BuildMarkMap(marks);
-                    Object.keys(schema.marks).map(markName => {
-                        if (!ignored.includes(markName) && (mark = markMap[markName])) {
-                            const converted = MarkToStyle.get(markName) || markName as keyof docs_v1.Schema$TextStyle;
-                            let value: any = true;
-                            if (converted) {
-                                const { attrs } = mark;
-                                switch (converted) {
-                                    case "link":
-                                        value = { url: attrs.href };
-                                        textStyle.foregroundColor = fromRgb.blue;
-                                        textStyle.bold = true;
-                                        break;
-                                    case "fontSize":
-                                        value = attrs.fontSize;
-                                        break;
-                                    case "foregroundColor":
-                                        value = fromHex(attrs.color);
-                                        break;
-                                    case "weightedFontFamily":
-                                        value = { fontFamily: FontFamilyMapping.get(markName) };
-                                }
-                                textStyle[converted] = value;
-                            }
-                        }
-                    });
-                    if (Object.keys(textStyle).length) {
-                        requests.push(EncodeStyleUpdate(information));
+                let mark: Mark<any>;
+                const markMap = BuildMarkMap(marks);
+                for (let markName of Object.keys(schema.marks)) {
+                    if (ignored.includes(markName) || !(mark = markMap[markName])) {
+                        continue;
                     }
+                    let converted = MarkToStyle.get(markName) || markName as keyof docs_v1.Schema$TextStyle;
+                    let value: any = true;
+                    if (!converted) {
+                        continue;
+                    }
+                    const { attrs } = mark;
+                    switch (converted) {
+                        case "link":
+                            let url = attrs.href;
+                            const delimiter = "/doc/";
+                            const alreadyShared = "?sharing=true";
+                            if (new RegExp(window.location.origin + delimiter).test(url) && !url.endsWith(alreadyShared)) {
+                                const linkDoc = await DocServer.GetRefField(url.split(delimiter)[1]);
+                                if (linkDoc instanceof Doc) {
+                                    const target = (await Cast(linkDoc.anchor2, Doc))!;
+                                    const exported = Doc.MakeAlias(target);
+                                    DocumentView.makeCustomViewClicked(exported);
+                                    target && (url = Utils.shareUrl(exported[Id]));
+                                    linkDoc.anchor2 = exported;
+                                }
+                            }
+                            value = { url };
+                            textStyle.foregroundColor = fromRgb.blue;
+                            textStyle.bold = true;
+                            break;
+                        case "fontSize":
+                            value = attrs.fontSize;
+                            break;
+                        case "foregroundColor":
+                            value = fromHex(attrs.color);
+                            break;
+                        case "weightedFontFamily":
+                            value = { fontFamily: FontFamilyMapping.get(markName) };
+                    }
+                    let matches: RegExpExecArray | null;
+                    if ((matches = /p(\d+)/g.exec(markName)) !== null) {
+                        converted = "fontSize";
+                        value = { magnitude: parseInt(matches[1]), unit: "PT" };
+                    }
+                    textStyle[converted] = value;
+                }
+                if (Object.keys(textStyle).length) {
+                    requests.push(EncodeStyleUpdate(information));
                 }
                 if (node.type.name === "image") {
                     requests.push(await EncodeImage({
