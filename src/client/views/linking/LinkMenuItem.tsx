@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc } from '../../../new_fields/Doc';
-import { StrCast, Cast } from '../../../new_fields/Types';
+import { Cast, StrCast } from '../../../new_fields/Types';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';

@@ -661,7 +661,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(doc.title)));
                     slice = new Slice(frag, slice.openStart, slice.openEnd);
                     var tr = view.state.tr.replaceSelection(slice);
-
                     view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
                 }
             });
