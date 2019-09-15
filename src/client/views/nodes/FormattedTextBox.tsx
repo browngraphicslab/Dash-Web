@@ -119,7 +119,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @undoBatch
     public setFontColor(color: string) {
-        this._editorView!.state.storedMarks
+        this._editorView!.state.storedMarks;
         if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
         if (this._editorView!.state.selection.to - this._editorView!.state.selection.from > this._editorView!.state.doc.nodeSize - 3) {
             this.props.Document.color = color;
@@ -135,8 +135,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
-
-        document.addEventListener("paste", this.paste);
 
         this.props.Document.guid = undefined;
         this.props.Document.linkHref = undefined;

@@ -3,8 +3,8 @@ import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
-import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
+import { Doc } from '../../../new_fields/Doc';
+import { StrCast, Cast } from '../../../new_fields/Types';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
@@ -12,12 +12,6 @@ import { MainView } from '../MainView';
 import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenu.scss';
 import React = require("react");
-import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { SelectionManager } from '../../util/SelectionManager';
-import { Utils } from '../../../Utils';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { DocumentManager } from '../../util/DocumentManager';
-import { undoBatch } from '../../util/UndoManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
