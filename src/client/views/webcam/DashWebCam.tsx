@@ -5,6 +5,8 @@ import { observable, action } from "mobx";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
+import "../../views/nodes/WebBox.scss";
+
 
 //https://github.com/mozmorris/react-webcam is the source code used for the bigger part of this implementation. It's only modified to fit our current system.
 
@@ -364,7 +366,7 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
 
 
         let content =
-            <div className="webcam-cont" style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
+            <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <video
                     autoPlay
                     src={state.src}
