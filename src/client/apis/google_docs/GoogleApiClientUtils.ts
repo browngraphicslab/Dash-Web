@@ -97,25 +97,30 @@ export namespace GoogleApiClientUtils {
             export type ExtractResult = { text: string, paragraphs: DeconstructedParagraph[] };
             export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false): ExtractResult => {
                 let paragraphs = extractParagraphs(document);
-                let text = paragraphs.map(paragraph => paragraph.runs.map(run => run.content).join("")).join("");
+                let text = paragraphs.map(paragraph => paragraph.contents.filter(content => !("inlineObjectId" in content)).map(run => run as docs_v1.Schema$TextRun).join("")).join("");
                 text = text.substring(0, text.length - 1);
                 removeNewlines && text.ReplaceAll("\n", "");
                 return { text, paragraphs };
             };
 
-            export type DeconstructedParagraph = { runs: docs_v1.Schema$TextRun[], bullet: Opt<number> };
+            export type ContentArray = (docs_v1.Schema$TextRun | docs_v1.Schema$InlineObjectElement)[];
+            export type DeconstructedParagraph = { contents: ContentArray, bullet: Opt<number> };
             const extractParagraphs = (document: docs_v1.Schema$Document, filterEmpty = true): DeconstructedParagraph[] => {
                 const fragments: DeconstructedParagraph[] = [];
                 if (document.body && document.body.content) {
                     for (const element of document.body.content) {
-                        let runs: docs_v1.Schema$TextRun[] = [];
+                        let runs: ContentArray = [];
                         let bullet: Opt<number>;
                         if (element.paragraph) {
                             if (element.paragraph.elements) {
                                 for (const inner of element.paragraph.elements) {
-                                    if (inner && inner.textRun) {
-                                        let run = inner.textRun;
-                                        (run.content || !filterEmpty) && runs.push(inner.textRun);
+                                    if (inner) {
+                                        if (inner.textRun) {
+                                            let run = inner.textRun;
+                                            (run.content || !filterEmpty) && runs.push(inner.textRun);
+                                        } else if (inner.inlineObjectElement) {
+                                            runs.push(inner.inlineObjectElement);
+                                        }
                                     }
                                 }
                             }
@@ -123,7 +128,7 @@ export namespace GoogleApiClientUtils {
                                 bullet = element.paragraph.bullet.nestingLevel || 0;
                             }
                         }
-                        (runs.length || !filterEmpty) && fragments.push({ runs, bullet });
+                        (runs.length || !filterEmpty) && fragments.push({ contents: runs, bullet });
                     }
                 }
                 return fragments;

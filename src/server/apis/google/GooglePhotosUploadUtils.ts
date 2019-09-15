@@ -118,28 +118,44 @@ export namespace DownloadUtils {
     const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
     const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
 
-    export const UploadImage = async (url: string, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
-        const resolved = filename ? sanitize(filename) : generate(prefix, url);
-        let extension = path.extname(url) || path.extname(resolved);
+    export interface InspectionResults {
+        isLocal: boolean;
+        stream: any;
+        normalizedUrl: string;
+        contentSize: number;
+        contentType: string;
+    }
+
+    export const InspectImage = async (url: string) => {
+        const { isLocal, stream, normalized: normalizedUrl } = classify(url);
+        const metadata = (await new Promise<any>((resolve, reject) => {
+            request.head(url, async (error, res) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(res);
+            });
+        })).headers;
+        return {
+            contentSize: parseInt(metadata[size]),
+            contentType: metadata[type],
+            isLocal,
+            stream,
+            normalizedUrl
+        };
+    };
+
+    export const UploadImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
+        const { isLocal, stream, normalizedUrl, contentSize, contentType } = metadata;
+        const resolved = filename ? sanitize(filename) : generate(prefix, normalizedUrl);
+        let extension = path.extname(normalizedUrl) || path.extname(resolved);
         extension && (extension = extension.toLowerCase());
         let information: UploadInformation = {
             mediaPaths: [],
-            fileNames: { clean: resolved }
+            fileNames: { clean: resolved },
+            contentSize,
+            contentType,
         };
-        const { isLocal, stream, normalized } = classify(url);
-        url = normalized;
-        if (!isLocal) {
-            const metadata = (await new Promise<any>((resolve, reject) => {
-                request.head(url, async (error, res) => {
-                    if (error) {
-                        return reject(error);
-                    }
-                    resolve(res);
-                });
-            })).headers;
-            information.contentSize = parseInt(metadata[size]);
-            information.contentType = metadata[type];
-        }
         return new Promise<UploadInformation>(async (resolve, reject) => {
             const resizers = [
                 { resizer: sharp().rotate(), suffix: "_o" },
@@ -164,7 +180,7 @@ export namespace DownloadUtils {
                         const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
                         information.mediaPaths.push(mediaPath = uploadDirectory + filename);
                         information.fileNames[suffix] = filename;
-                        stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
+                        stream(normalizedUrl).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
                             .on('close', resolve)
                             .on('error', reject);
                     });
@@ -172,7 +188,7 @@ export namespace DownloadUtils {
             }
             if (!isLocal || nonVisual) {
                 await new Promise<void>(resolve => {
-                    stream(url).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
+                    stream(normalizedUrl).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
                 });
             }
             resolve(information);

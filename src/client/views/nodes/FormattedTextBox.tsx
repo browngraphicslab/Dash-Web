@@ -193,8 +193,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                             else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id);
                         });
                     });
-                    const link = this._editorView!.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
-                    const mval = this._editorView!.state.schema.marks.metadataVal.create();
+                    const link = this._editorView.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
+                    const mval = this._editorView.state.schema.marks.metadataVal.create();
                     let offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
                     this.dataDoc[key] = value;
@@ -506,7 +506,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let documentId = StrCast(dataDoc[GoogleRef]);
         let exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>;
         if (documentId) {
-            exportState = await RichTextUtils.GoogleDocs.Import(documentId);
+            exportState = await RichTextUtils.GoogleDocs.Import(documentId, dataDoc);
         }
         UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }

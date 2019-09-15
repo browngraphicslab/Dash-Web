@@ -46,6 +46,7 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
+import { Opt } from '../new_fields/Doc';
 const extensions = require("../client/util/UtilExtensions");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
@@ -580,7 +581,8 @@ app.post(
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
-                await UploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
+                const metadata = await UploadUtils.InspectImage(uploadDirectory + filename);
+                await UploadUtils.UploadImage(metadata, filename).catch(() => console.log(`Unable to process ${filename}`));
                 results.push({ name, type, path: `/files/${filename}` });
             }
             _success(res, results);
@@ -884,14 +886,30 @@ const prefix = "google_photos_";
 const downloadError = "Encountered an error while executing downloads.";
 const requestError = "Unable to execute download: the body's media items were malformed.";
 
+app.get("/gapiCleanup", (req, res) => {
+    write_text_file(file, "");
+    res.redirect(RouteStore.delete);
+});
+
+const file = "./apis/google/existing_uploads.json";
 app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
     const contents: { mediaItems: MediaItem[] } = req.body;
     if (contents) {
-        const pending = contents.mediaItems.map(item =>
-            UploadUtils.UploadImage(item.baseUrl, item.filename, prefix)
-        );
-        const completed = await Promise.all(pending).catch(error => _error(res, downloadError, error));
-        Array.isArray(completed) && _success(res, completed);
+        const completed: Opt<UploadUtils.UploadInformation>[] = [];
+        const content = await read_text_file(file);
+        let existing = content.length ? JSON.parse(content) : {};
+        for (let item of contents.mediaItems) {
+            const { contentSize, ...attributes } = await UploadUtils.InspectImage(item.baseUrl);
+            const found: UploadUtils.UploadInformation = existing[contentSize];
+            if (!found) {
+                const upload = await UploadUtils.UploadImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
+                upload && completed.push(existing[contentSize] = upload);
+            } else {
+                completed.push(found);
+            }
+        }
+        await write_text_file(file, JSON.stringify(existing));
+        _success(res, completed);
         return;
     }
     _invalid(res, requestError);

@@ -14,9 +14,10 @@ import { schema } from "../client/util/RichTextSchema";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "./SchemaHeaderField";
 import { DocServer } from "../client/DocServer";
-import { Cast } from "./Types";
+import { Cast, StrCast } from "./Types";
 import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
+import { AssertionError } from "assert";
 
 export namespace RichTextUtils {
 
@@ -109,45 +110,78 @@ export namespace RichTextUtils {
             return { text, requests };
         };
 
+        interface ImageTemplate {
+            width: number;
+            title: string;
+            url: string;
+        }
+
+        const parseInlineObjects = async (document: docs_v1.Schema$Document): Promise<Map<string, ImageTemplate>> => {
+            const inlineObjectMap = new Map<string, ImageTemplate>();
+            const inlineObjects = document.inlineObjects;
+
+            if (inlineObjects) {
+                const objects = Object.keys(inlineObjects).map(objectId => inlineObjects[objectId]);
+                const mediaItems: MediaItem[] = objects.map(object => {
+                    const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
+                    const baseUrl = embeddedObject.imageProperties!.contentUri!;
+                    const filename = `upload_${Utils.GenerateGuid()}.png`;
+                    return { baseUrl, filename };
+                });
+
+                const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems });
+
+                if (uploads.length !== mediaItems.length) {
+                    throw new AssertionError({ expected: mediaItems.length, actual: uploads.length, message: "Error with internally uploading inlineObjects!" });
+                }
+
+                for (let i = 0; i < objects.length; i++) {
+                    const object = objects[i];
+                    const { fileNames } = uploads[i];
+                    const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
+                    const size = embeddedObject.size!;
+                    const width = size.width!.magnitude!;
+                    const url = Utils.fileUrl(fileNames.clean);
+
+                    inlineObjectMap.set(object.objectId!, {
+                        title: embeddedObject.title || `Imported Image from ${document.title}`,
+                        width,
+                        url
+                    });
+                }
+            }
+            return inlineObjectMap;
+        };
+
         type BulletPosition = { value: number, sinks: number };
 
         interface MediaItem {
             baseUrl: string;
             filename: string;
-            width: number;
         }
-        export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
+
+        export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId, textNote: Doc): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
             const document = await GoogleApiClientUtils.Docs.retrieve({ documentId });
             if (!document) {
                 return undefined;
             }
-
+            const inlineObjectMap = await parseInlineObjects(document);
             const title = document.title!;
             const { text, paragraphs } = GoogleApiClientUtils.Docs.Utils.extractText(document);
             let state = FormattedTextBox.blankState();
             let structured = parseLists(paragraphs);
-            const inline = document.inlineObjects;
-            let inlineUrls: MediaItem[] = [];
-            if (inline) {
-                inlineUrls = Object.keys(inline).map(key => {
-                    const embedded = inline[key].inlineObjectProperties!.embeddedObject!;
-                    const baseUrl = embedded.imageProperties!.contentUri!;
-                    const filename = `upload_${Utils.GenerateGuid()}.png`;
-                    const width = embedded.size!.width!.magnitude!;
-                    return { baseUrl, filename, width };
-                });
-            }
 
             let position = 3;
             let lists: ListGroup[] = [];
             const indentMap = new Map<ListGroup, BulletPosition[]>();
             let globalOffset = 0;
-            const nodes = structured.map(element => {
+            const nodes: Node<any>[] = [];
+            for (let element of structured) {
                 if (Array.isArray(element)) {
                     lists.push(element);
                     let positions: BulletPosition[] = [];
                     let items = element.map(paragraph => {
-                        let item = listItem(state.schema, paragraph.runs);
+                        let item = listItem(state.schema, paragraph.contents);
                         let sinks = paragraph.bullet!;
                         positions.push({
                             value: position + globalOffset,
@@ -158,13 +192,26 @@ export namespace RichTextUtils {
                         return item;
                     });
                     indentMap.set(element, positions);
-                    return list(state.schema, items);
+                    nodes.push(list(state.schema, items));
                 } else {
-                    let paragraph = paragraphNode(state.schema, element.runs);
-                    position += paragraph.nodeSize;
-                    return paragraph;
+                    if (element.contents.some(child => "inlineObjectId" in child)) {
+                        let node: Node<any>;
+                        for (const child of element.contents) {
+                            if ("inlineObjectId" in child) {
+                                node = imageNode(state.schema, inlineObjectMap.get(child.inlineObjectId!)!, textNote);
+                            } else {
+                                node = paragraphNode(state.schema, [child]);
+                            }
+                            nodes.push(node);
+                            position += node.nodeSize;
+                        }
+                    } else {
+                        let paragraph = paragraphNode(state.schema, element.contents);
+                        nodes.push(paragraph);
+                        position += paragraph.nodeSize;
+                    }
                 }
-            });
+            }
             state = state.apply(state.tr.replaceWith(0, 2, nodes));
 
             let sink = sinkListItem(state.schema.nodes.list_item);
@@ -177,14 +224,6 @@ export namespace RichTextUtils {
                         sink(state, dispatcher);
                     }
                 }
-            }
-
-            const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems: inlineUrls });
-            for (let i = 0; i < uploads.length; i++) {
-                const src = Utils.fileUrl(uploads[i].fileNames.clean);
-                const width = inlineUrls[i].width;
-                const imageNode = schema.nodes.image.create({ src, width });
-                state = state.apply(state.tr.insert(0, imageNode));
             }
 
             return { title, text, state };
@@ -224,6 +263,22 @@ export namespace RichTextUtils {
             let children = runs.map(run => textNode(schema, run)).filter(child => child !== undefined);
             let fragment = children.length ? Fragment.from(children) : undefined;
             return schema.node("paragraph", null, fragment);
+        };
+
+        const imageNode = (schema: any, image: ImageTemplate, textNote: Doc) => {
+            const { url: src, width } = image;
+            let docid: string;
+            const guid = Utils.GenerateDeterministicGuid(src);
+            const backingDocId = StrCast(textNote[guid]);
+            if (!backingDocId) {
+                const backingDoc = Docs.Create.ImageDocument(src, { width: 300, height: 300 });
+                DocumentView.makeCustomViewClicked(backingDoc);
+                docid = backingDoc[Id];
+                textNote[guid] = docid;
+            } else {
+                docid = backingDocId;
+            }
+            return schema.node("image", { src, width, docid });
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
