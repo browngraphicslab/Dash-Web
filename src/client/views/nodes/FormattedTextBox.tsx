@@ -154,14 +154,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (ret.frag.size > 2) {
                         let tr;
                         if (ret.frag.firstChild) {
-                            tr = editor.state.tr.setSelection(TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)));
+                            let between = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize));
+                            tr = editor.state.tr.setSelection(between);
                         } else {
-                            tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
+                            let near = TextSelection.near(editor.state.doc.resolve(ret.start));
+                            tr = editor.state.tr.setSelection(near);
                         }
 
                         editor.focus();
                         editor.dispatch(tr.scrollIntoView());
-                        // editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
+                        editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
 
                         this.props.Document.guid = undefined;
                         this.props.Document.linkHref = undefined;
