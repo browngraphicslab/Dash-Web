@@ -141,7 +141,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.props.Document.guid = undefined;
         this.props.Document.linkHref = undefined;
 
-        console.log('formattextbox', this.props.Document[Id]);
         reaction(
             () => StrCast(this.props.Document.guid),
             async (guid) => {
@@ -159,9 +158,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         } else {
                             tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
                         }
+
                         editor.focus();
                         editor.dispatch(tr.scrollIntoView());
-                        editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
+                        // editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
+
                         this.props.Document.guid = undefined;
                         this.props.Document.linkHref = undefined;
                     }
@@ -192,7 +193,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                             marks[linkIndex].attrs.guid = guid;
                             return node;
                         }
-                        console.log('href was and is ', href, marks[linkIndex].attrs.href);
                     }
                     return undefined;
                 }
@@ -815,11 +815,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                                 if (jumpToDoc) {
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                                        // if !guid, then generate guid and apply to full doc
-                                        if (!guid) {
-                                            console.log('making new guid!'); // hehheehhehehe
-                                            linkDoc.guid = Utils.GenerateGuid();
-                                        }
                                         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
                                         return;
                                     }
