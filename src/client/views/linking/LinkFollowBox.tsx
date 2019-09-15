@@ -259,8 +259,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     if (guid) {
                         LinkFollowBox.destinationDoc.guid = guid;
                     } else {
-                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.sourceDoc[Id]));
-                        // jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
                         let newguid = Utils.GenerateGuid();
                         LinkFollowBox.linkDoc.guid = newguid;
                         LinkFollowBox.destinationDoc.guid = newguid;
