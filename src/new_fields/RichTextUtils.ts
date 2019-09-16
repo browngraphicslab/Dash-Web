@@ -413,7 +413,7 @@ export namespace RichTextUtils {
                     let matches: RegExpExecArray | null;
                     if ((matches = /p(\d+)/g.exec(markName)) !== null) {
                         converted = "fontSize";
-                        value = { magnitude: parseInt(matches[1]), unit: "PT" };
+                        value = { magnitude: parseInt(matches[1].replace("px", "")), unit: "PT" };
                     }
                     textStyle[converted] = value;
                 }
@@ -421,10 +421,11 @@ export namespace RichTextUtils {
                     requests.push(EncodeStyleUpdate(information));
                 }
                 if (node.type.name === "image") {
+                    const width = attrs.width;
                     requests.push(await EncodeImage({
                         startIndex: position + nodeSize - 1,
                         uri: attrs.src,
-                        width: attrs.width
+                        width: Number(typeof width === "string" ? width.replace("px", "") : width)
                     }));
                 }
                 position += nodeSize;

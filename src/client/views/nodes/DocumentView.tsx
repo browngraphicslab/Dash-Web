@@ -583,7 +583,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.nativeIgnoreAspect = undefined;
     });
 
-    public static makeCustomViewClicked = undoBatch((document: Doc): void => {
+    public static makeCustomViewClicked = undoBatch((document: Doc, showTitle = undefined): void => {
         document.nativeLayout = document.layout;
         document.nativeType = document.type;
         document.nativeNativeWidth = document.nativeWidth;
@@ -604,6 +604,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let metaKey = "data";
                 let proto = Doc.GetProto(docTemplate);
                 Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                fieldTemplate.showTitle = showTitle;
 
                 Doc.ApplyTemplateTo(docTemplate, document, undefined, false);
                 document.customLayout = document.layout;
