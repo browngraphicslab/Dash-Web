@@ -156,11 +156,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             if (docs.length < 50) {
                 importContainer = Docs.Create.MasonryDocument(docs, options);
             } else {
-                const headers = [
-                    new SchemaHeaderField("title", "yellow"),
-                    new SchemaHeaderField("size", "blue"),
-                    new SchemaHeaderField("googlePhotosTags", "green")
-                ];
+                const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("size")];
                 importContainer = Docs.Create.SchemaDocument(headers, docs, options);
             }
             runInAction(() => this.phase = 'External: uploading files to Google Photos...');

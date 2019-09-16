@@ -4,7 +4,6 @@ import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
-import { RichTextField } from "../../../new_fields/RichTextField";
 
 export const Pulls = "googleDocsPullCount";
 export const Pushes = "googleDocsPushCount";

@@ -727,9 +727,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return (
             <div className={"linkButtonWrapper"}>
                 <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
-                    if (!published) {
-                        runInAction(() => this.isAnimatingPulse = true);
-                    }
+                    runInAction(() => this.isAnimatingPulse = true);
                     DocumentDecorations.hasPushedHack = false;
                     this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
                 }} style={{ animation: this.isAnimatingPulse ? "shadow-pulse 1s infinite" : "none" }}>

@@ -317,6 +317,10 @@ export namespace RichTextUtils {
                         attributes.fontSize = value.magnitude;
                     }
 
+                    if (converted === "weightedFontFamily") {
+                        converted = ImportFontFamilyMapping.get(value.fontFamily) || "timesNewRoman";
+                    }
+
                     let mapped = schema.marks[converted];
                     if (!mapped) {
                         alert(`No mapping found for ${converted}!`);
@@ -342,13 +346,22 @@ export namespace RichTextUtils {
             ["impact", "weightedFontFamily"]
         ]);
 
-        const FontFamilyMapping = new Map<string, string>([
+        const ExportFontFamilyMapping = new Map<string, string>([
             ["timesNewRoman", "Times New Roman"],
             ["arial", "Arial"],
             ["georgia", "Georgia"],
             ["comicSans", "Comic Sans MS"],
             ["tahoma", "Tahoma"],
             ["impact", "Impact"]
+        ]);
+
+        const ImportFontFamilyMapping = new Map<string, string>([
+            ["Times New Roman", "timesNewRoman"],
+            ["Arial", "arial"],
+            ["Georgia", "georgia"],
+            ["Comic Sans MS", "comicSans"],
+            ["Tahoma", "tahoma"],
+            ["Impact", "impact"]
         ]);
 
         const ignored = ["user_mark"];
@@ -408,7 +421,7 @@ export namespace RichTextUtils {
                             value = fromHex(attrs.color);
                             break;
                         case "weightedFontFamily":
-                            value = { fontFamily: FontFamilyMapping.get(markName) };
+                            value = { fontFamily: ExportFontFamilyMapping.get(markName) };
                     }
                     let matches: RegExpExecArray | null;
                     if ((matches = /p(\d+)/g.exec(markName)) !== null) {
