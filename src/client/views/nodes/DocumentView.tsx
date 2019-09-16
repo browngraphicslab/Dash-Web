@@ -777,9 +777,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const extdoc = doc.data_ext as Doc;
         const values = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
         const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
-        const body = Docs.Create.FreeformDocument([], { title: values.title });
-        body.href = values.url;
-        CollectionDockingView.Instance.AddRightSplit(Docs.Create.SchemaDocument(headers, [body], { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        let bodies: Doc[] = [];
+        const titles = values.title_vals;
+        const urls = values.url_vals;
+        for (let i = 0; i < 5; i++) {
+            const body = Docs.Create.FreeformDocument([], { title: titles[i] });
+            body.href = urls[i];
+            bodies.push(body);
+        }
+
+        CollectionDockingView.Instance.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };

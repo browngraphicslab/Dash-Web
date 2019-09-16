@@ -212,7 +212,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     arxivrequest = async (query: string) => {
         let xhttp = new XMLHttpRequest();
         let serveraddress = "http://export.arxiv.org/api";
-        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=1";
+        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=5";
         let promisified = (resolve: any, reject: any) => {
             xhttp.onreadystatechange = function () {
                 if (this.readyState === 4) {
@@ -221,22 +221,32 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     console.log(xml);
                     switch (this.status) {
                         case 200:
-                            let title: string = "Title";
-                            let url: string = "Url";
+                            let title_vals: string[] = [];
+                            let url_vals: string[] = [];
                             //console.log(result);
                             if (xml) {
                                 let titles = xml.getElementsByTagName("title");
+                                let counter = 1;
                                 if (titles && titles.length > 1) {
-                                    title = titles[1].childNodes[0].nodeValue!;
-                                    console.log(title);
+                                    while (counter <= 5) {
+                                        const title = titles[counter].childNodes[0].nodeValue!;
+                                        console.log(title)
+                                        title_vals.push(title);
+                                        counter++;
+                                    }
                                 }
                                 let ids = xml.getElementsByTagName("id");
+                                counter = 1;
                                 if (ids && ids.length > 1) {
-                                    url = ids[1].childNodes[0].nodeValue!;
-                                    console.log(url);
+                                    while (counter <= 5) {
+                                        const url = ids[counter].childNodes[0].nodeValue!;
+                                        console.log(url);
+                                        url_vals.push(url);
+                                        counter++;
+                                    }
                                 }
                             }
-                            return resolve({ title, url });
+                            return resolve({ title_vals, url_vals });
                         case 400:
                         default:
                             return reject(result);

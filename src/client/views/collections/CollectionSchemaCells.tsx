@@ -91,17 +91,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
 
-        const data = await DocListCastAsync(this.props.Document.data);
-        if (data) {
-            let url: string;
-            if (url = StrCast(data[0].href)) {
-                try {
-                    new URL(url);
-                    const temp = window.open(url)!;
-                    temp.blur();
-                    window.focus();
-                } catch { }
-            }
+        let url: string;
+        if (url = StrCast(this.props.rowProps.row.href)) {
+            try {
+                new URL(url);
+                const temp = window.open(url)!;
+                temp.blur();
+                window.focus();
+            } catch { }
         }
 
         // this._isEditing = true;
