@@ -29,22 +29,22 @@ type BatchHandler<I> = BatchHandlerSync<I> | BatchHandlerAsync<I>;
 
 interface Array<T> {
     batch(batchSize: number): T[][];
-    executeInBatches(batchSize: number, handler: BatchHandlerSync<T>): void;
-    convertInBatches<O>(batchSize: number, handler: BatchConverterSync<T, O>): O[];
-    executeInBatchesAsync(batchSize: number, handler: BatchHandler<T>): Promise<void>;
-    convertInBatchesAsync<O>(batchSize: number, handler: BatchConverter<T, O>): Promise<O[]>;
-    executeInBatchesAtInterval(batchSize: number, handler: BatchHandler<T>, interval: number): Promise<void>;
-    convertInBatchesAtInterval<O>(batchSize: number, handler: BatchConverter<T, O>, interval: number): Promise<O[]>;
+    batchedForEach(batchSize: number, handler: BatchHandlerSync<T>): void;
+    batchedMap<O>(batchSize: number, handler: BatchConverterSync<T, O>): O[];
+    batchedForEachAsync(batchSize: number, handler: BatchHandler<T>): Promise<void>;
+    batchedMapAsync<O>(batchSize: number, handler: BatchConverter<T, O>): Promise<O[]>;
+    batchedForEachInterval(batchSize: number, handler: BatchHandler<T>, interval: number): Promise<void>;
+    batchedMapInterval<O>(batchSize: number, handler: BatchConverter<T, O>, interval: number): Promise<O[]>;
     lastElement(): T;
 }
 
 Array.prototype.batch = extensions.Batch;
-Array.prototype.executeInBatches = extensions.ExecuteInBatches;
-Array.prototype.convertInBatches = extensions.ConvertInBatches;
-Array.prototype.executeInBatchesAsync = extensions.ExecuteInBatchesAsync;
-Array.prototype.convertInBatchesAsync = extensions.ConvertInBatchesAsync;
-Array.prototype.executeInBatchesAtInterval = extensions.ExecuteInBatchesAtInterval;
-Array.prototype.convertInBatchesAtInterval = extensions.ConvertInBatchesAtInterval;
+Array.prototype.batchedForEach = extensions.ExecuteInBatches;
+Array.prototype.batchedMap = extensions.ConvertInBatches;
+Array.prototype.batchedForEachAsync = extensions.ExecuteInBatchesAsync;
+Array.prototype.batchedMapAsync = extensions.ConvertInBatchesAsync;
+Array.prototype.batchedForEachInterval = extensions.ExecuteInBatchesAtInterval;
+Array.prototype.batchedMapInterval = extensions.ConvertInBatchesAtInterval;
 
 Array.prototype.lastElement = function <T>() {
     if (!this.length) {

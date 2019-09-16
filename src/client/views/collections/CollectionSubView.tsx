@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -23,6 +23,7 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { CollectionDockingView } from "./CollectionDockingView";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -212,11 +213,14 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
                 let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
                 let proto = newBox.proto!;
-                proto.autoHeight = true;
-                proto[GoogleRef] = matches[2];
+                const documentId = matches[2];
+                proto[GoogleRef] = documentId;
                 proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
                 this.props.addDocument(newBox);
+                // const parent = Docs.Create.StackingDocument([newBox], { title: `Google Doc Import (${documentId})` });
+                // CollectionDockingView.Instance.AddRightSplit(parent, undefined);
+                // proto.height = parent[HeightSym]();
                 return;
             }
             if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {

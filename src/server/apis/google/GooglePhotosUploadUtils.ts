@@ -80,7 +80,7 @@ export namespace GooglePhotosUploadUtils {
                 });
             })).newMediaItemResults;
         };
-        const newMediaItemResults = await newMediaItems.convertInBatchesAtInterval(50, createFromUploadTokens, 0.1);
+        const newMediaItemResults = await newMediaItems.batchedMapInterval(50, createFromUploadTokens, 0.1);
         return { newMediaItemResults };
     };
 
@@ -122,12 +122,20 @@ export namespace DownloadUtils {
         isLocal: boolean;
         stream: any;
         normalizedUrl: string;
-        contentSize: number;
-        contentType: string;
+        contentSize?: number;
+        contentType?: string;
     }
 
-    export const InspectImage = async (url: string) => {
+    export const InspectImage = async (url: string): Promise<InspectionResults> => {
         const { isLocal, stream, normalized: normalizedUrl } = classify(url);
+        const results = {
+            isLocal,
+            stream,
+            normalizedUrl
+        };
+        if (isLocal) {
+            return results;
+        }
         const metadata = (await new Promise<any>((resolve, reject) => {
             request.head(url, async (error, res) => {
                 if (error) {
@@ -139,9 +147,7 @@ export namespace DownloadUtils {
         return {
             contentSize: parseInt(metadata[size]),
             contentType: metadata[type],
-            isLocal,
-            stream,
-            normalizedUrl
+            ...results
         };
     };
 

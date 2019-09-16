@@ -836,12 +836,12 @@ export interface NewMediaItem {
 }
 
 Array.prototype.batch = extensions.Batch;
-Array.prototype.executeInBatches = extensions.ExecuteInBatches;
-Array.prototype.convertInBatches = extensions.ConvertInBatches;
-Array.prototype.executeInBatchesAsync = extensions.ExecuteInBatchesAsync;
-Array.prototype.convertInBatchesAsync = extensions.ConvertInBatchesAsync;
-Array.prototype.executeInBatchesAtInterval = extensions.ExecuteInBatchesAtInterval;
-Array.prototype.convertInBatchesAtInterval = extensions.ConvertInBatchesAtInterval;
+Array.prototype.batchedForEach = extensions.ExecuteInBatches;
+Array.prototype.batchedMap = extensions.ConvertInBatches;
+Array.prototype.batchedForEachAsync = extensions.ExecuteInBatchesAsync;
+Array.prototype.batchedMapAsync = extensions.ConvertInBatchesAsync;
+Array.prototype.batchedForEachInterval = extensions.ExecuteInBatchesAtInterval;
+Array.prototype.batchedMapInterval = extensions.ConvertInBatchesAtInterval;
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
@@ -865,7 +865,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return newMediaItems;
     };
 
-    const newMediaItems = await mediaInput.convertInBatchesAtInterval(25, dispatchUpload, 0.1);
+    const newMediaItems = await mediaInput.batchedMapInterval(25, dispatchUpload, 0.1);
 
     if (failed) {
         return _error(res, tokenError);
@@ -900,10 +900,10 @@ app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
         let existing = content.length ? JSON.parse(content) : {};
         for (let item of contents.mediaItems) {
             const { contentSize, ...attributes } = await UploadUtils.InspectImage(item.baseUrl);
-            const found: UploadUtils.UploadInformation = existing[contentSize];
+            const found: UploadUtils.UploadInformation = existing[contentSize!];
             if (!found) {
                 const upload = await UploadUtils.UploadImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
-                upload && completed.push(existing[contentSize] = upload);
+                upload && completed.push(existing[contentSize!] = upload);
             } else {
                 completed.push(found);
             }

@@ -523,38 +523,38 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let y = this.Document.panY || 0;
             let docs = this.childDocs || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-            if (!this.isAnnotationOverlay) {
-                PDFMenu.Instance.fadeOut(true);
-                let minx = docs.length ? NumCast(docs[0].x) : 0;
-                let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
-                let miny = docs.length ? NumCast(docs[0].y) : 0;
-                let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
-                let ranges = docs.filter(doc => doc).reduce((range, doc) => {
-                    let x = NumCast(doc.x);
-                    let xe = x + NumCast(doc.width);
-                    let y = NumCast(doc.y);
-                    let ye = y + NumCast(doc.height);
-                    return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
-                    [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
-                }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.fieldExtensionDoc.ink, InkField);
-                if (ink && ink.inkData) {
-                    ink.inkData.forEach((value: StrokeData, key: string) => {
-                        let bounds = InkingCanvas.StrokeRect(value);
-                        ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
-                        ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
-                    });
-                }
+            // if (!this.isAnnotationOverlay) {
+            //     PDFMenu.Instance.fadeOut(true);
+            //     let minx = docs.length ? NumCast(docs[0].x) : 0;
+            //     let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
+            //     let miny = docs.length ? NumCast(docs[0].y) : 0;
+            //     let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+            //     let ranges = docs.filter(doc => doc).reduce((range, doc) => {
+            //         let x = NumCast(doc.x);
+            //         let xe = x + NumCast(doc.width);
+            //         let y = NumCast(doc.y);
+            //         let ye = y + NumCast(doc.height);
+            //         return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
+            //         [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
+            //     }, [[minx, maxx], [miny, maxy]]);
+            //     let ink = Cast(this.fieldExtensionDoc.ink, InkField);
+            //     if (ink && ink.inkData) {
+            //         ink.inkData.forEach((value: StrokeData, key: string) => {
+            //             let bounds = InkingCanvas.StrokeRect(value);
+            //             ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
+            //             ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
+            //         });
+            //     }
 
-                let panelDim = this.props.ScreenToLocalTransform().transformDirection(this._pwidth / this.zoomScaling(),
-                    this._pheight / this.zoomScaling());
-                let panelwidth = panelDim[0];
-                let panelheight = panelDim[1];
-                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
-            }
+            //     let panelDim = this.props.ScreenToLocalTransform().transformDirection(this._pwidth / this.zoomScaling(),
+            //         this._pheight / this.zoomScaling());
+            //     let panelwidth = panelDim[0];
+            //     let panelheight = panelDim[1];
+            //     if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
+            //     if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
+            //     if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
+            //     if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+            // }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
