@@ -40,7 +40,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 //import { DocumentManager } from '../util/DocumentManager';
-import { Recommendations } from './Recommendations';
+import { RecommendationsBox } from './Recommendations';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
 
@@ -204,7 +204,6 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
-            Recommendations.Instance.closeMenu();
         }
     });
 
@@ -567,7 +566,7 @@ export class MainView extends React.Component {
                 {this.miniPresentation}
                 <PreviewCursor />
                 <ContextMenu />
-                <Recommendations />
+                {/* <RecommendationsBox /> */}
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />

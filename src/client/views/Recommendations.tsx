@@ -14,27 +14,37 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { ClientRecommender } from "../ClientRecommender";
 import { DocServer } from "../DocServer";
 import { Id } from "../../new_fields/FieldSymbols";
+import { FieldView, FieldViewProps } from "./nodes/FieldView";
+import { DocumentManager } from "../util/DocumentManager";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faBullseye, faLink } from "@fortawesome/free-solid-svg-icons";
+import { DocUtils } from "../documents/Documents";
 
 export interface RecProps {
     documents: { preview: Doc, similarity: number }[];
     node: Doc;
 }
 
-@observer
-export class Recommendations extends React.Component<{}> {
+library.add(faBullseye, faLink);
 
-    static Instance: Recommendations;
-    @observable private _display: boolean = false;
+@observer
+export class RecommendationsBox extends React.Component<FieldViewProps> {
+
+    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(RecommendationsBox, fieldKey); }
+
+    static Instance: RecommendationsBox;
+    // @observable private _display: boolean = false;
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _width: number = 0;
     @observable private _height: number = 0;
-    @observable private _documents: { preview: Doc, score: number }[] = [];
+    // @observable private _documents: { preview: Doc, score: number }[] = [];
     private previewDocs: Doc[] = [];
 
-    constructor(props: {}) {
+    constructor(props: FieldViewProps) {
         super(props);
-        Recommendations.Instance = this;
+        RecommendationsBox.Instance = this;
     }
 
     private DocumentIcon(doc: Doc) {
@@ -52,12 +62,12 @@ export class Recommendations extends React.Component<{}> {
                 };
             }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
         }
-        let returnXDimension = () => 50;
-        let returnYDimension = () => 50;
+        let returnXDimension = () => 150;
+        let returnYDimension = () => 150;
         let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
         //let scale = () => 1;
         let newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
-        newRenderDoc.height = 50;
+        newRenderDoc.height = NumCast(this.props.Document.documentIconHeight);
         newRenderDoc.autoHeight = false;
         const docview = <div>
             {/* onPointerDown={action(() => {
@@ -78,7 +88,8 @@ export class Recommendations extends React.Component<{}> {
                 PanelHeight={returnYDimension}
                 focus={emptyFunction}
                 backgroundColor={returnEmptyString}
-                selectOnLoad={false}
+                // selectOnLoad={false}
+                pinToPres={emptyFunction}
                 parentActive={returnFalse}
                 whenActiveChanged={returnFalse}
                 bringToFront={emptyFunction}
@@ -96,83 +107,84 @@ export class Recommendations extends React.Component<{}> {
 
     }
 
-    @action
-    closeMenu = () => {
-        this._display = false;
-        this.previewDocs.forEach(doc => DocServer.DeleteDocument(doc[Id]));
-        this.previewDocs = [];
-    }
+    // @action
+    // closeMenu = () => {
+    //     this._display = false;
+    //     this.previewDocs.forEach(doc => DocServer.DeleteDocument(doc[Id]));
+    //     this.previewDocs = [];
+    // }
 
-    @action
-    resetDocuments = () => {
-        this._documents = [];
-    }
+    // @action
+    // resetDocuments = () => {
+    //     this._documents = [];
+    // }
 
-    @action
-    addDocuments = (documents: { preview: Doc, score: number }[]) => {
-        this._documents = documents;
-    }
-
-    @action
-    displayRecommendations(x: number, y: number) {
-        this._pageX = x;
-        this._pageY = y;
-        this._display = true;
-    }
+    // @action
+    // displayRecommendations(x: number, y: number) {
+    //     this._pageX = x;
+    //     this._pageY = y;
+    //     this._display = true;
+    // }
 
     static readonly buffer = 20;
 
-    get pageX() {
-        const x = this._pageX;
-        if (x < 0) {
-            return 0;
-        }
-        const width = this._width;
-        if (x + width > window.innerWidth - Recommendations.buffer) {
-            return window.innerWidth - Recommendations.buffer - width;
-        }
-        return x;
-    }
+    // get pageX() {
+    //     const x = this._pageX;
+    //     if (x < 0) {
+    //         return 0;
+    //     }
+    //     const width = this._width;
+    //     if (x + width > window.innerWidth - RecommendationsBox.buffer) {
+    //         return window.innerWidth - RecommendationsBox.buffer - width;
+    //     }
+    //     return x;
+    // }
 
-    get pageY() {
-        const y = this._pageY;
-        if (y < 0) {
-            return 0;
-        }
-        const height = this._height;
-        if (y + height > window.innerHeight - Recommendations.buffer) {
-            return window.innerHeight - Recommendations.buffer - height;
-        }
-        return y;
-    }
+    // get pageY() {
+    //     const y = this._pageY;
+    //     if (y < 0) {
+    //         return 0;
+    //     }
+    //     const height = this._height;
+    //     if (y + height > window.innerHeight - RecommendationsBox.buffer) {
+    //         return window.innerHeight - RecommendationsBox.buffer - height;
+    //     }
+    //     return y;
+    // }
 
     render() {
-        if (!this._display) {
-            return null;
-        }
-        let style = { left: this.pageX, top: this.pageY };
+        // if (!this._display) {
+        //     return null;
+        // }
+        // let style = { left: this.pageX, top: this.pageY };
         //const transform = "translate(" + (NumCast(this.props.node.x) + 350) + "px, " + NumCast(this.props.node.y) + "px"
         return (
-            <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
-                {({ measureRef }) => (
-                    <div className="rec-scroll" style={style} ref={measureRef}>
-                        <p>Recommendations</p>
-                        {this._documents.map(doc => {
-                            return (
-                                <div className="content">
-                                    <span className="image-background">
-                                        {this.DocumentIcon(doc.preview)}
-                                    </span>
-                                    <span className="score">{doc.score.toFixed(4)}</span>
-                                </div>
-                            );
-                        })}
+            // <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
+            // {({ measureRef }) => (
+            <div className="rec-scroll">
+                <p>Recommendations</p>
+                {DocListCast(this.props.Document.data).map(doc => {
+                    return (
+                        <div className="content">
+                            <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
+                                {this.DocumentIcon(doc)}
+                            </span>
+                            <span className="score">{NumCast(doc.score).toFixed(4)}</span>
+                            <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, true, undefined, undefined, undefined, this.props.Document.sourceDocContext as Doc)}>
+                                <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
+                            </div>
+                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink(this.props.Document.sourceDoc as Doc, doc, undefined, "User Selected Link", "Generated from Recommender", undefined)}>
+                                <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
+                            </div>
+                        </div>
+                    );
+                })}
 
-                    </div>
-                )
-                }
+            </div>
+            // );
+            // }
 
-            </Measure>
+            // </Measure>
         );
     }
 }
