@@ -45,6 +45,7 @@ import { RecommendationsBox } from '../Recommendations';
 import { SearchUtil } from '../../util/SearchUtil';
 import { ClientRecommender } from '../../ClientRecommender';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faBrain);
@@ -774,7 +775,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ClientRecommender.Instance.reset_docs();
         const doc = Doc.GetDataDoc(this.props.Document);
         const extdoc = doc.data_ext as Doc;
-        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
+        const values = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
+        const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
+        const body = Docs.Create.FreeformDocument([], { title: values.title });
+        body.href = values.url;
+        CollectionDockingView.Instance.AddRightSplit(Docs.Create.SchemaDocument(headers, [body], { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };

@@ -158,11 +158,15 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
         // }
         // let style = { left: this.pageX, top: this.pageY };
         //const transform = "translate(" + (NumCast(this.props.node.x) + 350) + "px, " + NumCast(this.props.node.y) + "px"
+        let title = StrCast((this.props.Document.sourceDoc as Doc).title);
+        if (title.length > 15) {
+            title = title.substring(0, 15) + "...";
+        }
         return (
             // <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
             // {({ measureRef }) => (
             <div className="rec-scroll">
-                <p>Recommendations</p>
+                <p>Recommendations for "{title}"</p>
                 {DocListCast(this.props.Document.data).map(doc => {
                     return (
                         <div className="content">

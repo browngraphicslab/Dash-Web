@@ -27,6 +27,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
 import { undoBatch } from "../../util/UndoManager";
+import { List } from "lodash";
 
 library.add(faExpand);
 
@@ -86,9 +87,22 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     }
 
     @action
-    onPointerDown = (e: React.PointerEvent): void => {
+    onPointerDown = async (e: React.PointerEvent): Promise<void> => {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
+
+        const data = await DocListCastAsync(this.props.Document.data);
+        if (data) {
+            let url: string;
+            if (url = StrCast(data[0].href)) {
+                try {
+                    new URL(url);
+                    const temp = window.open(url)!;
+                    temp.blur();
+                    window.focus();
+                } catch { }
+            }
+        }
 
         // this._isEditing = true;
         // this.props.setIsEditing(true);
