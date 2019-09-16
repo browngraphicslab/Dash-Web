@@ -285,14 +285,14 @@ export namespace CognitiveServices {
                 });
             }
 
-            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, mainDoc: boolean = false) => {
+            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, mainDoc: boolean = false, internal: boolean = true) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
                 let keyterms = converter(results, data);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
                 target[keys[0]] = keyterms.keyterms;
                 console.log("analyzed!");
-                await vectorize(keyterms.keyterms_counted, dataDoc, mainDoc, data);
+                if (internal) await vectorize(keyterms.keyterms_counted, dataDoc, mainDoc, data);
             };
 
             // export async function countFrequencies() 
