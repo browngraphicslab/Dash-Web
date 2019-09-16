@@ -642,11 +642,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 a.click();
             }
         });
-        cm.addItem({
-            description: "Recommender System",
+        let recommender_subitems: ContextMenuProps[] = [];
+
+        recommender_subitems.push({
+            description: "Internal recommendations",
             event: () => this.recommender(e),
             icon: "brain"
         });
+
+        recommender_subitems.push({
+            description: "External recommendations",
+            event: () => this.externalRecommendation(e),
+            icon: "brain"
+        });
+
+        cm.addItem({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
+
+
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -729,7 +741,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!documents.includes(dataDoc)) {
                     documents.push(dataDoc);
                     const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, mainDoc);
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, mainDoc);
                 }
             }
         }));
@@ -755,6 +767,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         CollectionDockingView.Instance.AddRightSplit(recommendations, undefined);
 
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
+    }
+
+    externalRecommendation = async (e: React.MouseEvent) => {
+        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+        ClientRecommender.Instance.reset_docs();
+        const doc = Doc.GetDataDoc(this.props.Document);
+        const extdoc = doc.data_ext as Doc;
+        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };

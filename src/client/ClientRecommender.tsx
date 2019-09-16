@@ -16,6 +16,12 @@ export interface RecommenderProps {
     title: string;
 }
 
+/**
+ * actualDoc: datadoc
+ * vectorDoc: mean vector of text
+ * score: similarity score to main doc
+ */
+
 export interface RecommenderDocument {
     actualDoc: Doc;
     vectorDoc: number[];
@@ -28,6 +34,8 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     static Instance: ClientRecommender;
     private mainDoc?: RecommenderDocument;
     private docVectors: Set<RecommenderDocument> = new Set();
+    private highKP: string[] = [];
+
     @observable private corr_matrix = [[0, 0], [0, 0]];
 
     constructor(props: RecommenderProps) {
@@ -43,10 +51,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         ClientRecommender.Instance.docVectors = new Set();
         ClientRecommender.Instance.mainDoc = undefined;
         ClientRecommender.Instance.corr_matrix = [[0, 0], [0, 0]];
-    }
-
-    public deleteDocs() {
-        console.log("deleting previews...");
     }
 
     /***
@@ -81,6 +85,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                 return 0;
         }
     }
+
+    /**
+     * Returns list of {doc, similarity (to main doc)} in increasing score
+     */
 
     public computeSimilarities() {
         ClientRecommender.Instance.docVectors.forEach((doc: RecommenderDocument) => {
@@ -127,14 +135,14 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * Uses Cognitive Services to extract keywords from a document
      */
 
-    public async extractText(dataDoc: Doc, extDoc: Doc, mainDoc: boolean = false) {
+    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, mainDoc: boolean = false) {
         let fielddata = Cast(dataDoc.data, RichTextField);
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";
         let converter = (results: any, data: string) => {
-            let keyterms = new List<string>();
-            let keyterms_counted = new List<string>();
-            let highKP: string[] = [""];
+            let keyterms = new List<string>(); // raw keywords
+            let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated as 
+            let highKP: string[] = [""]; // most frequent 
             let high = 0;
             results.documents.forEach((doc: any) => {
                 let keyPhrases = doc.keyPhrases;
@@ -143,13 +151,12 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     if (frequency > high) {
                         high = frequency;
                         highKP = [kp];
-
                     }
                     else if (frequency === high) {
                         highKP.push(kp);
                     }
                     let words = kp.split(" "); // separates phrase into words
-                    words = this.removeStopWords(words);
+                    words = this.removeStopWords(words); // removes stop words if they appear in phrases
                     words.forEach((word) => {
                         keyterms.push(word);
                         for (let i = 0; i < frequency; i++) {
@@ -158,16 +165,12 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     });
                 });
             });
+            this.highKP = highKP;
             console.log(highKP);
             this.sendRequest(highKP);
             return { keyterms: keyterms, keyterms_counted: keyterms_counted };
         };
-        await CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc);
-    }
-
-    private findImportantKPs(keyterms_counted: string[], paragraph: string) {
-        let imporantSet = new Set<string>();
-
+        await CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
     }
 
     private countFrequencies(keyphrase: string, paragraph: string) {
@@ -180,7 +183,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         // console.log("Keyphrases:", kp_array);
         for (let i = 0; i <= par_length - num_keywords; i++) {
             const window = data.slice(i, i + num_keywords);
-            if (JSON.stringify(window) === JSON.stringify(kp_array)) {
+            if (JSON.stringify(window).toLowerCase() === JSON.stringify(kp_array).toLowerCase() || kp_array.every(val => window.includes(val))) {
                 frequency++;
             }
         }
@@ -194,7 +197,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     private async sendRequest(keywords: string[]) {
         let query = "";
-        keywords.forEach((kp: string) => query += kp);
+        keywords.forEach((kp: string) => query += " " + kp);
         await this.arxivrequest(query);
     }
 
