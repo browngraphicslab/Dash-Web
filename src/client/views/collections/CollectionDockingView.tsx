@@ -66,15 +66,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs: (Doc | undefined)[] = []) {
+    public StartOtherDrag(e: any, dragDocs: Doc[]) {
         let config: any;
         if (dragDocs.length === 1) {
-            config = CollectionDockingView.makeDocumentConfig(dragDocs[0], dragDataDocs[0]);
+            config = CollectionDockingView.makeDocumentConfig(dragDocs[0], undefined);
         } else {
             config = {
                 type: 'row',
                 content: dragDocs.map((doc, i) => {
-                    CollectionDockingView.makeDocumentConfig(doc, dragDataDocs[i]);
+                    CollectionDockingView.makeDocumentConfig(doc, undefined);
                 })
             };
         }
@@ -84,12 +84,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             dragSource.destroy();
         });
         dragSource._dragListener.onMouseDown(e);
-        // dragSource.destroy();
-        // this.hack = true;
-        // this.undohack = UndoManager.StartBatch("goldenDrag");
-        // dragDocs.map((dragDoc, i) =>
-        //     this.AddRightSplit(dragDoc, dragDataDocs[i], true).contentItems[0].tab._dragListener.
-        //         onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
@@ -412,7 +406,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc], [dataDoc]), e.clientX, e.clientY, {
+                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
                             handlers: { dragComplete: emptyFunction },
                             hideSource: false
                         });

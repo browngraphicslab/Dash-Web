@@ -137,7 +137,7 @@ export default class Page extends React.Component<IPageProps> {
         view.nativeWidth = this.props.Document.nativeWidth;
         view.startY = marquee.top + this.props.getScrollFromPage(this.props.page);
         view.width = this.props.Document[WidthSym]();
-        DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view], [undefined]), 0, 0);
+        DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view]), 0, 0);
     }
 
     @action
