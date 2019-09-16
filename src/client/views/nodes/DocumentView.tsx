@@ -276,7 +276,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = async (e: React.MouseEvent) => {
-        if (e.nativeEvent.cancelBubble || SelectionManager.IsSelected(this)) return; // needed because EditableView may stopPropagation which won't apparently stop this event from firing.
+        if (e.nativeEvent.cancelBubble) return; // || SelectionManager.IsSelected(this)) -- bcz: needed because EditableView may stopPropagation which won't apparently stop this event from firing.
         if (this.onClickHandler && this.onClickHandler.script) {
             e.stopPropagation();
             this.onClickHandler.script.run({ this: this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
