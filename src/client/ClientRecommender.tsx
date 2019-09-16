@@ -168,7 +168,9 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             this.highKP = highKP;
             console.log(highKP);
             this.sendRequest(highKP);
-            return { keyterms: keyterms, keyterms_counted: keyterms_counted };
+            const kts_counted = new List<string>();
+            keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
+            return { keyterms: keyterms, keyterms_counted: kts_counted };
         };
         await CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
     }
