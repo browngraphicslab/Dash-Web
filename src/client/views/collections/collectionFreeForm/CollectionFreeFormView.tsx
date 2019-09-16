@@ -695,7 +695,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ruleProvider: this.props.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider,
-            onClick: this.props.onClick,
+            onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
             PanelWidth: childLayout[WidthSym],
