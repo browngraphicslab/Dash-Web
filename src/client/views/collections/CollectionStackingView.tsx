@@ -134,7 +134,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : ScriptCast(this.Document.onChildClick); }
+    @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
     getDisplayDoc(layoutDoc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         let height = () => this.getDocHeight(layoutDoc);
