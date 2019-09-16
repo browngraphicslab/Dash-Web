@@ -300,7 +300,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         maxLocation = this.props.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
                         if (!maxLocation || maxLocation === "inPlace") {
                             let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized), false);
+                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !d.isMinimized, false);
                             expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
                             let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             if (!hasView) {
@@ -814,8 +814,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
         let foregroundColor = StrCast(this.layoutDoc.color);
-        var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
-        var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        var nativeWidth = this.props.Document.willMaximize ? 0 : this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
+        var nativeHeight = this.props.Document.willMaximize ? 0 : BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
         let showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);

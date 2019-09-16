@@ -327,8 +327,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 });
                 newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                 Doc.GetProto(newCollection).summaryDoc = summary;
+                Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
                 newCollection.x = bounds.left + bounds.width;
                 let computed = CompileScript(`return summaryTitle(this);`, { params: { this: "Doc" }, typecheck: false });
                 computed.compiled && (Doc.GetProto(newCollection).title = new ComputedField(computed));
@@ -336,9 +336,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                     container.viewType = CollectionViewType.Stacking;
                     container.autoHeight = true;
+                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "inPlace", or "onRight"
                     this.props.addLiveTextDocument(container);
                 } else if (e.key === "S") { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
-                    summary.proto!.summarizedDocs = new List<Doc>([newCollection]);
+                    Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                     this.props.addLiveTextDocument(summary);
                 }
             }
