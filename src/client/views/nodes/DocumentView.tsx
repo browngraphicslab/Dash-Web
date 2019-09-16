@@ -606,6 +606,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.MakeTemplate(fieldTemplate, metaKey, proto);
 
                 Doc.ApplyTemplateTo(docTemplate, document, undefined, false);
+                document.customLayout = document.layout;
             }
         });
     });

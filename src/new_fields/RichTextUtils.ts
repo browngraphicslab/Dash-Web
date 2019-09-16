@@ -195,16 +195,19 @@ export namespace RichTextUtils {
                     nodes.push(list(state.schema, items));
                 } else {
                     if (element.contents.some(child => "inlineObjectId" in child)) {
-                        let node: Node<any>;
-                        for (const child of element.contents) {
+                        const group = element.contents;
+                        group.forEach((child, i) => {
+                            let node: Opt<Node<any>>;
                             if ("inlineObjectId" in child) {
                                 node = imageNode(state.schema, inlineObjectMap.get(child.inlineObjectId!)!, textNote);
-                            } else {
+                            } else if ("content" in child && (i !== group.length - 1 || child.content!.removeTrailingNewlines().length)) {
                                 node = paragraphNode(state.schema, [child]);
                             }
-                            nodes.push(node);
-                            position += node.nodeSize;
-                        }
+                            if (node) {
+                                position += node.nodeSize;
+                                nodes.push(node);
+                            }
+                        });
                     } else {
                         let paragraph = paragraphNode(state.schema, element.contents);
                         nodes.push(paragraph);
@@ -278,7 +281,7 @@ export namespace RichTextUtils {
             } else {
                 docid = backingDocId;
             }
-            return schema.node("image", { src, width, docid, float: null });
+            return schema.node("image", { src, width, docid, float: null, location: "onRight" });
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
@@ -385,12 +388,13 @@ export namespace RichTextUtils {
                             if (new RegExp(window.location.origin + delimiter).test(url) && !url.endsWith(alreadyShared)) {
                                 const linkDoc = await DocServer.GetRefField(url.split(delimiter)[1]);
                                 if (linkDoc instanceof Doc) {
-                                    const target = (await Cast(linkDoc.anchor2, Doc))!;
-                                    const exported = Doc.MakeAlias(target);
-                                    DocumentView.makeCustomViewClicked(exported);
-                                    const documentId = exported[Id];
-                                    target && (url = Utils.shareUrl(documentId));
-                                    linkDoc.anchor2 = exported;
+                                    let exported = (await Cast(linkDoc.anchor2, Doc))!;
+                                    if (!exported.customLayout) {
+                                        exported = Doc.MakeAlias(exported);
+                                        DocumentView.makeCustomViewClicked(exported);
+                                        linkDoc.anchor2 = exported;
+                                    }
+                                    url = Utils.shareUrl(exported[Id]);
                                 }
                             }
                             value = { url };
@@ -418,7 +422,7 @@ export namespace RichTextUtils {
                 }
                 if (node.type.name === "image") {
                     requests.push(await EncodeImage({
-                        startIndex: position + nodeSize,
+                        startIndex: position + nodeSize - 1,
                         uri: attrs.src,
                         width: attrs.width
                     }));

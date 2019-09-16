@@ -135,6 +135,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             alt: { default: null },
             title: { default: null },
             float: { default: "left" },
+            location: { default: "onRight" },
             docid: { default: "" }
         },
         group: "inline",
@@ -616,6 +617,7 @@ export class ImageResizeView {
                 e.preventDefault();
                 e.stopPropagation();
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc => {
+                    const location = node.attrs.location;
                     if (linkDoc instanceof Doc) {
                         let proto = Doc.GetProto(linkDoc);
                         let targetContext = await Cast(proto.targetContext, Doc);
