@@ -383,7 +383,6 @@ export namespace RichTextUtils {
                             const delimiter = "/doc/";
                             const alreadyShared = "?sharing=true";
                             if (new RegExp(window.location.origin + delimiter).test(url) && !url.endsWith(alreadyShared)) {
-                                alert("Reassigning alias!");
                                 const linkDoc = await DocServer.GetRefField(url.split(delimiter)[1]);
                                 if (linkDoc instanceof Doc) {
                                     const target = (await Cast(linkDoc.anchor2, Doc))!;
@@ -394,7 +393,6 @@ export namespace RichTextUtils {
                                     linkDoc.anchor2 = exported;
                                 }
                             }
-                            alert(`url: ${url}`);
                             value = { url };
                             textStyle.foregroundColor = fromRgb.blue;
                             textStyle.bold = true;
