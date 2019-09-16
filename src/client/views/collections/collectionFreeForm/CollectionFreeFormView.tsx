@@ -280,10 +280,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     public getActiveDocuments = () => {
         const curPage = FieldValue(this.Document.curPage, -1);
-        return this.childDocs.filter(doc => {
-            var page = NumCast(doc.page, -1);
+        return this.childLayoutPairs.filter(pair => {
+            var page = NumCast(pair.layout!.page, -1);
             return page === curPage || page === -1;
-        }).map(doc => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, doc).layout);
+        }).map(pair => pair.layout);
     }
 
     @computed get fieldExtensionDoc() {
@@ -361,7 +361,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     tryDragCluster(e: PointerEvent) {
         let probe = this.getTransform().transformPoint(e.clientX, e.clientY);
-        let cluster = this.childDocs.reduce((cluster, cd) => {
+        let cluster = this.childLayoutPairs.map(pair => pair.layout).reduce((cluster, cd) => {
             let cx = NumCast(cd.x) - this._clusterDistance;
             let cy = NumCast(cd.y) - this._clusterDistance;
             let cw = NumCast(cd.width) + 2 * this._clusterDistance;
@@ -372,7 +372,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return cluster;
         }, -1);
         if (cluster !== -1) {
-            let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
+            let eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
 
             // hacky way to get a list of DocumentViews in the current view given a list of Documents in the current view
             let prevSelected = SelectionManager.SelectedDocuments();
@@ -403,7 +403,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     updateClusters() {
         this.sets.length = 0;
-        this.childDocs.map(c => {
+        this.childLayoutPairs.map(pair => pair.layout).map(c => {
             let included = [];
             for (let i = 0; i < this.sets.length; i++) {
                 for (let member of this.sets[i]) {
@@ -431,20 +431,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @undoBatch
     @action
     updateCluster(doc: Doc) {
+        let childLayouts = this.childLayoutPairs.map(pair => pair.layout);
         if (this.props.Document.useClusters) {
             this.sets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
             let preferredInd = NumCast(doc.cluster);
             doc.cluster = -1;
             this.sets.map((set, i) => set.map(member => {
-                if (doc.cluster === -1 && Doc.IndexOf(member, this.childDocs) !== -1 && this.boundsOverlap(doc, member)) {
+                if (doc.cluster === -1 && Doc.IndexOf(member, childLayouts) !== -1 && this.boundsOverlap(doc, member)) {
                     doc.cluster = i;
                 }
             }));
-            if (doc.cluster === -1 && preferredInd !== -1 && (!this.sets[preferredInd] || !this.sets[preferredInd].filter(member => Doc.IndexOf(member, this.childDocs) !== -1).length)) {
+            if (doc.cluster === -1 && preferredInd !== -1 && (!this.sets[preferredInd] || !this.sets[preferredInd].filter(member => Doc.IndexOf(member, childLayouts) !== -1).length)) {
                 doc.cluster = preferredInd;
             }
             this.sets.map((set, i) => {
-                if (doc.cluster === -1 && !set.filter(member => Doc.IndexOf(member, this.childDocs) !== -1).length) {
+                if (doc.cluster === -1 && !set.filter(member => Doc.IndexOf(member, childLayouts) !== -1).length) {
                     doc.cluster = i;
                 }
             });
@@ -506,7 +507,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             let x = this.Document.panX || 0;
             let y = this.Document.panY || 0;
-            let docs = this.childDocs || [];
+            let docs = this.childLayoutPairs.map(pair => pair.layout);
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
                 PDFMenu.Instance.fadeOut(true);
@@ -556,7 +557,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return;
         }
 
-        let childSelected = this.childDocs.some(doc => {
+        let childSelected = this.childLayoutPairs.map(pair => pair.layout).some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
         });
@@ -619,7 +620,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             doc.zIndex = 0;
             return;
         }
-        const docs = this.childDocs;
+        const docs = this.childLayoutPairs.map(pair => pair.layout);
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
@@ -790,12 +791,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
         let state: any = undefined;
-        let docs = this.childDocs;
-        let overlayDocs = DocListCast(this.props.Document.localOverlays);
-        overlayDocs && docs.push(...overlayDocs);
+        let pairs = this.childLayoutPairs;
         let elements: ViewDefResult[] = [];
         if (initScript) {
-            const initResult = initScript.script.run({ docs, collection: this.Document });
+            const initResult = initScript.script.run({ docs: pairs.map(pair => pair.layout), collection: this.Document });
             if (initResult.success) {
                 const result = initResult.result;
                 const { state: scriptState, views } = result;
@@ -803,18 +802,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 elements = this.viewDefsToJSX(views);
             }
         }
-        let docviews = docs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
-            var page = NumCast(doc.page, -1);
+        let docviews = pairs.reduce((prev, pair) => {
+            var page = NumCast(pair.layout.page, -1);
             if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
-                let minim = BoolCast(doc.isMinimized);
+                let minim = BoolCast(pair.layout.isMinimized);
                 if (minim === undefined || !minim) {
-                    const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) :
-                        { x: Cast(doc.x, "number"), y: Cast(doc.y, "number"), z: Cast(doc.z, "number"), width: Cast(doc.width, "number"), height: Cast(doc.height, "number") };
+                    const pos = script ? this.getCalculatedPositions(script, { doc: pair.layout, index: prev.length, collection: this.Document, docs: pairs.map(pair => pair.layout), state }) :
+                        { x: Cast(pair.layout.x, "number"), y: Cast(pair.layout.y, "number"), z: Cast(pair.layout.z, "number"), width: Cast(pair.layout.width, "number"), height: Cast(pair.layout.height, "number") };
                     state = pos.state === undefined ? state : pos.state;
-                    let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, doc);
                     if (pair.layout && !(pair.data instanceof Promise)) {
                         prev.push({
-                            ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                            ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}
                                 ruleProvider={this.props.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
                                 jitterRotation={NumCast(this.props.Document.jitterRotation)}
                                 x={script ? pos.x : undefined} y={script ? pos.y : undefined}

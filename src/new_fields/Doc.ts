@@ -412,6 +412,9 @@ export namespace Doc {
     }
     export function MakeAlias(doc: Doc) {
         let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+        if (alias.layout instanceof Doc) {
+            alias.layout = Doc.MakeAlias(alias.layout as Doc);
+        }
         let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         let script = `return renameAlias(self, ${aliasNumber})`;
         //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";
