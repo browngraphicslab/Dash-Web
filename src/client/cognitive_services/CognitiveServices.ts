@@ -15,7 +15,7 @@ type RequestExecutor = (apiKey: string, body: string, service: Service) => Promi
 type AnalysisApplier<D> = (target: Doc, relevantKeys: string[], data: D, ...args: any) => any;
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
-type TextConverter = (results: any, data: string) => { keyterms: Field, keyterms_counted: Field };
+type TextConverter = (results: any, data: string) => Promise<{ keyterms: Field, keyterms_counted: Field, values: any }>;
 
 export type Tag = { name: string, confidence: number };
 export type Rectangle = { top: number, left: number, width: number, height: number };
@@ -288,11 +288,15 @@ export namespace CognitiveServices {
             export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, mainDoc: boolean = false, internal: boolean = true) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
-                let keyterms = converter(results, data);
+                let { keyterms, values, keyterms_counted } = await converter(results, data);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
-                target[keys[0]] = keyterms.keyterms;
+                target[keys[0]] = keyterms;
                 console.log("analyzed!");
-                if (internal) await vectorize(keyterms.keyterms_counted, dataDoc, mainDoc, data);
+                if (internal) {
+                    await vectorize(keyterms_counted, dataDoc, mainDoc, data);
+                } else {
+                    return values;
+                }
             };
 
             // export async function countFrequencies() 

@@ -139,7 +139,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         let fielddata = Cast(dataDoc.data, RichTextField);
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";
-        let converter = (results: any, data: string) => {
+        let converter = async (results: any, data: string) => {
             let keyterms = new List<string>(); // raw keywords
             let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated as 
             let highKP: string[] = [""]; // most frequent 
@@ -167,12 +167,12 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             });
             this.highKP = highKP;
             console.log(highKP);
-            this.sendRequest(highKP);
             const kts_counted = new List<string>();
             keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
-            return { keyterms: keyterms, keyterms_counted: kts_counted };
+            const values = await this.sendRequest(highKP);
+            return { keyterms: keyterms, keyterms_counted: kts_counted, values };
         };
-        await CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
+        return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
     }
 
     private countFrequencies(keyphrase: string, paragraph: string) {
@@ -200,7 +200,9 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     private async sendRequest(keywords: string[]) {
         let query = "";
         keywords.forEach((kp: string) => query += " " + kp);
-        await this.arxivrequest(query);
+        return new Promise<any>(resolve => {
+            this.arxivrequest(query).then(resolve);
+        });
     }
 
     /**
@@ -209,7 +211,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     arxivrequest = async (query: string) => {
         let xhttp = new XMLHttpRequest();
-        let serveraddress = "http://export.arxiv.org/api"
+        let serveraddress = "http://export.arxiv.org/api";
         let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=1";
         let promisified = (resolve: any, reject: any) => {
             xhttp.onreadystatechange = function () {
@@ -219,20 +221,22 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     console.log(xml);
                     switch (this.status) {
                         case 200:
+                            let title: string = "Title";
+                            let url: string = "Url";
                             //console.log(result);
                             if (xml) {
                                 let titles = xml.getElementsByTagName("title");
                                 if (titles && titles.length > 1) {
-                                    let text = titles[1].childNodes[0].nodeValue;
-                                    console.log(text);
+                                    title = titles[1].childNodes[0].nodeValue!;
+                                    console.log(title);
                                 }
                                 let ids = xml.getElementsByTagName("id");
                                 if (ids && ids.length > 1) {
-                                    let text = ids[1].childNodes[0].nodeValue;
-                                    console.log(text);
+                                    url = ids[1].childNodes[0].nodeValue!;
+                                    console.log(url);
                                 }
                             }
-                            return resolve(result);
+                            return resolve({ title, url });
                         case 400:
                         default:
                             return reject(result);

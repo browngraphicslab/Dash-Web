@@ -4,7 +4,7 @@
     display: inline-block;
     margin: auto;
     width: 50;
-    height: 30px;
+    height: 150px;
     border: 1px dashed grey;
     padding: 10px 10px;
 }
@@ -19,17 +19,20 @@
     overflow-y: scroll;
     overflow-x: hidden;
     position: absolute;
+    pointer-events: all;
     // display: flex;
     z-index: 10000;
     box-shadow: gray 0.2vw 0.2vw 0.4vw;
     // flex-direction: column;
     background: whitesmoke;
     padding-bottom: 10px;
-    border-radius: 15px;
+    padding-top: 20px;
+    // border-radius: 15px;
     border: solid #BBBBBBBB 1px;
-    width: 250px;
+    width: 100%;
     text-align: center;
-    max-height: 250px;
+    // max-height: 250px;
+    height: 100%;
     text-transform: uppercase;
     color: grey;
     letter-spacing: 2px;
@@ -48,7 +51,6 @@
     background-color: transparent;
     width: 50%;
     text-align: center;
-    height: 35px;
     margin-left: 5px;
 }
 

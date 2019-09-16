@@ -41,10 +41,11 @@ import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import requestPromise = require('request-promise');
-import { Recommendations } from '../Recommendations';
+import { RecommendationsBox } from '../Recommendations';
 import { SearchUtil } from '../../util/SearchUtil';
 import { ClientRecommender } from '../../ClientRecommender';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faBrain);
@@ -751,8 +752,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         for (let i = 0; i < doclist.length; i++) {
             recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
         }
-        Recommendations.Instance.addDocuments(recDocs);
-        Recommendations.Instance.displayRecommendations(e.pageX + 100, e.pageY);
+
+        const data = recDocs.map(unit => {
+            unit.preview.score = unit.score;
+            return unit.preview;
+        });
+
+        console.log(recDocs.map(doc => doc.score));
+
+        const title = `Showing ${data.length} recommendations for "${StrCast(this.props.Document.title)}"`;
+        const recommendations = Docs.Create.RecommendationsDocument(data, { title });
+        recommendations.documentIconHeight = 150;
+        recommendations.sourceDoc = this.props.Document;
+        recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
+        CollectionDockingView.Instance.AddRightSplit(recommendations, undefined);
+
+        // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
 
     externalRecommendation = async (e: React.MouseEvent) => {
@@ -760,7 +775,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ClientRecommender.Instance.reset_docs();
         const doc = Doc.GetDataDoc(this.props.Document);
         const extdoc = doc.data_ext as Doc;
-        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
+        const values = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
+        const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
+        const body = Docs.Create.FreeformDocument([], { title: values.title });
+        body.href = values.url;
+        CollectionDockingView.Instance.AddRightSplit(Docs.Create.SchemaDocument(headers, [body], { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
