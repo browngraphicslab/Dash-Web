@@ -32,6 +32,8 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { DocServer } from '../DocServer';
+import { CompileScript } from '../util/Scripting';
+import { ComputedField } from '../../new_fields/ScriptField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -378,8 +380,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = selected[0].props.Document;
         let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
-        iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
+
+        IconBox.AutomaticTitle(iconDoc);
         //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
         iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);

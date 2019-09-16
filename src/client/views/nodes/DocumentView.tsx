@@ -141,13 +141,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
-    _animateToIconDisposer?: IReactionDisposer;
-    _reactionDisposer?: IReactionDisposer;
+    private _animateToIconDisposer?: IReactionDisposer;
 
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.renderDepth === 0; }
-    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     @action
     componentDidMount() {
@@ -156,19 +154,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        // bcz: kind of ugly .. setup a reaction to update the title of a summary document's target (maximizedDocs) whenver the summary doc's title changes
-        this._reactionDisposer = reaction(() => [DocListCast(this.props.Document.maximizedDocs).map(md => md.title),
-        this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
-            () => {
-                let maxDoc = DocListCast(this.props.Document.maximizedDocs);
-                if (maxDoc.length === 1 && StrCast(this.props.Document.title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
-                    this.props.Document.proto!.title = "-" + maxDoc[0].title + ".icon";
-                }
-                let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
-                if (sumDoc instanceof Doc && StrCast(this.props.Document.title).startsWith("-")) {
-                    this.props.Document.proto!.title = "-" + sumDoc.title + ".expanded";
-                }
-            }, { fireImmediately: true });
         this._animateToIconDisposer = reaction(() => this.props.Document.isIconAnimating, (values) =>
             (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
             , { fireImmediately: true });
@@ -209,14 +194,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @action
     componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
         this._animateToIconDisposer && this._animateToIconDisposer();
         this._dropDisposer && this._dropDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
-    }
-
-    stopPropagation = (e: React.SyntheticEvent) => {
-        e.stopPropagation();
     }
 
     get dataDoc() {

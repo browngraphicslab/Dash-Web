@@ -23,6 +23,8 @@ import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHe
 import { string } from "prop-types";
 import { listSpec } from "../../../../new_fields/Schema";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
+import { CompileScript } from "../../../util/Scripting";
+import { ComputedField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -309,7 +311,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
                 width: bounds.width,
                 height: bounds.height,
-                title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
+                title: "a nested collection",
             });
             let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
             dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
@@ -325,9 +327,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 });
                 newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                newCollection.proto!.summaryDoc = summary;
+                Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                Doc.GetProto(newCollection).summaryDoc = summary;
                 newCollection.x = bounds.left + bounds.width;
+                let computed = CompileScript(`return summaryTitle(this);`, { params: { this: "Doc" }, typecheck: false });
+                computed.compiled && (Doc.GetProto(newCollection).title = new ComputedField(computed));
                 if (e.key === "s") { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
                     let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                     container.viewType = CollectionViewType.Stacking;
