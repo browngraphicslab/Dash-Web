@@ -283,7 +283,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return this.childDocs.filter(doc => {
             var page = NumCast(doc.page, -1);
             return page === curPage || page === -1;
-        });
+        }).map(doc => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, doc).layout);
     }
 
     @computed get fieldExtensionDoc() {

@@ -109,9 +109,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     boxShadow:
                         this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
                             this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                                this.layoutDoc.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
-                                    this.clusterColor ? (
-                                        `${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                this.clusterColor ? (`${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                    this.layoutDoc.isBackground ? `1px 1px 1px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
                                         StrCast(this.layoutDoc.boxShadow, ""),
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
