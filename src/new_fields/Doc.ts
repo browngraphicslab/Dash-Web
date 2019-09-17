@@ -143,8 +143,14 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
-    public [HeightSym] = () => NumCast(this[SelfProxy].height);
+    public [WidthSym] = () => {
+        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
+        return iconAnimating ? iconAnimating[0] : NumCast(this[SelfProxy].width);
+    }
+    public [HeightSym] = () => {
+        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
+        return iconAnimating ? iconAnimating[1] : NumCast(this[SelfProxy].height);
+    }
 
     [ToScriptString]() {
         return "invalid";

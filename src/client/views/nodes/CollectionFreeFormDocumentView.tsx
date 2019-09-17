@@ -1,6 +1,6 @@
-import { computed } from "mobx";
+import { computed, action, observable, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
@@ -8,7 +8,7 @@ import { percent2frac } from "../../../Utils"
 import { DocumentView, DocumentViewProps, documentSchema } from "./DocumentView";
 import "./CollectionFreeFormDocumentView.scss";
 import React = require("react");
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { random } from "animejs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
@@ -30,11 +30,12 @@ export const PositionDocument = makeInterface(documentSchema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
+    _disposer: IReactionDisposer | undefined = undefined;
     @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
-    @computed get X() { return this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
-    @computed get Y() { return this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
-    @computed get width() { return this.Document.willMaximize ? 0 : this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
-    @computed get height() { return this.Document.willMaximize ? 0 : this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
+    @computed get X() { return this._animx !== undefined ? this._animx : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
+    @computed get Y() { return this._animy !== undefined ? this._animy : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
+    @computed get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.Document[WidthSym](); }
+    @computed get height() { return this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.Document[HeightSym](); }
     @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
     @computed get scaleToOverridingWidth() { return this.width / FieldValue(this.Document.width, this.width); }
@@ -54,26 +55,35 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
 
+    componentWillUnmount() {
+        this._disposer && this._disposer();
+    }
+    componentDidMount() {
+        this._disposer = reaction(() => this.props.Document.iconTarget,
+            () => {
+                const icon = this.props.Document.iconTarget ? Array.from(Cast(this.props.Document.iconTarget, listSpec("number"))!) : undefined;
+                if (icon) {
+                    let target = this.props.ScreenToLocalTransform().transformPoint(icon[0], icon[1]);
+                    if (icon[2] === 1) {
+                        this._animx = target[0];
+                        this._animy = target[1];
+                    }
+                    setTimeout(action(() => {
+                        this._animx = icon[2] === 1 ? this.Document.x : target[0];
+                        this._animy = icon[2] === 1 ? this.Document.y : target[1];
+                    }), 25);
+                } else {
+                    this._animx = this._animy = undefined;
+                }
+            }, { fireImmediately: true });
+    }
+
     contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling()).scale(1 / this.scaleToOverridingWidth)
-
-    animateBetweenIcon = (icon: number[], stime: number, maximizing: boolean) => {
-        this.props.bringToFront(this.props.Document);
-        let targetPos = [this.Document.x || 0, this.Document.y || 0];
-        let iconPos = this.props.ScreenToLocalTransform().transformPoint(icon[0], icon[1]);
-        DocumentView.animateBetweenIconFunc(this.props.Document,
-            this.Document.width || 0, this.Document.height || 0, stime, maximizing, (progress: number) => {
-                let pval = maximizing ?
-                    [iconPos[0] + (targetPos[0] - iconPos[0]) * progress, iconPos[1] + (targetPos[1] - iconPos[1]) * progress] :
-                    [targetPos[0] + (iconPos[0] - targetPos[0]) * progress, targetPos[1] + (iconPos[1] - targetPos[1]) * progress];
-                this.Document.x = progress === 1 ? targetPos[0] : pval[0];
-                this.Document.y = progress === 1 ? targetPos[1] : pval[1];
-            });
-    }
+        .scale(1 / this.contentScaling()).scale(1 / this.scaleToOverridingWidth);
 
     borderRounding = () => {
         let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
@@ -97,6 +107,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
     }
 
+    @observable _animx: number | undefined = undefined;
+    @observable _animy: number | undefined = undefined;
+
     render() {
         const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
@@ -110,7 +123,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                                         StrCast(this.layoutDoc.boxShadow, ""),
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: hasPosition ? "transform 1s" : StrCast(this.layoutDoc.transition),
+                    transition: this.props.Document.isIconAnimating ? "transform .5s" : hasPosition ? "transform 1s" : StrCast(this.layoutDoc.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,
@@ -121,7 +134,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     backgroundColor={this.clusterColorFunc}
                     PanelWidth={this.panelWidth}
                     PanelHeight={this.panelHeight}
-                    animateBetweenIcon={this.animateBetweenIcon}
                 />
             </div>
         );

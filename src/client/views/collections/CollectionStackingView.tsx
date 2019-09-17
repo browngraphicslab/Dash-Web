@@ -163,7 +163,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         </CollectionSchemaPreview>;
     }
     getDocHeight(d?: Doc) {
-        if (!d || d.willMaximize) return 0;
+        if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
         if (!d.ignoreAspect && nw && nh) {

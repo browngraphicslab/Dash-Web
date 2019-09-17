@@ -102,7 +102,7 @@ export interface DocumentViewProps {
     zoomToScale: (scale: number) => void;
     backgroundColor: (doc: Doc) => string | undefined;
     getScale: () => number;
-    animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
+    animateBetweenIcon?: (maximize: boolean, target: number[]) => void;
     ChromeHeight?: () => number;
 }
 
@@ -115,7 +115,6 @@ export const documentSchema = createSchema({
     opacity: "number",
     hidden: "boolean",
     onClick: ScriptField,
-    willMaximize: "boolean",
     ignoreAspect: "boolean",
     autoHeight: "boolean",
     isTemplate: "boolean",
@@ -148,7 +147,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
-    private _animateToIconDisposer?: IReactionDisposer;
 
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
@@ -161,35 +159,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        this._animateToIconDisposer = reaction(() => this.Document.isIconAnimating, (values) =>
-            (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
-            , { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
     }
 
-    animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
-        this.props.animateBetweenIcon ? this.props.animateBetweenIcon(iconPos, startTime, maximizing) :
-            DocumentView.animateBetweenIconFunc(this.props.Document, this.Document.width || 0, this.Document.height || 0, startTime, maximizing);
-    }
-
-    public static animateBetweenIconFunc = (doc: Doc, width: number, height: number, stime: number, maximizing: boolean, cb?: (progress: number) => void) => {
-        setTimeout(() => {
-            let now = Date.now();
-            let progress = now < stime + 200 ? Math.min(1, (now - stime) / 200) : 1;
-            doc.width = progress === 1 ? width : maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
-            doc.height = progress === 1 ? height : maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
-            cb && cb(progress);
-            if (now < stime + 200) {
-                DocumentView.animateBetweenIconFunc(doc, width, height, stime, maximizing, cb);
-            }
-            else {
-                doc.isMinimized = !maximizing;
-                doc.isIconAnimating = undefined;
-            }
-            doc.willMaximize = false;
-        },
-            2);
-    }
     @action
     componentDidUpdate() {
         this._dropDisposer && this._dropDisposer();
@@ -201,7 +173,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @action
     componentWillUnmount() {
-        this._animateToIconDisposer && this._animateToIconDisposer();
         this._dropDisposer && this._dropDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
@@ -235,30 +206,45 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    static _undoBatch?: UndoManager.Batch = undefined;
     @action
     public collapseTargetsToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
         SelectionManager.DeselectAll();
         if (expandedDocs) {
-            if (!DocumentView._undoBatch) {
-                DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
-            }
             let isMinimized: boolean | undefined;
             expandedDocs.map(maximizedDoc => {
-                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
-                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
-                    if (isMinimized === undefined) {
-                        isMinimized = BoolCast(maximizedDoc.isMinimized);
+                if (isMinimized === undefined) {
+                    isMinimized = BoolCast(maximizedDoc.isMinimized);
+                }
+                let w = NumCast(maximizedDoc.width);
+                let h = NumCast(maximizedDoc.height);
+                let iconAnimating = maximizedDoc.isIconAnimating ? Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!) : undefined;
+                if (isMinimized || (iconAnimating && iconAnimating.length && iconAnimating[0] === 0)) {
+                    // MAXIMIZE DOC
+                    if (maximizedDoc.isMinimized) {
+                        maximizedDoc.isIconAnimating = new List<number>([0, 0]);
+                        maximizedDoc.isMinimized = false;
                     }
-                    maximizedDoc.willMaximize = isMinimized;
-                    maximizedDoc.isMinimized = false;
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
+                    maximizedDoc.iconTarget = new List<number>([...scrpt, 1]);
+                    setTimeout(() => {
+                        maximizedDoc.isIconAnimating = new List<number>([w, h]);
+                        setTimeout(() => {
+                            if (maximizedDoc.isIconAnimating && Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!)[0] !== 0) {
+                                maximizedDoc.isIconAnimating = undefined;
+                            }
+                        }, 750);
+                    }, 0);
+                } else {
+                    maximizedDoc.iconTarget = new List<number>([...scrpt, 0]);
+                    // MINIMIZE DOC
+                    maximizedDoc.isIconAnimating = new List<number>([0, 0]);
+                    setTimeout(() => {
+                        if (maximizedDoc.isIconAnimating && Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!)[0] === 0) {
+                            maximizedDoc.isMinimized = true;
+                            maximizedDoc.isIconAnimating = undefined;
+                        }
+                    }, 750);
                 }
             });
-            setTimeout(() => {
-                DocumentView._undoBatch && DocumentView._undoBatch.end();
-                DocumentView._undoBatch = undefined;
-            }, 500);
         }
     }
 
@@ -791,8 +777,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
 
-        const nativeWidth = this.Document.willMaximize ? 0 : this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.Document.willMaximize ? 0 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
+        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.layoutDoc.showTitle;
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.layoutDoc.showCaption;
@@ -800,6 +786,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.Document.borderRounding || ruleRounding;
         const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
+        const iconAnimating = this.Document.isIconAnimating ? Array.from(Cast(this.Document.isIconAnimating, listSpec("number"))!) : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
                 {this.Document.searchFields}
@@ -830,6 +817,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
+                    transition: iconAnimating ? "transform .5s" : StrCast(this.layoutDoc.transition),
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.layoutDoc.color),
                     outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
