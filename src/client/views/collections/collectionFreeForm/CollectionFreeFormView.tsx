@@ -893,8 +893,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(pair.layout.heading)] = pair.layout.backgroundColor;
                     }
                 }
-            })
-        })
+            });
+        });
     }
 
     analyzeStrokes = async () => {
@@ -963,7 +963,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let noteItems: ContextMenuProps[] = [];
         let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
         notes.map((node, i) => noteItems.push({ description: (i + 1) + ": " + StrCast(node.title), event: () => this.createText(i), icon: "eye" }));
-        layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" })
+        layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" });
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
