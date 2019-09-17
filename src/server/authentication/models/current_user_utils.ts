@@ -59,7 +59,7 @@ export class CurrentUserUtils {
             noteTypes.excludeFromLibrary = true;
             doc.noteTypes = noteTypes;
         }
-        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(vals => DocListCast(vals)));
+        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;

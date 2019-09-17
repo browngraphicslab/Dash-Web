@@ -144,12 +144,12 @@ export class Doc extends RefField {
     private [Self] = this;
     private [SelfProxy]: any;
     public [WidthSym] = () => {
-        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
-        return iconAnimating ? iconAnimating[0] : NumCast(this[SelfProxy].width);
+        let animDims = this[SelfProxy].animateToDimensions ? Array.from(Cast(this[SelfProxy].animateToDimensions, listSpec("number"))!) : undefined;
+        return animDims ? animDims[0] : NumCast(this[SelfProxy].width);
     }
     public [HeightSym] = () => {
-        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
-        return iconAnimating ? iconAnimating[1] : NumCast(this[SelfProxy].height);
+        let animDims = this[SelfProxy].animateToDimensions ? Array.from(Cast(this[SelfProxy].animateToDimensions, listSpec("number"))!) : undefined;
+        return animDims ? animDims[1] : NumCast(this[SelfProxy].height);
     }
 
     [ToScriptString]() {
@@ -334,7 +334,7 @@ export namespace Doc {
     }
 
     export function IndexOf(toFind: Doc, list: Doc[]) {
-        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind))
+        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         if (target[key] === undefined) {
@@ -419,7 +419,7 @@ export namespace Doc {
     export function MakeAlias(doc: Doc) {
         let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
         if (alias.layout instanceof Doc) {
-            alias.layout = Doc.MakeAlias(alias.layout as Doc);
+            alias.layout = Doc.MakeAlias(alias.layout);
         }
         let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         let script = `return renameAlias(self, ${aliasNumber})`;

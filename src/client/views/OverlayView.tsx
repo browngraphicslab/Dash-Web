@@ -172,6 +172,7 @@ export class OverlayView extends React.Component {
                     ChromeHeight={returnZero}
                     isSelected={returnFalse}
                     select={emptyFunction}
+                    ruleProvider={undefined}
                     layoutKey={"layout"}
                     bringToFront={emptyFunction}
                     addDocument={undefined}

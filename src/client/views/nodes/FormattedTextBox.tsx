@@ -182,9 +182,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
                     if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
                     else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
-                })
+                });
             });
-        })
+        });
         this.linkOnDeselect.clear();
     }
 
@@ -195,7 +195,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let range = tx.selection.$from.blockRange(tx.selection.$to);
                 let text = range ? tx.doc.textBetween(range.start, range.end) : "";
                 let textEndSelection = tx.selection.to;
-                for (; textEndSelection < range!.end && text[textEndSelection - range!.start] != " "; textEndSelection++) { }
+                for (; textEndSelection < range!.end && text[textEndSelection - range!.start] !== " "; textEndSelection++) { }
                 text = text.substr(0, textEndSelection - range!.start);
                 text = text.split(" ")[text.split(" ").length - 1];
                 let split = text.split("::");

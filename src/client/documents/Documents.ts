@@ -631,8 +631,8 @@ export namespace DocUtils {
                                 LinkManager.Instance.deleteLink(link);
                                 LinkManager.Instance.addLink(link);
                             }
-                        })
-                    })
+                        });
+                    });
                 }
             }
         });

@@ -23,7 +23,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from '../DocComponent';
 import { InkingControl } from '../InkingControl';
-import { positionSchema } from './DocumentView';
+import { documentSchema } from './DocumentView';
 import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
@@ -50,8 +50,8 @@ declare class MediaRecorder {
     constructor(e: any);
 }
 
-type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
-const ImageDocument = makeInterface(pageSchema, positionSchema);
+type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
+const ImageDocument = makeInterface(pageSchema, documentSchema);
 
 @observer
 export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
@@ -220,7 +220,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             let modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
-            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" })
+            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
         }

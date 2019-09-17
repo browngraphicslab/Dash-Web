@@ -166,7 +166,7 @@ export default class KeyManager {
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];
-                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target)
+                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
                 break;
             case "r":
                 preventDefault = false;

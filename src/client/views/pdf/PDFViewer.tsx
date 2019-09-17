@@ -81,7 +81,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return annotations.filter(anno => {
             let run = this._script.run({ this: anno });
             return run.success ? run.result : true;
-        })
+        });
     }
 
     @computed get nonDocAnnotations() {

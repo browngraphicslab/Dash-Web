@@ -20,7 +20,7 @@ export const inpRules = {
             /^1\.\s$/,
             schema.nodes.ordered_list,
             () => {
-                return ({ mapStyle: "decimal", bulletStyle: 1 })
+                return ({ mapStyle: "decimal", bulletStyle: 1 });
             },
             (match: any, node: any) => {
                 return node.childCount + node.attrs.order === +match[1];
@@ -33,7 +33,7 @@ export const inpRules = {
             schema.nodes.ordered_list,
             // match => {
             () => {
-                return ({ mapStyle: "alpha", bulletStyle: 1 })
+                return ({ mapStyle: "alpha", bulletStyle: 1 });
                 // return ({ order: +match[1] })
             },
             (match: any, node: any) => {
@@ -67,7 +67,7 @@ export const inpRules = {
                     (Cast(FormattedTextBox.InputBoxOverlay!.props.Document, Doc) as Doc).heading = Number(match[1]);
                     return state.tr.deleteRange(start, end);
                 }
-                return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }))
+                return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }));
             }),
         new InputRule(
             new RegExp(/^\^\^\s$/),

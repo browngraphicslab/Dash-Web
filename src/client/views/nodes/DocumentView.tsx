@@ -1,9 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
@@ -209,43 +209,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     public collapseTargetsToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
         SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(maximizedDoc => {
-                if (isMinimized === undefined) {
-                    isMinimized = BoolCast(maximizedDoc.isMinimized);
+        expandedDocs && expandedDocs.map(expDoc => {
+            if (expDoc.isMinimized || expDoc.isAnimating === "min") { // MAXIMIZE DOC
+                if (expDoc.isMinimized) {  // docs are never actaully at the minimized location.  so when we unminimize one, we have to set our overrides to make it look like it was at the minimize location
+                    expDoc.isMinimized = false;
+                    expDoc.animateToPos = new List<number>([...scrpt, 0]);
+                    expDoc.animateToDimensions = new List<number>([0, 0]);
                 }
-                let w = NumCast(maximizedDoc.width);
-                let h = NumCast(maximizedDoc.height);
-                let iconAnimating = maximizedDoc.isIconAnimating ? Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!) : undefined;
-                if (isMinimized || (iconAnimating && iconAnimating.length && iconAnimating[0] === 0)) {
-                    // MAXIMIZE DOC
-                    if (maximizedDoc.isMinimized) {
-                        maximizedDoc.isIconAnimating = new List<number>([0, 0]);
-                        maximizedDoc.isMinimized = false;
+                setTimeout(() => {
+                    expDoc.isAnimating = "max";
+                    expDoc.animateToPos = new List<number>([0, 0, 1]);
+                    expDoc.animateToDimensions = new List<number>([NumCast(expDoc.width), NumCast(expDoc.height)]);
+                    setTimeout(() => expDoc.isAnimating === "max" && (expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined), 600);
+                }, 0);
+            } else {  // MINIMIZE DOC
+                expDoc.isAnimating = "min";
+                expDoc.animateToPos = new List<number>([...scrpt, 0]);
+                expDoc.animateToDimensions = new List<number>([0, 0]);
+                setTimeout(() => {
+                    if (expDoc.isAnimating === "min") {
+                        expDoc.isMinimized = true;
+                        expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined;
                     }
-                    maximizedDoc.iconTarget = new List<number>([...scrpt, 1]);
-                    setTimeout(() => {
-                        maximizedDoc.isIconAnimating = new List<number>([w, h]);
-                        setTimeout(() => {
-                            if (maximizedDoc.isIconAnimating && Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!)[0] !== 0) {
-                                maximizedDoc.isIconAnimating = undefined;
-                            }
-                        }, 750);
-                    }, 0);
-                } else {
-                    maximizedDoc.iconTarget = new List<number>([...scrpt, 0]);
-                    // MINIMIZE DOC
-                    maximizedDoc.isIconAnimating = new List<number>([0, 0]);
-                    setTimeout(() => {
-                        if (maximizedDoc.isIconAnimating && Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!)[0] === 0) {
-                            maximizedDoc.isMinimized = true;
-                            maximizedDoc.isIconAnimating = undefined;
-                        }
-                    }, 750);
-                }
-            });
-        }
+                }, 600);
+            }
+        });
     }
 
     onClick = async (e: React.MouseEvent) => {
@@ -530,14 +518,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.Document.width || 0) + 10, height: this.Document.height || 0, title: portalID });
                 DocUtils.MakeLink(this.props.Document, portal, undefined, portalID);
                 Doc.GetProto(this.props.Document).isButton = true;
-            })
+            });
         }
     }
     @undoBatch
     @action
     toggleCustomView = (): void => {
         if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.DataDoc) {
-            Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc)
+            Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc);
         } else {
             if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
                 this.makeCustomViewClicked();
@@ -623,7 +611,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
         layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.Document.lockedPosition ? "unlock" : "lock" });
         if (this.props.DataDoc) {
-            layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc!), icon: "concierge-bell" })
+            layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc!), icon: "concierge-bell" });
         }
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
@@ -786,7 +774,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.Document.borderRounding || ruleRounding;
         const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
-        const iconAnimating = this.Document.isIconAnimating ? Array.from(Cast(this.Document.isIconAnimating, listSpec("number"))!) : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
                 {this.Document.searchFields}
@@ -817,7 +804,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    transition: iconAnimating ? "transform .5s" : StrCast(this.layoutDoc.transition),
+                    transition: this.props.Document.isAnimating !== undefined ? "transform .5s linear" : StrCast(this.layoutDoc.transition),
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.layoutDoc.color),
                     outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
@@ -881,7 +868,7 @@ let makeNativeView = (doc: any): void => {
     doc.nonCustomNativeWidth = undefined;
     doc.nonCustomNativeHeight = undefined;
     doc.nonCustomIgnoreAspect = undefined;
-}
+};
 let makeCustomView = (doc: any): void => {
     doc.nativeLayout = doc.layout;
     doc.nativeType = doc.type;
@@ -911,7 +898,7 @@ let makeCustomView = (doc: any): void => {
         doc.customNativeHeight = undefined;
         doc.customIgnoreAspect = undefined;
     }
-}
+};
 Scripting.addGlobal(function toggleDetail(doc: any) {
     if (doc.type !== DocumentType.COL && doc.type !== DocumentType.TEMPLATE) {
         makeCustomView(doc);

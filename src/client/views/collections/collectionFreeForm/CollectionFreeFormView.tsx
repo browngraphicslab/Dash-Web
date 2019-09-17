@@ -24,9 +24,9 @@ import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss"
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingCanvas } from "../../InkingCanvas";
-import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
+import { CollectionFreeFormDocumentView, positionSchema } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
-import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
+import { DocumentViewProps, documentSchema } from "../../nodes/DocumentView";
 import { pageSchema } from "../../nodes/ImageBox";
 import { OverlayElementOptions, OverlayView } from "../../OverlayView";
 import PDFMenu from "../../pdf/PDFMenu";
@@ -176,8 +176,8 @@ export namespace PivotView {
 
 }
 
-type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof positionSchema, typeof pageSchema]>;
-const PanZoomDocument = makeInterface(panZoomSchema, positionSchema, pageSchema);
+type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
+const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSchema, pageSchema);
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
@@ -341,7 +341,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     });
 
-                    de.data.droppedDocuments.length == 1 && this.updateCluster(de.data.droppedDocuments[0]);
+                    de.data.droppedDocuments.length === 1 && this.updateCluster(de.data.droppedDocuments[0]);
                 }
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
@@ -473,7 +473,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 // choose a cluster color from a palette
                 let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
                 clusterColor = colors[cluster % colors.length];
-                let set = this.sets.length > cluster ? this.sets[cluster].filter(s => s.backgroundColor && (s.backgroundColor != s.defaultBackgroundColor)) : undefined;
+                let set = this.sets.length > cluster ? this.sets[cluster].filter(s => s.backgroundColor && (s.backgroundColor !== s.defaultBackgroundColor)) : undefined;
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
                 set && set.filter(s => !s.isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
                 set && set.filter(s => s.isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
@@ -848,7 +848,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(headingLayout.heading)] = headingLayout.backgroundColor;
                 }
             })
-        )
+        );
     }
 
     analyzeStrokes = async () => {

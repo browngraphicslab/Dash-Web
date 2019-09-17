@@ -58,7 +58,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                     runInAction(() => this._brushed = brushed);
                 }
             }
-        )
+        );
     }
 
     componentWillUnmount() {

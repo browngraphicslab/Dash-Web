@@ -14,7 +14,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
-import { positionSchema } from "./DocumentView";
+import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
@@ -25,8 +25,8 @@ import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
 var path = require('path');
 
-type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
-const VideoDocument = makeInterface(positionSchema, pageSchema);
+type VideoDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
+const VideoDocument = makeInterface(documentSchema, pageSchema);
 
 library.add(faVideo);
 

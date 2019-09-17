@@ -523,12 +523,12 @@ export class TooltipTextMenu {
         tx2.doc.descendants((node: any, offset: any, index: any) => {
             if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
                 let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
+                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
                 if (node.type === schema.nodes.ordered_list) depth++;
                 tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
             }
         });
-    };
+    }
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
         //remove oldif (nodeType) { //add new

@@ -49,7 +49,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         funcs.push({
             description: "Clear Script Params", event: () => {
                 let params = Cast(this.props.Document.buttonParams, listSpec("string"));
-                params && params.map(p => this.props.Document[p] = undefined)
+                params && params.map(p => this.props.Document[p] = undefined);
             }, icon: "trash"
         });
 

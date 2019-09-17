@@ -14,14 +14,14 @@ import { CompileScript } from '../../util/Scripting';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { PDFViewer } from "../pdf/PDFViewer";
-import { positionSchema } from "./DocumentView";
+import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 
-type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
-const PdfDocument = makeInterface(positionSchema, pageSchema);
+type PdfDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
+const PdfDocument = makeInterface(documentSchema, pageSchema);
 export const handleBackspace = (e: React.KeyboardEvent) => { if (e.keyCode === KeyCodes.BACKSPACE) e.stopPropagation(); };
 
 @observer
