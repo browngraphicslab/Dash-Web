@@ -57,7 +57,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
                     let opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
                     if (opp) return opp;
                 }) as Doc[];
-                let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
+                let dragData = new DragManager.DocumentDragData(draggedDocs);
 
                 DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
                     handlers: {

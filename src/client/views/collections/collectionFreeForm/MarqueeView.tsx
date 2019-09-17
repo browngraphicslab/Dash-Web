@@ -22,6 +22,9 @@ import React = require("react");
 import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
 import { string } from "prop-types";
 import { listSpec } from "../../../../new_fields/Schema";
+import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
+import { CompileScript } from "../../../util/Scripting";
+import { ComputedField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -97,6 +100,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         } else if (!e.ctrlKey) {
             this.props.addLiveTextDocument(
                 Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" }));
+        } else if (e.keyCode > 48 && e.keyCode <= 57) {
+            let notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
+            let text = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" });
+            text.layout = notes[(e.keyCode - 49) % notes.length];
+            this.props.addLiveTextDocument(text);
         }
         e.stopPropagation();
     }
@@ -281,15 +289,18 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let palette = Array.from(Cast(this.props.container.props.Document.colorPalette, listSpec("string")) as string[]);
             let usedPaletted = new Map<string, number>();
             [...this.props.activeDocuments(), this.props.container.props.Document].map(child => {
-                let bg = StrCast(child.backgroundColor);
+                let bg = StrCast(child.layout instanceof Doc ? child.layout.backgroundColor : child.backgroundColor);
                 if (palette.indexOf(bg) !== -1) {
                     palette.splice(palette.indexOf(bg), 1);
                     if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
                     else usedPaletted.set(bg, 1);
                 }
             });
+            usedPaletted.delete("#f1efeb");
+            usedPaletted.delete("white");
+            usedPaletted.delete("rgba(255,255,255,1)");
             let usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
-            let chosenColor = usedPaletted.get("white") || usedPaletted.get("rgb(255,255,255)") && usedPaletted.size === 1 ? "white" : palette.length ? palette[0] : usedSequnce[0];
+            let chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
             let inkData = this.ink ? this.ink.inkData : undefined;
             let newCollection = Docs.Create.FreeformDocument(selected, {
                 x: bounds.left,
@@ -300,13 +311,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
                 width: bounds.width,
                 height: bounds.height,
-                title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
+                title: "a nested collection",
             });
             let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
             dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
             this.marqueeInkDelete(inkData);
 
-            if (e.key === "s") {
+            if (e.key === "s" || e.key === "S") {
                 selected.map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
@@ -315,39 +326,24 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     return d;
                 });
                 newCollection.chromeStatus = "disabled";
-                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                newCollection.proto!.summaryDoc = summary;
-                selected = [newCollection];
+                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                Doc.GetProto(newCollection).summaryDoc = summary;
+                Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
                 newCollection.x = bounds.left + bounds.width;
-                summary.proto!.subBulletDocs = new List<Doc>(selected);
-                summary.templates = new List<string>([Templates.Bullet.Layout]);
-                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
-                container.viewType = CollectionViewType.Stacking;
-                container.autoHeight = true;
-                this.props.addLiveTextDocument(container);
-                // });
-            } else if (e.key === "S") {
-                selected.map(d => {
-                    this.props.removeDocument(d);
-                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
-                    return d;
-                });
-                newCollection.chromeStatus = "disabled";
-                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                newCollection.proto!.summaryDoc = summary;
-                selected = [newCollection];
-                newCollection.x = bounds.left + bounds.width;
-                //this.props.addDocument(newCollection, false);
-                summary.proto!.summarizedDocs = new List<Doc>(selected);
-                summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                summary.autoHeight = true;
-
-                this.props.addLiveTextDocument(summary);
+                let computed = CompileScript(`return summaryTitle(this);`, { params: { this: "Doc" }, typecheck: false });
+                computed.compiled && (Doc.GetProto(newCollection).title = new ComputedField(computed));
+                if (e.key === "s") { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
+                    let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
+                    container.viewType = CollectionViewType.Stacking;
+                    container.autoHeight = true;
+                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "inPlace", or "onRight"
+                    this.props.addLiveTextDocument(container);
+                } else if (e.key === "S") { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
+                    Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                    this.props.addLiveTextDocument(summary);
+                }
             }
             else {
-                newCollection.ruleProvider = this.props.container.props.Document;
                 this.props.addDocument(newCollection, false);
                 this.props.selectDocuments([newCollection]);
             }

@@ -3,12 +3,12 @@ import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faChe
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { URLField } from '../../new_fields/URLField';
 import { emptyFunction, Utils } from "../../Utils";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -16,7 +16,7 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
-import { DocumentView, PositionDocument } from "./nodes/DocumentView";
+import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
@@ -30,6 +30,11 @@ import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { ObjectField } from '../../new_fields/ObjectField';
+import { DocServer } from '../DocServer';
+import { CompileScript } from '../util/Scripting';
+import { ComputedField } from '../../new_fields/ScriptField';
+import { PositionDocument } from './nodes/CollectionFreeFormDocumentView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -141,17 +146,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text.startsWith("::")) {
+                let targetID = text.slice(2, text.length);
+                let promoteDoc = SelectionManager.SelectedDocuments()[0];
+                DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             } else if (text.startsWith(">")) {
                 let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
-                let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
-                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                let proto = Doc.GetProto(docTemplate);
-                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
-                if (text.startsWith(">>")) {
-                    proto.detailedLayout = proto.layout;
-                    proto.miniLayout = ImageBox.LayoutString(metaKey);
+                let containerView = fieldTemplateView.props.ContainingCollectionView;
+                if (containerView) {
+                    let docTemplate = containerView.props.Document;
+                    let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                    let proto = Doc.GetProto(docTemplate);
+                    if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
+                        const fd = fieldTemplate.data;
+                        fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
+                    }
+                    fieldTemplate.title = metaKey;
+                    Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
+                    if (text.startsWith(">>")) {
+                        proto.detailedLayout = proto.layout;
+                        proto.miniLayout = ImageBox.LayoutString(metaKey);
+                    }
                 }
             }
             else {
@@ -239,7 +256,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dragDocView = SelectionManager.SelectedDocuments()[0];
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
-        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document), SelectionManager.SelectedDocuments().map(dv => dv.props.DataDoc ? dv.props.DataDoc : dv.props.Document));
+        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         dragData.xOffset = xoff;
         dragData.yOffset = yoff;
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
@@ -283,7 +300,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onCloseUp = async (e: PointerEvent) => {
         e.stopPropagation();
         if (e.button === 0) {
-            const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+            const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             SelectionManager.SelectedDocuments().map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
@@ -344,22 +361,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
-            if (!this._removeIcon) {
-                if (selectedDocs.length === 1) {
-                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].toggleMinimized());
-                } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
-                    Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
-                    let docViews = SelectionManager.ViewsSortedVertically();
-                    let topDocView = docViews[0];
-                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
-                    if (ind !== -1) {
-                        topDocView.templates.splice(ind, 1);
-                        topDocView.props.Document.subBulletDocs = undefined;
-                    } else {
-                        topDocView.addTemplate(Templates.Bullet);
-                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
+            if (!this._removeIcon && selectedDocs.length === 1) { // if you click on the top-left button when just 1 doc is selected, then collapse it.  not sure why we don't do it for multiple selections
+                this.getIconDoc(selectedDocs[0]).then(async icon => {
+                    let minimizedDoc = await Cast(selectedDocs[0].props.Document.minimizedDoc, Doc);
+                    if (minimizedDoc) {
+                        let scrpt = selectedDocs[0].props.ScreenToLocalTransform().scale(selectedDocs[0].props.ContentScaling()).inverse().transformPoint(
+                            NumCast(minimizedDoc.x) - NumCast(selectedDocs[0].Document.x), NumCast(minimizedDoc.y) - NumCast(selectedDocs[0].Document.y));
+                        selectedDocs[0].collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
                     }
-                }
+                });
             }
             this._removeIcon = false;
         }
@@ -371,8 +381,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = selected[0].props.Document;
         let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
-        iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
+
+        IconBox.AutomaticTitle(iconDoc);
         //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
         iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
@@ -397,8 +407,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     moveIconDoc(iconDoc: Doc) {
         let selView = SelectionManager.SelectedDocuments()[0];
-        let zoom = NumCast(selView.props.Document.zoomBasis, 1);
-        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).scale(1 / zoom).
+        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).
             transformPoint(this._minimizedX - 12, this._minimizedY - 12);
         iconDoc.x = where[0] + NumCast(selView.props.Document.x);
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
@@ -417,23 +426,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointermove", this.onRadiusMove);
             document.addEventListener("pointerup", this.onRadiusUp);
         }
-        if (!this._isMoving) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-                map(d => d.borderRounding = "0%");
-        }
     }
 
     onRadiusMove = (e: PointerEvent): void => {
         this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
-            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        dist = dist < 3 ? 0 : dist;
+        let usingRule = false;
         SelectionManager.SelectedDocuments().map(dv => {
             let cv = dv.props.ContainingCollectionView;
-            let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+            let ruleProvider = cv && cv.props.ruleProvider;
             let heading = NumCast(dv.props.Document.heading);
-            cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
+            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
+            usingRule = usingRule || (ruleProvider && heading ? true : false);
         })
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
     }
@@ -842,24 +850,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically();
-            let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
-                let temps = doc.props.Document.templates;
-                if (temps instanceof List) {
-                    temps.map(temp => {
-                        if (temp !== Templates.Bullet.Layout || i === 0) {
-                            res.push(temp);
-                        }
-                    });
-                }
-                return res;
-            }, [] as string[]);
             let checked = false;
-            docTemps.forEach(temp => {
-                if (template.Layout === temp) {
-                    checked = true;
-                }
-            });
+            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.layoutDoc["show" + template.Name] !== undefined));
             templates.set(template, checked);
         });
 

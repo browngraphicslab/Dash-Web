@@ -498,7 +498,7 @@ export class TooltipTextMenu {
             if (markType.name[0] === 'p') {
                 let size = this.fontSizeToNum.get(markType);
                 if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-                let ruleProvider = Cast(this.editorProps.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = this.editorProps.ruleProvider;
                 let heading = NumCast(this.editorProps.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleSize_" + heading] = size;
@@ -507,7 +507,7 @@ export class TooltipTextMenu {
             else {
                 let fontName = this.fontStylesToName.get(markType);
                 if (fontName) { this.updateFontStyleDropdown(fontName); }
-                let ruleProvider = Cast(this.editorProps.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = this.editorProps.ruleProvider;
                 let heading = NumCast(this.editorProps.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleFont_" + heading] = fontName;

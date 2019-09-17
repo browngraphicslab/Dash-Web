@@ -55,6 +55,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             Document: this.props.doc,
             DataDoc: this.props.doc,
             ContainingCollectionView: undefined,
+            ruleProvider: undefined,
             fieldKey: this.props.keyName,
             fieldExt: "",
             isSelected: returnFalse,
@@ -112,7 +113,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <div className="keyValuePair-td-value-container">
                         <EditableView
                             contents={contents}
-                            height={36}
+                            maxHeight={36}
+                            height={"auto"}
                             GetValue={() => {
                                 return Field.toKeyValueString(props.Document, props.fieldKey);
                             }}

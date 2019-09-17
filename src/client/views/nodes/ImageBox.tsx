@@ -216,12 +216,13 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
-            let modes: ContextMenuProps[] = [];
+            let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
+            let modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
+            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" })
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
-            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
     }
 
@@ -261,13 +262,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onDotDown(index: number) {
         this.Document.curPage = index;
     }
-
-    @computed get fieldExtensionDoc() {
-        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
-    }
-
     @computed private get url() {
-        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        let data = Cast(Doc.GetProto(this.props.Document)[this.props.fieldKey], ImageField);
         return data ? data.url.href : undefined;
     }
 
@@ -380,7 +376,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         // let w = bptX - sptX;
 
-        let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
         let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
@@ -406,11 +401,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 
         return (
-            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
+            <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
-                    <img id={id}
+                    <img
                         key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={srcpath}
                         style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}

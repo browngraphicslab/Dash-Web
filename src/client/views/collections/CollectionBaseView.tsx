@@ -104,9 +104,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
-        if (doc.type === DocumentType.BUTTON) {
-            doc.collectionContext = this.props.Document;  // used by docList() function in Doc.ts so that buttons can iterate over the documents in their collection
-        }
         allowDuplicates = true;
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
@@ -130,7 +127,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
 
@@ -144,17 +141,16 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return false;
     }
 
+    // this is called with the document that was dragged and the collection to move it into.
+    // if the target collection is the same as this collection, then the move will be allowed.
+    // otherwise, the document being moved must be able to be removed from its container before
+    // moving it into the target.  
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        let self = this;
-        let targetDataDoc = this.props.Document;
-        if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
+        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
-        if (this.removeDocument(doc)) {
-            return addDocument(doc);
-        }
-        return false;
+        return this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
     render() {

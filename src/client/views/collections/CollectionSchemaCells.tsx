@@ -149,6 +149,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
             fieldExt: "",
+            ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
@@ -171,7 +172,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         let onItemDown = (e: React.PointerEvent) => {
             if (fieldIsDoc) {
                 SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
+                    this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
             }
         };
         let onPointerEnter = (e: React.PointerEvent): void => {
@@ -214,7 +216,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents}
-                            height={Number(MAX_ROW_HEIGHT)}
+                            height={"auto"}
+                            maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
                                 let field = props.Document[props.fieldKey];
                                 if (Field.IsField(field)) {

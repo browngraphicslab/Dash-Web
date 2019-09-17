@@ -155,6 +155,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
         let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, documentText: "@@@" + value, title: value, autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
+        let maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
+        let heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
+        newDoc.heading = heading;
         return this.props.parent.props.addDocument(newDoc);
     }
 
@@ -180,7 +183,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             if (compiled.compiled) {
                 let scriptField = new ScriptField(compiled);
                 alias.viewSpecScript = scriptField;
-                let dragData = new DragManager.DocumentDragData([alias], [alias.proto]);
+                let dragData = new DragManager.DocumentDragData([alias]);
                 DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
             }
 

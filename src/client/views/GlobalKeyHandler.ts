@@ -30,7 +30,7 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key.toLowerCase();
+        let keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
@@ -166,7 +166,7 @@ export default class KeyManager {
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];
-                target && target.fullScreenClicked();
+                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target)
                 break;
             case "r":
                 preventDefault = false;

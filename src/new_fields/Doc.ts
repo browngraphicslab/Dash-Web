@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction } from "mobx";
+import { observable, ObservableMap, runInAction, action } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -143,8 +143,14 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
-    public [HeightSym] = () => NumCast(this[SelfProxy].height);
+    public [WidthSym] = () => {
+        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
+        return iconAnimating ? iconAnimating[0] : NumCast(this[SelfProxy].width);
+    }
+    public [HeightSym] = () => {
+        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
+        return iconAnimating ? iconAnimating[1] : NumCast(this[SelfProxy].height);
+    }
 
     [ToScriptString]() {
         return "invalid";
@@ -412,6 +418,9 @@ export namespace Doc {
     }
     export function MakeAlias(doc: Doc) {
         let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+        if (alias.layout instanceof Doc) {
+            alias.layout = Doc.MakeAlias(alias.layout as Doc);
+        }
         let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         let script = `return renameAlias(self, ${aliasNumber})`;
         //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";
@@ -475,13 +484,36 @@ export namespace Doc {
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
 
-    export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
-        const copy = new Doc;
+    export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {
         Object.keys(doc).forEach(key => {
             const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
-                if (field instanceof Doc) {
-                    copy[key] = Doc.MakeCopy(field);
+                if (doc.proto instanceof Doc && overwrite.proto instanceof Doc) {
+                    overwrite[key] = Doc.Overwrite(doc[key]!, overwrite.proto);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    overwrite[key] = field;
+                } else if (field instanceof ObjectField) {
+                    overwrite[key] = ObjectField.MakeCopy(field);
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    overwrite[key] = field;
+                }
+            }
+        });
+
+        return overwrite;
+    }
+
+    export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
+        const copy = new Doc(copyProtoId, true);
+        Object.keys(doc).forEach(key => {
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            if (key === "proto" && copyProto) {
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.MakeCopy(doc[key]!, false);
                 }
             } else {
                 if (field instanceof RefField) {
@@ -528,7 +560,7 @@ export namespace Doc {
         !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
         return otherdoc;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc, useTemplateDoc?: boolean) {
         if (!templateDoc) {
             target.layout = undefined;
             target.nativeWidth = undefined;
@@ -537,7 +569,7 @@ export namespace Doc {
             target.type = undefined;
             return;
         }
-        let temp = Doc.MakeDelegate(templateDoc);
+        let temp = useTemplateDoc ? templateDoc : Doc.MakeDelegate(templateDoc);
         target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         !templateDoc.nativeWidth && (target.nativeWidth = 0);
@@ -558,25 +590,21 @@ export namespace Doc {
         }
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
+    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
+        let metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
         if (fieldTemplate.layout instanceof Doc) {
             fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
         }
-        let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         if (backgroundLayout) {
-            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
         }
 
-        let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
-        layoutDelegate.layout = layout;
-
-        fieldTemplate.templateField = metaKey;
-        fieldTemplate.title = metaKey;
+        fieldTemplate.templateField = metadataFieldName;
+        fieldTemplate.title = metadataFieldName;
         fieldTemplate.isTemplate = true;
-        fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
@@ -585,8 +613,20 @@ export namespace Doc {
         fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
         fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
         fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
-        fieldTemplate.showTitle = "title";
-        setTimeout(() => fieldTemplate.proto = templateDataDoc);
+        fieldTemplate.panX = 0;
+        fieldTemplate.panY = 0;
+        fieldTemplate.scale = 1;
+        fieldTemplate.showTitle = suppressTitle ? undefined : "title";
+        let data = fieldTemplate.data;
+        setTimeout(action(() => {
+            !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
+            let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
+            let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
+            layoutDelegate.layout = layout;
+            fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
+            if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
+            fieldTemplate.proto = templateDataDoc;
+        }), 0);
     }
 
     export function ToggleDetailLayout(d: Doc) {
