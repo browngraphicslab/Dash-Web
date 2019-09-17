@@ -38,7 +38,7 @@ export class IconBox extends React.Component<FieldViewProps> {
     }
     public static titleScript(inputDoc: Doc) {
         const maxDoc = DocListCast(inputDoc.maximizedDocs);
-        if (maxDoc.length === 1 && StrCast(maxDoc[0].title).startsWith("-")) {
+        if (maxDoc.length === 1) {
             return maxDoc[0].title + ".icon";
         }
         return maxDoc.length > 1 ? "-multiple-.icon" : "???";

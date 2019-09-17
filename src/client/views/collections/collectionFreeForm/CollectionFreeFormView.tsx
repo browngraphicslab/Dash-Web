@@ -668,7 +668,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
-            ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider,
+            ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,

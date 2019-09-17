@@ -161,7 +161,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        this._animateToIconDisposer = reaction(() => this.props.Document.isIconAnimating, (values) =>
+        this._animateToIconDisposer = reaction(() => this.Document.isIconAnimating, (values) =>
             (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
             , { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
@@ -169,7 +169,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
         this.props.animateBetweenIcon ? this.props.animateBetweenIcon(iconPos, startTime, maximizing) :
-            DocumentView.animateBetweenIconFunc(this.props.Document, this.Document[WidthSym](), this.Document[HeightSym](), startTime, maximizing);
+            DocumentView.animateBetweenIconFunc(this.props.Document, this.Document.width || 0, this.Document.height || 0, startTime, maximizing);
     }
 
     public static animateBetweenIconFunc = (doc: Doc, width: number, height: number, stime: number, maximizing: boolean, cb?: (progress: number) => void) => {
