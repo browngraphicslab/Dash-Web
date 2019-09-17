@@ -1,11 +1,12 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
+import { FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
-import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
-import "./DocumentView.scss";
+import { percent2frac } from "../../../Utils"
+import { DocumentView, DocumentViewProps, documentSchema } from "./DocumentView";
+import "./CollectionFreeFormDocumentView.scss";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
 import { random } from "animejs";
@@ -17,30 +18,31 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     height?: number;
     jitterRotation: number;
 }
-
-const schema = createSchema({
+const positionSchema = createSchema({
     zIndex: "number",
+    x: "number",
+    y: "number",
+    z: "number",
 });
 
-//TODO Types: The import order is wrong, so positionSchema is undefined
-type FreeformDocument = makeInterface<[typeof schema, typeof positionSchema]>;
-const FreeformDocument = makeInterface(schema, positionSchema);
+export type PositionDocument = makeInterface<[typeof documentSchema, typeof positionSchema]>;
+export const PositionDocument = makeInterface(documentSchema, positionSchema);
 
 @observer
-export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
+export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
     @computed get X() { return this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
     @computed get Y() { return this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
-    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
-    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
-    @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-    @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
+    @computed get width() { return this.Document.willMaximize ? 0 : this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
+    @computed get height() { return this.Document.willMaximize ? 0 : this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
+    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
+    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
+    @computed get scaleToOverridingWidth() { return this.width / FieldValue(this.Document.width, this.width); }
 
     @computed get renderScriptDim() {
         if (this.Document.renderScript) {
-            let someView = Cast(this.Document.someView, Doc);
-            let minimap = Cast(this.Document.minimap, Doc);
+            let someView = Cast(this.props.Document.someView, Doc);
+            let minimap = Cast(this.props.Document.minimap, Doc);
             if (someView instanceof Doc && minimap instanceof Doc) {
                 let x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
                 let y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
@@ -52,7 +54,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
 
-    contentScaling = () => this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? this.width / this.nativeWidth : 1;
+    contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
@@ -74,15 +76,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
-        let ruleProvider = this.props.ruleProvider;
-        let ruleRounding = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleRounding_" + NumCast(this.props.Document.heading)]) : undefined;
-        let br = StrCast(this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout.borderRounding : this.props.Document.borderRounding);
+        let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
+        let br = StrCast(((this.layoutDoc.layout as Doc) || this.Document).borderRounding);
         br = !br && ruleRounding ? ruleRounding : br;
         if (br.endsWith("%")) {
-            let percent = Number(br.substr(0, br.length - 1)) / 100;
             let nativeDim = Math.min(NumCast(this.layoutDoc.nativeWidth), NumCast(this.layoutDoc.nativeHeight));
-            let minDim = percent * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
-            return minDim;
+            return percent2frac(br) * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
         }
         return undefined;
     }
@@ -103,9 +102,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
-                    transformOrigin: "left top",
-                    position: "absolute",
-                    backgroundColor: "transparent",
                     boxShadow:
                         this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
                             this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow

@@ -86,6 +86,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         dragSource._dragListener.onMouseDown(e);
     }
 
+    @undoBatch
     @action
     public OpenFullScreen(docView: DocumentView) {
         let document = Doc.MakeAlias(docView.props.Document);
@@ -101,6 +102,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._maximizedSrc = docView;
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+        SelectionManager.DeselectAll();
     }
 
     public CloseFullScreen = () => {
@@ -169,6 +171,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
+    @undoBatch
     @action
     public AddRightSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
@@ -207,6 +210,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         return newContentItem;
     }
+
+    @undoBatch
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         Doc.GetProto(document).lastOpened = new DateField;

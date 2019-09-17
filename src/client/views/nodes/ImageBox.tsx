@@ -376,7 +376,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         // let w = bptX - sptX;
 
-        let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
         let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
@@ -402,11 +401,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 
         return (
-            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
+            <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
-                    <img id={id}
+                    <img
                         key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={srcpath}
                         style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}

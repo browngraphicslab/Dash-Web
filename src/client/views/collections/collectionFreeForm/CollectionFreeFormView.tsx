@@ -862,7 +862,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let layoutItems: ContextMenuProps[] = [];
 
         if (this.childDocs.some(d => BoolCast(d.isTemplate))) {
-            layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
+            layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
         }
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: async () => this.Document.fitToBox = !this.fitToBox, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
