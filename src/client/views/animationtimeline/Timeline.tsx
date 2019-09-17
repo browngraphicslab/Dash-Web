@@ -352,11 +352,14 @@ export class Timeline extends React.Component<FieldViewProps> {
         e.preventDefault(); 
         e.stopPropagation(); 
         let offset = e.clientX - this._infoContainer.current!.getBoundingClientRect().left; 
-        let prevTime = KeyframeFunc.convertPixelTime(this._visibleStart + offset, "mili", "time", this._tickSpacing, this._tickIncrement); 
+        let prevTime = KeyframeFunc.convertPixelTime(this._visibleStart + offset, "mili", "time", this._tickSpacing, this._tickIncrement);
+        let prevCurrent = KeyframeFunc.convertPixelTime(this._currentBarX,"mili", "time", this._tickSpacing, this._tickIncrement);  
         e.deltaY < 0 ? this.zoom(true) : this.zoom(false); 
         let currPixel = KeyframeFunc.convertPixelTime(prevTime, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
+        let currCurrent = KeyframeFunc.convertPixelTime(prevCurrent, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
         this._infoContainer.current!.scrollLeft = currPixel - offset; 
-        this._visibleStart = currPixel - offset;    
+        this._visibleStart = currPixel - offset;  
+        this.changeCurrentBarX(currCurrent);  
     }
 
     @action

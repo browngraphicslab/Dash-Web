@@ -44,12 +44,16 @@ export class TimelineMenu extends React.Component {
                 document.addEventListener("keypress", (e:KeyboardEvent) => {
                     if (e.keyCode === 13) {
                         event(text); 
+                        this.closeMenu(); 
                     }
                 });
             }}/></div>); 
         } else if (type === "button") {
             let buttonRef = React.createRef<HTMLDivElement>(); 
-            this._currentMenu.push( <div className="timeline-menu-item"><FontAwesomeIcon icon={faChartLine}size="lg"/><p className="timeline-menu-desc" onClick={event}>{title}</p></div>); 
+            this._currentMenu.push( <div className="timeline-menu-item"><FontAwesomeIcon icon={faChartLine}size="lg"/><p className="timeline-menu-desc" onClick={(e) => {
+                event(e); 
+                this.closeMenu(); 
+            }}>{title}</p></div>); 
         }
     }
 

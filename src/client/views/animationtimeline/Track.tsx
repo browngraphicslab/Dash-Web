@@ -53,10 +53,6 @@ export class Track extends React.Component<IProps> {
             if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             this.props.node.hidden = false;                   
             this.props.node.opacity = 1; 
-            let state = new Doc();  
-            state.key = Doc.MakeCopy(await this.props.node, true);
-            console.log(this.props.node.x); 
-            this._storedState = state;             
         });
 
     }
@@ -101,7 +97,7 @@ export class Track extends React.Component<IProps> {
     @action 
     revertState = () => {
         let copyDoc = Doc.MakeCopy(this.props.node, true); 
-        this.applyKeys(this._storedState!); 
+        if (this._storedState) this.applyKeys(this._storedState);
         let newState = new Doc(); 
         newState.key = copyDoc; 
         this._storedState = newState; 

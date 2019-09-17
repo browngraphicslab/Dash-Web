@@ -206,8 +206,7 @@ export class MainView extends React.Component {
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
         }
-        console.log(targets.toString()); 
-        if (targets && targets.length && targets[0].className.toString().indexOf("timeline-menu-desc") === -1 || targets[0].className.toString().indexOf("timeline-menu-item") === -1 || targets[0].className.toString().indexOf("timeline-menu-item") === -1 || targets[0].className.toString().indexOf("timeline-menu-input") === -1){
+        if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !=="timeline-menu-input")){
             TimelineMenu.Instance.closeMenu(); 
         } 
     });

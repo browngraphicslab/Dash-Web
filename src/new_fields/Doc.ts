@@ -334,7 +334,7 @@ export namespace Doc {
     }
 
     export function IndexOf(toFind: Doc, list: Doc[]) {
-        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind))
+        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         if (target[key] === undefined) {
