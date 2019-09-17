@@ -65,7 +65,7 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    layout?: string;
+    layout?: string | Doc;
     isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;

@@ -53,8 +53,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
 
+        get childLayoutPairs() {
+            return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
+        }
         get childDocs() {
-            let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
             let docs = DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
@@ -129,9 +131,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         return moved || added;
                     }, false);
                 } else if (de.data.moveDocument) {
-                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
-                    added = movedDocs.reduce((added: boolean, d) =>
-                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
+                    let movedDocs = de.data.draggedDocuments;// de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    // note that it's possible the drag function might create a drop document that's not the same as the
+                    // original dragged document.  So we explicitly call addDocument() with a droppedDocument and 
+                    added = movedDocs.reduce((added: boolean, d, i) =>
+                        de.data.moveDocument(d, this.props.Document, (doc: Doc) => this.props.addDocument(de.data.droppedDocuments[i])) || added, false);
                 } else {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => {
                         let moved = this.props.addDocument(d);

@@ -14,7 +14,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Gateway } from "../../northstar/manager/Gateway";
-import { SetupDrag, DragManager } from "../../util/DragManager";
+import { DragManager } from "../../util/DragManager";
 import { CompileScript, ts, Transformer } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';

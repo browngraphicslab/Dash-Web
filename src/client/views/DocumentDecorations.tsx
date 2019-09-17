@@ -16,7 +16,7 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
-import { DocumentView, PositionDocument } from "./nodes/DocumentView";
+import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
@@ -32,6 +32,9 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { DocServer } from '../DocServer';
+import { CompileScript } from '../util/Scripting';
+import { ComputedField } from '../../new_fields/ScriptField';
+import { PositionDocument } from './nodes/CollectionFreeFormDocumentView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -253,7 +256,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dragDocView = SelectionManager.SelectedDocuments()[0];
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
-        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document), SelectionManager.SelectedDocuments().map(dv => dv.props.DataDoc ? dv.props.DataDoc : dv.props.Document));
+        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         dragData.xOffset = xoff;
         dragData.yOffset = yoff;
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
@@ -358,15 +361,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
-            if (!this._removeIcon) {
-                if (selectedDocs.length === 1) {
-                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].toggleMinimized());
-                } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
-                    Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
-                    let docViews = SelectionManager.ViewsSortedVertically();
-                    let topDocView = docViews[0];
-                    topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
-                }
+            if (!this._removeIcon && selectedDocs.length === 1) { // if you click on the top-left button when just 1 doc is selected, then collapse it.  not sure why we don't do it for multiple selections
+                this.getIconDoc(selectedDocs[0]).then(async icon => {
+                    let minimizedDoc = await Cast(selectedDocs[0].props.Document.minimizedDoc, Doc);
+                    if (minimizedDoc) {
+                        let scrpt = selectedDocs[0].props.ScreenToLocalTransform().scale(selectedDocs[0].props.ContentScaling()).inverse().transformPoint(
+                            NumCast(minimizedDoc.x) - NumCast(selectedDocs[0].Document.x), NumCast(minimizedDoc.y) - NumCast(selectedDocs[0].Document.y));
+                        selectedDocs[0].collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+                    }
+                });
             }
             this._removeIcon = false;
         }
@@ -378,8 +381,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = selected[0].props.Document;
         let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
-        iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
+
+        IconBox.AutomaticTitle(iconDoc);
         //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
         iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);

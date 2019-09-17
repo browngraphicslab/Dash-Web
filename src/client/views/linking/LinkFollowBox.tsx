@@ -172,7 +172,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (LinkFollowBox.destinationDoc) {
             let view: DocumentView | null = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc);
             view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
-            SelectionManager.DeselectAll();
         }
     }
 
@@ -188,7 +187,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let view = DocumentManager.Instance.getDocumentView(options.context);
             view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
             this.highlightDoc();
-            SelectionManager.DeselectAll();
         }
     }
 

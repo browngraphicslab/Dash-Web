@@ -66,15 +66,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs: (Doc | undefined)[] = []) {
+    public StartOtherDrag(e: any, dragDocs: Doc[]) {
         let config: any;
         if (dragDocs.length === 1) {
-            config = CollectionDockingView.makeDocumentConfig(dragDocs[0], dragDataDocs[0]);
+            config = CollectionDockingView.makeDocumentConfig(dragDocs[0], undefined);
         } else {
             config = {
                 type: 'row',
                 content: dragDocs.map((doc, i) => {
-                    CollectionDockingView.makeDocumentConfig(doc, dragDataDocs[i]);
+                    CollectionDockingView.makeDocumentConfig(doc, undefined);
                 })
             };
         }
@@ -84,14 +84,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             dragSource.destroy();
         });
         dragSource._dragListener.onMouseDown(e);
-        // dragSource.destroy();
-        // this.hack = true;
-        // this.undohack = UndoManager.StartBatch("goldenDrag");
-        // dragDocs.map((dragDoc, i) =>
-        //     this.AddRightSplit(dragDoc, dragDataDocs[i], true).contentItems[0].tab._dragListener.
-        //         onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
+    @undoBatch
     @action
     public OpenFullScreen(docView: DocumentView) {
         let document = Doc.MakeAlias(docView.props.Document);
@@ -107,6 +102,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._maximizedSrc = docView;
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+        SelectionManager.DeselectAll();
     }
 
     public CloseFullScreen = () => {
@@ -175,6 +171,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
+    @undoBatch
     @action
     public AddRightSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
@@ -213,6 +210,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         return newContentItem;
     }
+
+    @undoBatch
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         Doc.GetProto(document).lastOpened = new DateField;
@@ -412,7 +411,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc], [dataDoc]), e.clientX, e.clientY, {
+                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
                             handlers: { dragComplete: emptyFunction },
                             hideSource: false
                         });

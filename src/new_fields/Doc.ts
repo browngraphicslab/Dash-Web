@@ -143,8 +143,14 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
-    public [HeightSym] = () => NumCast(this[SelfProxy].height);
+    public [WidthSym] = () => {
+        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
+        return iconAnimating ? iconAnimating[0] : NumCast(this[SelfProxy].width);
+    }
+    public [HeightSym] = () => {
+        let iconAnimating = this[SelfProxy].isIconAnimating ? Array.from(Cast(this[SelfProxy].isIconAnimating, listSpec("number"))!) : undefined;
+        return iconAnimating ? iconAnimating[1] : NumCast(this[SelfProxy].height);
+    }
 
     [ToScriptString]() {
         return "invalid";
@@ -412,6 +418,9 @@ export namespace Doc {
     }
     export function MakeAlias(doc: Doc) {
         let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+        if (alias.layout instanceof Doc) {
+            alias.layout = Doc.MakeAlias(alias.layout as Doc);
+        }
         let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         let script = `return renameAlias(self, ${aliasNumber})`;
         //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";

@@ -95,8 +95,9 @@ export class CollectionView extends React.Component<FieldViewProps> {
             }
             subItems.push({ description: "Schema", event: () => this.props.Document.viewType = CollectionViewType.Schema, icon: "th-list" });
             subItems.push({ description: "Treeview", event: () => this.props.Document.viewType = CollectionViewType.Tree, icon: "tree" });
+            subItems.push({ description: "Stacking", event: () => this.props.Document.viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
             subItems.push({
-                description: "Stacking", event: () => {
+                description: "Stacking (AutoHeight)", event: () => {
                     this.props.Document.viewType = CollectionViewType.Stacking;
                     this.props.Document.autoHeight = true
                 }, icon: "ellipsis-v"

@@ -55,7 +55,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
             let doc = res !== undefined && res.success ?
                 res.result as Doc :
                 Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
-            doc && DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc], [undefined]), e.clientX, e.clientY);
+            doc && DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
         }
         e.stopPropagation();
         e.preventDefault();

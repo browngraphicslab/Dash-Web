@@ -37,6 +37,7 @@ export class Utils {
     public static prepend(extension: string): string {
         return window.location.origin + extension;
     }
+
     public static CorsProxy(url: string): string {
         return this.prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
     }
@@ -237,6 +238,10 @@ export function timenow() {
     }
     if (m < 10) m = '0' + m;
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
+}
+
+export function percent2frac(percent: string) {
+    return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }

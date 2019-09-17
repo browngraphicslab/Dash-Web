@@ -127,7 +127,7 @@ export namespace UndoManager {
 
     export function StartBatch(batchName: string): Batch {
         batchCounter++;
-        if (batchCounter > 0) {
+        if (batchCounter > 0 && currentBatch === undefined) {
             currentBatch = [];
         }
         return new Batch(batchName);

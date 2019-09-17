@@ -102,7 +102,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         if ((e.movementX > 1 || e.movementY > 1) && FormattedTextBox.InputBoxOverlay) {
             document.removeEventListener("pointermove", this.textBoxMove);
             document.removeEventListener('pointerup', this.textBoxUp);
-            let dragData = new DragManager.DocumentDragData([FormattedTextBox.InputBoxOverlay.props.Document], [FormattedTextBox.InputBoxOverlay.props.DataDoc]);
+            let dragData = new DragManager.DocumentDragData([FormattedTextBox.InputBoxOverlay.props.Document]);
             const [left, top] = this._textXf().inverse().transformPoint(0, 0);
             dragData.xOffset = e.clientX - left;
             dragData.yOffset = e.clientY - top;

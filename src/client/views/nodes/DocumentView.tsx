@@ -102,35 +102,41 @@ export interface DocumentViewProps {
     zoomToScale: (scale: number) => void;
     backgroundColor: (doc: Doc) => string | undefined;
     getScale: () => number;
-    animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
+    animateBetweenIcon?: (maximize: boolean, target: number[]) => void;
     ChromeHeight?: () => number;
 }
 
-const schema = createSchema({
-    layout: "string",
+export const documentSchema = createSchema({
+    layout: "string", // should also allow Doc but that can't be expressed in the schema
+    title: "string",
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string",
     opacity: "number",
     hidden: "boolean", 
     onClick: ScriptField,
-});
-
-export const positionSchema = createSchema({
-    nativeWidth: "number",
-    nativeHeight: "number",
+    ignoreAspect: "boolean",
+    autoHeight: "boolean",
+    isTemplate: "boolean",
+    isButton: "boolean",
+    isBackground: "boolean",
+    ignoreClick: "boolean",
+    type: "string",
+    maximizeLocation: "string",
+    lockedPosition: "boolean",
+    excludeFromLibrary: "boolean",
     width: "number",
     height: "number",
-    x: "number",
-    y: "number",
-    z: "number",
+    borderRounding: "string",
+    fitToBox: "boolean",
+    searchFields: "string",
+    heading: "number",
+    showCaption: "string",
+    showTitle: "string"
 });
 
-export type PositionDocument = makeInterface<[typeof positionSchema]>;
-export const PositionDocument = makeInterface(positionSchema);
-
-type Document = makeInterface<[typeof schema]>;
-const Document = makeInterface(schema);
+type Document = makeInterface<[typeof documentSchema]>;
+const Document = makeInterface(documentSchema);
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
@@ -138,17 +144,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _downY: number = 0;
     private _lastTap: number = 0;
     private _doubleTap = false;
-    private _hitExpander = false;
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
-    _animateToIconDisposer?: IReactionDisposer;
-    _reactionDisposer?: IReactionDisposer;
 
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.renderDepth === 0; }
-    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     @action
     componentDidMount() {
@@ -157,48 +159,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        // bcz: kind of ugly .. setup a reaction to update the title of a summary document's target (maximizedDocs) whenver the summary doc's title changes
-        this._reactionDisposer = reaction(() => [DocListCast(this.props.Document.maximizedDocs).map(md => md.title),
-        this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
-            () => {
-                let maxDoc = DocListCast(this.props.Document.maximizedDocs);
-                if (maxDoc.length === 1 && StrCast(this.props.Document.title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
-                    this.props.Document.proto!.title = "-" + maxDoc[0].title + ".icon";
-                }
-                let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
-                if (sumDoc instanceof Doc && StrCast(this.props.Document.title).startsWith("-")) {
-                    this.props.Document.proto!.title = "-" + sumDoc.title + ".expanded";
-                }
-            }, { fireImmediately: true });
-        this._animateToIconDisposer = reaction(() => this.props.Document.isIconAnimating, (values) =>
-            (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
-            , { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
     }
 
-    animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
-        this.props.animateBetweenIcon ? this.props.animateBetweenIcon(iconPos, startTime, maximizing) :
-            DocumentView.animateBetweenIconFunc(this.props.Document, this.Document[WidthSym](), this.Document[HeightSym](), startTime, maximizing);
-    }
-
-    public static animateBetweenIconFunc = (doc: Doc, width: number, height: number, stime: number, maximizing: boolean, cb?: (progress: number) => void) => {
-        setTimeout(() => {
-            let now = Date.now();
-            let progress = now < stime + 200 ? Math.min(1, (now - stime) / 200) : 1;
-            doc.width = progress === 1 ? width : maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
-            doc.height = progress === 1 ? height : maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
-            cb && cb(progress);
-            if (now < stime + 200) {
-                DocumentView.animateBetweenIconFunc(doc, width, height, stime, maximizing, cb);
-            }
-            else {
-                doc.isMinimized = !maximizing;
-                doc.isIconAnimating = undefined;
-            }
-            doc.willMaximize = false;
-        },
-            2);
-    }
     @action
     componentDidUpdate() {
         this._dropDisposer && this._dropDisposer();
@@ -210,31 +173,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @action
     componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
-        this._animateToIconDisposer && this._animateToIconDisposer();
         this._dropDisposer && this._dropDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
-    stopPropagation = (e: React.SyntheticEvent) => {
-        e.stopPropagation();
-    }
-
     get dataDoc() {
-        if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
-            // if there is no dataDoc (ie, we're not rendering a temlplate layout), but this document
-            // has a template layout document, then we will render the template layout but use 
-            // this document as the data document for the layout.
-            return this.props.Document;
-        }
+        // bcz: don't think we need this, but left it in in case strange behavior pops up.  DocumentContentsView has this functionality
+        // if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
+        //     // if there is no dataDoc (ie, we're not rendering a temlplate layout), but this document
+        //     // has a template layout document, then we will render the template layout but use 
+        //     // this document as the data document for the layout.
+        //     return this.props.Document;
+        // }
         return this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
     }
-    startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean, applyAsTemplate?: boolean) {
+    startDragging(x: number, y: number, dropAction: dropActionType, applyAsTemplate?: boolean) {
         if (this._mainCont.current) {
-            let allConnected = [this.props.Document, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
-            let alldataConnected = [this.dataDoc, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
-            let dragData = new DragManager.DocumentDragData(allConnected, alldataConnected);
+            let dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.xOffset = xoff;
@@ -249,47 +205,54 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
     }
-    toggleMinimized = async () => {
-        let minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-        if (minimizedDoc) {
-            let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(
-                NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
-            this.collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
-        }
-    }
 
-    static _undoBatch?: UndoManager.Batch = undefined;
     @action
     public collapseTargetsToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
         SelectionManager.DeselectAll();
         if (expandedDocs) {
-            if (!DocumentView._undoBatch) {
-                DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
-            }
             let isMinimized: boolean | undefined;
             expandedDocs.map(maximizedDoc => {
-                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
-                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
-                    if (isMinimized === undefined) {
-                        isMinimized = BoolCast(maximizedDoc.isMinimized);
+                if (isMinimized === undefined) {
+                    isMinimized = BoolCast(maximizedDoc.isMinimized);
+                }
+                let w = NumCast(maximizedDoc.width);
+                let h = NumCast(maximizedDoc.height);
+                let iconAnimating = maximizedDoc.isIconAnimating ? Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!) : undefined;
+                if (isMinimized || (iconAnimating && iconAnimating.length && iconAnimating[0] === 0)) {
+                    // MAXIMIZE DOC
+                    if (maximizedDoc.isMinimized) {
+                        maximizedDoc.isIconAnimating = new List<number>([0, 0]);
+                        maximizedDoc.isMinimized = false;
                     }
-                    maximizedDoc.willMaximize = isMinimized;
-                    maximizedDoc.isMinimized = false;
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
+                    maximizedDoc.iconTarget = new List<number>([...scrpt, 1]);
+                    setTimeout(() => {
+                        maximizedDoc.isIconAnimating = new List<number>([w, h]);
+                        setTimeout(() => {
+                            if (maximizedDoc.isIconAnimating && Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!)[0] !== 0) {
+                                maximizedDoc.isIconAnimating = undefined;
+                            }
+                        }, 750);
+                    }, 0);
+                } else {
+                    maximizedDoc.iconTarget = new List<number>([...scrpt, 0]);
+                    // MINIMIZE DOC
+                    maximizedDoc.isIconAnimating = new List<number>([0, 0]);
+                    setTimeout(() => {
+                        if (maximizedDoc.isIconAnimating && Array.from(Cast(maximizedDoc.isIconAnimating, listSpec("number"))!)[0] === 0) {
+                            maximizedDoc.isMinimized = true;
+                            maximizedDoc.isIconAnimating = undefined;
+                        }
+                    }, 750);
                 }
             });
-            setTimeout(() => {
-                DocumentView._undoBatch && DocumentView._undoBatch.end();
-                DocumentView._undoBatch = undefined;
-            }, 500);
         }
     }
 
     onClick = async (e: React.MouseEvent) => {
-        if (e.nativeEvent.cancelBubble || SelectionManager.IsSelected(this)) return; // needed because EditableView may stopPropagation which won't apparently stop this event from firing.
+        if (e.nativeEvent.cancelBubble) return; // || SelectionManager.IsSelected(this)) -- bcz: needed because EditableView may stopPropagation which won't apparently stop this event from firing.
         if (this.onClickHandler && this.onClickHandler.script) {
             e.stopPropagation();
-            this.onClickHandler.script.run({ this: this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
+            this.onClickHandler.script.run({ this: this.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
             e.preventDefault();
             return;
         }
@@ -298,41 +261,34 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             e.stopPropagation();
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
-            fullScreenAlias.templates = new List<string>();
             Doc.UseDetailLayout(fullScreenAlias);
-            fullScreenAlias.showCaption = true;
+            fullScreenAlias.showCaption = "caption";
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             Doc.UnBrushDoc(this.props.Document);
         }
-        else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
+        else if (!this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
                 Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
-            if (BoolCast(this.props.Document.ignoreClick)) {
-                return;
-            }
             e.stopPropagation();
             SelectionManager.SelectDoc(this, e.ctrlKey);
-            let isExpander = (e.target as any).id === "isExpander";
-            if (BoolCast(this.props.Document.isButton) || this.props.Document.type === DocumentType.BUTTON || isExpander) {
-                let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
+            if (this.Document.isButton || this.Document.type === DocumentType.BUTTON) {
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
                 let linkedDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
                 let expandedDocs: Doc[] = [];
-                expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
-                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
-                if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+                // let expandedDocs = [ ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
+                if (expandedDocs.length) {
                     SelectionManager.DeselectAll();
-                    let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
+                    let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
                     if (altKey || ctrlKey) {
-                        maxLocation = this.props.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
+                        maxLocation = this.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
                         if (!maxLocation || maxLocation === "inPlace") {
                             let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized), false);
+                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !d.isMinimized, false);
                             expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
                             let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             if (!hasView) {
@@ -394,7 +350,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.nativeEvent.cancelBubble) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
-        this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         this._hitTemplateDrag = false;
         for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
             if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
@@ -412,11 +367,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("pointermove", this.onPointerMove);
         }
         else if (!e.cancelBubble && this.active) {
-            if (!this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3)) {
-                if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.props.Document.lockedPosition)) {
+            if (!this.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3)) {
+                if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.Document.lockedPosition)) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitExpander, this._hitTemplateDrag);
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -434,38 +389,32 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    fieldsClicked = (): void => {
-        let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 });
-        this.props.addDocTab(kvp, this.dataDoc, "onRight");
-    }
-
-    @undoBatch
     makeNativeViewClicked = (): void => {
         makeNativeView(this.props.Document);
     }
     @undoBatch
     makeCustomViewClicked = (): void => {
-        this.props.Document.nativeLayout = this.props.Document.layout;
-        this.props.Document.nativeType = this.props.Document.type;
-        this.props.Document.nonCustomAutoHeight = this.props.Document.autoHeight;
-        this.props.Document.nonCustomWidth = this.props.Document.nativeWidth;
-        this.props.Document.nonCustomHeight = this.props.Document.nativeHeight;
-        this.props.Document.nonCustomNativeWidth = this.props.Document.nativeWidth;
-        this.props.Document.nonCustomNativeHeight = this.props.Document.nativeHeight;
-        this.props.Document.nonCustomIgnoreAspect = this.props.Document.ignoreAspect;
+        this.props.Document.nativeLayout = this.Document.layout;
+        this.props.Document.nativeType = this.Document.type;
+        this.props.Document.nonCustomAutoHeight = this.Document.autoHeight;
+        this.props.Document.nonCustomWidth = this.Document.width;
+        this.props.Document.nonCustomHeight = this.Document.height;
+        this.props.Document.nonCustomNativeWidth = this.Document.nativeWidth;
+        this.props.Document.nonCustomNativeHeight = this.Document.nativeHeight;
+        this.props.Document.nonCustomIgnoreAspect = this.Document.ignoreAspect;
         PromiseValue(Cast(this.props.Document.customLayout, Doc)).then(custom => {
             if (custom) {
-                this.props.Document.type = DocumentType.TEMPLATE;
+                this.Document.type = DocumentType.TEMPLATE;
                 this.props.Document.layout = custom;
-                !custom.nativeWidth && (this.props.Document.nativeWidth = 0);
-                !custom.nativeHeight && (this.props.Document.nativeHeight = 0);
-                !custom.nativeWidth && (this.props.Document.ignoreAspect = true);
-                this.props.Document.autoHeight = this.props.Document.autoHeight;
-                this.props.Document.width = this.props.Document.customWidth;
-                this.props.Document.height = this.props.Document.customHeight;
-                this.props.Document.nativeWidth = this.props.Document.customNativeWidth;
-                this.props.Document.nativeHeight = this.props.Document.customNativeHeight;
-                this.props.Document.ignoreAspect = this.props.Document.ignoreAspect;
+                !custom.nativeWidth && (this.Document.nativeWidth = 0);
+                !custom.nativeHeight && (this.Document.nativeHeight = 0);
+                !custom.nativeWidth && (this.Document.ignoreAspect = true);
+                this.Document.autoHeight = BoolCast(this.Document.customAutoHeight);
+                this.Document.width = NumCast(this.props.Document.customWidth);
+                this.Document.height = NumCast(this.props.Document.customHeight);
+                this.Document.nativeWidth = NumCast(this.props.Document.customNativeWidth);
+                this.Document.nativeHeight = NumCast(this.props.Document.customNativeHeight);
+                this.Document.ignoreAspect = BoolCast(this.Document.customIgnoreAspect);
                 this.props.Document.customAutoHeight = undefined;
                 this.props.Document.customWidth = undefined;
                 this.props.Document.customHeight = undefined;
@@ -473,21 +422,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.Document.customNativeHeight = undefined;
                 this.props.Document.customIgnoreAspect = undefined;
             } else {
-                let options = { title: "data", width: NumCast(this.props.Document.width), x: -NumCast(this.props.Document.width) / 2, y: -NumCast(this.props.Document.height) / 2, };
-                let fieldTemplate = this.props.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
-                    this.props.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
+                let options = { title: "data", width: (this.Document.width || 0), x: -(this.Document.width || 0) / 2, y: - (this.Document.height || 0) / 2, };
+                let fieldTemplate = this.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
+                    this.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
                         Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
-                fieldTemplate.backgroundColor = StrCast(this.props.Document.backgroundColor);
+                fieldTemplate.backgroundColor = this.Document.backgroundColor;
                 fieldTemplate.heading = 1;
                 fieldTemplate.autoHeight = true;
 
-                let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: StrCast(this.Document.title) + "layout", width: NumCast(this.props.Document.width) + 20, height: Math.max(100, NumCast(this.props.Document.height) + 45) });
+                let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: this.Document.title + "layout", width: (this.Document.width || 0) + 20, height: Math.max(100, (this.Document.height || 0) + 45) });
                 let proto = Doc.GetProto(docTemplate);
                 Doc.MakeMetadataFieldTemplate(fieldTemplate, proto, true);
 
                 Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
-                Doc.GetProto(this.dataDoc || this.props.Document).customLayout = this.props.Document.layout;
+                Doc.GetProto(this.dataDoc || this.props.Document).customLayout = this.Document.layout;
             }
         });
     }
@@ -501,21 +450,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         } else {
             doc.isButton = true;
         }
-
-        // if (doc.isButton) {
-        //     if (!doc.nativeWidth) {
-        //         doc.nativeWidth = this.props.Document[WidthSym]();
-        //         doc.nativeHeight = this.props.Document[HeightSym]();
-        //     }
-        // } else {
-        //     doc.nativeWidth = doc.nativeHeight = undefined;
-        // }
-    }
-
-    @undoBatch
-    public fullScreenClicked = (): void => {
-        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this);
-        SelectionManager.DeselectAll();
     }
 
     @undoBatch
@@ -576,10 +510,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
-        let proto = this.props.Document.isTemplate ? this.props.Document : Doc.GetProto(this.props.Document);
-        this.props.Document.autoHeight = proto.autoHeight = false;
-        proto.ignoreAspect = !BoolCast(proto.ignoreAspect);
-        if (!BoolCast(proto.ignoreAspect) && !proto.nativeWidth) {
+        let proto = this.Document.isTemplate ? this.props.Document : Doc.GetProto(this.props.Document);
+        proto.autoHeight = this.Document.autoHeight = false;
+        proto.ignoreAspect = !proto.ignoreAspect;
+        if (!proto.ignoreAspect && !proto.nativeWidth) {
             proto.nativeWidth = this.props.PanelWidth();
             proto.nativeHeight = this.props.PanelHeight();
         }
@@ -588,12 +522,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     makeIntoPortal = (): void => {
         if (!DocListCast(this.props.Document.links).find(doc => {
-            if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.props.Document.title + ".portal") return true;
+            if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.Document.title + ".portal") return true;
             return false;
         })) {
-            let portalID = (this.props.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
+            let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
-                let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: portalID });
+                let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.Document.width || 0) + 10, height: this.Document.height || 0, title: portalID });
                 DocUtils.MakeLink(this.props.Document, portal, undefined, portalID);
                 Doc.GetProto(this.props.Document).isButton = true;
             })
@@ -651,14 +585,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const cm = ContextMenu.Instance;
         let subitems: ContextMenuProps[] = [];
-        subitems.push({ description: "Open Full Screen", event: this.fullScreenClicked, icon: "desktop" });
-        subitems.push({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, this.dataDoc, "inTab"), icon: "folder" });
-        subitems.push({ description: "Open Tab Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "inTab"), icon: "folder" });
-        subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, this.dataDoc, "onRight"), icon: "caret-square-right" });
-        subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "onRight"), icon: "caret-square-right" });
-        subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
+        subitems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this), icon: "desktop" });
+        subitems.push({ description: "Open Tab        ", event: () => this.props.addDocTab(this.props.Document, this.dataDoc, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Right      ", event: () => this.props.addDocTab(this.props.Document, this.dataDoc, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
-
 
         let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -676,7 +609,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "window-restore"
         });
         onClicks.push({ description: this.layoutDoc.ignoreClick ? "Select" : "Do Nothing", event: () => this.layoutDoc.ignoreClick = !this.layoutDoc.ignoreClick, icon: this.layoutDoc.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.props.Document.isButton || this.props.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         onClicks.push({
             description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => {
@@ -688,20 +621,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-        layoutItems.push({ description: this.props.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
+        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.Document.lockedPosition ? "unlock" : "lock" });
         if (this.props.DataDoc) {
             layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc!), icon: "concierge-bell" })
         }
         layoutItems.push({ description: `${this.layoutDoc.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.layoutDoc.chromeStatus = (this.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.layoutDoc.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
-        layoutItems.push({ description: this.props.Document.ignoreAspect || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
+        layoutItems.push({ description: this.Document.ignoreAspect || !this.Document.nativeWidth || !this.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         layoutItems.push({ description: this.layoutDoc.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.layoutDoc.lockedPosition) ? "unlock" : "lock" });
         layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
-        if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
+        if (this.props.Document.detailedLayout && !this.Document.isTemplate) {
             layoutItems.push({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
-        if (this.props.Document.type !== DocumentType.COL && this.props.Document.type !== DocumentType.TEMPLATE) {
+        if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
             layoutItems.push({ description: "Use Custom Layout", event: this.makeCustomViewClicked, icon: "concierge-bell" });
         } else if (this.props.Document.nativeLayout) {
             layoutItems.push({ description: "Use Native Layout", event: this.makeNativeViewClicked, icon: "concierge-bell" });
@@ -733,7 +666,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
 
-        cm.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, StrCast(this.props.Document.title), this.props.addDocument, this.props.removeDocument), icon: "file" });
+        cm.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -813,7 +746,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             select={this.select}
             onClick={this.onClickHandler}
             layoutKey={"layout"}
-            fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
+            fitToBox={this.Document.fitToBox ? true : this.props.fitToBox}
             DataDoc={this.dataDoc} />);
     }
 
@@ -829,55 +762,68 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (showTitle ? 25 : 0) + 1;// bcz: why 8??
     }
 
-    get layoutDoc() {
+    get layoutDoc(): Document {
         // if this document's layout field contains a document (ie, a rendering template), then we will use that
         // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
-        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+        return Document(this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document);
     }
 
-
     render() {
-        let ruleProvider = this.props.ruleProvider;
-        let ruleColor = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(this.props.Document.heading)]) : undefined;
-        let ruleRounding = ruleProvider ? StrCast(Doc.GetProto(ruleProvider)["ruleRounding_" + NumCast(this.props.Document.heading)]) : undefined;
-        let colorSet = this.layoutDoc.backgroundColor !== this.layoutDoc.defaultBackgroundColor;
-        let clusterCol = this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground;
-
-        let backgroundColor = this.layoutDoc.isBackground || (clusterCol && !colorSet) ?
+        const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
+        const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
+        const colorSet = this.layoutDoc.backgroundColor !== this.layoutDoc.defaultBackgroundColor;
+        const clusterCol = this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground;
+        const backgroundColor = this.layoutDoc.isBackground || (clusterCol && !colorSet) ?
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
-        let foregroundColor = StrCast(this.layoutDoc.color);
-        var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
-        var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
-        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
-        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        let showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
-        let templates = Cast(this.layoutDoc.templates, listSpec("string"));
-        if (!showOverlays && templates instanceof List) {
-            templates.map(str => {
-                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
-                if (!showCaption && str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
-            });
-        }
-        let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding, ruleRounding);
-        let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
-        let searchHighlight = (!this.props.Document.search_fields ? (null) :
-            <div key="search" style={{ position: "absolute", background: "yellow", bottom: "-20px", borderRadius: "5px", transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                {StrCast(this.props.Document.search_fields)}
+
+        const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
+        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
+        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.layoutDoc.showTitle;
+        const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.layoutDoc.showCaption;
+        const showTextTitle = showTitle && StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
+        const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
+        const borderRounding = this.Document.borderRounding || ruleRounding;
+        const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
+        const iconAnimating = this.Document.isIconAnimating ? Array.from(Cast(this.Document.isIconAnimating, listSpec("number"))!) : undefined;
+        const searchHighlight = (!this.Document.searchFields ? (null) :
+            <div className="documentView-searchHighlight" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+                {this.Document.searchFields}
+            </div>);
+        const captionView = (!showCaption ? (null) :
+            <div className="documentView-captionWrapper" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+                <FormattedTextBox {...this.props}
+                    onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue}
+                    isSelected={this.isSelected} focus={emptyFunction} select={this.select}
+                    fieldExt={""} hideOnLeave={true} fieldKey={showCaption}
+                />
+            </div>);
+        const titleView = (!showTitle ? (null) :
+            <div className="documentView-titleWrapper" style={{
+                position: showTextTitle ? "relative" : "absolute",
+                pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
+                width: `${100 * this.props.ContentScaling()}%`,
+                transform: `scale(${1 / this.props.ContentScaling()})`
+            }}>
+                <EditableView
+                    contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
+                    display={"block"} height={72} fontSize={12}
+                    GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle])}
+                    SetValue={(value: string) => ((this.layoutDoc.isTemplate ? this.layoutDoc : Doc.GetProto(this.layoutDoc))[showTitle] = value) ? true : true}
+                />
             </div>);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
+                    transition: iconAnimating ? "transform .5s" : StrCast(this.layoutDoc.transition),
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
-                    color: foregroundColor,
+                    color: StrCast(this.layoutDoc.color),
                     outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
                     outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
                     outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
                     border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
-                    borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
                     height: nativeHeight,
@@ -888,37 +834,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
                 {!showTitle && !showCaption ?
-                    this.props.Document.search_fields ? <div>
-                        {this.contents}
-                        {searchHighlight}
-                    </div> :
-                        this.contents :
-                    <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 29px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
+                    this.Document.searchFields ?
+                        (<div className="documentView-searchWrapper">
+                            {this.contents}
+                            {searchHighlight}
+                        </div>)
+                        :
+                        this.contents
+                    :
+                    <div className="documentView-styleWrapper" >
+                        <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 29px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
-                        {!showTitle ? (null) :
-                            <div style={{
-                                position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
-                                pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
-                                overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
-                                transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
-                            }}>
-                                <EditableView
-                                    contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
-                                    display={"block"}
-                                    height={72}
-                                    fontSize={12}
-                                    GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle!])}
-                                    SetValue={(value: string) => ((this.layoutDoc.isTemplate ? this.layoutDoc : Doc.GetProto(this.layoutDoc))[showTitle!] = value) ? true : true}
-                                />
-                            </div>
-                        }
-                        {!showCaption ? (null) :
-                            <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                                <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
-                            </div>
-                        }
+                        {titleView}
+                        {captionView}
                         {searchHighlight}
                     </div>
                 }

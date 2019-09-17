@@ -347,7 +347,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @computed
     get renderBullet() {
-        return <div className="bullet" title="view inline" onClick={action(() => this.treeViewOpen = !this.treeViewOpen)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
+        return <div className="bullet" title="view inline" onClick={action((e: React.MouseEvent) => { this.treeViewOpen = !this.treeViewOpen; e.stopPropagation(); })} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
             {<FontAwesomeIcon icon={!this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down")} />}
         </div>;
     }
