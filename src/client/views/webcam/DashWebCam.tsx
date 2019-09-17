@@ -108,58 +108,60 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
         }
     }
 
-    getScreenshot() {
-        const { state, props } = this;
+    //These are for screenshot if wanted.
 
-        if (!state.hasUserMedia) return null;
+    // getScreenshot() {
+    //     const { state, props } = this;
 
-        const canvas = this.getCanvas();
-        return (
-            canvas &&
-            canvas.toDataURL(props.screenshotFormat, props.screenshotQuality)
-        );
-    }
+    //     if (!state.hasUserMedia) return null;
 
-    getCanvas() {
-        const { state, props } = this;
+    //     const canvas = this.getCanvas();
+    //     return (
+    //         canvas &&
+    //         canvas.toDataURL(props.screenshotFormat, props.screenshotQuality)
+    //     );
+    // }
 
-        if (!this.video) {
-            return null;
-        }
+    // getCanvas() {
+    //     const { state, props } = this;
 
-        if (!state.hasUserMedia || !this.video.videoHeight) return null;
+    //     if (!this.video) {
+    //         return null;
+    //     }
 
-        if (!this.ctx) {
-            const canvas = document.createElement("canvas");
-            const aspectRatio = this.video.videoWidth / this.video.videoHeight;
+    //     if (!state.hasUserMedia || !this.video.videoHeight) return null;
 
-            let canvasWidth = props.minScreenshotWidth || this.video.clientWidth;
-            let canvasHeight = canvasWidth / aspectRatio;
+    //     if (!this.ctx) {
+    //         const canvas = document.createElement("canvas");
+    //         const aspectRatio = this.video.videoWidth / this.video.videoHeight;
 
-            if (
-                props.minScreenshotHeight &&
-                canvasHeight < props.minScreenshotHeight
-            ) {
-                canvasHeight = props.minScreenshotHeight;
-                canvasWidth = canvasHeight * aspectRatio;
-            }
+    //         let canvasWidth = props.minScreenshotWidth || this.video.clientWidth;
+    //         let canvasHeight = canvasWidth / aspectRatio;
 
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
+    //         if (
+    //             props.minScreenshotHeight &&
+    //             canvasHeight < props.minScreenshotHeight
+    //         ) {
+    //             canvasHeight = props.minScreenshotHeight;
+    //             canvasWidth = canvasHeight * aspectRatio;
+    //         }
 
-            this.canvas = canvas;
-            this.ctx = canvas.getContext("2d");
-        }
+    //         canvas.width = canvasWidth;
+    //         canvas.height = canvasHeight;
 
-        const { ctx, canvas } = this;
+    //         this.canvas = canvas;
+    //         this.ctx = canvas.getContext("2d");
+    //     }
 
-        if (ctx) {
-            ctx.imageSmoothingEnabled = props.imageSmoothing;
-            ctx.drawImage(this.video, 0, 0, canvas!.width, canvas!.height);
-        }
+    //     const { ctx, canvas } = this;
 
-        return canvas;
-    }
+    //     if (ctx) {
+    //         ctx.imageSmoothingEnabled = props.imageSmoothing;
+    //         ctx.drawImage(this.video, 0, 0, canvas!.width, canvas!.height);
+    //     }
+
+    //     return canvas;
+    // }
 
     requestUserMedia() {
         const { props } = this;
