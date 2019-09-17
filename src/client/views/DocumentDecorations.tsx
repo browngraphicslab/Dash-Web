@@ -442,7 +442,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
             let heading = NumCast(dv.props.Document.heading);
             cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleRounding_" + heading] = StrCast(dv.props.Document.borderRounding));
-        })
+        });
         e.stopPropagation();
         e.preventDefault();
     }

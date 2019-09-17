@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faFileUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
@@ -40,8 +40,10 @@ import React = require("react");
 import { DocServer } from "../../../DocServer";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
+import { GooglePhotos } from "../../../apis/google_docs/GooglePhotosClientUtils";
+import { ImageField } from "../../../../new_fields/URLField";
 
-library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
+library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -74,13 +76,17 @@ export namespace PivotView {
         width: number;
         height: number;
         fontSize: number;
+        val: Doc[];
     }
+
+    export const groups = new Map<FieldResult<Field>, Doc[]>();
 
     export const elements = (target: CollectionFreeFormView) => {
         let collection = target.Document;
         const field = StrCast(collection.pivotField) || "title";
         const width = NumCast(collection.pivotWidth) || 200;
-        const groups = new Map<FieldResult<Field>, Doc[]>();
+
+        groups.clear();
 
         for (const doc of target.childDocs) {
             const val = doc[field];
@@ -115,7 +121,8 @@ export namespace PivotView {
                 y: width + 50,
                 width: width * 1.25 * numCols,
                 height: 100,
-                fontSize
+                fontSize,
+                val
             });
             for (const doc of val) {
                 docMap.set(doc, {
@@ -259,8 +266,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         newBox.heading = 1;
-        for (let i = 0; i < this.childDocs.length; i++) {
-            if (this.childDocs[i].heading == 1) {
+        for (let child of this.childDocs) {
+            if (child.heading === 1) {
                 newBox.heading = 2;
             }
         }
@@ -353,7 +360,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     });
 
-                    de.data.droppedDocuments.length == 1 && this.updateCluster(de.data.droppedDocuments[0]);
+                    de.data.droppedDocuments.length === 1 && this.updateCluster(de.data.droppedDocuments[0]);
                 }
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
@@ -786,14 +793,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if ([text, x, y, width, height].some(val => val === undefined)) {
                 return undefined;
             }
-
+            const exported = this.props.Document[text!] !== undefined;
             return {
                 ele: <div className="collectionFreeform-customText" style={{
                     transform: `translate(${x}px, ${y}px)`,
-                    width, height, fontSize
-                }}>{text}</div>, bounds: { x: x!, y: y!, width: width!, height: height! }
+                    width, height, fontSize, cursor: exported ? "pointer" : "alias", pointerEvents: "all",
+                }} onClick={() => !this.props.Document[text!] && this.exportPivotedGroupToAlbum(viewDef.val, text!)} >{text}{
+                        <img
+                            width={70}
+                            height={70}
+                            src={"/assets/google_photos.png"}
+                            style={{
+                                transition: "1s opacity ease",
+                                opacity: exported ? 1 : 0,
+                                marginLeft: 20,
+                                marginTop: -7,
+                                borderRadius: "50%",
+                                border: "1px solid black",
+                                padding: 10
+                            }}
+                        />}</div>, bounds: { x: x!, y: y!, width: width!, height: height! }
             };
         }
+    }
+
+    exportPivotedGroupToAlbum = async (docs: Doc[], label: string) => {
+        const title = `Contents Match "${label}" from ${StrCast(this.props.Document.title)}`;
+        const collection = Docs.Create.MasonryDocument(docs.filter(doc => Cast(doc.data, ImageField)), { title });
+        const result = await GooglePhotos.Export.CollectionToAlbum({ collection, title });
+        this.props.Document[label] = result!.albumId;
     }
 
     @computed.struct

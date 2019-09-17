@@ -4,9 +4,9 @@ import { faColumns, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSig
 import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { StrCast } from '../../../new_fields/Types';
+import { StrCast, Cast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -18,6 +18,7 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { ImageField } from '../../../new_fields/URLField';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -89,7 +90,15 @@ export class CollectionView extends React.Component<FieldViewProps> {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
             let subItems: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
-            subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; delete this.props.Document.usePivotLayout; }, icon: "signature" });
+            subItems.push({
+                description: "Freeform", event: async () => {
+                    this.props.Document.viewType = CollectionViewType.Freeform;
+                    if (this.props.Document.usePivotLayout) {
+                        (await DocListCastAsync(this.props.Document.data))!.filter(doc => Cast(doc.data, ImageField)).forEach(doc => doc.ignoreAspect = false);
+                        delete this.props.Document.usePivotLayout;
+                    }
+                }, icon: "signature"
+            });
             if (CollectionBaseView.InSafeMode()) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
@@ -100,10 +109,17 @@ export class CollectionView extends React.Component<FieldViewProps> {
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
-                    subItems.push({ description: "Pivot", icon: "copy", event: () => this.props.Document.usePivotLayout = true });
                     break;
                 }
             }
+            subItems.push({
+                description: "Pivot", icon: "copy", event: async () => {
+                    const doc = this.props.Document;
+                    doc.viewType = CollectionViewType.Freeform;
+                    (await DocListCastAsync(doc.data))!.filter(doc => Cast(doc.data, ImageField)).forEach(doc => doc.ignoreAspect = true);
+                    doc.usePivotLayout = true;
+                }
+            });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             let existing = ContextMenu.Instance.findByDescription("Layout...");
