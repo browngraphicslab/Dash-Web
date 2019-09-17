@@ -20,6 +20,7 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
+import Measure from "react-measure";
 
 library.add(faPalette);
 
@@ -33,7 +34,7 @@ interface CMVFieldRowProps {
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
-    addToDocHeight: (thisHeight: number) => void;
+    setDocHeight: (key: string, thisHeight: number) => void;
 }
 
 @observer
@@ -51,38 +52,22 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
 
     createRowDropRef = (ele: HTMLDivElement | null) => {
-        console.log("createRowDropRef ran");
         this._dropRef = ele;
         this.dropDisposer && this.dropDisposer();
         if (ele) {
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
         }
-        // this.getTrueHeight();
     }
 
-    getTrueHeight = () => { //handle collapse in here (if collapsed, return #)
-        //also, don't need to return anything
-        //call this in component did mount or something...
+    getTrueHeight = () => {
         if (this.collapsed) {
-            this.props.addToDocHeight(20);
-            console.log("collapsed");
-        } else { //this is calculating the heights correctlty
-            let rawHeight = this._contRef.current!.getBoundingClientRect().height + 20;
+            this.props.setDocHeight(this._heading, 20);
+        } else {
+            let rawHeight = this._contRef.current!.getBoundingClientRect().height + 15; //+ 15 accounts for the group header
             let transformScale = this.props.screenToLocalTransform().Scale;
             let trueHeight = rawHeight * transformScale;
-            this.props.addToDocHeight(trueHeight);
-            console.log("trueHeight: " + trueHeight);
+            this.props.setDocHeight(this._heading, trueHeight);
         }
-        this.props.addToDocHeight(20);
-    }
-
-    // componentDidMount = () => {
-    //     this.getTrueHeight();
-    // }
-
-    componentDidUpdate = () => {
-        console.log("componentDidUpdate");
-        this.getTrueHeight(); //why does this
     }
 
     @undoBatch
@@ -284,6 +269,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @observable _headingsHack: number = 1;
 
+    handleResize = (size: any) => {
+        this.counter += 1;
+        if (this.counter !== 1) {
+            this.getTrueHeight();
+        }
+    }
+
+    private counter: number = 0;
+
     render() {
         let cols = this.props.rows();
         let rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
@@ -340,38 +334,46 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         </button>}
                 </div>
             </div > : (null);
+        const background = this._background; //to account for observables in Measure
+        const collapsed = this.collapsed;
         return (
-            <div className="collectionStackingView-masonrySection"
-                key={heading = "empty"}
-                style={{ width: this.props.parent.NodeWidth, background: this._background }}
-                ref={this.createRowDropRef}
-                onPointerEnter={this.pointerEnteredRow}
-                onPointerLeave={this.pointerLeaveRow}
-            >
-                {headingView}
-                {this.collapsed ? (null) :
-                    < div >
-                        <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
-                            // ref={this.getTrueHeight}
-                            ref={this._contRef}
-                            style={{
-                                padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
-                                width: this.props.parent.NodeWidth,
-                                gridGap: this.props.parent.gridGap,
-                                gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
-                            }}>
-                            {this.masonryChildren(this.props.docList)}
-                            {this.props.parent.columnDragger}
-                        </div>
-                        {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
-                            <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                                style={{ width: style.columnWidth / style.numGroupColumns }}>
-                                <EditableView {...newEditableViewProps} />
-                            </div> : null
-                        }
-                    </div>
-                }
-            </div >
+            <Measure offset onResize={this.handleResize}>
+                {({ measureRef }) => {
+                    return <div ref={measureRef}>
+                        <div className="collectionStackingView-masonrySection"
+                            key={heading = "empty"}
+                            style={{ width: this.props.parent.NodeWidth, background }}
+                            ref={this.createRowDropRef}
+                            onPointerEnter={this.pointerEnteredRow}
+                            onPointerLeave={this.pointerLeaveRow}
+                        >
+                            {headingView}
+                            {collapsed ? (null) :
+                                < div >
+                                    <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
+                                        // ref={this.getTrueHeight}
+                                        ref={this._contRef}
+                                        style={{
+                                            padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
+                                            width: this.props.parent.NodeWidth,
+                                            gridGap: this.props.parent.gridGap,
+                                            gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
+                                        }}>
+                                        {this.masonryChildren(this.props.docList)}
+                                        {this.props.parent.columnDragger}
+                                    </div>
+                                    {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                                        <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
+                                            style={{ width: style.columnWidth / style.numGroupColumns }}>
+                                            <EditableView {...newEditableViewProps} />
+                                        </div> : null
+                                    }
+                                </div>
+                            }
+                        </div >
+                    </div>;
+                }}
+            </Measure>
         );
     }
 }
