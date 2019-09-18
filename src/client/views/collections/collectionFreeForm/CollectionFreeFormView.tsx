@@ -903,9 +903,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             description: "Add Note ...",
             subitems: DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data).map((note, i) => ({
                 description: (i + 1) + ": " + StrCast(note.title),
-                event: ({ x, y }) => this.addLiveTextBox(Docs.Create.TextDocument({ width: 200, height: 100, x: this.getTransform().transformPoint(x, y)[0], y: this.getTransform().transformPoint(x, y)[1], autoHeight: true, layout: note, title: StrCast(note.title) })),
+                event: (args: { x: number, y: number }) => this.addLiveTextBox(Docs.Create.TextDocument({ width: 200, height: 100, x: this.getTransform().transformPoint(args.x, args.y)[0], y: this.getTransform().transformPoint(args.x, args.y)[1], autoHeight: true, layout: note, title: StrCast(note.title) })),
                 icon: "eye"
-            })),
+            })) as ContextMenuProps[],
             icon: "eye"
         });
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });

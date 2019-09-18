@@ -250,7 +250,7 @@ export namespace DragManager {
             });
     }
 
-    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize?: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
+    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         let dragData = new DragManager.DocumentDragData([]);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :

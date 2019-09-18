@@ -377,56 +377,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    makeNativeViewClicked = (): void => {
-        makeNativeView(this.props.Document);
-    }
+    makeNativeViewClicked = (): void => { swapViews(this.props.Document, "layoutNative", "layoutCustom"); }
+
     @undoBatch
-    makeCustomViewClicked = (): void => {
-        this.props.Document.nativeLayout = this.Document.layout;
-        this.props.Document.nativeType = this.Document.type;
-        this.props.Document.nonCustomAutoHeight = this.Document.autoHeight;
-        this.props.Document.nonCustomWidth = this.Document.width;
-        this.props.Document.nonCustomHeight = this.Document.height;
-        this.props.Document.nonCustomNativeWidth = this.Document.nativeWidth;
-        this.props.Document.nonCustomNativeHeight = this.Document.nativeHeight;
-        this.props.Document.nonCustomIgnoreAspect = this.Document.ignoreAspect;
-        PromiseValue(Cast(this.props.Document.customLayout, Doc)).then(custom => {
-            if (custom) {
-                this.Document.type = DocumentType.TEMPLATE;
-                this.props.Document.layout = custom;
-                !custom.nativeWidth && (this.Document.nativeWidth = 0);
-                !custom.nativeHeight && (this.Document.nativeHeight = 0);
-                !custom.nativeWidth && (this.Document.ignoreAspect = true);
-                this.Document.autoHeight = BoolCast(this.Document.customAutoHeight);
-                this.Document.width = NumCast(this.props.Document.customWidth);
-                this.Document.height = NumCast(this.props.Document.customHeight);
-                this.Document.nativeWidth = NumCast(this.props.Document.customNativeWidth);
-                this.Document.nativeHeight = NumCast(this.props.Document.customNativeHeight);
-                this.Document.ignoreAspect = BoolCast(this.Document.customIgnoreAspect);
-                this.props.Document.customAutoHeight = undefined;
-                this.props.Document.customWidth = undefined;
-                this.props.Document.customHeight = undefined;
-                this.props.Document.customNativeWidth = undefined;
-                this.props.Document.customNativeHeight = undefined;
-                this.props.Document.customIgnoreAspect = undefined;
-            } else {
-                let options = { title: "data", width: (this.Document.width || 0), x: -(this.Document.width || 0) / 2, y: - (this.Document.height || 0) / 2, };
-                let fieldTemplate = this.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
-                    this.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
-                        Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+    makeCustomViewClicked = async () => {
+        if (this.props.Document.layoutCustom === undefined) {
+            Doc.GetProto(this.dataDoc || this.props.Document).layoutNative = Doc.MakeTitled("layoutNative");
+            await swapViews(this.props.Document, "", "layoutNative");
 
-                fieldTemplate.backgroundColor = this.Document.backgroundColor;
-                fieldTemplate.heading = 1;
-                fieldTemplate.autoHeight = true;
+            let options = { title: "data", width: (this.Document.width || 0), x: -(this.Document.width || 0) / 2, y: - (this.Document.height || 0) / 2, };
+            let fieldTemplate = this.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
+                this.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
+                    Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
-                let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: this.Document.title + "layout", width: (this.Document.width || 0) + 20, height: Math.max(100, (this.Document.height || 0) + 45) });
-                let proto = Doc.GetProto(docTemplate);
-                Doc.MakeMetadataFieldTemplate(fieldTemplate, proto, true);
+            fieldTemplate.backgroundColor = this.Document.backgroundColor;
+            fieldTemplate.heading = 1;
+            fieldTemplate.autoHeight = true;
 
-                Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined, false);
-                Doc.GetProto(this.dataDoc || this.props.Document).customLayout = this.Document.layout;
-            }
-        });
+            let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: this.Document.title + "_layout", width: (this.Document.width || 0) + 20, height: Math.max(100, (this.Document.height || 0) + 45) });
+
+            Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate), true);
+            Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined);
+            Doc.GetProto(this.dataDoc || this.props.Document).layoutCustom = Doc.MakeTitled("layoutCustom");
+        } else {
+            swapViews(this.props.Document, "layoutCustom", "layoutNative");
+        }
     }
 
     @undoBatch
@@ -487,9 +462,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onDrop = (e: React.DragEvent) => {
         let text = e.dataTransfer.getData("text/plain");
         if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
-            let oldLayout = FieldValue(this.Document.layout) || "";
+            let oldLayout = StrCast(this.props.Document.layout);
             let layout = text.replace("{layout}", oldLayout);
-            this.Document.layout = layout;
+            this.props.Document.layout = layout;
             e.stopPropagation();
             e.preventDefault();
         }
@@ -527,9 +502,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.DataDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc);
         } else {
-            if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
+            if (typeof this.props.Document.layout === "string") {
                 this.makeCustomViewClicked();
-            } else if (this.Document.nativeLayout) {
+            } else {
                 this.makeNativeViewClicked();
             }
         }
@@ -624,7 +599,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
             layoutItems.push({ description: "Use Custom Layout", event: this.makeCustomViewClicked, icon: "concierge-bell" });
-        } else if (this.props.Document.nativeLayout) {
+        } else if (this.props.Document.layoutNative) {
             layoutItems.push({ description: "Use Native Layout", event: this.makeNativeViewClicked, icon: "concierge-bell" });
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
@@ -741,12 +716,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     chromeHeight = () => {
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        let templates = Cast(this.layoutDoc.templates, listSpec("string"));
-        if (!showOverlays && templates instanceof List) {
-            templates.map(str => {
-                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
-            });
-        }
         return (showTitle ? 25 : 0) + 1;// bcz: why 8??
     }
 
@@ -843,66 +812,33 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
+let swapViews = async (doc: any, newLayoutField: any, oldLayoutField: any) => {
+    let oldLayoutExt = await Cast(doc[oldLayoutField], Doc);
+    if (oldLayoutExt) {
+        oldLayoutExt.autoHeight = doc.autoHeight;
+        oldLayoutExt.width = doc.width;
+        oldLayoutExt.height = doc.height;
+        oldLayoutExt.nativeWidth = doc.nativeWidth;
+        oldLayoutExt.nativeHeight = doc.nativeHeight;
+        oldLayoutExt.ignoreAspect = doc.ignoreAspect;
+        oldLayoutExt.type = doc.type;
+        oldLayoutExt.layout = doc.layout;
+    }
 
-let makeNativeView = (doc: any): void => {
-    doc.layout = doc.nativeLayout;
-    doc.nativeLayout = undefined;
-    doc.type = doc.nativeType;
-
-    doc.customAutoHeight = doc.autoHeight;
-    doc.customWidth = doc.width;
-    doc.customHeight = doc.height;
-    doc.customNativeWidth = doc.nativeWidth;
-    doc.customNativeHeight = doc.nativeHeight;
-    doc.customIgnoreAspect = doc.ignoreAspect;
-
-    doc.autoHeight = doc.nonCustomAutoHeight;
-    doc.width = doc.nonCustomWidth;
-    doc.height = doc.nonCustomHeight;
-    doc.nativeWidth = doc.nonCustomNativeWidth;
-    doc.nativeHeight = doc.nonCustomNativeHeight;
-    doc.ignoreAspect = doc.nonCustomIgnoreAspect;
-    doc.nonCustomAutoHeight = undefined;
-    doc.nonCustomWidth = undefined;
-    doc.nonCustomHeight = undefined;
-    doc.nonCustomNativeWidth = undefined;
-    doc.nonCustomNativeHeight = undefined;
-    doc.nonCustomIgnoreAspect = undefined;
-};
-let makeCustomView = (doc: any): void => {
-    doc.nativeLayout = doc.layout;
-    doc.nativeType = doc.type;
-    doc.nonCustomAutoHeight = doc.autoHeight;
-    doc.nonCustomWidth = doc.nativeWidth;
-    doc.nonCustomHeight = doc.nativeHeight;
-    doc.nonCustomNativeWidth = doc.nativeWidth;
-    doc.nonCustomNativeHeight = doc.nativeHeight;
-    doc.nonCustomIgnoreAspect = doc.ignoreAspect;
-    let custom = doc.customLayout as Doc;
-    if (custom instanceof Doc) {
-        doc.type = DocumentType.TEMPLATE;
-        doc.layout = custom;
-        !custom.nativeWidth && (doc.nativeWidth = 0);
-        !custom.nativeHeight && (doc.nativeHeight = 0);
-        !custom.nativeWidth && (doc.ignoreAspect = true);
-        doc.autoHeight = doc.autoHeight;
-        doc.width = doc.customWidth;
-        doc.height = doc.customHeight;
-        doc.nativeWidth = doc.customNativeWidth;
-        doc.nativeHeight = doc.customNativeHeight;
-        doc.ignoreAspect = doc.ignoreAspect;
-        doc.customAutoHeight = undefined;
-        doc.customWidth = undefined;
-        doc.customHeight = undefined;
-        doc.customNativeWidth = undefined;
-        doc.customNativeHeight = undefined;
-        doc.customIgnoreAspect = undefined;
+    let newLayoutExt = newLayoutField && await Cast(doc[newLayoutField], Doc);
+    if (newLayoutExt) {
+        doc.autoHeight = newLayoutExt.autoHeight;
+        doc.width = newLayoutExt.width;
+        doc.height = newLayoutExt.height;
+        doc.nativeWidth = newLayoutExt.nativeWidth;
+        doc.nativeHeight = newLayoutExt.nativeHeight;
+        doc.ignoreAspect = newLayoutExt.ignoreAspect;
+        doc.type = newLayoutExt.type;
+        doc.layout = await newLayoutExt.layout;
     }
 };
+
 Scripting.addGlobal(function toggleDetail(doc: any) {
-    if (doc.type !== DocumentType.COL && doc.type !== DocumentType.TEMPLATE) {
-        makeCustomView(doc);
-    } else if (doc.nativeLayout) {
-        makeNativeView(doc);
-    }
+    let native = typeof doc.layout === "string";
+    swapViews(doc, native ? "layoutCustom" : "layoutNative", native ? "layoutNative" : "layoutCustom");
 });

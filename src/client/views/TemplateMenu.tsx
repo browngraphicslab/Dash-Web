@@ -123,7 +123,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" ref={this.dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
-                    <button onClick={this.toggleCustom}>{this.props.docs[0].Document.nativeLayout ? "Native" : "Custom"}</button>
+                    <button onClick={this.toggleCustom}>{typeof this.props.docs[0].Document.layout === "string" ? "Custom" : "Native"}</button>
                     <button onClick={this.toggleFloat}>Float</button>
                     {/* <button onClick={this.clearTemplates}>Clear</button> */}
                 </ul>

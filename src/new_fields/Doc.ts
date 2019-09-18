@@ -405,16 +405,20 @@ export namespace Doc {
         return docExtensionForField;
     }
 
-    export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+    export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string, immediate: boolean = false) {
         let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
         if (docExtensionForField === undefined) {
-            setTimeout(() => {
-                CreateDocumentExtensionForField(doc, fieldKey);
-            }, 0);
+            if (immediate) CreateDocumentExtensionForField(doc, fieldKey);
+            else setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
         } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
             docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);
             docExtensionForField.type === undefined && setTimeout(() => docExtensionForField.type = DocumentType.EXTENSION, 0);
         }
+    }
+    export function MakeTitled(title: string) {
+        let doc = new Doc();
+        doc.title = title;
+        return doc;
     }
     export function MakeAlias(doc: Doc) {
         let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
@@ -560,7 +564,7 @@ export namespace Doc {
         !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
         return otherdoc;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc, useTemplateDoc?: boolean) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
         if (!templateDoc) {
             target.layout = undefined;
             target.nativeWidth = undefined;
@@ -569,7 +573,7 @@ export namespace Doc {
             target.type = undefined;
             return;
         }
-        let temp = useTemplateDoc ? templateDoc : Doc.MakeDelegate(templateDoc);
+        let temp = Doc.MakeDelegate(templateDoc);
         target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         !templateDoc.nativeWidth && (target.nativeWidth = 0);
