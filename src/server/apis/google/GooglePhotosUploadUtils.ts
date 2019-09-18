@@ -80,7 +80,7 @@ export namespace GooglePhotosUploadUtils {
                 });
             })).newMediaItemResults;
         };
-        const newMediaItemResults = await newMediaItems.batchedMapInterval(50, createFromUploadTokens, 0.1);
+        const newMediaItemResults = await newMediaItems.batchedMapInterval({ batchSize: 50 }, createFromUploadTokens, 0.1);
         return { newMediaItemResults };
     };
 

@@ -835,7 +835,12 @@ export interface NewMediaItem {
     };
 }
 
+Array.prototype.fixedBatch = extensions.FixedBatch;
+Array.prototype.predicateBatch = extensions.PredicateBatch;
+Array.prototype.predicateBatchAsync = extensions.PredicateBatchAsync;
 Array.prototype.batch = extensions.Batch;
+Array.prototype.batchAsync = extensions.BatchAsync;
+
 Array.prototype.batchedForEach = extensions.ExecuteInBatches;
 Array.prototype.batchedMap = extensions.ConvertInBatches;
 Array.prototype.batchedForEachAsync = extensions.ExecuteInBatchesAsync;
@@ -865,7 +870,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return newMediaItems;
     };
 
-    const newMediaItems = await mediaInput.batchedMapInterval(25, dispatchUpload, 0.1);
+    const newMediaItems = await mediaInput.batchedMapInterval({ batchSize: 25 }, dispatchUpload, 0.1);
 
     if (failed) {
         return _error(res, tokenError);
