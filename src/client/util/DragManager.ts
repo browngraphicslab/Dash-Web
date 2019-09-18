@@ -204,13 +204,11 @@ export namespace DragManager {
         constructor(dragDoc: Doc[]) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = dragDoc;
-            this.xOffset = 0;
-            this.yOffset = 0;
+            this.offset = [0, 0];
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
-        xOffset: number;
-        yOffset: number;
+        offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
@@ -223,14 +221,13 @@ export namespace DragManager {
             this.dragDocument = dragDoc;
             this.dropDocument = dropDoc;
             this.annotationDocument = annotationDoc;
-            this.xOffset = this.yOffset = 0;
+            this.offset = [0, 0];
         }
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
         dropDocument: Doc;
-        xOffset: number;
-        yOffset: number;
+        offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
     }

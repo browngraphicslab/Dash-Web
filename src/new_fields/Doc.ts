@@ -721,7 +721,7 @@ export namespace Doc {
         manager.BrushedDoc.clear();
     }
 }
-Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
+Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });

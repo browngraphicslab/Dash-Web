@@ -405,7 +405,7 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
     public static GetChildElements(
-        docList: Doc[],
+        docs: Doc[],
         treeViewId: string,
         containingCollection: Doc,
         dataDoc: Doc | undefined,
@@ -425,7 +425,6 @@ class TreeView extends React.Component<TreeViewProps> {
         preventTreeViewOpen: boolean,
         renderedIds: string[]
     ) {
-        let docs = docList.filter(child => !child.excludeFromLibrary && child.opacity !== 0);
         let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             let script = viewSpecScript.script;
@@ -548,7 +547,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) { // excludeFromLibrary means this is the user document
+        if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) {
             ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
             e.stopPropagation();

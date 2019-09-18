@@ -921,7 +921,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
-            //||  (this.props.Document.isButton && !this.props.isSelected()) 
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
@@ -947,7 +946,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: (this.props.Document.isButton && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.props.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
             </div>
         );
     }

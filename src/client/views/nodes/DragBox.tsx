@@ -45,7 +45,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
     }
 
     onDragMove = (e: MouseEvent) => {
-        if (!e.cancelBubble && !this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 5 || Math.abs(this._downY - e.clientY) > 5)) {
+        if (!e.cancelBubble && (Math.abs(this._downX - e.clientX) > 5 || Math.abs(this._downY - e.clientY) > 5)) {
             document.removeEventListener("pointermove", this.onDragMove);
             document.removeEventListener("pointerup", this.onDragUp);
             const onDragStart = this.Document.onDragStart;

@@ -90,16 +90,16 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            this.props.docs.map(d => Doc.GetProto(d.layoutDoc)["show" + template.Name] = template.Name.toLowerCase());
+            this.props.docs.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
         } else {
-            this.props.docs.map(d => Doc.GetProto(d.layoutDoc)["show" + template.Name] = undefined);
+            this.props.docs.map(d => d.Document["show" + template.Name] = "");
         }
     }
 
     @undoBatch
     @action
     clearTemplates = (event: React.MouseEvent) => {
-        Templates.TemplateList.map(template => this.props.docs.map(d => d.layoutDoc["show" + template.Name] = false));
+        Templates.TemplateList.map(template => this.props.docs.map(d => d.Document["show" + template.Name] = undefined));
     }
 
     @action
@@ -110,7 +110,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docs.map(dv => dv.layoutDoc.chromeStatus = (dv.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"));
+        this.props.docs.map(dv => dv.Document.chromeStatus = (dv.Document.chromeStatus !== "disabled" ? "disabled" : "enabled"));
     }
 
     render() {

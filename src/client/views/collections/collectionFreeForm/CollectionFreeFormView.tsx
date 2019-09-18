@@ -323,8 +323,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
                     let z = NumCast(de.data.droppedDocuments[0].z);
-                    let x = (z ? xpo : xp) - de.data.xOffset;
-                    let y = (z ? ypo : yp) - de.data.yOffset;
+                    let x = (z ? xpo : xp) - de.data.offset[0];
+                    let y = (z ? ypo : yp) - de.data.offset[1];
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
                     let dropY = NumCast(de.data.droppedDocuments[0].y);
                     de.data.droppedDocuments.forEach(d => {
@@ -347,8 +347,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 if (de.data.dropDocument) {
                     let dragDoc = de.data.dropDocument;
-                    let x = xp - de.data.xOffset;
-                    let y = yp - de.data.yOffset;
+                    let x = xp - de.data.offset[0];
+                    let y = yp - de.data.offset[1];
                     let dropX = NumCast(de.data.dropDocument.x);
                     let dropY = NumCast(de.data.dropDocument.y);
                     dragDoc.x = x + NumCast(dragDoc.x) - dropX;
@@ -387,10 +387,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let de = new DragManager.DocumentDragData(eles);
             de.moveDocument = this.props.moveDocument;
             const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
-            const [xoff, yoff] = this.getTransform().transformDirection(e.x - left, e.y - top);
+            de.offset = this.getTransform().transformDirection(e.x - left, e.y - top);
             de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
-            de.xOffset = xoff;
-            de.yOffset = yoff;
             DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, e.clientX, e.clientY, {
                 handlers: { dragComplete: action(emptyFunction) },
                 hideSource: !de.dropAction

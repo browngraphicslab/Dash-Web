@@ -85,7 +85,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
+        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
     }
 
     //TODO should this be observable?

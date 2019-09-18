@@ -226,7 +226,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             if (transform.TranslateX === 0 && transform.TranslateY === 0) {
-                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...
+                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
                 return this._lastBox;
             }
 
@@ -251,11 +251,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onBackgroundMove = (e: PointerEvent): void => {
         let dragDocView = SelectionManager.SelectedDocuments()[0];
-        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
-        const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
-        dragData.xOffset = xoff;
-        dragData.yOffset = yoff;
+        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
+        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
         this.Interacting = true;
         this._hidden = true;
@@ -846,11 +844,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
 
         let templates: Map<Template, boolean> = new Map();
-        Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let checked = false;
-            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.layoutDoc["show" + template.Name] !== undefined));
-            templates.set(template, checked);
-        });
+        Array.from(Object.values(Templates.TemplateList)).map(template =>
+            templates.set(template, SelectionManager.SelectedDocuments().reduce((checked, doc) => checked || (doc.
+                Document["show" + template.Name] ? true : false), false)));
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;

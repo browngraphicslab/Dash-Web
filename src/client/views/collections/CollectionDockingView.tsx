@@ -44,7 +44,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             width: width,
             props: {
                 documentId: document[Id],
-                dataDocumentId: dataDoc ? dataDoc[Id] : ""
+                dataDocumentId: dataDoc && dataDoc[Id] !== document[Id] ? dataDoc[Id] : ""
                 //collectionDockingView: CollectionDockingView.Instance
             }
         };
@@ -90,7 +90,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public OpenFullScreen(docView: DocumentView) {
         let document = Doc.MakeAlias(docView.props.Document);
-        let dataDoc = docView.dataDoc;
+        let dataDoc = docView.props.DataDoc;
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
@@ -528,11 +528,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _isActive: boolean = false;
 
     get _stack(): any {
-        let parent = (this.props as any).glContainer.parent.parent;
-        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) {
-            return parent.parent.contentItems[1];
-        }
-        return parent;
+        return (this.props as any).glContainer.parent.parent;
     }
     constructor(props: any) {
         super(props);
