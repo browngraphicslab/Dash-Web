@@ -663,10 +663,8 @@ export namespace DocUtils {
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            let script = `return links(this);`;
-            let computed = CompileScript(script, { params: { this: "Doc" }, typecheck: false });
-            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
-            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
+            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

@@ -256,15 +256,7 @@ export namespace DragManager {
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
-                let compiled = CompileScript(script, {
-                    params: { doc: Doc.name },
-                    typecheck: false,
-                    editable: true
-                });
-                if (compiled.compiled) {
-                    let scriptField = new ScriptField(compiled);
-                    bd.onClick = scriptField;
-                }
+                bd.onClick = ScriptField.MakeScript(script);
                 params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
                 initialize && initialize(bd);
                 bd.buttonParams = new List<string>(params);

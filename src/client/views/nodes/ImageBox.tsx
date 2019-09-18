@@ -17,7 +17,6 @@ import { Utils } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
-import { CompileScript } from '../../util/Scripting';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -244,9 +243,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             results.tags.map((tag: Tag) => {
                 tagsList.push(tag.name);
                 let sanitized = tag.name.replace(" ", "_");
-                let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
-                let computed = CompileScript(script, { params: { this: "Doc" } });
-                computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
+                tagDoc[sanitized] = ComputedField.MakeFunction(`(${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`);
             });
             this.extensionDoc.generatedTags = tagsList;
             tagDoc.title = "Generated Tags Doc";

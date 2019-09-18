@@ -178,13 +178,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
             let value = this.getValue(this._heading);
             value = typeof value === "string" ? `"${value}"` : value;
-            let script = `return doc.${key} === ${value}`;
-            let compiled = CompileScript(script, { params: { doc: Doc.name } });
-            if (compiled.compiled) {
-                let scriptField = new ScriptField(compiled);
-                alias.viewSpecScript = scriptField;
-                let dragData = new DragManager.DocumentDragData([alias]);
-                DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
+            alias.viewSpecScript = ScriptField.MakeFunction(`doc.${key} === ${value}`, { doc: Doc.name });
+            if (alias.viewSpecScript) {
+                DragManager.StartDocumentDrag([this._headerRef.current!], new DragManager.DocumentDragData([alias]), e.clientX, e.clientY);
             }
 
             e.stopPropagation();

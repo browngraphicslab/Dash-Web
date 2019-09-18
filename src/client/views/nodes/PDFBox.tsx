@@ -10,7 +10,6 @@ import { ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast } from "../../../new_fields/Types";
 import { PdfField } from "../../../new_fields/URLField";
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
-import { CompileScript } from '../../util/Scripting';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { PDFViewer } from "../pdf/PDFViewer";
@@ -104,9 +103,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private applyFilter = () => {
         let scriptText = this._scriptValue.length > 0 ? this._scriptValue :
             this._keyValue.length > 0 && this._valueValue.length > 0 ?
-                `return this.${this._keyValue} === ${this._valueValue}` : "return true";
-        let script = CompileScript(scriptText, { params: { this: Doc.name } });
-        script.compiled && (this.props.Document.filterScript = new ScriptField(script));
+                `this.${this._keyValue} === ${this._valueValue}` : "true";
+        this.props.Document.filterScript = ScriptField.MakeFunction(scriptText);
     }
 
     scrollTo = (y: number) => {

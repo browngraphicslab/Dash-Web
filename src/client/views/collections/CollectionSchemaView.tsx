@@ -946,13 +946,10 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let docDrag = de.data;
-            let computed = CompileScript("return this.image_data[0]", { params: { this: "Doc" } });
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                let doc = docDrag.draggedDocuments[0];
                 let target = Doc.GetProto(otherdoc);
-                target.layout = target.detailedLayout = Doc.MakeDelegate(doc);
-                computed.compiled && (target.miniLayout = new ComputedField(computed));
+                target.layout = target.detailedLayout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
+                target.miniLayout = ComputedField.MakeFunction("this.image_data[0]");
             });
             e.stopPropagation();
         }

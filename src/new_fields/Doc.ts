@@ -2,7 +2,7 @@ import { observable, ObservableMap, runInAction, action } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
-import { CompileScript, Scripting, scriptingGlobal } from "../client/util/Scripting";
+import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, Update } from "./FieldSymbols";
 import { List } from "./List";
@@ -426,12 +426,7 @@ export namespace Doc {
             alias.layout = Doc.MakeAlias(alias.layout);
         }
         let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
-        let script = `return renameAlias(self, ${aliasNumber})`;
-        //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";
-        let compiled = CompileScript(script, { params: { this: "Doc" }, capturedVariables: { self: doc }, typecheck: false });
-        if (compiled.compiled) {
-            alias.title = new ComputedField(compiled);
-        }
+        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${aliasNumber})`);
         return alias;
     }
 
