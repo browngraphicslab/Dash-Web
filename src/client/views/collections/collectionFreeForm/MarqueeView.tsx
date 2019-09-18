@@ -329,7 +329,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                     container.viewType = CollectionViewType.Stacking;
                     container.autoHeight = true;
-                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "inPlace", or "onRight"
+                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"
                     this.props.addLiveTextDocument(container);
                 } else if (e.key === "S") { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
                     Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"

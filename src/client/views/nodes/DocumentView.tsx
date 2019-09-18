@@ -81,7 +81,7 @@ export interface DocumentViewProps {
     ruleProvider: Doc | undefined;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Doc, willZoom: boolean, scale?: number) => void;
+    focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => void;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
@@ -136,8 +136,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _dropDisposer?: DragManager.DragDropDisposer;
 
     public get ContentDiv() { return this._mainCont.current; }
-    @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
-    @computed get topMost(): boolean { return this.props.renderDepth === 0; }
+    @computed get active() { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
+    @computed get topMost() { return this.props.renderDepth === 0; }
+    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
     @action
     componentDidMount() {
@@ -280,19 +283,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
                         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
-                            document => {  // open up target if it's not already in view ...
-                                let cv = this.props.ContainingCollectionView;  // bcz: ugh --- maybe need to have a props.unfocus() method so that we leave things in the state we found them??
-                                let px = cv && cv.props.Document.panX;
-                                let py = cv && cv.props.Document.panY;
-                                let s = cv && cv.props.Document.scale;
-                                this.props.focus(this.props.Document, true, 1);  // by zooming into the button document first
-                                setTimeout(() => {
-                                    this.props.addDocTab(document, undefined, maxLocation);
-                                    cv && (cv.props.Document.panX = px);
-                                    cv && (cv.props.Document.panY = py);
-                                    cv && (cv.props.Document.scale = s);
-                                }, 1000); // then after the 1sec animation, open up the target in a new tab
-                            },
+                            // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
+                            doc => this.props.focus(this.props.Document, true, 1, () => { this.props.addDocTab(doc, undefined, maxLocation); return true; }),
                             linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
@@ -300,12 +292,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.nativeEvent.cancelBubble) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitTemplateDrag = false;
+        // this whole section needs to move somewhere else.  We're trying to initiate a special "template" drag where
+        // this document is the template and we apply it to whatever we drop it on.
         for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
             if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
                 this._hitTemplateDrag = true;
@@ -386,16 +379,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.AnnotationDragData) {
+            /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            let annotationDoc = de.data.annotationDocument;
-            annotationDoc.linkedToDoc = true;
-            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
+            let sourceDoc = de.data.annotationDocument;
             let targetDoc = this.props.Document;
+            let annotations = await DocListCastAsync(sourceDoc.annotations);
+            sourceDoc.linkedToDoc = true;
+            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
             targetDoc.targetContext = de.data.targetContext;
-            let annotations = await DocListCastAsync(annotationDoc.annotations);
             annotations && annotations.forEach(anno => anno.target = targetDoc);
 
-            DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(annotationDoc.title)}`);
+            DocUtils.MakeLink(sourceDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(sourceDoc.title)}`);
         }
         if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
             Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document, this.props.DataDoc);
@@ -406,22 +400,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let destDoc = this.props.Document;
 
             e.stopPropagation();
-            if (de.mods === "AltKey") {
-                const protoDest = destDoc.proto;
-                const protoSrc = sourceDoc.proto;
-                let src = protoSrc ? protoSrc : sourceDoc;
-                let dst = protoDest ? protoDest : destDoc;
-                dst.data = (src.data! as ObjectField)[Copy]();
-                dst.nativeWidth = src.nativeWidth;
-                dst.nativeHeight = src.nativeHeight;
-            }
-            else {
-                // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
-                // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-                let linkDoc = DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.Document : undefined);
-                de.data.droppedDocuments.push(destDoc);
-                de.data.linkDocument = linkDoc;
-            }
+            // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
+            // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+            de.data.droppedDocuments.push(destDoc);
+            de.data.linkDocument = DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document);
         }
     }
 
@@ -448,13 +430,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             proto.nativeHeight = this.props.PanelHeight();
         }
     }
+
     @undoBatch
     @action
-    makeIntoPortal = (): void => {
-        if (!DocListCast(this.props.Document.links).find(doc => {
-            if (Cast(doc.anchor2, Doc) instanceof Doc && (Cast(doc.anchor2, Doc) as Doc)!.title === this.Document.title + ".portal") return true;
-            return false;
-        })) {
+    makeIntoPortal = async () => {
+        let anchors = await Promise.all(DocListCast(this.props.Document.links).map(async (d: Doc) => await Cast(d.anchor2, Doc)));
+        if (!anchors.find(anchor2 => anchor2 && anchor2.title === this.Document.title + ".portal" ? true : false)) {
             let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
                 let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.Document.width || 0) + 10, height: this.Document.height || 0, title: portalID });
@@ -463,17 +444,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
     }
+
     @undoBatch
     @action
     toggleCustomView = (): void => {
         if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.DataDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc);
-        } else {
-            if (typeof this.props.Document.layout === "string") {
-                this.makeCustomViewClicked();
-            } else {
-                this.makeNativeViewClicked();
-            }
+        } else { // bcz: not robust -- for now documents with string layout are native documents, and those with Doc layouts are customized
+            typeof this.props.Document.layout === "string" ? this.makeCustomViewClicked() : this.makeNativeViewClicked();
         }
     }
 
@@ -572,49 +550,46 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
         cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({
-            description: "Download document", icon: "download", event: async () => {
-                let y = JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+            description: "Download document", icon: "download", event: async () =>
+                console.log(JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
                     qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                }));
-                console.log(y);
-                // const a = document.createElement("a");
-                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-                // a.href = url;
-                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-                // a.click();
-            }
+                })))
+            // const a = document.createElement("a");
+            // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+            // a.href = url;
+            // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+            // a.click();
         });
 
         cm.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        type User = { email: string, userDocumentId: string };
-        let usersMenu: ContextMenuProps[] = [];
         try {
-            let stuff = await rp.get(Utils.prepend(RouteStore.getUsers));
-            const users: User[] = JSON.parse(stuff);
-            usersMenu = users.filter(({ email }) => email !== Doc.CurrentUserEmail).map(({ email, userDocumentId }) => ({
-                description: email, event: async () => {
+            type User = { email: string, userDocumentId: string };
+            const users: User[] = JSON.parse(await rp.get(Utils.prepend(RouteStore.getUsers)));
+            let usersMenu = users.filter(({ email }) => email !== Doc.CurrentUserEmail).map(({ email, userDocumentId }) => ({
+                description: email,
+                event: async () => {
                     const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
-                    if (!userDocument) {
-                        throw new Error(`Couldn't get user document of user ${email}`);
-                    }
-                    const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-                    if (notifDoc instanceof Doc) {
-                        const data = await Cast(notifDoc.data, listSpec(Doc));
-                        const sharedDoc = Doc.MakeAlias(this.props.Document);
-                        if (data) {
-                            data.push(sharedDoc);
-                        } else {
-                            notifDoc.data = new List([sharedDoc]);
+                    if (userDocument) {
+                        const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                        if (notifDoc) {
+                            const data = await Cast(notifDoc.data, listSpec(Doc));
+                            const sharedDoc = Doc.MakeAlias(this.props.Document);
+                            if (data) {
+                                data.push(sharedDoc);
+                            } else {
+                                notifDoc.data = new List([sharedDoc]);
+                            }
                         }
                     }
-                }, icon: "male"
-            }));
+                },
+                icon: "male"
+            } as ContextMenuProps));
+            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
         } catch {
 
         }
         runInAction(() => {
-            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             if (!ClientUtils.RELEASE) {
                 let setWriteMode = (mode: DocServer.WriteMode) => {
                     DocServer.AclsMode = mode;
@@ -651,19 +626,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
-    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
-    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
-    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
-    @computed get contents() {
-        return (<DocumentContentsView {...this.props}
-            ChromeHeight={this.chromeHeight}
-            isSelected={this.isSelected}
-            select={this.select}
-            onClick={this.onClickHandler}
-            layoutKey={"layout"}
-            DataDoc={this.props.DataDoc} />);
-    }
+    select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     chromeHeight = () => {
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
@@ -715,6 +678,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     SetValue={(value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true}
                 />
             </div>);
+        const contents = (<DocumentContentsView {...this.props}
+            ChromeHeight={this.chromeHeight}
+            isSelected={this.isSelected}
+            select={this.select}
+            onClick={this.onClickHandler}
+            layoutKey={"layout"}
+            DataDoc={this.props.DataDoc} />);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -738,15 +708,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">
-                            {this.contents}
+                            {contents}
                             {searchHighlight}
                         </div>)
                         :
-                        this.contents
+                        contents
                     :
                     <div className="documentView-styleWrapper" >
                         <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 29px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
-                            {this.contents}
+                            {contents}
                         </div>
                         {titleView}
                         {captionView}

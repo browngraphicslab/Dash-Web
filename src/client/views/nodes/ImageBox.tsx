@@ -87,26 +87,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
-                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
-                    e.stopPropagation();
-                } else if (de.mods === "MetaKey") {
-                    if (this.extensionDoc !== this.dataDoc) {
-                        let layout = StrCast(drop.backgroundLayout);
-                        if (layout.indexOf(ImageBox.name) !== -1) {
-                            let imgData = this.extensionDoc.Alternates;
-                            if (!imgData) {
-                                Doc.GetProto(this.extensionDoc).Alternates = new List([]);
-                            }
-                            let imgList = Cast(this.extensionDoc.Alternates, listSpec(Doc), [] as any[]);
-                            imgList && imgList.push(drop);
-                            e.stopPropagation();
-                        }
-                    }
-                }
+            if (de.mods === "AltKey" && de.data.draggedDocuments.length && de.data.draggedDocuments[0].data instanceof ImageField) {
+                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(de.data.draggedDocuments[0].data.url);
+                e.stopPropagation();
+            }
+            de.mods === "MetaKey" && de.data.droppedDocuments.forEach(action((drop: Doc) => {
+                Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
+                e.stopPropagation();
             }));
-            // de.data.removeDocument()  bcz: need to implement
         }
     }
 

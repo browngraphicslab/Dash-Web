@@ -297,8 +297,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT) {
-                if (!Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
+                if (de.mods === "AltKey") {
+                    if (draggedDoc.data instanceof RichTextField) {
+                        Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                        e.stopPropagation();
+                    }
+                } else {
                     draggedDoc.isTemplate = true;
                     if (typeof (draggedDoc.layout) === "string") {
                         let layoutDelegateToOverrideFieldKey = Doc.MakeDelegate(draggedDoc);

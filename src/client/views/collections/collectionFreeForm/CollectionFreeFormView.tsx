@@ -607,7 +607,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    focusDocument = (doc: Doc, willZoom: boolean, scale?: number) => {
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
         // TODO This technically isn't correct if type !== "doc", as 
         // currently nothing is done, but we should probably push a new state
@@ -628,6 +628,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const newState = HistoryUtil.getState();
         newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
         HistoryUtil.pushState(newState);
+
+        let px = this.Document.panX;
+        let py = this.Document.panY;
+        let s = this.Document.scale;
         this.setPan(newPanX, newPanY);
 
         this.props.Document.panTransformType = "Ease";
@@ -635,6 +639,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (willZoom) {
             this.setScaleToZoom(doc, scale);
         }
+        afterFocus && setTimeout(() => {
+            if (afterFocus && afterFocus()) {
+                this.Document.panX = px;
+                this.Document.panY = py;
+                this.Document.scale = s;
+            }
+        }, 1000);
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
