@@ -9,11 +9,19 @@ module.exports.Batch = function <T>(batchSize: number): T[][] {
     return batches;
 };
 
-module.exports.ExecuteBatches = function <I, O>(batchSize: number, handler: BatchHandlerSync<I>): void {
+module.exports.ExecuteBatches = function <I>(batchSize: number, handler: BatchHandlerSync<I>): void {
     if (this.length) {
-        for (let batch of this.batch(batchSize)) {
-            const isFullBatch = batch.length === batchSize;
-            handler(batch, isFullBatch);
+        let completed = 0;
+        const batches = this.batch(batchSize);
+        const quota = batches.length;
+        for (let batch of batches) {
+            const context: BatchContext = {
+                completedBatches: completed,
+                remainingBatches: quota - completed,
+                isFullBatch: batch.length === batchSize
+            };
+            handler(batch, context);
+            completed++;
         }
     }
 };
@@ -23,18 +31,34 @@ module.exports.ConvertInBatches = function <I, O>(batchSize: number, handler: Ba
         return [];
     }
     let collector: O[] = [];
-    for (let batch of this.batch(batchSize)) {
-        const isFullBatch = batch.length === batchSize;
-        collector.push(...handler(batch, isFullBatch));
+    let completed = 0;
+    const batches = this.batch(batchSize);
+    const quota = batches.length;
+    for (let batch of batches) {
+        const context: BatchContext = {
+            completedBatches: completed,
+            remainingBatches: quota - completed,
+            isFullBatch: batch.length === batchSize
+        };
+        collector.push(...handler(batch, context));
+        completed++;
     }
     return collector;
 };
 
 module.exports.ExecuteInBatchesAsync = async function <I>(batchSize: number, handler: BatchHandler<I>): Promise<void> {
     if (this.length) {
-        for (let batch of this.batch(batchSize)) {
-            const isFullBatch = batch.length === batchSize;
-            await handler(batch, isFullBatch);
+        let completed = 0;
+        const batches = this.batch(batchSize);
+        const quota = batches.length;
+        for (let batch of batches) {
+            const context: BatchContext = {
+                completedBatches: completed,
+                remainingBatches: quota - completed,
+                isFullBatch: batch.length === batchSize
+            };
+            await handler(batch, context);
+            completed++;
         }
     }
 };
@@ -44,9 +68,17 @@ module.exports.ConvertInBatchesAsync = async function <I, O>(batchSize: number, 
         return [];
     }
     let collector: O[] = [];
-    for (let batch of this.batch(batchSize)) {
-        const isFullBatch = batch.length === batchSize;
-        collector.push(...(await handler(batch, isFullBatch)));
+    let completed = 0;
+    const batches = this.batch(batchSize);
+    const quota = batches.length;
+    for (let batch of batches) {
+        const context: BatchContext = {
+            completedBatches: completed,
+            remainingBatches: quota - completed,
+            isFullBatch: batch.length === batchSize
+        };
+        collector.push(...(await handler(batch, context)));
+        completed++;
     }
     return collector;
 };
@@ -56,6 +88,7 @@ module.exports.ExecuteInBatchesAtInterval = async function <I>(batchSize: number
         return;
     }
     const batches = this.batch(batchSize);
+    const quota = batches.length;
     return new Promise<void>(async resolve => {
         const iterator = batches[Symbol.iterator]();
         let completed = 0;
@@ -64,12 +97,16 @@ module.exports.ExecuteInBatchesAtInterval = async function <I>(batchSize: number
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
                     const batch = next.value;
-                    const isFullBatch = batch.length === batchSize;
-                    await handler(batch, isFullBatch);
+                    const context: BatchContext = {
+                        completedBatches: completed,
+                        remainingBatches: quota - completed,
+                        isFullBatch: batch.length === batchSize
+                    };
+                    await handler(batch, context);
                     resolve();
                 }, interval * 1000);
             });
-            if (++completed === batches.length) {
+            if (++completed === quota) {
                 break;
             }
         }
@@ -83,6 +120,7 @@ module.exports.ConvertInBatchesAtInterval = async function <I, O>(batchSize: num
     }
     let collector: O[] = [];
     const batches = this.batch(batchSize);
+    const quota = batches.length;
     return new Promise<O[]>(async resolve => {
         const iterator = batches[Symbol.iterator]();
         let completed = 0;
@@ -91,12 +129,16 @@ module.exports.ConvertInBatchesAtInterval = async function <I, O>(batchSize: num
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
                     const batch = next.value;
-                    const isFullBatch = batch.length === batchSize;
-                    collector.push(...(await handler(batch, isFullBatch)));
+                    const context: BatchContext = {
+                        completedBatches: completed,
+                        remainingBatches: quota - completed,
+                        isFullBatch: batch.length === batchSize
+                    };
+                    collector.push(...(await handler(batch, context)));
                     resolve();
                 }, interval * 1000);
             });
-            if (++completed === batches.length) {
+            if (++completed === quota) {
                 resolve(collector);
                 break;
             }

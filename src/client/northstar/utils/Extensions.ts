@@ -20,21 +20,27 @@ String.prototype.Truncate = function (length: number, replacement: string): Stri
     return target;
 };
 
-type BatchConverterSync<I, O> = (batch: I[], isFullBatch: boolean) => O[];
-type BatchHandlerSync<I> = (batch: I[], isFullBatch: boolean) => void;
-type BatchConverterAsync<I, O> = (batch: I[], isFullBatch: boolean) => Promise<O[]>;
-type BatchHandlerAsync<I> = (batch: I[], isFullBatch: boolean) => Promise<void>;
+interface BatchContext {
+    completedBatches: number;
+    remainingBatches: number;
+    isFullBatch: boolean;
+}
+type BatchConverterSync<I, O> = (batch: I[], context: BatchContext) => O[];
+type BatchHandlerSync<I> = (batch: I[], context: BatchContext) => void;
+type BatchConverterAsync<I, O> = (batch: I[], context: BatchContext) => Promise<O[]>;
+type BatchHandlerAsync<I> = (batch: I[], context: BatchContext) => Promise<void>;
 type BatchConverter<I, O> = BatchConverterSync<I, O> | BatchConverterAsync<I, O>;
 type BatchHandler<I> = BatchHandlerSync<I> | BatchHandlerAsync<I>;
+type Batcher<I, A> = number | ((element: I, accumulator: A) => boolean | Promise<boolean>);
 
 interface Array<T> {
-    batch(batchSize: number): T[][];
-    batchedForEach(batchSize: number, handler: BatchHandlerSync<T>): void;
-    batchedMap<O>(batchSize: number, handler: BatchConverterSync<T, O>): O[];
-    batchedForEachAsync(batchSize: number, handler: BatchHandler<T>): Promise<void>;
-    batchedMapAsync<O>(batchSize: number, handler: BatchConverter<T, O>): Promise<O[]>;
-    batchedForEachInterval(batchSize: number, handler: BatchHandler<T>, interval: number): Promise<void>;
-    batchedMapInterval<O>(batchSize: number, handler: BatchConverter<T, O>, interval: number): Promise<O[]>;
+    batch(batchSize: undefined): T[][];
+    batchedForEach<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandlerSync<T>): void;
+    batchedMap<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverterSync<T, O>): O[];
+    batchedForEachAsync<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandler<T>): Promise<void>;
+    batchedMapAsync<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverter<T, O>): Promise<O[]>;
+    batchedForEachInterval<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandler<T>, interval: number): Promise<void>;
+    batchedMapInterval<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverter<T, O>, interval: number): Promise<O[]>;
     lastElement(): T;
 }
 
