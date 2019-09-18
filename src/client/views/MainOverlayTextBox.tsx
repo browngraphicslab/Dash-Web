@@ -78,7 +78,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         this._textTargetDiv = div;
         this._textHideOnLeave = FormattedTextBox.InputBoxOverlay && FormattedTextBox.InputBoxOverlay.props.hideOnLeave;
         if (div) {
-            this._textBottom = div.parentElement && div.parentElement.style.bottom ? true : false;
+            this._textBottom = div.parentElement && getComputedStyle(div.parentElement).bottom ? true : false;
             this._textColor = (getComputedStyle(div) as any).color;
             div.style.color = "transparent";
         }
