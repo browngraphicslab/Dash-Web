@@ -31,13 +31,19 @@ type BatchHandlerAsync<I> = (batch: I[], context: BatchContext) => Promise<void>
 type BatchConverter<I, O> = BatchConverterSync<I, O> | BatchConverterAsync<I, O>;
 type BatchHandler<I> = BatchHandlerSync<I> | BatchHandlerAsync<I>;
 type FixedBatcher = { batchSize: number } | { batchCount: number, mode?: Mode };
+interface ExecutorResult<A> {
+    updated: A;
+    makeNextBatch: boolean;
+}
 interface PredicateBatcher<I, A> {
-    executor: (element: I, accumulator: A | undefined) => A | undefined;
+    executor: (element: I, accumulator: A) => ExecutorResult<A>;
     initial: A;
+    persistAccumulator?: boolean;
 }
 interface PredicateBatcherAsync<I, A> {
-    executor: (element: I, accumulator: A | undefined) => Promise<A | undefined>;
+    executor: (element: I, accumulator: A) => Promise<ExecutorResult<A>>;
     initial: A;
+    persistAccumulator?: boolean;
 }
 type Batcher<I, A> = FixedBatcher | PredicateBatcher<I, A>;
 type BatcherAsync<I, A> = Batcher<I, A> | PredicateBatcherAsync<I, A>;

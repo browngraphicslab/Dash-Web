@@ -17,14 +17,19 @@ module.exports.BatchAsync = async function <T, A>(batcher: BatcherAsync<T, A>): 
 module.exports.PredicateBatch = function <T, A>(batcher: PredicateBatcher<T, A>): T[][] {
     const batches: T[][] = [];
     let batch: T[] = [];
-    const { executor, initial } = batcher;
-    let accumulator: A | undefined = initial;
+    const { executor, initial, persistAccumulator } = batcher;
+    let accumulator = initial;
     for (let element of this) {
-        if ((accumulator = executor(element, accumulator)) !== undefined) {
+        const { updated, makeNextBatch } = executor(element, accumulator);
+        accumulator = updated;
+        if (!makeNextBatch) {
             batch.push(element);
         } else {
             batches.push(batch);
             batch = [element];
+            if (!persistAccumulator) {
+                accumulator = initial;
+            }
         }
     }
     batches.push(batch);
@@ -34,14 +39,19 @@ module.exports.PredicateBatch = function <T, A>(batcher: PredicateBatcher<T, A>)
 module.exports.PredicateBatchAsync = async function <T, A>(batcher: PredicateBatcherAsync<T, A>): Promise<T[][]> {
     const batches: T[][] = [];
     let batch: T[] = [];
-    const { executor, initial } = batcher;
-    let accumulator: A | undefined = initial;
+    const { executor, initial, persistAccumulator } = batcher;
+    let accumulator: A = initial;
     for (let element of this) {
-        if ((accumulator = await executor(element, accumulator)) !== undefined) {
+        const { updated, makeNextBatch } = await executor(element, accumulator);
+        accumulator = updated;
+        if (!makeNextBatch) {
             batch.push(element);
         } else {
             batches.push(batch);
             batch = [element];
+            if (!persistAccumulator) {
+                accumulator = initial;
+            }
         }
     }
     batches.push(batch);
