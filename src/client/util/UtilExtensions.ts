@@ -174,7 +174,20 @@ module.exports.ConvertInBatchesAsync = async function <I, O, A>(batcher: Batcher
     return collector;
 };
 
-module.exports.ExecuteInBatchesAtInterval = async function <I, A>(batcher: BatcherAsync<I, A>, handler: BatchHandler<I>, interval: number): Promise<void> {
+const convert = (interval: Interval) => {
+    const { magnitude, unit } = interval;
+    switch (unit) {
+        default:
+        case TimeUnit.Milliseconds:
+            return magnitude;
+        case TimeUnit.Seconds:
+            return magnitude * 1000;
+        case TimeUnit.Minutes:
+            return magnitude * 1000 * 60;
+    }
+};
+
+module.exports.ExecuteInBatchesAtInterval = async function <I, A>(batcher: BatcherAsync<I, A>, handler: BatchHandler<I>, interval: Interval): Promise<void> {
     if (!this.length) {
         return;
     }
@@ -194,7 +207,7 @@ module.exports.ExecuteInBatchesAtInterval = async function <I, A>(batcher: Batch
                     };
                     await handler(batch, context);
                     resolve();
-                }, interval * 1000);
+                }, convert(interval));
             });
             if (++completed === quota) {
                 break;
@@ -204,7 +217,7 @@ module.exports.ExecuteInBatchesAtInterval = async function <I, A>(batcher: Batch
     });
 };
 
-module.exports.ConvertInBatchesAtInterval = async function <I, O, A>(batcher: BatcherAsync<I, A>, handler: BatchConverter<I, O>, interval: number): Promise<O[]> {
+module.exports.ConvertInBatchesAtInterval = async function <I, O, A>(batcher: BatcherAsync<I, A>, handler: BatchConverter<I, O>, interval: Interval): Promise<O[]> {
     if (!this.length) {
         return [];
     }
@@ -225,7 +238,7 @@ module.exports.ConvertInBatchesAtInterval = async function <I, O, A>(batcher: Ba
                     };
                     collector.push(...(await handler(batch, context)));
                     resolve();
-                }, interval * 1000);
+                }, convert(interval));
             });
             if (++completed === quota) {
                 resolve(collector);

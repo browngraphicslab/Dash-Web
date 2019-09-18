@@ -42,6 +42,17 @@ interface PredicateBatcherAsync<I, A> {
 type Batcher<I, A> = FixedBatcher | PredicateBatcher<I, A>;
 type BatcherAsync<I, A> = Batcher<I, A> | PredicateBatcherAsync<I, A>;
 
+enum TimeUnit {
+    Milliseconds,
+    Seconds,
+    Minutes
+}
+
+interface Interval {
+    magnitude: number;
+    unit: TimeUnit;
+}
+
 interface Array<T> {
     fixedBatch<T>(batcher: FixedBatcher): T[][];
     predicateBatch<T, A = undefined>(batcher: PredicateBatcher<T, A>): T[][];
@@ -55,8 +66,8 @@ interface Array<T> {
     batchedForEachAsync<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandler<T>): Promise<void>;
     batchedMapAsync<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverter<T, O>): Promise<O[]>;
 
-    batchedForEachInterval<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandler<T>, interval: number): Promise<void>;
-    batchedMapInterval<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverter<T, O>, interval: number): Promise<O[]>;
+    batchedForEachInterval<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandler<T>, interval: Interval): Promise<void>;
+    batchedMapInterval<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverter<T, O>, interval: Interval): Promise<O[]>;
 
     lastElement(): T;
 }

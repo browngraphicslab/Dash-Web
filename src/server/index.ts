@@ -869,8 +869,10 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         }
         return newMediaItems;
     };
+    const batcher = { batchSize: 25 };
+    const interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
 
-    const newMediaItems = await mediaInput.batchedMapInterval({ batchSize: 25 }, dispatchUpload, 0.1);
+    const newMediaItems = await mediaInput.batchedMapInterval(batcher, dispatchUpload, interval);
 
     if (failed) {
         return _error(res, tokenError);
