@@ -12,7 +12,6 @@ import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
-import { DocumentType } from '../../documents/DocumentTypes';
 
 export enum CollectionViewType {
     Invalid,

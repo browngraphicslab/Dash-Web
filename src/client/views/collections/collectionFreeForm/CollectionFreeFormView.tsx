@@ -186,32 +186,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _inkKey = "ink"; // the document key used to store ink annotation strokes
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
-    private _childLayoutDisposer?: IReactionDisposer;
-    private _childDisposer?: IReactionDisposer;
-
-    componentDidMount() {
-        this._childDisposer = reaction(() => this.childDocs,
-            async (childDocs) => {
-                let childLayout = Cast(this.props.Document.childLayout, Doc) as Doc;
-                childLayout && childDocs.map(async doc => {
-                    if (!Doc.AreProtosEqual(childLayout, (await doc).layout as Doc)) {
-                        Doc.ApplyTemplateTo(childLayout, doc, undefined);
-                    }
-                });
-            });
-        this._childLayoutDisposer = reaction(() => Cast(this.props.Document.childLayout, Doc),
-            async (childLayout) => {
-                this.childDocs.map(async doc => {
-                    if (!Doc.AreProtosEqual(childLayout as Doc, (await doc).layout as Doc)) {
-                        Doc.ApplyTemplateTo(childLayout as Doc, doc, undefined);
-                    }
-                });
-            });
-    }
-    componentWillUnmount() {
-        this._childDisposer && this._childDisposer();
-        this._childLayoutDisposer && this._childLayoutDisposer();
-    }
 
     get parentScaling() {
         return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;

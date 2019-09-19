@@ -24,7 +24,7 @@ import './DocumentDecorations.scss';
 import { LinkMenu } from "./linking/LinkMenu";
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { PositionDocument } from './nodes/CollectionFreeFormDocumentView';
-import { DocumentView } from "./nodes/DocumentView";
+import { DocumentView, swapViews } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
@@ -155,16 +155,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 if (containerView) {
                     let docTemplate = containerView.props.Document;
                     let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                    let proto = Doc.GetProto(docTemplate);
                     if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
                         const fd = fieldTemplate.data;
                         fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
                     }
                     fieldTemplate.title = metaKey;
-                    Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
+                    Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
                     if (text.startsWith(">>")) {
-                        proto.detailedLayout = proto.layout;
-                        proto.miniLayout = ImageBox.LayoutString(metaKey);
+                        let layoutNative = Doc.MakeTitled("layoutNative");
+                        Doc.GetProto(docTemplate).layoutNative = layoutNative;
+                        swapViews(fieldTemplate, "", "layoutNative", layoutNative);
+                        layoutNative.layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+                        layoutNative.backgroundLayout = StrCast(fieldTemplateView.props.Document.backgroundLayout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                     }
                 }
             }
@@ -845,8 +847,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, SelectionManager.SelectedDocuments().reduce((checked, doc) => checked || (doc.
-                Document["show" + template.Name] ? true : false), false)));
+            templates.set(template, SelectionManager.SelectedDocuments().reduce((checked, doc) => checked || (doc.props.Document["show" + template.Name] ? true : false), false)));
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;

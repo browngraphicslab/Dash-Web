@@ -220,9 +220,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             e.stopPropagation();
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
-            Doc.UseDetailLayout(fullScreenAlias);
-            fullScreenAlias.showCaption = "caption";
-            this.props.addDocTab(fullScreenAlias, this.props.DataDoc, "inTab");
+            let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
+            if (layoutNative && fullScreenAlias.layout === layoutNative.layout) {
+                await swapViews(fullScreenAlias, "layoutCustom", "layoutNative");
+            }
+            this.props.addDocTab(fullScreenAlias, undefined, "inTab");
             SelectionManager.DeselectAll();
             Doc.UnBrushDoc(this.props.Document);
         }
@@ -392,7 +394,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DocUtils.MakeLink(sourceDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(sourceDoc.title)}`);
         }
         if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document, this.props.DataDoc);
+            Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document);
             e.stopPropagation();
         }
         if (de.data instanceof DragManager.LinkDragData) {
@@ -528,9 +530,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         layoutItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
-        if (this.props.Document.detailedLayout && !this.Document.isTemplate) {
-            layoutItems.push({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
-        }
         if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
             layoutItems.push({ description: "Use Custom Layout", event: this.makeCustomViewClicked, icon: "concierge-bell" });
         } else if (this.props.Document.layoutNative) {
@@ -728,8 +727,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-let swapViews = async (doc: any, newLayoutField: any, oldLayoutField: any) => {
-    let oldLayoutExt = await Cast(doc[oldLayoutField], Doc);
+export async function swapViews(doc: Doc, newLayoutField: string, oldLayoutField: string, oldLayout?: Doc) {
+    let oldLayoutExt = oldLayout || await Cast(doc[oldLayoutField], Doc);
     if (oldLayoutExt) {
         oldLayoutExt.autoHeight = doc.autoHeight;
         oldLayoutExt.width = doc.width;
@@ -737,6 +736,7 @@ let swapViews = async (doc: any, newLayoutField: any, oldLayoutField: any) => {
         oldLayoutExt.nativeWidth = doc.nativeWidth;
         oldLayoutExt.nativeHeight = doc.nativeHeight;
         oldLayoutExt.ignoreAspect = doc.ignoreAspect;
+        oldLayoutExt.backgroundLayout = doc.backgroundLayout;
         oldLayoutExt.type = doc.type;
         oldLayoutExt.layout = doc.layout;
     }
@@ -749,6 +749,7 @@ let swapViews = async (doc: any, newLayoutField: any, oldLayoutField: any) => {
         doc.nativeWidth = newLayoutExt.nativeWidth;
         doc.nativeHeight = newLayoutExt.nativeHeight;
         doc.ignoreAspect = newLayoutExt.ignoreAspect;
+        doc.backgroundLayout = newLayoutExt.backgroundLayout;
         doc.type = newLayoutExt.type;
         doc.layout = await newLayoutExt.layout;
     }

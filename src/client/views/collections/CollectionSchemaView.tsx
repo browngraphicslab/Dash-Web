@@ -948,8 +948,10 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         if (de.data instanceof DragManager.DocumentDragData) {
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
                 let target = Doc.GetProto(otherdoc);
-                target.layout = target.detailedLayout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
-                target.miniLayout = ComputedField.MakeFunction("this.image_data[0]");
+                let layoutNative = Doc.MakeTitled("layoutNative");
+                layoutNative.layout = ComputedField.MakeFunction("this.image_data[0]");
+                target.layoutNative = layoutNative;
+                target.layoutCUstom = target.layout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
             });
             e.stopPropagation();
         }

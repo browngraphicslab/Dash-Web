@@ -544,22 +544,9 @@ export namespace Doc {
 
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
-        if (!templateDoc) return undefined;
-        let datadoc = new Doc();
-        let otherdoc = Doc.MakeDelegate(datadoc);
-        otherdoc.width = templateDoc[WidthSym]();
-        otherdoc.height = templateDoc[HeightSym]();
-        otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";
-        otherdoc.layout = Doc.MakeDelegate(templateDoc);
-        otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
-        otherdoc.detailedLayout = otherdoc.layout;
-        otherdoc.type = DocumentType.TEMPLATE;
-        !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
-        !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
-        !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
-        return otherdoc;
+        return !templateDoc ? undefined : ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), templateDoc.title + "(..." + _applyCount++ + ")");
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, titleTarget: string | undefined = undefined) {
         if (!templateDoc) {
             target.layout = undefined;
             target.nativeWidth = undefined;
@@ -568,25 +555,24 @@ export namespace Doc {
             target.type = undefined;
             return;
         }
-        let temp = Doc.MakeDelegate(templateDoc);
-        target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
-        target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
-        !templateDoc.nativeWidth && (target.nativeWidth = 0);
-        !templateDoc.nativeHeight && (target.nativeHeight = 0);
-        !templateDoc.nativeHeight && (target.ignoreAspect = true);
+
+        let layoutCustom = Doc.MakeTitled("layoutCustom");
+        let layoutCustomLayout = Doc.MakeDelegate(templateDoc);
+
+        titleTarget && (target.title = titleTarget);
+        target.type = DocumentType.TEMPLATE;
         target.width = templateDoc.width;
         target.height = templateDoc.height;
+        target.nativeWidth = templateDoc.nativeWidth ? templateDoc.nativeWidth : 0;
+        target.nativeHeight = templateDoc.nativeHeight ? templateDoc.nativeHeight : 0;
+        target.ignoreAspect = templateDoc.nativeWidth ? true : false;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-        target.type = DocumentType.TEMPLATE;
-        if (targetData && targetData.layout === target) {
-            targetData.layout = temp;
-            targetData.miniLayout = StrCast(templateDoc.miniLayout);
-            targetData.detailedLayout = targetData.layout;
-        } else {
-            target.layout = temp;
-            target.miniLayout = StrCast(templateDoc.miniLayout);
-            target.detailedLayout = target.layout;
-        }
+        target.layout = layoutCustomLayout;
+        target.backgroundLayout = layoutCustomLayout.backgroundLayout;
+
+        target.layoutNative = Cast(templateDoc.layoutNative, Doc) as Doc;
+        target.layoutCustom = layoutCustom;
+        return target;
     }
 
     export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false) {
@@ -626,30 +612,6 @@ export namespace Doc {
             if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
             fieldTemplate.proto = templateDataDoc;
         }), 0);
-    }
-
-    export function ToggleDetailLayout(d: Doc) {
-        runInAction(async () => {
-            let miniLayout = await PromiseValue(d.miniLayout);
-            let detailLayout = await PromiseValue(d.detailedLayout);
-            d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
-            if (d.layout === detailLayout) d.nativeWidth = d.nativeHeight = 0;
-            if (StrCast(d.layout) !== "") d.nativeWidth = d.nativeHeight = undefined;
-        });
-    }
-    export function UseDetailLayout(d: Doc) {
-        runInAction(async () => {
-            let detailLayout = await d.detailedLayout;
-            if (detailLayout) {
-                d.layout = detailLayout;
-                d.nativeWidth = d.nativeHeight = undefined;
-                if (detailLayout instanceof Doc) {
-                    let delegDetailLayout = Doc.MakeDelegate(detailLayout);
-                    d.layout = delegDetailLayout;
-                    delegDetailLayout.layout = await delegDetailLayout.detailedLayout;
-                }
-            }
-        });
     }
 
     export function isBrushedHighlightedDegree(doc: Doc) {

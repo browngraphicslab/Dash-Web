@@ -178,7 +178,7 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={undoBatch((value: string) => (Doc.GetProto(this.dataDoc)[key] = value) ? true : true)}
         OnFillDown={undoBatch((value: string) => {
             Doc.GetProto(this.dataDoc)[key] = value;
-            let doc = this.props.document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.detailedLayout)) : undefined;
+            let doc = this.props.document.layoutCustom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.layoutCustom)) : undefined;
             if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
             TreeView.loadId = doc[Id];
             return this.props.addDocument(doc);
@@ -613,7 +613,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     SetValue={undoBatch((value: string) => (Doc.GetProto(this.resolvedDataDoc).title = value) ? true : true)}
                     OnFillDown={undoBatch((value: string) => {
                         Doc.GetProto(this.props.Document).title = value;
-                        let doc = this.props.Document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.detailedLayout)) : undefined;
+                        let doc = this.props.Document.layoutCustom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.layoutCustom)) : undefined;
                         if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, false);

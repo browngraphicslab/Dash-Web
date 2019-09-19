@@ -88,9 +88,6 @@ export default class KeyManager {
                     });
                 }, "delete");
                 break;
-            case "enter":
-                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
-                break;
         }
 
         return {
