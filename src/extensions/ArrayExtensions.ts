@@ -2,11 +2,11 @@ interface Array<T> {
     fixedBatch<T>(batcher: FixedBatcher): T[][];
     predicateBatch<T, A = undefined>(batcher: PredicateBatcherSync<T, A>): T[][];
     predicateBatchAsync<T, A = undefined>(batcher: PredicateBatcherAsync<T, A>): Promise<T[][]>;
-    batch<A = undefined>(batcher: Batcher<T, A>): T[][];
+    batch<A = undefined>(batcher: BatcherSync<T, A>): T[][];
     batchAsync<A = undefined>(batcher: Batcher<T, A>): Promise<T[][]>;
 
-    batchedForEach<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandlerSync<T>): void;
-    batchedMap<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverterSync<T, O>): O[];
+    batchedForEach<A = undefined>(batcher: BatcherSync<T, A>, handler: BatchHandlerSync<T>): void;
+    batchedMap<O, A = undefined>(batcher: BatcherSync<T, A>, handler: BatchConverterSync<T, O>): O[];
 
     batchedForEachAsync<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandler<T>): Promise<void>;
     batchedMapAsync<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverter<T, O>): Promise<O[]>;
