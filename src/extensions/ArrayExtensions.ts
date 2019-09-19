@@ -1,6 +1,6 @@
 interface Array<T> {
     fixedBatch<T>(batcher: FixedBatcher): T[][];
-    predicateBatch<T, A = undefined>(batcher: PredicateBatcher<T, A>): T[][];
+    predicateBatch<T, A = undefined>(batcher: PredicateBatcherSync<T, A>): T[][];
     predicateBatchAsync<T, A = undefined>(batcher: PredicateBatcherAsync<T, A>): Promise<T[][]>;
     batch<A = undefined>(batcher: Batcher<T, A>): T[][];
     batchAsync<A = undefined>(batcher: BatcherAsync<T, A>): Promise<T[][]>;
@@ -27,7 +27,7 @@ interface ExecutorResult<A> {
     makeNextBatch: boolean;
 }
 
-interface PredicateBatcherCommon<I, A> {
+interface PredicateBatcherCommon<A> {
     initial: A;
     persistAccumulator?: boolean;
 }
@@ -45,11 +45,12 @@ type BatchConverter<I, O> = BatchConverterSync<I, O> | BatchConverterAsync<I, O>
 type BatchHandler<I> = BatchHandlerSync<I> | BatchHandlerAsync<I>;
 
 type FixedBatcher = { batchSize: number } | { batchCount: number, mode?: typeof module.exports.Mode };
-type PredicateBatcher<I, A> = PredicateBatcherCommon<I, A> & { executor: (element: I, accumulator: A) => ExecutorResult<A> };
-type PredicateBatcherAsync<I, A> = PredicateBatcherCommon<I, A> & { executor: (element: I, accumulator: A) => ExecutorResult<A> | Promise<ExecutorResult<A>> };
+type PredicateBatcherSync<I, A> = PredicateBatcherCommon<A> & { executor: (element: I, accumulator: A) => ExecutorResult<A> };
+type PredicateBatcherAsync<I, A> = PredicateBatcherCommon<A> & { executor: (element: I, accumulator: A) => Promise<ExecutorResult<A>> };
 
-type Batcher<I, A> = FixedBatcher | PredicateBatcher<I, A>;
-type BatcherAsync<I, A> = Batcher<I, A> | PredicateBatcherAsync<I, A>;
+type BatcherSync<I, A> = FixedBatcher | PredicateBatcherSync<I, A>;
+type BatcherAsync<I, A> = FixedBatcher | PredicateBatcherAsync<I, A>;
+type Batcher<I, A> = BatcherSync<I, A> | BatcherAsync<I, A>;
 
 module.exports.Mode = {
     Balanced: 0,
@@ -115,7 +116,7 @@ module.exports.Assign = function () {
         return batches;
     };
 
-    Array.prototype.predicateBatch = function <T, A>(batcher: PredicateBatcher<T, A>): T[][] {
+    Array.prototype.predicateBatch = function <T, A>(batcher: PredicateBatcherSync<T, A>): T[][] {
         const batches: T[][] = [];
         let batch: T[] = [];
         const { executor, initial, persistAccumulator } = batcher;
@@ -159,7 +160,7 @@ module.exports.Assign = function () {
         return batches;
     };
 
-    Array.prototype.batch = function <T, A>(batcher: Batcher<T, A>): T[][] {
+    Array.prototype.batch = function <T, A>(batcher: BatcherSync<T, A>): T[][] {
         if ("executor" in batcher) {
             return this.predicateBatch(batcher);
         } else {
