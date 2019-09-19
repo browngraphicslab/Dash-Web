@@ -3,7 +3,7 @@ interface Array<T> {
     predicateBatch<T, A = undefined>(batcher: PredicateBatcherSync<T, A>): T[][];
     predicateBatchAsync<T, A = undefined>(batcher: PredicateBatcherAsync<T, A>): Promise<T[][]>;
     batch<A = undefined>(batcher: Batcher<T, A>): T[][];
-    batchAsync<A = undefined>(batcher: BatcherAsync<T, A>): Promise<T[][]>;
+    batchAsync<A = undefined>(batcher: Batcher<T, A>): Promise<T[][]>;
 
     batchedForEach<A = undefined>(batcher: Batcher<T, A>, handler: BatchHandlerSync<T>): void;
     batchedMap<O, A = undefined>(batcher: Batcher<T, A>, handler: BatchConverterSync<T, O>): O[];
@@ -38,19 +38,21 @@ interface Interval {
 }
 
 type BatchConverterSync<I, O> = (batch: I[], context: BatchContext) => O[];
-type BatchHandlerSync<I> = (batch: I[], context: BatchContext) => void;
 type BatchConverterAsync<I, O> = (batch: I[], context: BatchContext) => Promise<O[]>;
-type BatchHandlerAsync<I> = (batch: I[], context: BatchContext) => Promise<void>;
 type BatchConverter<I, O> = BatchConverterSync<I, O> | BatchConverterAsync<I, O>;
+
+type BatchHandlerSync<I> = (batch: I[], context: BatchContext) => void;
+type BatchHandlerAsync<I> = (batch: I[], context: BatchContext) => Promise<void>;
 type BatchHandler<I> = BatchHandlerSync<I> | BatchHandlerAsync<I>;
+
+type BatcherSync<I, A> = FixedBatcher | PredicateBatcherSync<I, A>;
+type BatcherAsync<I, A> = PredicateBatcherAsync<I, A>;
+type Batcher<I, A> = BatcherSync<I, A> | BatcherAsync<I, A>;
 
 type FixedBatcher = { batchSize: number } | { batchCount: number, mode?: typeof module.exports.Mode };
 type PredicateBatcherSync<I, A> = PredicateBatcherCommon<A> & { executor: (element: I, accumulator: A) => ExecutorResult<A> };
-type PredicateBatcherAsync<I, A> = PredicateBatcherCommon<A> & { executor: (element: I, accumulator: A) => Promise<ExecutorResult<A>> };
+type PredicateBatcherAsync<I, A> = PredicateBatcherCommon<A> & { executorAsync: (element: I, accumulator: A) => Promise<ExecutorResult<A>> };
 
-type BatcherSync<I, A> = FixedBatcher | PredicateBatcherSync<I, A>;
-type BatcherAsync<I, A> = FixedBatcher | PredicateBatcherAsync<I, A>;
-type Batcher<I, A> = BatcherSync<I, A> | BatcherAsync<I, A>;
 
 module.exports.Mode = {
     Balanced: 0,
@@ -138,13 +140,13 @@ module.exports.Assign = function () {
         return batches;
     };
 
-    Array.prototype.predicateBatchAsync = async function <T, A>(batcher: PredicateBatcherAsync<T, A>): Promise<T[][]> {
+    Array.prototype.predicateBatchAsync = async function <T, A>(batcher: BatcherAsync<T, A>): Promise<T[][]> {
         const batches: T[][] = [];
         let batch: T[] = [];
-        const { executor, initial, persistAccumulator } = batcher;
+        const { executorAsync, initial, persistAccumulator } = batcher;
         let accumulator: A = initial;
         for (let element of this) {
-            const { updated, makeNextBatch } = await executor(element, accumulator);
+            const { updated, makeNextBatch } = await executorAsync(element, accumulator);
             accumulator = updated;
             if (!makeNextBatch) {
                 batch.push(element);
@@ -168,15 +170,15 @@ module.exports.Assign = function () {
         }
     };
 
-    Array.prototype.batchAsync = async function <T, A>(batcher: BatcherAsync<T, A>): Promise<T[][]> {
-        if ("executor" in batcher) {
+    Array.prototype.batchAsync = async function <T, A>(batcher: Batcher<T, A>): Promise<T[][]> {
+        if ("executorAsync" in batcher) {
             return this.predicateBatchAsync(batcher);
         } else {
-            return this.fixedBatch(batcher);
+            return this.batch(batcher);
         }
     };
 
-    Array.prototype.batchedForEach = function <I, A>(batcher: Batcher<I, A>, handler: BatchHandlerSync<I>): void {
+    Array.prototype.batchedForEach = function <I, A>(batcher: BatcherSync<I, A>, handler: BatchHandlerSync<I>): void {
         if (this.length) {
             let completed = 0;
             const batches = this.batch(batcher);
@@ -192,7 +194,7 @@ module.exports.Assign = function () {
         }
     };
 
-    Array.prototype.batchedMap = function <I, O, A>(batcher: Batcher<I, A>, handler: BatchConverterSync<I, O>): O[] {
+    Array.prototype.batchedMap = function <I, O, A>(batcher: BatcherSync<I, A>, handler: BatchConverterSync<I, O>): O[] {
         if (!this.length) {
             return [];
         }
@@ -211,7 +213,7 @@ module.exports.Assign = function () {
         return collector;
     };
 
-    Array.prototype.batchedForEachAsync = async function <I, A>(batcher: BatcherAsync<I, A>, handler: BatchHandler<I>): Promise<void> {
+    Array.prototype.batchedForEachAsync = async function <I, A>(batcher: Batcher<I, A>, handler: BatchHandler<I>): Promise<void> {
         if (this.length) {
             let completed = 0;
             const batches = await this.batchAsync(batcher);
@@ -227,7 +229,7 @@ module.exports.Assign = function () {
         }
     };
 
-    Array.prototype.batchedMapAsync = async function <I, O, A>(batcher: BatcherAsync<I, A>, handler: BatchConverter<I, O>): Promise<O[]> {
+    Array.prototype.batchedMapAsync = async function <I, O, A>(batcher: Batcher<I, A>, handler: BatchConverter<I, O>): Promise<O[]> {
         if (!this.length) {
             return [];
         }
@@ -246,7 +248,7 @@ module.exports.Assign = function () {
         return collector;
     };
 
-    Array.prototype.batchedForEachInterval = async function <I, A>(batcher: BatcherAsync<I, A>, handler: BatchHandler<I>, interval: Interval): Promise<void> {
+    Array.prototype.batchedForEachInterval = async function <I, A>(batcher: Batcher<I, A>, handler: BatchHandler<I>, interval: Interval): Promise<void> {
         if (!this.length) {
             return;
         }
@@ -276,7 +278,7 @@ module.exports.Assign = function () {
         });
     };
 
-    Array.prototype.batchedMapInterval = async function <I, O, A>(batcher: BatcherAsync<I, A>, handler: BatchConverter<I, O>, interval: Interval): Promise<O[]> {
+    Array.prototype.batchedMapInterval = async function <I, O, A>(batcher: Batcher<I, A>, handler: BatchConverter<I, O>, interval: Interval): Promise<O[]> {
         if (!this.length) {
             return [];
         }
