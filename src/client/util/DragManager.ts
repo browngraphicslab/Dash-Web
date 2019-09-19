@@ -66,7 +66,7 @@ export function SetupDrag(
 
 function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
     const document = SelectionManager.SelectedDocuments()[0];
-    document.props.removeDocument && document.props.removeDocument(doc);
+    document && document.props.removeDocument && document.props.removeDocument(doc);
     addDocument(doc);
     return true;
 }
@@ -270,7 +270,8 @@ export namespace DragManager {
                 let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
                     let dvs = DocumentManager.Instance.getDocumentViews(d);
                     if (dvs.length) {
-                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+                        let containingView = SelectionManager.SelectedDocuments()[0] ? SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView : undefined;
+                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === containingView);
                         if (inContext.length) {
                             inContext.forEach(dv => droppedDocs.push(dv.props.Document));
                         } else {

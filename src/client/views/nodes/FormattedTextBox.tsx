@@ -39,6 +39,7 @@ import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
 import { inputRules } from 'prosemirror-inputrules';
+import { DocumentButtonBar } from '../DocumentButtonBar';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -429,8 +430,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pullReactionDisposer = reaction(
             () => this.props.Document[Pulls],
             () => {
-                if (!DocumentDecorations.hasPulledHack) {
-                    DocumentDecorations.hasPulledHack = true;
+                if (!DocumentButtonBar.hasPulledHack) {
+                    DocumentButtonBar.hasPulledHack = true;
                     let unchanged = this.dataDoc.unchanged;
                     this.pullFromGoogleDoc(unchanged ? this.checkState : this.updateState);
                 }
@@ -440,8 +441,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pushReactionDisposer = reaction(
             () => this.props.Document[Pushes],
             () => {
-                if (!DocumentDecorations.hasPushedHack) {
-                    DocumentDecorations.hasPushedHack = true;
+                if (!DocumentButtonBar.hasPushedHack) {
+                    DocumentButtonBar.hasPushedHack = true;
                     this.pushToGoogleDoc();
                 }
             }
@@ -534,7 +535,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     response && (this.dataDoc[GoogleRef] = response.documentId);
                     let pushSuccess = response !== undefined && !("errors" in response);
                     dataDoc.unchanged = pushSuccess;
-                    DocumentDecorations.Instance.startPushOutcome(pushSuccess);
+                    DocumentButtonBar.Instance.startPushOutcome(pushSuccess);
                 }
             };
             let undo = () => {
@@ -579,7 +580,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         } else {
             delete dataDoc[GoogleRef];
         }
-        DocumentDecorations.Instance.startPullOutcome(pullSuccess);
+        DocumentButtonBar.Instance.startPullOutcome(pullSuccess);
     }
 
     checkState = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
@@ -592,7 +593,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let receivedTitle = exportState.title;
                 let unchanged = storedPlainText === receivedPlainText && storedTitle === receivedTitle;
                 dataDoc.unchanged = unchanged;
-                DocumentDecorations.Instance.setPullState(unchanged);
+                DocumentButtonBar.Instance.setPullState(unchanged);
             }
         }
     }

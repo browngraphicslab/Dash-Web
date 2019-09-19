@@ -28,8 +28,8 @@ import { MainView } from '../MainView';
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
-import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
+import { ButtonSelector } from './ParentDocumentSelector';
 library.add(faFile);
 
 @observer
@@ -401,6 +401,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 dragSpan.style.bottom = "6px";
                 dragSpan.style.paddingLeft = "4px";
                 dragSpan.style.paddingRight = "2px";
+                let gearSpan = document.createElement("span");
+                gearSpan.style.position = "relative";
+                gearSpan.style.paddingLeft = "0px";
+                gearSpan.style.paddingRight = "12px";
                 let upDiv = document.createElement("span");
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
@@ -421,12 +425,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             hideSource: false
                         });
                     }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
-                ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, data, where) => {
-                    where === "onRight" ? CollectionDockingView.AddRightSplit(doc, dataDoc) : CollectionDockingView.Instance.AddTab(stack, doc, dataDoc);
-                    return true;
-                }} />, upDiv);
-                tab.reactComponents = [dragSpan, upDiv];
+                ReactDOM.render(<ButtonSelector Document={doc} Stack={stack} />, gearSpan);
+                // ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, data, where) => {
+                //     where === "onRight" ? CollectionDockingView.AddRightSplit(doc, dataDoc) : CollectionDockingView.Instance.AddTab(stack, doc, dataDoc);
+                //     return true;
+                // }} />, upDiv);
+                tab.reactComponents = [dragSpan, gearSpan, upDiv];
                 tab.element.append(dragSpan);
+                tab.element.append(gearSpan);
                 tab.element.append(upDiv);
                 tab.reactionDisposer = reaction(() => [doc.title, Doc.IsBrushedDegree(doc)], () => {
                     tab.titleElement[0].textContent = doc.title, { fireImmediately: true };
