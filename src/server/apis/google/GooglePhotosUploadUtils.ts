@@ -7,6 +7,7 @@ import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
 import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
 import { NewMediaItem } from '../..';
+import { TimeUnit } from "../../index";
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 

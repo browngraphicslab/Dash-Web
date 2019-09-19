@@ -89,7 +89,7 @@ export namespace GooglePhotos {
                 return undefined;
             }
             const resolved = title ? title : (StrCast(collection.title) || `Dash Collection (${collection[Id]}`);
-            const { id } = await Create.Album(resolved);
+            const { id, productUrl } = await Create.Album(resolved);
             const newMediaItemResults = await Transactions.UploadImages(images, { id }, descriptionKey);
             if (newMediaItemResults) {
                 const mediaItems = newMediaItemResults.map(item => item.mediaItem);
@@ -101,9 +101,11 @@ export namespace GooglePhotos {
                     const image = Doc.GetProto(images[i]);
                     const mediaItem = mediaItems[i];
                     image.googlePhotosId = mediaItem.id;
+                    image.googlePhotosAlbumUrl = productUrl;
                     image.googlePhotosUrl = mediaItem.productUrl || mediaItem.baseUrl;
                     idMapping[mediaItem.id] = image;
                 }
+                collection.googlePhotosAlbumUrl = productUrl;
                 collection.googlePhotosIdMapping = idMapping;
                 if (tag) {
                     await Query.TagChildImages(collection);

@@ -47,7 +47,7 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
-const extensions = require("../client/util/UtilExtensions");
+const ArrayExtensions = require("../extensions/ArrayExtensions");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -98,6 +98,8 @@ enum Method {
     GET,
     POST
 }
+
+ArrayExtensions.AssignArrayExtensions();
 
 /**
  * Please invoke this function when adding a new route to Dash's server.
@@ -835,18 +837,11 @@ export interface NewMediaItem {
     };
 }
 
-Array.prototype.fixedBatch = extensions.FixedBatch;
-Array.prototype.predicateBatch = extensions.PredicateBatch;
-Array.prototype.predicateBatchAsync = extensions.PredicateBatchAsync;
-Array.prototype.batch = extensions.Batch;
-Array.prototype.batchAsync = extensions.BatchAsync;
-
-Array.prototype.batchedForEach = extensions.ExecuteInBatches;
-Array.prototype.batchedMap = extensions.ConvertInBatches;
-Array.prototype.batchedForEachAsync = extensions.ExecuteInBatchesAsync;
-Array.prototype.batchedMapAsync = extensions.ConvertInBatchesAsync;
-Array.prototype.batchedForEachInterval = extensions.ExecuteInBatchesAtInterval;
-Array.prototype.batchedMapInterval = extensions.ConvertInBatchesAtInterval;
+export enum TimeUnit {
+    Milliseconds,
+    Seconds,
+    Minutes
+}
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;

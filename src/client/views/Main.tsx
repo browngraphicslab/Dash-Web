@@ -7,18 +7,9 @@ import { Cast } from "../../new_fields/Types";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { DocServer } from "../DocServer";
+const ArrayExtensions = require("../../extensions/ArrayExtensions");
 
-String.prototype.removeTrailingNewlines = function () {
-    let sliced = this;
-    while (sliced.endsWith("\n")) {
-        sliced = sliced.substring(0, this.length - 1);
-    }
-    return sliced as string;
-};
-
-String.prototype.hasNewline = function () {
-    return this.endsWith("\n");
-};
+ArrayExtensions.AssignArrayExtensions();
 
 let swapDocs = async () => {
     let oldDoc = await Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc);
