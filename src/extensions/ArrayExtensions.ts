@@ -323,11 +323,11 @@ const convert = (interval: Interval) => {
     const { magnitude, unit } = interval;
     switch (unit) {
         default:
-        case module.exports.Mode.TimeUnit.Milliseconds:
+        case module.exports.TimeUnit.Milliseconds:
             return magnitude;
-        case module.exports.Mode.TimeUnit.Seconds:
+        case module.exports.TimeUnit.Seconds:
             return magnitude * 1000;
-        case module.exports.Mode.TimeUnit.Minutes:
+        case module.exports.TimeUnit.Minutes:
             return magnitude * 1000 * 60;
     }
 };

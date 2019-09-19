@@ -48,6 +48,8 @@ const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
 const Extensions = require("../extensions/Extensions");
+const ArrayExtensions = require("../extensions/ArrayExtensions");
+
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
