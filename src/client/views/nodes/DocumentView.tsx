@@ -88,7 +88,6 @@ export interface DocumentViewProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
     backgroundColor: (doc: Doc) => string | undefined;
     getScale: () => number;
@@ -178,36 +177,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @action
-    public collapseTargetsToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
-        SelectionManager.DeselectAll();
-        expandedDocs && expandedDocs.map(expDoc => {
-            if (expDoc.isMinimized || expDoc.isAnimating === "min") { // MAXIMIZE DOC
-                if (expDoc.isMinimized) {  // docs are never actaully at the minimized location.  so when we unminimize one, we have to set our overrides to make it look like it was at the minimize location
-                    expDoc.isMinimized = false;
-                    expDoc.animateToPos = new List<number>([...scrpt, 0]);
-                    expDoc.animateToDimensions = new List<number>([0, 0]);
-                }
-                setTimeout(() => {
-                    expDoc.isAnimating = "max";
-                    expDoc.animateToPos = new List<number>([0, 0, 1]);
-                    expDoc.animateToDimensions = new List<number>([NumCast(expDoc.width), NumCast(expDoc.height)]);
-                    setTimeout(() => expDoc.isAnimating === "max" && (expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined), 600);
-                }, 0);
-            } else {  // MINIMIZE DOC
-                expDoc.isAnimating = "min";
-                expDoc.animateToPos = new List<number>([...scrpt, 0]);
-                expDoc.animateToDimensions = new List<number>([0, 0]);
-                setTimeout(() => {
-                    if (expDoc.isAnimating === "min") {
-                        expDoc.isMinimized = true;
-                        expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined;
-                    }
-                }, 600);
-            }
-        });
-    }
-
     onClick = async (e: React.MouseEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
@@ -246,7 +215,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (maxLocation === "inPlace") {
                 expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc, false));
                 let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
-                this.collapseTargetsToPoint(scrpt, expandedDocs);
+                DocumentManager.Instance.animateBetweenPoint(scrpt, expandedDocs);
             } else {
                 expandedDocs.forEach(maxDoc => (!this.props.addDocTab(maxDoc, undefined, "close") && this.props.addDocTab(maxDoc, undefined, maxLocation)));
             }

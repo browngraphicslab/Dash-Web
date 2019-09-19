@@ -364,7 +364,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (minimizedDoc) {
                         let scrpt = selectedDocs[0].props.ScreenToLocalTransform().scale(selectedDocs[0].props.ContentScaling()).inverse().transformPoint(
                             NumCast(minimizedDoc.x) - NumCast(selectedDocs[0].Document.x), NumCast(minimizedDoc.y) - NumCast(selectedDocs[0].Document.y));
-                        selectedDocs[0].collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+                        SelectionManager.DeselectAll();
+                        DocumentManager.Instance.animateBetweenPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
                     }
                 });
             }

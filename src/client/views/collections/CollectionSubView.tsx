@@ -277,6 +277,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     promises.push(prom);
                 }
             }
+            if (text) {
+                this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                return;
+            }
 
             if (promises.length) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
