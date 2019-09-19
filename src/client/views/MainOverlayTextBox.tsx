@@ -119,9 +119,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
 
     addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
-        if (true) { // location === "onRight") { need to figure out stack to add "inTab"
-            CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
-        }
+        this._textBox && this._textBox.props.addDocTab(doc, dataDoc, location);
     }
     render() {
         this.TextDoc; this.TextDataDoc;

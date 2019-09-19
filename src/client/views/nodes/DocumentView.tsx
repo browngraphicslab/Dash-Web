@@ -86,7 +86,7 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
@@ -242,23 +242,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (expandedDocs.length) {
             SelectionManager.DeselectAll();
             let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
-            if (altKey || ctrlKey) {
-                maxLocation = this.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" ? "inTab" : "inPlace"));
-                if (maxLocation === "inPlace") {
-                    let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                    let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !d.isMinimized, false);
-                    expandedDocs.forEach(maxDoc => maxDoc.isMinimized = false);
-                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                    !hasView && expandedDocs.forEach(async maxDoc => this.props.addDocument && this.props.addDocument(maxDoc, false));
-                    expandedDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
-                }
-            }
-            if (maxLocation !== "inPlace" && CollectionDockingView.Instance) {
-                expandedDocs.forEach(maxDoc =>
-                    (!CollectionDockingView.Instance.CloseRightSplit(maxDoc) && this.props.addDocTab(maxDoc, undefined, maxLocation)));
-            } else {
+            maxLocation = this.Document.maximizeLocation = (!ctrlKey ? !altKey ? maxLocation : (maxLocation !== "inPlace" ? "inPlace" : "onRight") : (maxLocation !== "inPlace" ? "inPlace" : "inTab"));
+            if (maxLocation === "inPlace") {
+                expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc, false));
                 let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
                 this.collapseTargetsToPoint(scrpt, expandedDocs);
+            } else {
+                expandedDocs.forEach(maxDoc => (!this.props.addDocTab(maxDoc, undefined, "close") && this.props.addDocTab(maxDoc, undefined, maxLocation)));
             }
         }
         else if (linkedDocs.length) {
@@ -277,7 +267,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionDoc) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
                 DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
                     // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                    doc => this.props.focus(this.props.Document, true, 1, () => { this.props.addDocTab(doc, undefined, maxLocation); return true; }),
+                    doc => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
                     linkedFwdPage[altKey ? 1 : 0], targetContext);
             }
         }

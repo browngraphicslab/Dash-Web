@@ -288,6 +288,7 @@ export class MainView extends React.Component {
                 }
             }
         }, 100);
+        return true;
     }
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -319,7 +320,7 @@ export class MainView extends React.Component {
                         <DocumentView Document={mainCont}
                             DataDoc={undefined}
                             addDocument={undefined}
-                            addDocTab={emptyFunction}
+                            addDocTab={this.addDocTabFunc}
                             pinToPres={emptyFunction}
                             onClick={undefined}
                             ruleProvider={undefined}
@@ -368,11 +369,14 @@ export class MainView extends React.Component {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    addDocTabFunc = (doc: Doc) => {
+    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string) => {
+        if (where === "close")
+            return CollectionDockingView.CloseRightSplit(doc);
         if (doc.dockingConfig) {
             this.openWorkspace(doc);
+            return true;
         } else {
-            CollectionDockingView.Instance.AddRightSplit(doc, undefined);
+            return CollectionDockingView.AddRightSplit(doc, undefined);
         }
     }
     @computed

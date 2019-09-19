@@ -76,7 +76,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                 col.panX = newPanX;
                 col.panY = newPanY;
             }
-            CollectionDockingView.Instance.AddRightSplit(col, undefined);
+            CollectionDockingView.AddRightSplit(col, undefined);
         };
     }
     render() {
@@ -110,7 +110,7 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
     unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
 
-    getOnClick = (col: Doc) => () => CollectionDockingView.Instance.AddRightSplit(col, undefined);
+    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col, undefined);
 
     render() {
         return (

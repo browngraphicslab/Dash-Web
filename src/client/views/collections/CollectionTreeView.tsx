@@ -40,7 +40,7 @@ export interface TreeViewProps {
     ruleProvider: Doc | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
@@ -414,7 +414,7 @@ class TreeView extends React.Component<TreeViewProps> {
         remove: ((doc: Doc) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
-        addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void,
+        addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean,
         pinToPres: (document: Doc) => void,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
@@ -562,8 +562,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
     openNotifsCol = () => {
-        if (CollectionTreeView.NotifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(CollectionTreeView.NotifsCol, undefined);
+        if (CollectionTreeView.NotifsCol) {
+            this.props.addDocTab(CollectionTreeView.NotifsCol, undefined, "onRight");
         }
     }
 

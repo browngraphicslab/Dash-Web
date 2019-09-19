@@ -1,20 +1,18 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, WidthSym, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
-import { scale } from "./PDFViewer";
-import { PresBox } from "../nodes/PresBox";
 
 interface IAnnotationProps {
     anno: Doc;
     fieldExtensionDoc: Doc;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
     pinToPres: (document: Doc) => void;
 }
 
@@ -31,7 +29,7 @@ interface IRegionAnnotationProps {
     width: number;
     height: number;
     fieldExtensionDoc: Doc;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
 }

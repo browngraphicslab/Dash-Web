@@ -10,6 +10,7 @@ import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { undoBatch, UndoManager } from './UndoManager';
 import { Scripting } from './Scripting';
+import { emptyFunction } from '../../Utils';
 
 
 export class DocumentManager {
@@ -146,6 +147,7 @@ export class DocumentManager {
             if (!contextDoc) {
                 let docs = docContext ? await DocListCastAsync(docContext.data) : undefined;
                 let found = false;
+                // bcz: this just searches within the context for the target -- perhaps it should recursively search through all children?
                 docs && docs.map(d => found = found || Doc.AreProtosEqual(d, docDelegate));
                 if (docContext && found) {
                     let targetContextView: DocumentView | null;
@@ -154,16 +156,19 @@ export class DocumentManager {
                         docContext.panTransformType = "Ease";
                         targetContextView.props.focus(docDelegate, willZoom);
                     } else {
-                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, undefined);
+                        (dockFunc || CollectionDockingView.AddRightSplit)(docContext, undefined);
                         setTimeout(() => {
-                            this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
-                        }, 10);
+                            let dv = DocumentManager.Instance.getDocumentView(docContext);
+                            dv && this.jumpToDocument(docDelegate, willZoom, forceDockFunc,
+                                doc => dv!.props.focus(dv!.props.Document, true, 1, () => dv!.props.addDocTab(doc, undefined, "inPlace")),
+                                linkPage);
+                        }, 1050);
                     }
                 } else {
                     const actualDoc = Doc.MakeAlias(docDelegate);
                     Doc.BrushDoc(actualDoc);
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, undefined);
+                    (dockFunc || CollectionDockingView.AddRightSplit)(actualDoc, undefined);
                 }
             } else {
                 let contextView: DocumentView | null;
@@ -172,7 +177,7 @@ export class DocumentManager {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(docDelegate, willZoom);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, undefined);
+                    (dockFunc || CollectionDockingView.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
                         this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                     }, 10);

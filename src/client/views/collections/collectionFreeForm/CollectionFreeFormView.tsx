@@ -508,14 +508,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     });
                 }
 
-                let panelDim = this.props.ScreenToLocalTransform().transformDirection(this._pwidth / this.zoomScaling(),
-                    this._pheight / this.zoomScaling());
-                let panelwidth = panelDim[0];
-                let panelheight = panelDim[1];
-                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+                let cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
+                let panelDim = this.props.ScreenToLocalTransform().transformDirection(this._pwidth / this.zoomScaling() * cscale,
+                    this._pheight / this.zoomScaling() * cscale);
+                if (ranges[0][0] - dx > (this.panX() + panelDim[0] / 2)) x = ranges[0][1] + panelDim[0] / 2;
+                if (ranges[0][1] - dx < (this.panX() - panelDim[0] / 2)) x = ranges[0][0] - panelDim[0] / 2;
+                if (ranges[1][0] - dy > (this.panY() + panelDim[1] / 2)) y = ranges[1][1] + panelDim[1] / 2;
+                if (ranges[1][1] - dy < (this.panY() - panelDim[1] / 2)) y = ranges[1][0] - panelDim[1] / 2;
             }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
@@ -613,8 +612,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (willZoom) {
             this.setScaleToZoom(doc, scale);
         }
+        console.log("Focused " + this.Document.title + " " + s);
         afterFocus && setTimeout(() => {
             if (afterFocus && afterFocus()) {
+                console.log("UnFocused " + this.Document.title + " " + s);
                 this.Document.panX = px;
                 this.Document.panY = py;
                 this.Document.scale = s;

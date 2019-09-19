@@ -58,10 +58,6 @@ export class TooltipTextMenu {
 
     private _collapsed: boolean = false;
 
-    @observable
-    private _storedMarks: Mark<any>[] | null | undefined;
-
-
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.editorProps = editorProps;
@@ -83,8 +79,6 @@ export class TooltipTextMenu {
         this.extras.appendChild(dragger);
 
         this.dragElement(dragger);
-
-        this._storedMarks = this.view.state.storedMarks;
 
         // this.createCollapse();
         // if (this._collapseBtn) {
@@ -280,7 +274,7 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
-                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f, undefined);
+                                else this.editorProps.addDocTab(f, undefined, "onRight");
                             }
                         }));
                     }
