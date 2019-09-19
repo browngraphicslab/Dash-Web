@@ -47,7 +47,7 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
-const ArrayExtensions = require("../extensions/ArrayExtensions");
+const Extensions = require("../extensions/Extensions");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -99,7 +99,7 @@ enum Method {
     POST
 }
 
-ArrayExtensions.AssignArrayExtensions();
+Extensions.AssignExtensions();
 
 /**
  * Please invoke this function when adding a new route to Dash's server.
