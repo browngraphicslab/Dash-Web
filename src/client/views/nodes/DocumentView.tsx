@@ -393,11 +393,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    toggleCustomView = (): void => {
+    setCustomView = (custom: boolean): void => {
         if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.DataDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc);
         } else { // bcz: not robust -- for now documents with string layout are native documents, and those with Doc layouts are customized
-            typeof this.props.Document.layout === "string" ? this.makeCustomViewClicked() : this.makeNativeViewClicked();
+            custom ? this.makeCustomViewClicked() : this.makeNativeViewClicked();
         }
     }
 
