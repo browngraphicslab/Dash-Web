@@ -2,7 +2,7 @@ import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc, DocListCast } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
 import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils, returnOne } from '../../Utils';
 import { DragManager } from '../util/DragManager';
@@ -118,8 +118,8 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         document.removeEventListener('pointerup', this.textBoxUp);
     }
 
-    addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
-        this._textBox && this._textBox.props.addDocTab(doc, dataDoc, location);
+    addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
+        return this._textBox && this._textBox.props.addDocTab(doc, dataDoc, location) ? true : false;
     }
     render() {
         this.TextDoc; this.TextDataDoc;
