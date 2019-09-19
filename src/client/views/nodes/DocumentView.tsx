@@ -242,27 +242,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (expandedDocs.length) {
             SelectionManager.DeselectAll();
             let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
-            let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
             if (altKey || ctrlKey) {
-                maxLocation = this.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
-                if (!maxLocation || maxLocation === "inPlace") {
+                maxLocation = this.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" ? "inTab" : "inPlace"));
+                if (maxLocation === "inPlace") {
                     let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                     let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !d.isMinimized, false);
-                    expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
+                    expandedDocs.forEach(maxDoc => maxDoc.isMinimized = false);
                     let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                    if (!hasView) {
-                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
-                    }
+                    !hasView && expandedDocs.forEach(async maxDoc => this.props.addDocument && this.props.addDocument(maxDoc, false));
                     expandedDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
                 }
             }
-            if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
-                let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
-                if (dataDocs) {
-                    expandedDocs.forEach(maxDoc =>
-                        (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
-                            this.props.addDocTab(getDispDoc(maxDoc), undefined, maxLocation)));
-                }
+            if (maxLocation !== "inPlace" && CollectionDockingView.Instance) {
+                expandedDocs.forEach(maxDoc =>
+                    (!CollectionDockingView.Instance.CloseRightSplit(maxDoc) && this.props.addDocTab(maxDoc, undefined, maxLocation)));
             } else {
                 let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
                 this.collapseTargetsToPoint(scrpt, expandedDocs);
