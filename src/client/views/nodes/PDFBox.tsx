@@ -31,7 +31,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _alt = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
 
-    @computed get containingCollectionDocument() { return this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document; }
+    @computed get containingCollectionDocument() { return this.props.ContainingCollectionDoc; }
     @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
 

@@ -196,6 +196,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 fieldKey={this.props.fieldKey}
                 renderDepth={this.props.renderDepth}
                 moveDocument={this.props.moveDocument}
@@ -247,6 +248,7 @@ export interface SchemaTableProps {
     childDocs?: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
     deleteDocument: (document: Doc) => boolean;
@@ -1004,6 +1006,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         moveDocument={this.props.moveDocument}
                         whenActiveChanged={this.props.whenActiveChanged}
                         ContainingCollectionView={this.props.CollectionView}
+                        ContainingCollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}

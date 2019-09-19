@@ -30,6 +30,7 @@ export interface FieldViewProps {
     leaveNativeSize?: boolean;
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionDoc: Opt<Doc>;
     ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;

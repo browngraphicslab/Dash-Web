@@ -335,6 +335,7 @@ export class MainView extends React.Component {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}
                             zoomToScale={emptyFunction}
                             getScale={returnOne}
                         />}
@@ -399,6 +400,7 @@ export class MainView extends React.Component {
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             ContainingCollectionView={undefined}
+            ContainingCollectionDoc={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne}>
         </DocumentView>;

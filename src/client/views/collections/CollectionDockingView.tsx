@@ -639,6 +639,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             addDocTab={this.addDocTab}
             pinToPres={this.PinDoc}
             ContainingCollectionView={undefined}
+            ContainingCollectionDoc={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne} />;
     }

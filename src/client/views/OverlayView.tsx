@@ -189,6 +189,7 @@ export class OverlayView extends React.Component {
                     addDocTab={emptyFunction}
                     pinToPres={emptyFunction}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     zoomToScale={emptyFunction}
                     getScale={returnOne} />
             </div>;

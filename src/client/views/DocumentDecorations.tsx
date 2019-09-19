@@ -152,8 +152,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let containerView = fieldTemplateView.props.ContainingCollectionView;
-                if (containerView) {
-                    let docTemplate = containerView.props.Document;
+                let docTemplate = fieldTemplateView.props.ContainingCollectionDoc;
+                if (containerView && docTemplate) {
                     let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
                     if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
                         const fd = fieldTemplate.data;
@@ -431,8 +431,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dist = dist < 3 ? 0 : dist;
         let usingRule = false;
         SelectionManager.SelectedDocuments().map(dv => {
-            let cv = dv.props.ContainingCollectionView;
-            let ruleProvider = cv && cv.props.ruleProvider;
+            let ruleProvider = dv.props.ruleProvider;
             let heading = NumCast(dv.props.Document.heading);
             ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
             usingRule = usingRule || (ruleProvider && heading ? true : false);
@@ -502,7 +501,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
             document.removeEventListener("pointerup", this.onLinkerButtonUp);
             let selDoc = SelectionManager.SelectedDocuments()[0];
-            let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
+            let container = selDoc.props.ContainingCollectionDoc ? selDoc.props.ContainingCollectionDoc.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
             this._linkDrag = UndoManager.StartBatch("Drag Link");
@@ -847,7 +846,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, SelectionManager.SelectedDocuments().reduce((checked, doc) => checked || (doc.props.Document["show" + template.Name] ? true : false), false)));
+            templates.set(template, SelectionManager.SelectedDocuments().reduce((checked, doc) => checked || (doc.props.Document["show" + template.Name] ? true : false), false as boolean)));
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;

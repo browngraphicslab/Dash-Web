@@ -85,11 +85,10 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     async resetPan() {
-        if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
-            let colDoc = this.sourceView.props.ContainingCollectionView.props.Document;
-            runInAction(() => { this.canPan = false; });
-            if (colDoc.viewType && colDoc.viewType === CollectionViewType.Freeform) {
-                let docs = Cast(colDoc.data, listSpec(Doc), []);
+        if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
+            runInAction(() => this.canPan = false);
+            if (this.sourceView.props.ContainingCollectionDoc.viewType === CollectionViewType.Freeform) {
+                let docs = Cast(this.sourceView.props.ContainingCollectionDoc.data, listSpec(Doc), []);
                 let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(LinkFollowBox.destinationDoc));
 
                 aliases.forEach(alias => {
@@ -371,9 +370,9 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this.shouldUseOnlyParentContext = (this.selectedMode === FollowModes.INPLACE || this.selectedMode === FollowModes.PAN);
 
         if (this.shouldUseOnlyParentContext) {
-            if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
-                this.selectedContext = this.sourceView.props.ContainingCollectionView.props.Document;
-                this.selectedContextString = (StrCast(this.sourceView.props.ContainingCollectionView.props.Document.title));
+            if (this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
+                this.selectedContext = this.sourceView.props.ContainingCollectionDoc;
+                this.selectedContextString = (StrCast(this.sourceView.props.ContainingCollectionDoc.title));
             }
         }
     }
@@ -394,9 +393,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @computed
     get canOpenInPlace() {
-        if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
-            let colView = this.sourceView.props.ContainingCollectionView;
-            let colDoc = colView.props.Document;
+        if (this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
+            let colDoc = this.sourceView.props.ContainingCollectionDoc;
             if (colDoc.viewType && colDoc.viewType === CollectionViewType.Freeform) return true;
         }
         return false;
@@ -457,17 +455,15 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @computed
     get parentName() {
-        if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
-            let colView = this.sourceView.props.ContainingCollectionView;
-            return colView.props.Document.title;
+        if (this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
+            return this.sourceView.props.ContainingCollectionDoc.title;
         }
     }
 
     @computed
     get parentID(): string {
-        if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
-            let colView = this.sourceView.props.ContainingCollectionView;
-            return StrCast(colView.props.Document[Id]);
+        if (this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
+            return StrCast(this.sourceView.props.ContainingCollectionDoc[Id]);
         }
         return "col";
     }

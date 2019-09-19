@@ -151,6 +151,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             fieldExt: "",
             ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionDoc: this.props.CollectionView.props.Document,
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: this.props.renderDepth + 1,

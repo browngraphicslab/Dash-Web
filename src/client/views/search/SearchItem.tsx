@@ -180,6 +180,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     ContentScaling={scale}
                 />
             </div>;

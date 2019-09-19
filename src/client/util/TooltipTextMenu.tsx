@@ -310,8 +310,8 @@ export class TooltipTextMenu {
                             dragComplete: action(() => {
                                 let linkDoc = dragData.linkDocument;
                                 let proto = Doc.GetProto(linkDoc);
-                                if (proto && docView && docView.props.ContainingCollectionView) {
-                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                if (proto && docView) {
+                                    proto.sourceContext = docView.props.ContainingCollectionDoc;
                                 }
                                 linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),

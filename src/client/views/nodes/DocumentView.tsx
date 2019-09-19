@@ -67,6 +67,7 @@ library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCom
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
     fitToBox?: boolean;
@@ -208,88 +209,83 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = async (e: React.MouseEvent) => {
-        if (e.nativeEvent.cancelBubble) return; // || SelectionManager.IsSelected(this)) -- bcz: needed because EditableView may stopPropagation which won't apparently stop this event from firing.
-        if (this.onClickHandler && this.onClickHandler.script) {
+        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
+            (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
-            this.onClickHandler.script.run({ this: this.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
             e.preventDefault();
-            return;
+            if (this._doubleTap && this.props.renderDepth) {
+                let fullScreenAlias = Doc.MakeAlias(this.props.Document);
+                let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
+                if (layoutNative && fullScreenAlias.layout === layoutNative.layout) {
+                    await swapViews(fullScreenAlias, "layoutCustom", "layoutNative");
+                }
+                this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+                SelectionManager.DeselectAll();
+                Doc.UnBrushDoc(this.props.Document);
+            } else if (this.onClickHandler && this.onClickHandler.script) {
+                this.onClickHandler.script.run({ this: this.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
+            } else if (this.Document.isButton) {
+                SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
+                this.buttonClick(e.altKey, e.ctrlKey);
+            } else SelectionManager.SelectDoc(this, e.ctrlKey);
         }
-        let altKey = e.altKey;
-        let ctrlKey = e.ctrlKey;
-        if (this._doubleTap && this.props.renderDepth) {
-            e.stopPropagation();
-            let fullScreenAlias = Doc.MakeAlias(this.props.Document);
-            let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
-            if (layoutNative && fullScreenAlias.layout === layoutNative.layout) {
-                await swapViews(fullScreenAlias, "layoutCustom", "layoutNative");
-            }
-            this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+    }
+
+    buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
+        let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
+        let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
+        let linkedDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
+        let expandedDocs: Doc[] = [];
+        expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
+        expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
+        // let expandedDocs = [ ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
+        if (expandedDocs.length) {
             SelectionManager.DeselectAll();
-            Doc.UnBrushDoc(this.props.Document);
+            let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
+            let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
+            if (altKey || ctrlKey) {
+                maxLocation = this.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
+                if (!maxLocation || maxLocation === "inPlace") {
+                    let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
+                    let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !d.isMinimized, false);
+                    expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
+                    if (!hasView) {
+                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
+                    }
+                    expandedDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
+                }
+            }
+            if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
+                let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
+                if (dataDocs) {
+                    expandedDocs.forEach(maxDoc =>
+                        (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
+                            this.props.addDocTab(getDispDoc(maxDoc), undefined, maxLocation)));
+                }
+            } else {
+                let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
+                this.collapseTargetsToPoint(scrpt, expandedDocs);
+            }
         }
-        else if (!this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
-            (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
-                Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
-            e.stopPropagation();
-            SelectionManager.SelectDoc(this, e.ctrlKey);
-            if (this.Document.isButton || this.Document.type === DocumentType.BUTTON) {
-                let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
-                let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-                let linkedDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
-                let expandedDocs: Doc[] = [];
-                expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
-                expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
-                // let expandedDocs = [ ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
-                if (expandedDocs.length) {
-                    SelectionManager.DeselectAll();
-                    let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
-                    let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
-                    if (altKey || ctrlKey) {
-                        maxLocation = this.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
-                        if (!maxLocation || maxLocation === "inPlace") {
-                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !d.isMinimized, false);
-                            expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
-                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                            if (!hasView) {
-                                this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
-                            }
-                            expandedDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
-                        }
-                    }
-                    if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
-                        let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
-                        if (dataDocs) {
-                            expandedDocs.forEach(maxDoc =>
-                                (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
-                                    this.props.addDocTab(getDispDoc(maxDoc), undefined, maxLocation)));
-                        }
-                    } else {
-                        let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
-                        this.collapseTargetsToPoint(scrpt, expandedDocs);
-                    }
-                }
-                else if (linkedDocs.length) {
-                    SelectionManager.DeselectAll();
-                    let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document) && !d.anchor1anchored);
-                    let firstUnshown = first.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
-                    if (firstUnshown.length) first = [firstUnshown[0]];
-                    let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
+        else if (linkedDocs.length) {
+            SelectionManager.DeselectAll();
+            let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document) && !d.anchor1anchored);
+            let firstUnshown = first.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
+            if (firstUnshown.length) first = [firstUnshown[0]];
+            let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
 
-                    // @TODO: shouldn't always follow target context
-                    let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
-                    let linkedFwdPage = [first.length ? NumCast(first[0].anchor2Page, undefined) : undefined, undefined];
+            // @TODO: shouldn't always follow target context
+            let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
+            let linkedFwdPage = [first.length ? NumCast(first[0].anchor2Page, undefined) : undefined, undefined];
 
-                    if (!linkedFwdDocs.some(l => l instanceof Promise)) {
-                        let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
-                        let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
-                            // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                            doc => this.props.focus(this.props.Document, true, 1, () => { this.props.addDocTab(doc, undefined, maxLocation); return true; }),
-                            linkedFwdPage[altKey ? 1 : 0], targetContext);
-                    }
-                }
+            if (!linkedFwdDocs.some(l => l instanceof Promise)) {
+                let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
+                let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionDoc) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
+                DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
+                    // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
+                    doc => this.props.focus(this.props.Document, true, 1, () => { this.props.addDocTab(doc, undefined, maxLocation); return true; }),
+                    linkedFwdPage[altKey ? 1 : 0], targetContext);
             }
         }
     }
@@ -387,25 +383,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let targetDoc = this.props.Document;
             let annotations = await DocListCastAsync(sourceDoc.annotations);
             sourceDoc.linkedToDoc = true;
-            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
+            de.data.targetContext = this.props.ContainingCollectionDoc;
             targetDoc.targetContext = de.data.targetContext;
             annotations && annotations.forEach(anno => anno.target = targetDoc);
 
-            DocUtils.MakeLink(sourceDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(sourceDoc.title)}`);
+            DocUtils.MakeLink(sourceDoc, targetDoc, this.props.ContainingCollectionDoc, `Link from ${StrCast(sourceDoc.title)}`);
         }
         if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
             Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document);
             e.stopPropagation();
         }
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.props.Document;
-
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-            de.data.droppedDocuments.push(destDoc);
-            de.data.linkDocument = DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document);
+            de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc);
         }
     }
 
@@ -436,7 +428,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeIntoPortal = async () => {
-        let anchors = await Promise.all(DocListCast(this.props.Document.links).map(async (d: Doc) => await Cast(d.anchor2, Doc)));
+        let anchors = await Promise.all(DocListCast(this.props.Document.links).map(async (d: Doc) => Cast(d.anchor2, Doc)));
         if (!anchors.find(anchor2 => anchor2 && anchor2.title === this.Document.title + ".portal" ? true : false)) {
             let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
@@ -512,7 +504,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         onClicks.push({
             description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => {
-                this.props.Document.collectionContext = this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document;
+                this.props.Document.collectionContext = this.props.ContainingCollectionDoc;
                 ScriptBox.EditButtonScript("Foreach Collection Doc (d) => ", this.props.Document, "onClick", obj.x, obj.y, "docList(this.collectionContext.data).map(d => {", "});\n");
             }
         });
@@ -637,7 +629,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.Document.backgroundColor !== this.Document.defaultBackgroundColor;
-        const clusterCol = this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground;
+        const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
         const backgroundColor = this.Document.isBackground || (clusterCol && !colorSet) ?
             this.props.backgroundColor(this.Document) || StrCast(this.Document.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.Document.backgroundColor) || this.props.backgroundColor(this.Document);
@@ -753,7 +745,7 @@ export async function swapViews(doc: Doc, newLayoutField: string, oldLayoutField
         doc.type = newLayoutExt.type;
         doc.layout = await newLayoutExt.layout;
     }
-};
+}
 
 Scripting.addGlobal(function toggleDetail(doc: any) {
     let native = typeof doc.layout === "string";
