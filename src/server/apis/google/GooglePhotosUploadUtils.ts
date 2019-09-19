@@ -5,9 +5,9 @@ import { Utils } from '../../../Utils';
 import * as path from 'path';
 import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
-import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
-import { NewMediaItem } from '../..';
-import { TimeUnit } from "../../index";
+import { MediaItemCreationResult } from './SharedTypes';
+import { NewMediaItem } from "../../index";
+const { TimeUnit } = require("../../../extensions/ArrayExtensions");
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 

@@ -3,7 +3,7 @@ interface String {
     hasNewline(): boolean;
 }
 
-module.exports.AssignStringExtensions = function () {
+module.exports.Assign = function () {
 
     String.prototype.removeTrailingNewlines = function () {
         let sliced = this;

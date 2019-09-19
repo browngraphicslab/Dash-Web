@@ -837,12 +837,6 @@ export interface NewMediaItem {
     };
 }
 
-export enum TimeUnit {
-    Milliseconds,
-    Seconds,
-    Minutes
-}
-
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
@@ -865,7 +859,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return newMediaItems;
     };
     const batcher = { batchSize: 25 };
-    const interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
+    const interval = { magnitude: 100, unit: ArrayExtensions.TimeUnit.Milliseconds };
 
     const newMediaItems = await mediaInput.batchedMapInterval(batcher, dispatchUpload, interval);
 
