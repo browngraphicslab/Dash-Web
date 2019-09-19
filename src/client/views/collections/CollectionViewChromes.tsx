@@ -882,7 +882,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                         </div>
 
                         <div className="max">
-                            <input size={10} value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={() => this.searchString = ""} onKeyPress={this.enter} type="text" placeholder={
+                            <input size={10} value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={action(() => this.searchString = "")} onKeyPress={this.enter} type="text" placeholder={
                                 "Max: " + String(Math.round((NumCast(this.props.CollectionView.props.Document.barwidth) -
                                     NumCast(this.props.CollectionView.props.Document.rightbound)) *
                                     NumCast(this.props.CollectionView.props.Document._range) / NumCast(this.props.CollectionView.props.Document.barwidth) + NumCast(this.props.CollectionView.props.Document._range) /

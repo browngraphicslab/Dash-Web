@@ -791,7 +791,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.downbool = true;
         document.removeEventListener("pointermove", this.onPointerMove_Dragger, true);
         document.removeEventListener("pointermove", this.onPointerMove_AdjustScale);
-        this.screenref.current!.style.cursor = "grab";
+        this.screenref.current && (this.screenref.current.style.cursor = "grab");
     }
 
 
