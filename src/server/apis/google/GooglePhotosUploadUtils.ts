@@ -7,7 +7,7 @@ import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
 import { MediaItemCreationResult } from './SharedTypes';
 import { NewMediaItem } from "../../index";
-const { TimeUnit } = require("../../../extensions/ArrayExtensions");
+import { batchedMapInterval, FixedBatcher, TimeUnit, Interval } from "array-batcher";
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -81,10 +81,10 @@ export namespace GooglePhotosUploadUtils {
                 });
             })).newMediaItemResults;
         };
-        const batcher = { batchSize: 50 };
-        const interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
+        const batcher: FixedBatcher = { batchSize: 50 };
+        const interval: Interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
 
-        const newMediaItemResults = await newMediaItems.batchedMapInterval(batcher, createFromUploadTokens, interval);
+        const newMediaItemResults = await batchedMapInterval(newMediaItems, batcher, createFromUploadTokens, interval);
 
         return { newMediaItemResults };
     };

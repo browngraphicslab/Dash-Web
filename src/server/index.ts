@@ -47,9 +47,7 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
-const Extensions = require("../extensions/Extensions");
-const ArrayExtensions = require("../extensions/ArrayExtensions");
-
+import { batchedMapInterval, TimeUnit } from "array-batcher";
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -100,8 +98,6 @@ enum Method {
     GET,
     POST
 }
-
-Extensions.AssignExtensions();
 
 /**
  * Please invoke this function when adding a new route to Dash's server.
@@ -861,9 +857,9 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         return newMediaItems;
     };
     const batcher = { batchSize: 25 };
-    const interval = { magnitude: 100, unit: ArrayExtensions.TimeUnit.Milliseconds };
+    const interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
 
-    const newMediaItems = await mediaInput.batchedMapInterval(batcher, dispatchUpload, interval);
+    const newMediaItems = await batchedMapInterval(mediaInput, batcher, dispatchUpload, interval);
 
     if (failed) {
         return _error(res, tokenError);

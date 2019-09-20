@@ -20,6 +20,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
+import { batchedMapAsync } from "array-batcher";
 
 const unsupported = ["text/html", "text/plain"];
 interface FileResponse {
@@ -103,7 +104,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-        const uploads = await validated.batchedMapAsync<FileResponse>({ batchSize: 15 }, async batch => {
+        const uploads = await batchedMapAsync(validated, { batchSize: 15 }, async batch => {
             const formData = new FormData();
             const parameters = { method: 'POST', body: formData };
 
@@ -113,9 +114,9 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            const responses = (await fetch(RouteStore.upload, parameters)).json();
+            const responses = await (await fetch(RouteStore.upload, parameters)).json();
             runInAction(() => this.completed += batch.length);
-            return responses;
+            return responses as FileResponse[];
         });
 
         await Promise.all(uploads.map(async upload => {

@@ -7,9 +7,6 @@ import { Cast } from "../../new_fields/Types";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { DocServer } from "../DocServer";
-const Extensions = require("../../extensions/Extensions");
-
-Extensions.AssignExtensions();
 
 let swapDocs = async () => {
     let oldDoc = await Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc);
