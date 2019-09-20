@@ -7,7 +7,7 @@ import { Opt } from '../../../new_fields/Doc';
 import * as sharp from 'sharp';
 import { MediaItemCreationResult } from './SharedTypes';
 import { NewMediaItem } from "../../index";
-import { batchedMapInterval, FixedBatcher, TimeUnit, Interval } from "array-batcher";
+import BatchedArray, { FixedBatcher, TimeUnit, Interval } from "array-batcher";
 
 const uploadDirectory = path.join(__dirname, "../../public/files/");
 
@@ -62,30 +62,29 @@ export namespace GooglePhotosUploadUtils {
     };
 
     export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        const createFromUploadTokens = async (batch: NewMediaItem[]) => {
-            const parameters = {
-                method: 'POST',
-                headers: headers('json'),
-                uri: prepend('mediaItems:batchCreate'),
-                body: { newMediaItems: batch } as any,
-                json: true
-            };
-            album && (parameters.body.albumId = album.id);
-            return (await new Promise<MediaItemCreationResult>((resolve, reject) => {
-                request(parameters, (error, _response, body) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(body);
-                    }
-                });
-            })).newMediaItemResults;
-        };
-        const batcher: FixedBatcher = { batchSize: 50 };
-        const interval: Interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
-
-        const newMediaItemResults = await batchedMapInterval(newMediaItems, batcher, createFromUploadTokens, interval);
-
+        const newMediaItemResults = await BatchedArray.from(newMediaItems).batchedMapInterval({
+            batcher: { batchSize: 50 },
+            interval: { magnitude: 100, unit: TimeUnit.Milliseconds },
+            converter: async (batch: NewMediaItem[]) => {
+                const parameters = {
+                    method: 'POST',
+                    headers: headers('json'),
+                    uri: prepend('mediaItems:batchCreate'),
+                    body: { newMediaItems: batch } as any,
+                    json: true
+                };
+                album && (parameters.body.albumId = album.id);
+                return (await new Promise<MediaItemCreationResult>((resolve, reject) => {
+                    request(parameters, (error, _response, body) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(body);
+                        }
+                    });
+                })).newMediaItemResults;
+            }
+        });
         return { newMediaItemResults };
     };
 

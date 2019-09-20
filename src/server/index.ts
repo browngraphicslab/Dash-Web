@@ -47,7 +47,7 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
-import { batchedMapInterval, TimeUnit } from "array-batcher";
+import BatchedArray, { TimeUnit } from "array-batcher";
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -841,25 +841,25 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
 
     let failed = 0;
 
-    const dispatchUpload = async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
-        const newMediaItems: NewMediaItem[] = [];
-        for (let element of batch) {
-            const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
-            if (!uploadToken) {
-                failed++;
-            } else {
-                newMediaItems.push({
-                    description: element.description,
-                    simpleMediaItem: { uploadToken }
-                });
+    const newMediaItems = await BatchedArray.from(mediaInput).batchedMapInterval({
+        batcher: { batchSize: 25 },
+        interval: { magnitude: 100, unit: TimeUnit.Milliseconds },
+        converter: async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
+            const newMediaItems: NewMediaItem[] = [];
+            for (let element of batch) {
+                const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+                if (!uploadToken) {
+                    failed++;
+                } else {
+                    newMediaItems.push({
+                        description: element.description,
+                        simpleMediaItem: { uploadToken }
+                    });
+                }
             }
+            return newMediaItems;
         }
-        return newMediaItems;
-    };
-    const batcher = { batchSize: 25 };
-    const interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
-
-    const newMediaItems = await batchedMapInterval(mediaInput, batcher, dispatchUpload, interval);
+    });
 
     if (failed) {
         return _error(res, tokenError);

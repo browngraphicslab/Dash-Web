@@ -20,7 +20,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
-import { batchedMapAsync } from "array-batcher";
+import BatchedArray from "array-batcher";
 
 const unsupported = ["text/html", "text/plain"];
 interface FileResponse {
@@ -104,19 +104,22 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-        const uploads = await batchedMapAsync(validated, { batchSize: 15 }, async batch => {
-            const formData = new FormData();
-            const parameters = { method: 'POST', body: formData };
+        const uploads = await BatchedArray.from(validated).batchedMapAsync({
+            batcher: { batchSize: 15 },
+            converter: async batch => {
+                const formData = new FormData();
+                const parameters = { method: 'POST', body: formData };
 
-            batch.forEach(file => {
-                sizes.push(file.size);
-                modifiedDates.push(file.lastModified);
-                formData.append(Utils.GenerateGuid(), file);
-            });
+                batch.forEach(file => {
+                    sizes.push(file.size);
+                    modifiedDates.push(file.lastModified);
+                    formData.append(Utils.GenerateGuid(), file);
+                });
 
-            const responses = await (await fetch(RouteStore.upload, parameters)).json();
-            runInAction(() => this.completed += batch.length);
-            return responses as FileResponse[];
+                const responses = await (await fetch(RouteStore.upload, parameters)).json();
+                runInAction(() => this.completed += batch.length);
+                return responses as FileResponse[];
+            }
         });
 
         await Promise.all(uploads.map(async upload => {

@@ -114,7 +114,7 @@
         "@types/youtube": "0.0.38",
         "adm-zip": "^0.4.13",
         "archiver": "^3.0.3",
-        "array-batcher": "^1.0.2",
+        "array-batcher": "^1.0.6",
         "async": "^2.6.2",
         "babel-runtime": "^6.26.0",
         "bcrypt-nodejs": "0.0.3",
