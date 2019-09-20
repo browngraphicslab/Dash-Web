@@ -228,9 +228,10 @@ export class MainView extends React.Component {
                 this.createNewWorkspace();
             }
         } else {
-            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field =>
+            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field => {
                 field instanceof Doc ? this.openWorkspace(field) :
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId));
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId)
+            });
         }
     }
 

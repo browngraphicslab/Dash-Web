@@ -6,7 +6,7 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import 'react-image-lightbox/style.css';
 import { Doc, WidthSym, Opt } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
-import { ScriptField } from '../../../new_fields/ScriptField';
+import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast } from "../../../new_fields/Types";
 import { PdfField } from "../../../new_fields/URLField";
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
@@ -18,6 +18,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { Scripting } from '../../util/Scripting';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, pageSchema);
@@ -47,6 +48,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     componentDidMount() {
         this.props.setPdfBox && this.props.setPdfBox(this);
 
+        this.props.Document.pdfDoc = this.dataDoc;
+        this.props.Document.curPage = ComputedField.MakeFunction("Math.floor(Number(this.panY) / Number(this.pdfDoc.nativeHeight) + 1)");
+
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
@@ -70,7 +74,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let cp = Math.ceil(NumCast(this.props.Document.panY) / NumCast(this.dataDoc.nativeHeight)) + 1;
         cp = cp - 1;
         if (cp > 0) {
-            this.props.Document.curPage = cp;
             this.props.Document.panY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
         }
     }
@@ -78,7 +81,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @action
     public GotoPage(p: number) {
         if (p > 0 && p <= NumCast(this.dataDoc.numPages)) {
-            this.props.Document.curPage = p;
             this.props.Document.panY = (p - 1) * NumCast(this.dataDoc.nativeHeight);
         }
     }
@@ -87,7 +89,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public ForwardPage() {
         let cp = this.GetPage() + 1;
         if (cp <= NumCast(this.dataDoc.numPages)) {
-            this.props.Document.curPage = cp;
             this.props.Document.panY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
         }
     }
@@ -193,7 +194,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 onScroll={this.onScroll}
                 style={{ marginTop: `${this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.panY) : 0}px` }}
                 ref={this._mainCont}>
-                <div className="pdfBox-scrollHack" style={{ height: NumCast(this.props.Document.scrollHeight) + (NumCast(this.props.Document.nativeHeight) - NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.scale, 1)), width: "100%" }} />
+                do<div className="pdfBox-scrollHack" style={{ height: NumCast(this.props.Document.scrollHeight) + (NumCast(this.props.Document.nativeHeight) - NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.scale, 1)), width: "100%" }} />
                 <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={NumCast(this.props.Document.panY)}
                     Document={this.props.Document} DataDoc={this.props.DataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY}
