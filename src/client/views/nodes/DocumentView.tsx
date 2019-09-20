@@ -192,7 +192,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
-                this.onClickHandler.script.run({ this: this.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
+                this.onClickHandler.script.run({ this: this.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
@@ -569,32 +569,45 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
+
+    // the document containing the view layout information - will be the Document itself unless the Document has
+    // a layout field.  In that case, all layout information comes from there unless overriden by Document
+    get layoutDoc(): Document {
+        return Document(this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document);
+    }
+
+    // does Document set a layout prop 
+    setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
+    // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
+    getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
+    getLayoutPropNum = (prop: string) => NumCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
+
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     chromeHeight = () => {
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.Document.showTitle);
-        return (showTitle ? 25 : 0) + 1;// bcz: why 8??
+        return (showTitle ? 25 : 0) + 1;
     }
 
     render() {
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
-        const colorSet = this.Document.backgroundColor !== this.Document.defaultBackgroundColor;
+        const colorSet = this.setsLayoutProp("backgroundColor");
         const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
         const backgroundColor = this.Document.isBackground || (clusterCol && !colorSet) ?
-            this.props.backgroundColor(this.Document) || StrCast(this.Document.backgroundColor) :
-            ruleColor && !colorSet ? ruleColor : StrCast(this.Document.backgroundColor) || this.props.backgroundColor(this.Document);
+            this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
+            ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
         const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
         const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
-        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.Document.showTitle;
-        const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.Document.showCaption;
+        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
+        const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
         const showTextTitle = showTitle && StrCast(this.Document.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        const borderRounding = this.Document.borderRounding || ruleRounding;
+        const borderRounding = this.getLayoutPropStr("borderRounding") || ruleRounding;
         const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>

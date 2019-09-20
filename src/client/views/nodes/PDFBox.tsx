@@ -31,11 +31,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _alt = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
 
-    @computed get containingCollectionDocument() { return this.props.ContainingCollectionDoc; }
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-
-    @computed get fieldExtensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true"); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
@@ -96,7 +94,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @action
     setPanY = (y: number) => {
-        this.containingCollectionDocument && (this.containingCollectionDocument.panY = y);
+        this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.panY = y);
     }
 
     @action
@@ -113,7 +111,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     private resetFilters = () => {
         this._keyValue = this._valueValue = "";
-        this._scriptValue = "return true";
+        this._scriptValue = "";
         this._keyRef.current && (this._keyRef.current.value = "");
         this._valueRef.current && (this._valueRef.current.value = "");
         this._scriptRef.current && (this._scriptRef.current.value = "");
@@ -127,7 +125,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         return !this.props.active() ? (null) :
             (<div className="pdfBox-settingsCont" onPointerDown={(e) => e.stopPropagation()}>
                 <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings"
-                    style={{ marginTop: `${this.containingCollectionDocument ? NumCast(this.containingCollectionDocument.panY) : 0}px` }}>
+                    style={{ marginTop: `${this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.panY) : 0}px` }}>
                     <div className="pdfBox-settingsButton-arrow"
                         style={{
                             borderTop: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
@@ -179,9 +177,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @action
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        if (e.currentTarget && this.containingCollectionDocument) {
-            this.containingCollectionDocument.panTransformType = "None";
-            this.containingCollectionDocument.panY = e.currentTarget.scrollTop;
+        if (e.currentTarget && this.props.ContainingCollectionDoc) {
+            this.props.ContainingCollectionDoc.panTransformType = "None";
+            this.props.ContainingCollectionDoc.panY = e.currentTarget.scrollTop;
         }
     }
 
@@ -193,14 +191,14 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
             <div className={classname}
                 onScroll={this.onScroll}
-                style={{ marginTop: `${this.containingCollectionDocument ? NumCast(this.containingCollectionDocument.panY) : 0}px` }}
+                style={{ marginTop: `${this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.panY) : 0}px` }}
                 ref={this._mainCont}>
                 <div className="pdfBox-scrollHack" style={{ height: NumCast(this.props.Document.scrollHeight) + (NumCast(this.props.Document.nativeHeight) - NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.scale, 1)), width: "100%" }} />
                 <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={NumCast(this.props.Document.panY)}
                     Document={this.props.Document} DataDoc={this.props.DataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
-                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.fieldExtensionDoc} />
+                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
                 {this.settingsPanel()}
             </div>);
     }

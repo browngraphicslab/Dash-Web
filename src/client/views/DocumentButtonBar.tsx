@@ -339,7 +339,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || (doc.props.Document["show" + template.Name] ? true : false), false as boolean)));
+            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc.getLayoutPropStr("show" + template.Name) ? true : false, false as boolean)));
 
         return (<div className="documentButtonBar">
             <div className="linkButtonWrapper">

@@ -40,6 +40,8 @@ export interface SubCollectionViewProps extends CollectionViewProps {
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
+        private _childLayoutDisposer?: IReactionDisposer;
+
         protected createDropTarget = (ele: HTMLDivElement) => {
             this.dropDisposer && this.dropDisposer();
             if (ele) {
@@ -49,8 +51,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected CreateDropTarget(ele: HTMLDivElement) {
             this.createDropTarget(ele);
         }
-
-        _childLayoutDisposer?: IReactionDisposer;
 
         componentDidMount() {
             this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
@@ -62,35 +62,25 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+        // The data field for rendeing this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
+        // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
+        // to its children which may be templates.
+        // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
+        @computed get dataField() {
+            return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+        }
 
 
         get childLayoutPairs() {
             return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
         }
-        get childDocs() {
-            //TODO tfs: This might not be what we want?
-            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            let docs = DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
-            let viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            if (viewSpecScript) {
-                let script = viewSpecScript.script;
-                docs = docs.filter(d => {
-                    let res = script.run({ doc: d });
-                    if (res.success) {
-                        return res.result;
-                    }
-                    else {
-                        console.log(res.error);
-                    }
-                });
-            }
-            return docs;
-        }
         get childDocList() {
-            //TODO tfs: This might not be what we want?
-            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
+            return Cast(this.dataField, listSpec(Doc));
+        }
+        get childDocs() {
+            let docs = DocListCast(this.dataField);
+            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         }
 
         @action

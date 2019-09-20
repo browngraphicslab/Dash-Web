@@ -257,7 +257,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;

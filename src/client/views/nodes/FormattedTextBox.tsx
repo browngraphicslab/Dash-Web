@@ -142,10 +142,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     // this should be internal to prosemirror, but is needed
     // here to make sure that footnote view nodes in the overlay editor
@@ -641,7 +640,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                 let annotations = DocListCast(region.annotations);
                 annotations.forEach(anno => anno.target = this.props.Document);
-                let fieldExtDoc = Doc.resolvedFieldDataDoc(doc, "data", "true");
+                let fieldExtDoc = Doc.fieldExtensionDoc(doc, "data");
                 let targetAnnotations = DocListCast(fieldExtDoc.annotations);
                 if (targetAnnotations) {
                     targetAnnotations.push(region);

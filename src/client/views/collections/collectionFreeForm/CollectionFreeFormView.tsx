@@ -156,6 +156,7 @@ export namespace PivotView {
                         y={pos.y}
                         width={pos.width}
                         height={pos.height}
+                        transition={"transform 1s"}
                         jitterRotation={NumCast(target.props.Document.jitterRotation)}
                         {...target.getChildDocumentViewProps(doc)}
                     />,
@@ -183,11 +184,9 @@ const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSch
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastX: number = 0;
     private _lastY: number = 0;
-    private _inkKey = "ink"; // the document key used to store ink annotation strokes
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
-
-    get parentScaling() {
+    private get parentScaling() {
         return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
     }
 
@@ -264,7 +263,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get fieldExtensionDoc() {
-        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+        return Doc.fieldExtensionDoc(this.props.DataDoc || this.props.Document, this.props.fieldKey);
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
@@ -700,10 +699,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
-    getCalculatedPositions(script: ScriptField, params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, state?: any } {
-        const result = script.script.run(params);
-        return !result.success ? {} : result.result !== undefined ? result.result :
-            { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(params.doc.width, "number"), height: Cast(params.doc.height, "number") };
+    getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
+        const script = this.Document.arrangeScript;
+        const result = script && script.script.run(params, console.log);
+        if (result && result.success) {
+            return { ...result, transition: "transform 1s" };
+        }
+        return { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(params.doc.width, "number"), height: Cast(params.doc.height, "number") };
     }
 
     viewDefsToJSX = (views: any[]) => {
@@ -745,12 +747,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (this.Document.usePivotLayout) return PivotView.elements(this);
         let curPage = FieldValue(this.Document.curPage, -1);
         const initScript = this.Document.arrangeInit;
-        const script = this.Document.arrangeScript;
         let state: any = undefined;
         let pairs = this.childLayoutPairs;
         let elements: ViewDefResult[] = [];
         if (initScript) {
-            const initResult = initScript.script.run({ docs: pairs.map(pair => pair.layout), collection: this.Document });
+            const initResult = initScript.script.run({ docs: pairs.map(pair => pair.layout), collection: this.Document }, console.log);
             if (initResult.success) {
                 const result = initResult.result;
                 const { state: scriptState, views } = result;
@@ -760,23 +761,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         let docviews = pairs.reduce((prev, pair) => {
             var page = NumCast(pair.layout.page, -1);
-            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
-                let minim = BoolCast(pair.layout.isMinimized);
-                if (minim === undefined || !minim) {
-                    const pos = script ? this.getCalculatedPositions(script, { doc: pair.layout, index: prev.length, collection: this.Document, docs: pairs.map(pair => pair.layout), state }) :
-                        { x: Cast(pair.layout.x, "number"), y: Cast(pair.layout.y, "number"), z: Cast(pair.layout.z, "number"), width: Cast(pair.layout.width, "number"), height: Cast(pair.layout.height, "number") };
-                    state = pos.state === undefined ? state : pos.state;
-                    if (pair.layout && !(pair.data instanceof Promise)) {
-                        prev.push({
-                            ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}
-                                ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
-                                jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                                x={script ? pos.x : undefined} y={script ? pos.y : undefined}
-                                width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
-                            bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) }
-                        });
-                    }
-                }
+            if (!pair.layout.isMinimized && ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1)) {
+                const pos = this.getCalculatedPositions({ doc: pair.layout, index: prev.length, collection: this.Document, docs: pairs.map(pair => pair.layout), state });
+                state = pos.state === undefined ? state : pos.state;
+                prev.push({
+                    ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}
+                        ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
+                        jitterRotation={NumCast(this.props.Document.jitterRotation)}
+                        transition={pos.transition} x={pos.x} y={pos.y} width={pos.width} height={pos.height}
+                        {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
+                    bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: pos.width || 0, height: pos.height || 0 }
+                });
             }
             return prev;
         }, elements);
@@ -838,7 +833,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     analyzeStrokes = async () => {
-        let data = Cast(this.fieldExtensionDoc[this._inkKey], InkField);
+        let data = Cast(this.fieldExtensionDoc.ink, InkField);
         if (data) {
             CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.fieldExtensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
         }
@@ -932,12 +927,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     render() {
+        // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.props.Document.fitX = this.actualContentBounds && this.actualContentBounds.x;
         this.props.Document.fitY = this.actualContentBounds && this.actualContentBounds.y;
         this.props.Document.fitW = this.actualContentBounds && (this.actualContentBounds.r - this.actualContentBounds.x);
         this.props.Document.fitH = this.actualContentBounds && (this.actualContentBounds.b - this.actualContentBounds.y);
+        // if fieldExt is set, then children will be stored in the extension document for the fieldKey. 
+        // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         const easing = () => this.props.Document.panTransformType === "Ease";
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>

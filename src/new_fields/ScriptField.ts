@@ -125,10 +125,7 @@ export class ScriptField extends ObjectField {
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value = computedFn((doc: Doc) => {
-        const val = this.script.run({ this: doc });
-        return val.success ? val.result : undefined;
-    });
+    value = computedFn((doc: Doc) => this.script.run({ this: doc }, console.log).result);
     public static MakeScript(script: string, params: object = {}, ) {
         let compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;

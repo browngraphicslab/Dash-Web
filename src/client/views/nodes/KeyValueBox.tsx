@@ -76,7 +76,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         } else if (type === "script") {
             field = new ScriptField(script);
         } else {
-            let res = script.run({ this: target });
+            let res = script.run({ this: target }, console.log);
             if (!res.success) return false;
             field = res.result;
         }

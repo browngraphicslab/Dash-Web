@@ -382,13 +382,13 @@ export namespace Doc {
     }
 
     //
-    // Resolves a reference to a field by returning 'doc' if field extension is specified,
+    // Resolves a reference to a field by returning 'doc' if no field extension is specified,
     // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
     // This mechanism allows any fields to be extended with an extension document that can
     // be used to capture field-specific metadata.  For example, an image field can be extended
     // to store annotations, ink, and other data.
     //
-    export function resolvedFieldDataDoc(doc: Doc, fieldKey: string, fieldExt: string) {
+    export function fieldExtensionDoc(doc: Doc, fieldKey: string, fieldExt: string = "yes") {
         return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
     }
 
@@ -477,7 +477,7 @@ export namespace Doc {
         let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
-            let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
+            let fieldExtensionDoc = Doc.fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
             layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
         } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return { layout: layoutDoc, data: resolvedDataDoc };

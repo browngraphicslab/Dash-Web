@@ -77,18 +77,12 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @computed get allAnnotations() {
-        let annotations = DocListCast(this.props.fieldExtensionDoc.annotations);
-        return annotations.filter(anno => {
-            let run = this._script.run({ this: anno });
-            return run.success ? run.result : true;
-        });
+        return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
+            anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
     @computed get nonDocAnnotations() {
-        return this._annotations.filter(anno => {
-            let run = this._script.run({ this: anno });
-            return run.success ? run.result : true;
-        });
+        return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => this.panY !== prevProps.panY && this.renderPages();
@@ -114,10 +108,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 if (this._script.originalScript !== oldScript) {
                     this.Index = -1;
                 }
-                annos.forEach(d => {
-                    let run = this._script.run(d);
-                    d.opacity = !run.success || run.result ? 1 : 0;
-                });
+                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
             }),
             { fireImmediately: true }
         );

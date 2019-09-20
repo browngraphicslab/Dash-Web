@@ -17,6 +17,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     width?: number;
     height?: number;
     jitterRotation: number;
+    transition?: string;
 }
 export const positionSchema = createSchema({
     zIndex: "number",
@@ -98,7 +99,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @observable _animPos: number[] | undefined = undefined;
 
     render() {
-        const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
@@ -110,7 +110,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                                         StrCast(this.layoutDoc.boxShadow, ""),
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: this.Document.isAnimating !== undefined ? ".5s ease-in" : hasPosition ? "transform 1s" : StrCast(this.layoutDoc.transition),
+                    transition: this.Document.isAnimating !== undefined ? ".5s ease-in" : this.props.transition ? this.props.transition : StrCast(this.layoutDoc.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,

@@ -238,13 +238,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
                             }}
                             OnFillDown={async (value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                if (!script.compiled) {
-                                    return;
+                                const script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                if (script.compiled) {
+                                    DocListCast(this.props.Document[this.props.fieldKey]).
+                                        forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, script.run));
                                 }
-                                const run = script.run;
-                                const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                                val && val.forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, run));
                             }}
                         />
                     </div >

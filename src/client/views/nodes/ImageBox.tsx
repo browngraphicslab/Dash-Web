@@ -63,9 +63,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
 
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -80,8 +80,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         e.preventDefault();
         console.log("IMPLEMENT ME PLEASE");
     }
-
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "Alternates"); }
 
     @undoBatch
     @action

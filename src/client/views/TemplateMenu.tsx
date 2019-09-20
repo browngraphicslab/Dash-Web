@@ -98,7 +98,14 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     clearTemplates = (event: React.MouseEvent) => {
-        Templates.TemplateList.map(template => this.props.docs.map(d => d.Document["show" + template.Name] = undefined));
+        Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
+        ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
+            if (d.Document.isTemplate && d.props.DataDoc) {
+                d.Document[field] = undefined;
+            } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
+                d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;
+            }
+        }));
     }
 
     @action
@@ -128,7 +135,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" ref={this.dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
-                    {/* <button onClick={this.clearTemplates}>Clear</button> */}
+                    {<button onClick={this.clearTemplates}>Restore Defaults</button>}
                 </ul>
             </div>
         );

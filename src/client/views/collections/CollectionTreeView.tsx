@@ -425,18 +425,9 @@ class TreeView extends React.Component<TreeViewProps> {
         preventTreeViewOpen: boolean,
         renderedIds: string[]
     ) {
-        let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
+        const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
-            let script = viewSpecScript.script;
-            docs = docs.filter(d => {
-                let res = script.run({ doc: d });
-                if (res.success) {
-                    return res.result;
-                }
-                else {
-                    console.log(res.error);
-                }
-            });
+            docs = docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);
         }
 
         let ascending = Cast(containingCollection.sortAscending, "boolean", null);
