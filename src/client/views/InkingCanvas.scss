@@ -2,6 +2,7 @@
 
 .inkingCanvas {
     opacity: 0.99;
+    touch-action: none;
 
     .jsx-parser {
         position: absolute;
