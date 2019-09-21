@@ -134,11 +134,10 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             x: NumCast(doc.x),
             y: NumCast(doc.y) + offset
         };
-        let parent = this.props.ContainingCollectionView;
-        if (parent) {
+        if (this.props.ContainingCollectionDoc) {
             let importContainer = Docs.Create.StackingDocument(docs, options);
             importContainer.singleColumn = false;
-            Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
+            Doc.AddDocToList(Doc.GetProto(this.props.ContainingCollectionDoc), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
             DocumentManager.Instance.jumpToDocument(importContainer, true);
 

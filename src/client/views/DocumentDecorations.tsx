@@ -1,40 +1,29 @@
-import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt, faShare } from '@fortawesome/free-solid-svg-icons';
+import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
+import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction, runInAction, trace } from "mobx";
+import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
+import { ObjectField } from '../../new_fields/ObjectField';
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
-import { URLField } from '../../new_fields/URLField';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { emptyFunction, Utils } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
-import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
+import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
+import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
-import { DocumentView } from "./nodes/DocumentView";
-import { FieldView } from "./nodes/FieldView";
-import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
-import { IconBox } from "./nodes/IconBox";
-import { LinkMenu } from "./linking/LinkMenu";
-import { TemplateMenu } from "./TemplateMenu";
-import { Template, Templates } from "./Templates";
-import React = require("react");
-import { RichTextField } from '../../new_fields/RichTextField';
-import { LinkManager } from '../util/LinkManager';
-import { MetadataEntryMenu } from './MetadataEntryMenu';
-import { ImageBox } from './nodes/ImageBox';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import { ObjectField } from '../../new_fields/ObjectField';
-import { DocServer } from '../DocServer';
-import { CompileScript } from '../util/Scripting';
-import { ComputedField } from '../../new_fields/ScriptField';
 import { PositionDocument } from './nodes/CollectionFreeFormDocumentView';
+import { DocumentView, swapViews } from "./nodes/DocumentView";
+import { FieldView } from "./nodes/FieldView";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { IconBox } from "./nodes/IconBox";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -50,28 +39,21 @@ library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
 
-const cloud: IconProp = "cloud-upload-alt";
-const fetch: IconProp = "sync-alt";
-
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
     private _isPointerDown = false;
     private _resizing = "";
-    private keyinput: React.RefObject<HTMLInputElement>;
+    private _keyinput: React.RefObject<HTMLInputElement>;
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
-    private _linkButton = React.createRef<HTMLDivElement>();
-    private _linkerButton = React.createRef<HTMLDivElement>();
     private _embedButton = React.createRef<HTMLDivElement>();
-    private _tooltipoff = React.createRef<HTMLDivElement>();
-    private _textDoc?: Doc;
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
     private _resizeUndo?: UndoManager.Batch;
-    private _linkDrag?: UndoManager.Batch;
+    private _radiusDown = [0, 0];
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -81,58 +63,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _removeIcon = false;
     @observable public Interacting = false;
-    @observable private _isMoving = false;
 
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public isAnimatingFetch = false;
     @observable public openHover = false;
-    public pullColorAnimating = false;
-
-    private pullAnimating = false;
-    private pushAnimating = false;
-
-    public startPullOutcome = action((success: boolean) => {
-        if (!this.pullAnimating) {
-            this.pullAnimating = true;
-            this.pullIcon = success ? "check-circle" : "stop-circle";
-            setTimeout(() => runInAction(() => {
-                this.pullIcon = "arrow-alt-circle-down";
-                this.pullAnimating = false;
-            }), 1000);
-        }
-    });
-
-    public startPushOutcome = action((success: boolean) => {
-        if (!this.pushAnimating) {
-            this.pushAnimating = true;
-            this.pushIcon = success ? "check-circle" : "stop-circle";
-            setTimeout(() => runInAction(() => {
-                this.pushIcon = "arrow-alt-circle-up";
-                this.pushAnimating = false;
-            }), 1000);
-        }
-    });
-
-    public setPullState = action((unchanged: boolean) => {
-        this.isAnimatingFetch = false;
-        if (!this.pullColorAnimating) {
-            this.pullColorAnimating = true;
-            this.pullColor = unchanged ? "lawngreen" : "red";
-            setTimeout(this.clearPullColor, 1000);
-        }
-    });
-
-    private clearPullColor = action(() => {
-        this.pullColor = "white";
-        this.pullColorAnimating = false;
-    });
 
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
-        this.keyinput = React.createRef();
+        this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this._edtingTitle = false);
     }
 
@@ -155,19 +96,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let containerView = fieldTemplateView.props.ContainingCollectionView;
-                if (containerView) {
-                    let docTemplate = containerView.props.Document;
+                let docTemplate = fieldTemplateView.props.ContainingCollectionDoc;
+                if (containerView && docTemplate) {
                     let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                    let proto = Doc.GetProto(docTemplate);
                     if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
                         const fd = fieldTemplate.data;
                         fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
                     }
                     fieldTemplate.title = metaKey;
-                    Doc.MakeMetadataFieldTemplate(fieldTemplate, proto);
+                    Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
                     if (text.startsWith(">>")) {
-                        proto.detailedLayout = proto.layout;
-                        proto.miniLayout = ImageBox.LayoutString(metaKey);
+                        let layoutNative = Doc.MakeTitled("layoutNative");
+                        Doc.GetProto(docTemplate).layoutNative = layoutNative;
+                        swapViews(fieldTemplate, "", "layoutNative", layoutNative);
+                        layoutNative.layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+                        layoutNative.backgroundLayout = StrCast(fieldTemplateView.props.Document.backgroundLayout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                     }
                 }
             }
@@ -229,7 +172,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             if (transform.TranslateX === 0 && transform.TranslateY === 0) {
-                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...
+                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
                 return this._lastBox;
             }
 
@@ -254,11 +197,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onBackgroundMove = (e: PointerEvent): void => {
         let dragDocView = SelectionManager.SelectedDocuments()[0];
-        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
-        const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
-        dragData.xOffset = xoff;
-        dragData.yOffset = yoff;
+        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
+        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
         this.Interacting = true;
         this._hidden = true;
@@ -367,7 +308,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (minimizedDoc) {
                         let scrpt = selectedDocs[0].props.ScreenToLocalTransform().scale(selectedDocs[0].props.ContentScaling()).inverse().transformPoint(
                             NumCast(minimizedDoc.x) - NumCast(selectedDocs[0].Document.x), NumCast(minimizedDoc.y) - NumCast(selectedDocs[0].Document.y));
-                        selectedDocs[0].collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+                        SelectionManager.DeselectAll();
+                        DocumentManager.Instance.animateBetweenPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
                     }
                 });
             }
@@ -384,7 +326,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         IconBox.AutomaticTitle(iconDoc);
         //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
-        iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
@@ -413,7 +354,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
     }
 
-    _radiusDown = [0, 0];
     @action
     onRadiusDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -429,17 +369,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onRadiusMove = (e: PointerEvent): void => {
-        this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         dist = dist < 3 ? 0 : dist;
         let usingRule = false;
         SelectionManager.SelectedDocuments().map(dv => {
-            let cv = dv.props.ContainingCollectionView;
-            let ruleProvider = cv && cv.props.ruleProvider;
+            let ruleProvider = dv.props.ruleProvider;
             let heading = NumCast(dv.props.Document.heading);
             ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
             usingRule = usingRule || (ruleProvider && heading ? true : false);
-        })
+        });
         !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
@@ -451,15 +389,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.preventDefault();
         this._isPointerDown = false;
         this._resizeUndo && this._resizeUndo.end();
-        this._isMoving = false;
         document.removeEventListener("pointermove", this.onRadiusMove);
         document.removeEventListener("pointerup", this.onRadiusUp);
     }
 
+    _lastX = 0;
+    _lastY = 0;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
+            this._lastX = e.clientX;
+            this._lastY = e.clientY;
             this._isPointerDown = true;
             this._resizing = e.currentTarget.id;
             this.Interacting = true;
@@ -471,13 +412,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
-    onLinkerButtonDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.onLinkerButtonMoved);
-        document.addEventListener("pointermove", this.onLinkerButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkerButtonUp);
-        document.addEventListener("pointerup", this.onLinkerButtonUp);
-    }
 
     onEmbedButtonDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -487,40 +421,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointerup", this.onEmbedButtonUp);
     }
 
-    onLinkerButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onLinkerButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkerButtonUp);
-        e.stopPropagation();
-    }
+
 
     onEmbedButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onEmbedButtonMoved);
         document.removeEventListener("pointerup", this.onEmbedButtonUp);
-        e.stopPropagation();
-    }
-
-    @action
-    onLinkerButtonMoved = (e: PointerEvent): void => {
-        if (this._linkerButton.current !== null) {
-            document.removeEventListener("pointermove", this.onLinkerButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkerButtonUp);
-            let selDoc = SelectionManager.SelectedDocuments()[0];
-            let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
-            let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
-            FormattedTextBox.InputBoxOverlay = undefined;
-            this._linkDrag = UndoManager.StartBatch("Drag Link");
-            DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
-                handlers: {
-                    dragComplete: () => {
-                        if (this._linkDrag) {
-                            this._linkDrag.end();
-                            this._linkDrag = undefined;
-                        }
-                    },
-                },
-                hideSource: false
-            });
-        }
         e.stopPropagation();
     }
 
@@ -543,29 +448,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
     }
 
-    onLinkButtonDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.addEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        document.addEventListener("pointerup", this.onLinkButtonUp);
-    }
-
-    onLinkButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        e.stopPropagation();
-    }
-
-    onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
-            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
-        }
-        e.stopPropagation();
-    }
-
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -575,42 +457,47 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
+        let moveX = e.clientX - this._lastX; // e.movementX;
+        let moveY = e.clientY - this._lastY; // e.movementY;
+        this._lastX = e.clientX;
+        this._lastY = e.clientY;
+
         switch (this._resizing) {
             case "":
                 break;
             case "documentDecorations-topLeftResizer":
                 dX = -1;
                 dY = -1;
-                dW = -(e.movementX);
-                dH = -(e.movementY);
+                dW = -moveX;
+                dH = -moveY;
                 break;
             case "documentDecorations-topRightResizer":
-                dW = e.movementX;
+                dW = moveX;
                 dY = -1;
-                dH = -(e.movementY);
+                dH = -moveY;
                 break;
             case "documentDecorations-topResizer":
                 dY = -1;
-                dH = -(e.movementY);
+                dH = -moveY;
                 break;
             case "documentDecorations-bottomLeftResizer":
                 dX = -1;
-                dW = -(e.movementX);
-                dH = e.movementY;
+                dW = -moveX;
+                dH = moveY;
                 break;
             case "documentDecorations-bottomRightResizer":
-                dW = e.movementX;
-                dH = e.movementY;
+                dW = moveX;
+                dH = moveY;
                 break;
             case "documentDecorations-bottomResizer":
-                dH = e.movementY;
+                dH = moveY;
                 break;
             case "documentDecorations-leftResizer":
                 dX = -1;
-                dW = -(e.movementX);
+                dW = -moveX;
                 break;
             case "documentDecorations-rightResizer":
-                dW = e.movementX;
+                dW = moveX;
                 break;
         }
 
@@ -694,134 +581,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return "-unset-";
     }
 
-    changeFlyoutContent = (): void => {
 
-    }
-    // buttonOnPointerUp = (e: React.PointerEvent): void => {
-    //     e.stopPropagation();
-    // }
-
-    considerEmbed = () => {
-        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-        let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
-        if (!canEmbed) return (null);
-        return (
-            <div className="linkButtonWrapper">
-                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
-                </div>
-            </div>
-        );
-    }
-
-    private get targetDoc() {
-        return SelectionManager.SelectedDocuments()[0].props.Document;
-    }
-
-    considerGoogleDocsPush = () => {
-        let canPush = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
-        if (!canPush) return (null);
-        let published = Doc.GetProto(this.targetDoc)[GoogleRef] !== undefined;
-        let icon: IconProp = published ? (this.pushIcon as any) : cloud;
-        return (
-            <div className={"linkButtonWrapper"}>
-                <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
-                    DocumentDecorations.hasPushedHack = false;
-                    this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
-                }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
-                </div>
-            </div>
-        );
-    }
-
-    considerGoogleDocsPull = () => {
-        let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
-        let dataDoc = Doc.GetProto(this.targetDoc);
-        if (!canPull || !dataDoc[GoogleRef]) return (null);
-        let icon = dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
-        icon = this.openHover ? "share" : icon;
-        let animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
-        let title = `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
-        return (
-            <div className={"linkButtonWrapper"}>
-                <div
-                    title={title}
-                    className="linkButton-linker"
-                    style={{
-                        backgroundColor: this.pullColor,
-                        transition: "0.2s ease all"
-                    }}
-                    onPointerEnter={e => e.altKey && runInAction(() => this.openHover = true)}
-                    onPointerLeave={() => runInAction(() => this.openHover = false)}
-                    onClick={e => {
-                        if (e.altKey) {
-                            e.preventDefault();
-                            window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
-                        } else {
-                            this.clearPullColor();
-                            DocumentDecorations.hasPulledHack = false;
-                            this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
-                            dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
-                        }
-                    }}>
-                    <FontAwesomeIcon
-                        style={{
-                            WebkitAnimation: animation,
-                            MozAnimation: animation
-                        }}
-                        className="documentdecorations-icon"
-                        icon={icon}
-                        size="sm"
-                    />
-                </div>
-            </div>
-        );
-    }
-
-    public static hasPushedHack = false;
-    public static hasPulledHack = false;
-
-    considerTooltip = () => {
-        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-        let isTextDoc = thisDoc.data && thisDoc.data instanceof RichTextField;
-        if (!isTextDoc) return null;
-        this._textDoc = thisDoc;
-        return (
-            <div className="tooltipwrapper">
-                <div title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
-                    {/* <FontAwesomeIcon className="fa-image" icon="image" size="sm" /> */}
-                </div>
-            </div>
-
-        );
-    }
-
-    onTooltipOff = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        if (this._textDoc) {
-            if (this._tooltipoff.current) {
-                if (this._tooltipoff.current.title === "Hide Tooltip") {
-                    this._tooltipoff.current.title = "Show Tooltip";
-                    this._textDoc.tooltip = "hi";
-                }
-                else {
-                    this._tooltipoff.current.title = "Hide Tooltip";
-                }
-            }
-        }
-    }
-
-    get metadataMenu() {
-        return (
-            <div className="linkButtonWrapper">
-                <Flyout anchorPoint={anchorPoints.TOP_LEFT}
-                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
-                    <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
-                </Flyout>
-            </div>
-        );
-    }
 
     render() {
         var bounds = this.Bounds;
@@ -833,27 +593,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
                 {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
-
-        let linkButton = null;
-        if (SelectionManager.SelectedDocuments().length > 0) {
-            let selFirst = SelectionManager.SelectedDocuments()[0];
-
-            let linkCount = LinkManager.Instance.getAllRelatedLinks(selFirst.props.Document).length;
-            linkButton = (<Flyout
-                anchorPoint={anchorPoints.RIGHT_TOP}
-                content={<LinkMenu docView={selFirst}
-                    addDocTab={selFirst.props.addDocTab}
-                    changeFlyout={this.changeFlyoutContent} />}>
-                <div className={"linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
-            </Flyout >);
-        }
-
-        let templates: Map<Template, boolean> = new Map();
-        Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let checked = false;
-            SelectionManager.SelectedDocuments().map(doc => checked = checked || (doc.layoutDoc["show" + template.Name] !== undefined));
-            templates.set(template, checked);
-        });
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
@@ -886,7 +625,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {minimizeIcon}
 
                 {this._edtingTitle ?
-                    <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
+                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
@@ -902,22 +641,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
                 <div className="link-button-container">
-                    <div className="linkButtonWrapper">
-                        <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
-                    </div>
-                    <div className="linkButtonWrapper">
-                        <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
-                            <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />
-                        </div>
-                    </div>
-                    <div className="linkButtonWrapper">
-                        <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
-                    </div>
-                    {this.metadataMenu}
-                    {this.considerEmbed()}
-                    {this.considerGoogleDocsPush()}
-                    {this.considerGoogleDocsPull()}
-                    {/* {this.considerTooltip()} */}
+                    <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
                 </div>
             </div >
         </div>

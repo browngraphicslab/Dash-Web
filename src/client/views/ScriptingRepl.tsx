@@ -135,19 +135,17 @@ export class ScriptingRepl extends React.Component {
                     this.commands.push({ command: this.commandString, result: script.errors });
                     return;
                 }
-                const result = script.run({ args: this.args });
-                if (!result.success) {
-                    this.commands.push({ command: this.commandString, result: result.error.toString() });
-                    return;
+                const result = script.run({ args: this.args }, e => this.commands.push({ command: this.commandString, result: e.toString() }));
+                if (result.success) {
+                    this.commands.push({ command: this.commandString, result: result.result });
+                    this.commandsHistory.push(this.commandString);
+
+                    this.maybeScrollToBottom();
+
+                    this.commandString = "";
+                    this.commandBuffer = "";
+                    this.historyIndex = -1;
                 }
-                this.commands.push({ command: this.commandString, result: result.result });
-                this.commandsHistory.push(this.commandString);
-
-                this.maybeScrollToBottom();
-
-                this.commandString = "";
-                this.commandBuffer = "";
-                this.historyIndex = -1;
                 break;
             }
             case "ArrowUp": {

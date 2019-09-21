@@ -1,6 +1,5 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentType } from "../documents/DocumentTypes";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -30,12 +29,12 @@ class TemplateToggle extends React.Component<{ template: Template, checked: bool
     }
 }
 @observer
-class ChromeToggle extends React.Component<{ checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>) => void }> {
+class OtherToggle extends React.Component<{ checked: boolean, name: string, toggle: (event: React.ChangeEvent<HTMLInputElement>) => void }> {
     render() {
         return (
             <li className="chromeToggle">
                 <input type="checkbox" checked={this.props.checked} onChange={(event) => this.props.toggle(event)} />
-                Chrome
+                {this.props.name}
             </li>
         );
     }
@@ -51,19 +50,19 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
     dragRef = React.createRef<HTMLUListElement>();
 
-    toggleCustom = (e: React.MouseEvent): void => {
-        this.props.docs.map(dv => dv.toggleCustomView());
+    toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.props.docs.map(dv => dv.setCustomView(e.target.checked));
     }
 
-    toggleFloat = (e: React.MouseEvent): void => {
+    toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
         let topDocView = this.props.docs[0];
         let topDoc = topDocView.props.Document;
         let xf = topDocView.props.ScreenToLocalTransform();
-        let ex = e.clientX;
-        let ey = e.clientY;
+        let ex = e.target.clientLeft;
+        let ey = e.target.clientTop;
         undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
-        if (!topDoc.z) {
+        if (e.target.checked) {
             setTimeout(() => {
                 let newDocView = DocumentManager.Instance.getDocumentView(topDoc);
                 if (newDocView) {
@@ -90,16 +89,23 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            this.props.docs.map(d => Doc.GetProto(d.layoutDoc)["show" + template.Name] = template.Name.toLowerCase());
+            this.props.docs.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
         } else {
-            this.props.docs.map(d => Doc.GetProto(d.layoutDoc)["show" + template.Name] = undefined);
+            this.props.docs.map(d => d.Document["show" + template.Name] = "");
         }
     }
 
     @undoBatch
     @action
     clearTemplates = (event: React.MouseEvent) => {
-        Templates.TemplateList.map(template => this.props.docs.map(d => d.layoutDoc["show" + template.Name] = false));
+        Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
+        ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
+            if (d.Document.isTemplate && d.props.DataDoc) {
+                d.Document[field] = undefined;
+            } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
+                d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;
+            }
+        }));
     }
 
     @action
@@ -110,22 +116,26 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docs.map(dv => dv.layoutDoc.chromeStatus = (dv.layoutDoc.chromeStatus !== "disabled" ? "disabled" : "enabled"));
+        this.props.docs.map(dv => {
+            let layout = dv.Document.layout instanceof Doc ? dv.Document.layout as Doc : dv.Document;
+            layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
+        });
     }
 
     render() {
+        let layout = this.props.docs[0].Document.layout instanceof Doc ? this.props.docs[0].Document.layout as Doc : this.props.docs[0].Document;
         let templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
-        templateMenu.push(<ChromeToggle key={"chrome"} checked={this.props.docs[0].Document.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
+        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
+        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={typeof this.props.docs[0].Document.layout === "string" ? false : true} toggle={this.toggleCustom} />);
+        templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
             <div className="templating-menu" >
                 <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" ref={this.dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
-                    <button onClick={this.toggleCustom}>{this.props.docs[0].Document.nativeLayout ? "Native" : "Custom"}</button>
-                    <button onClick={this.toggleFloat}>Float</button>
-                    {/* <button onClick={this.clearTemplates}>Clear</button> */}
+                    {<button onClick={this.clearTemplates}>Restore Defaults</button>}
                 </ul>
             </div>
         );

@@ -12,7 +12,6 @@ import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
-import { DocumentType } from '../../documents/DocumentTypes';
 
 export enum CollectionViewType {
     Invalid,
@@ -80,12 +79,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc ? this.props.DataDoc : this.props.Document : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get dataDoc() { return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
     @computed get dataField() { return this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey; }
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
+        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
     }
 
     //TODO should this be observable?
@@ -95,7 +94,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
@@ -104,7 +103,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
-        allowDuplicates = true;
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         const value = Cast(targetDataDoc[targetField], listSpec(Doc));
@@ -127,7 +125,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
+        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
 

@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -19,6 +19,7 @@ import Annotation from "./Annotation";
 import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
+import requestPromise = require("request-promise");
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -35,7 +36,8 @@ interface IViewerProps {
     scrollTo: (y: number) => void;
     active: () => boolean;
     setPanY?: (n: number) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    GoToPage?: (n: number) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
 }
@@ -61,7 +63,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _filterReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _pdfViewer: any;
+    public _pdfViewer: any;
     private _pdfFindController: any;
     private _searchString: string = "";
     private _selectionText: string = "";
@@ -77,18 +79,12 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @computed get allAnnotations() {
-        let annotations = DocListCast(this.props.fieldExtensionDoc.annotations);
-        return annotations.filter(anno => {
-            let run = this._script.run({ this: anno });
-            return run.success ? run.result : true;
-        })
+        return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
+            anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
     @computed get nonDocAnnotations() {
-        return this._annotations.filter(anno => {
-            let run = this._script.run({ this: anno });
-            return run.success ? run.result : true;
-        });
+        return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => this.panY !== prevProps.panY && this.renderPages();
@@ -114,10 +110,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 if (this._script.originalScript !== oldScript) {
                     this.Index = -1;
                 }
-                annos.forEach(d => {
-                    let run = this._script.run(d);
-                    d.opacity = !run.success || run.result ? 1 : 0;
-                });
+                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
             }),
             { fireImmediately: true }
         );
@@ -372,7 +365,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @action
     search = (searchString: string) => {
         if (this._pdfViewer._pageViewsReady) {
-            this._pdfFindController.executeCommand('find', {
+            this._pdfFindController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: undefined,
                 highlightAll: true,
@@ -381,13 +374,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
             });
         }
         else if (this._mainCont.current) {
-            let executeFind = () => this._pdfFindController.executeCommand('find', {
-                caseSensitive: false,
-                findPrevious: undefined,
-                highlightAll: true,
-                phraseSearch: true,
-                query: searchString
-            });
+            let executeFind = () => {
+                this._pdfFindController.executeCommand('find', {
+                    caseSensitive: false,
+                    findPrevious: undefined,
+                    highlightAll: true,
+                    phraseSearch: true,
+                    query: searchString
+                });
+            }
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
         }
@@ -400,14 +395,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._searching = !this._searching;
 
         if (this._searching) {
-            if (!this._pdfFindController && this._mainCont.current && this._viewer.current) {
-                let simpleLinkService = new SimpleLinkService();
+            if (!this._pdfFindController && this._mainCont.current && this._viewer.current && !this._pdfViewer) {
+                let simpleLinkService = new SimpleLinkService(this);
                 this._pdfViewer = new PDFJSViewer.PDFViewer({
                     container: this._mainCont.current,
                     viewer: this._viewer.current,
                     linkService: simpleLinkService
-                });
-                simpleLinkService.setPdf(this.props.pdf);
+                })
+                simpleLinkService.setPDFJSview(this._pdfViewer);
                 this._mainCont.current.addEventListener("pagesinit", () => this._pdfViewer.currentScaleValue = 1);
                 this._mainCont.current.addEventListener("pagerendered", () => console.log("rendered"));
                 this._pdfViewer.setDocument(this.props.pdf);
@@ -415,21 +410,16 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 this._pdfViewer.findController = this._pdfFindController;
             }
         }
-        else {
-            this._pdfFindController = null;
-            if (this._viewer.current) {
-                let cns = this._viewer.current.childNodes;
-                for (let i = cns.length - 1; i >= 0; i--) {
-                    cns.item(i).remove();
-                }
-            }
-        }
+    }
+    @computed get visibleElementWrapper() {
+        trace();
+        return this._visibleElements;
     }
 
     render() {
         return (<div className="pdfViewer-viewer" ref={this._mainCont} >
             <div className="pdfViewer-visibleElements" style={this._searching ? { position: "absolute", top: 0 } : {}}>
-                {this._visibleElements}
+                {this.visibleElementWrapper}
             </div>
             <div className="pdfViewer-text" ref={this._viewer} />
             <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
@@ -467,9 +457,13 @@ export class PDFViewer extends React.Component<IViewerProps> {
 export enum AnnotationTypes { Region }
 
 class SimpleLinkService {
-    externalLinkTarget: any = null;
-    externalLinkRel: any = null;
-    pdf: any = null;
+    _viewer: PDFViewer;
+    _pdfjsView: any;
+
+    constructor(viewer: PDFViewer) {
+        this._viewer = viewer;
+    }
+    setPDFJSview(v: any) { this._pdfjsView = v; }
 
     navigateTo() { }
 
@@ -479,15 +473,23 @@ class SimpleLinkService {
 
     setHash() { }
 
+    isPageVisible(page: number) { return true; }
+
     executeNamedAction() { }
 
     cachePageRef() { }
 
-    get pagesCount() { return this.pdf ? this.pdf.numPages : 0; }
+    get pagesCount() { return this._viewer._pdfViewer.pagesCount; }
 
-    get page() { return 0; }
+    get page() { return NumCast(this._viewer.props.Document.curPage); }
+    set page(p: number) {
+        this._pdfjsView._ensurePdfPageLoaded(this._pdfjsView._pages[p - 1]).then(() => {
+            this._pdfjsView.renderingQueue.renderView(this._pdfjsView._pages[p - 1]);
+            if (this._viewer.props.GoToPage)
+                this._viewer.props.GoToPage(p);
+        });
+    }
 
-    setPdf(pdf: any) { this.pdf = pdf; }
 
     get rotation() { return 0; }
     set rotation(value: any) { }

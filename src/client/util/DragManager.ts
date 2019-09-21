@@ -66,7 +66,7 @@ export function SetupDrag(
 
 function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
     const document = SelectionManager.SelectedDocuments()[0];
-    document.props.removeDocument && document.props.removeDocument(doc);
+    document && document.props.removeDocument && document.props.removeDocument(doc);
     addDocument(doc);
     return true;
 }
@@ -204,13 +204,11 @@ export namespace DragManager {
         constructor(dragDoc: Doc[]) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = dragDoc;
-            this.xOffset = 0;
-            this.yOffset = 0;
+            this.offset = [0, 0];
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
-        xOffset: number;
-        yOffset: number;
+        offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
@@ -223,14 +221,13 @@ export namespace DragManager {
             this.dragDocument = dragDoc;
             this.dropDocument = dropDoc;
             this.annotationDocument = annotationDoc;
-            this.xOffset = this.yOffset = 0;
+            this.offset = [0, 0];
         }
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
         dropDocument: Doc;
-        xOffset: number;
-        yOffset: number;
+        offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
     }
@@ -250,21 +247,13 @@ export namespace DragManager {
             });
     }
 
-    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize?: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
+    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         let dragData = new DragManager.DocumentDragData([]);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
-                let compiled = CompileScript(script, {
-                    params: { doc: Doc.name },
-                    typecheck: false,
-                    editable: true
-                });
-                if (compiled.compiled) {
-                    let scriptField = new ScriptField(compiled);
-                    bd.onClick = scriptField;
-                }
+                bd.onClick = ScriptField.MakeScript(script);
                 params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
                 initialize && initialize(bd);
                 bd.buttonParams = new List<string>(params);
@@ -281,7 +270,8 @@ export namespace DragManager {
                 let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
                     let dvs = DocumentManager.Instance.getDocumentViews(d);
                     if (dvs.length) {
-                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+                        let containingView = SelectionManager.SelectedDocuments()[0] ? SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView : undefined;
+                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === containingView);
                         if (inContext.length) {
                             inContext.forEach(dv => droppedDocs.push(dv.props.Document));
                         } else {

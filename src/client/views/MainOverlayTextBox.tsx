@@ -2,7 +2,7 @@ import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc, DocListCast } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
 import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils, returnOne } from '../../Utils';
 import { DragManager } from '../util/DragManager';
@@ -78,7 +78,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         this._textTargetDiv = div;
         this._textHideOnLeave = FormattedTextBox.InputBoxOverlay && FormattedTextBox.InputBoxOverlay.props.hideOnLeave;
         if (div) {
-            this._textBottom = div.parentElement && div.parentElement.style.bottom ? true : false;
+            this._textBottom = div.parentElement && getComputedStyle(div.parentElement).top !== "0px" ? true : false;
             this._textColor = (getComputedStyle(div) as any).color;
             div.style.color = "transparent";
         }
@@ -104,8 +104,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             document.removeEventListener('pointerup', this.textBoxUp);
             let dragData = new DragManager.DocumentDragData([FormattedTextBox.InputBoxOverlay.props.Document]);
             const [left, top] = this._textXf().inverse().transformPoint(0, 0);
-            dragData.xOffset = e.clientX - left;
-            dragData.yOffset = e.clientY - top;
+            dragData.offset = [e.clientX - left, e.clientY - top];
             DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {
                 handlers: {
                     dragComplete: action(emptyFunction),
@@ -119,10 +118,8 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         document.removeEventListener('pointerup', this.textBoxUp);
     }
 
-    addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
-        if (true) { // location === "onRight") { need to figure out stack to add "inTab"
-            CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
-        }
+    addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
+        return this._textBox && this._textBox.props.addDocTab(doc, dataDoc, location) ? true : false;
     }
     render() {
         this.TextDoc; this.TextDataDoc;
@@ -143,9 +140,9 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                                 onClick={undefined}
                                 ruleProvider={this._textBox ? this._textBox.props.ruleProvider : undefined}
-                                ChromeHeight={this.ChromeHeight}
-                                isSelected={returnTrue} select={emptyFunction} renderDepth={0}
-                                ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
+                                ChromeHeight={this.ChromeHeight} isSelected={returnTrue} select={emptyFunction} renderDepth={0}
+                                ContainingCollectionDoc={undefined} ContainingCollectionView={undefined}
+                                whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
                                 ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction}
                                 pinToPres={returnZero} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
                         </div>

@@ -45,17 +45,15 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
     }
 
     onDragMove = (e: MouseEvent) => {
-        if (!e.cancelBubble && !this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 5 || Math.abs(this._downY - e.clientY) > 5)) {
+        if (!e.cancelBubble && (Math.abs(this._downX - e.clientX) > 5 || Math.abs(this._downY - e.clientY) > 5)) {
             document.removeEventListener("pointermove", this.onDragMove);
             document.removeEventListener("pointerup", this.onDragUp);
             const onDragStart = this.Document.onDragStart;
             e.stopPropagation();
             e.preventDefault();
-            let res = onDragStart ? onDragStart.script.run({ this: this.props.Document }) : undefined;
-            let doc = res !== undefined && res.success ?
-                res.result as Doc :
-                Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
-            doc && DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
+            let res = onDragStart && onDragStart.script.run({ this: this.props.Document }).result;
+            let doc = (res as Doc) ||  Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
+            DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
         }
         e.stopPropagation();
         e.preventDefault();

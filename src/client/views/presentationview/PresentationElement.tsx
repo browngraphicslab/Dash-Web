@@ -366,6 +366,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     ContentScaling={scale}
                 />
                 <div style={{

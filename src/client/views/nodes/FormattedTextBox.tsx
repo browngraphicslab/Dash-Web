@@ -39,6 +39,7 @@ import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
 import { inputRules } from 'prosemirror-inputrules';
+import { DocumentButtonBar } from '../DocumentButtonBar';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -204,10 +205,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     // this should be internal to prosemirror, but is needed
     // here to make sure that footnote view nodes in the overlay editor
@@ -245,9 +245,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
                     if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
                     else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
-                })
+                });
             });
-        })
+        });
         this.linkOnDeselect.clear();
     }
 
@@ -258,7 +258,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let range = tx.selection.$from.blockRange(tx.selection.$to);
                 let text = range ? tx.doc.textBetween(range.start, range.end) : "";
                 let textEndSelection = tx.selection.to;
-                for (; textEndSelection < range!.end && text[textEndSelection - range!.start] != " "; textEndSelection++) { }
+                for (; textEndSelection < range!.end && text[textEndSelection - range!.start] !== " "; textEndSelection++) { }
                 text = text.substr(0, textEndSelection - range!.start);
                 text = text.split(" ")[text.split(" ").length - 1];
                 let split = text.split("::");
@@ -360,8 +360,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT) {
-                if (!Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
+                if (de.mods === "AltKey") {
+                    if (draggedDoc.data instanceof RichTextField) {
+                        Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                        e.stopPropagation();
+                    }
+                } else {
                     draggedDoc.isTemplate = true;
                     if (typeof (draggedDoc.layout) === "string") {
                         let layoutDelegateToOverrideFieldKey = Doc.MakeDelegate(draggedDoc);
@@ -487,8 +492,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pullReactionDisposer = reaction(
             () => this.props.Document[Pulls],
             () => {
-                if (!DocumentDecorations.hasPulledHack) {
-                    DocumentDecorations.hasPulledHack = true;
+                if (!DocumentButtonBar.hasPulledHack) {
+                    DocumentButtonBar.hasPulledHack = true;
                     let unchanged = this.dataDoc.unchanged;
                     this.pullFromGoogleDoc(unchanged ? this.checkState : this.updateState);
                 }
@@ -498,8 +503,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pushReactionDisposer = reaction(
             () => this.props.Document[Pushes],
             () => {
-                if (!DocumentDecorations.hasPushedHack) {
-                    DocumentDecorations.hasPushedHack = true;
+                if (!DocumentButtonBar.hasPushedHack) {
+                    DocumentButtonBar.hasPushedHack = true;
                     this.pushToGoogleDoc();
                 }
             }
@@ -592,7 +597,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     response && (this.dataDoc[GoogleRef] = response.documentId);
                     let pushSuccess = response !== undefined && !("errors" in response);
                     dataDoc.unchanged = pushSuccess;
-                    DocumentDecorations.Instance.startPushOutcome(pushSuccess);
+                    DocumentButtonBar.Instance.startPushOutcome(pushSuccess);
                 }
             };
             let undo = () => {
@@ -637,7 +642,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         } else {
             delete dataDoc[GoogleRef];
         }
-        DocumentDecorations.Instance.startPullOutcome(pullSuccess);
+        DocumentButtonBar.Instance.startPullOutcome(pullSuccess);
     }
 
     checkState = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
@@ -650,7 +655,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let receivedTitle = exportState.title;
                 let unchanged = storedPlainText === receivedPlainText && storedTitle === receivedTitle;
                 dataDoc.unchanged = unchanged;
-                DocumentDecorations.Instance.setPullState(unchanged);
+                DocumentButtonBar.Instance.setPullState(unchanged);
             }
         }
     }
@@ -698,7 +703,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                 let annotations = DocListCast(region.annotations);
                 annotations.forEach(anno => anno.target = this.props.Document);
-                let fieldExtDoc = Doc.resolvedFieldDataDoc(doc, "data", "true");
+                let fieldExtDoc = Doc.fieldExtensionDoc(doc, "data");
                 let targetAnnotations = DocListCast(fieldExtDoc.annotations);
                 if (targetAnnotations) {
                     targetAnnotations.push(region);
@@ -973,7 +978,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.isOverlay && this.props.Document.autoHeight && sh !== 0) {
+        if (!this.props.isOverlay && !this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0) {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
@@ -985,7 +990,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
-            //||  (this.props.Document.isButton && !this.props.isSelected()) 
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
@@ -1011,7 +1015,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: (this.props.Document.isButton && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.props.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
             </div>
         );
     }
