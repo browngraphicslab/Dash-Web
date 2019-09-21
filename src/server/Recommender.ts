@@ -79,6 +79,22 @@ export class Recommender {
         }
     }
 
+    public async trainModel() {
+        console.log("phrasing...");
+        w2v.word2vec("./node_modules/word2vec/examples/eng_news-typical_2016_1M-sentences.txt", './node_modules/word2vec/examples/my_phrases.txt', {
+            cbow: 1,
+            size: 200,
+            window: 8,
+            negative: 25,
+            hs: 0,
+            sample: 1e-4,
+            threads: 20,
+            iter: 200,
+            minCount: 2
+        });
+        console.log("phrased!!!");
+    }
+
     public async arxivRequest(query: string) {
         // let xhttp = new XMLHttpRequest();
         // let serveraddress = "http://export.arxiv.org/api/query?search_query=all:electron&start=0&max_results=1";
