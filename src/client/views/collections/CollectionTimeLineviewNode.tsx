@@ -140,41 +140,29 @@ export class Thumbnail extends React.Component<NodeProps> {
         this.getCaption();
         this.tog();
         return (
-            <div onClick={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
-                <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
-                    <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
-                    <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
-                        <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
-                            {this.props.pointerDown ? this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3) : null}
+            <div>
+                <div onClick={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
+                    <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
+                        <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
+                        <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
+                            <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
+                                {this.props.pointerDown ? this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3) : null}
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div ref={this.classref} className="unselection" style={{
-                    zIndex: 98, position: "absolute", top: this.props.scale,
+                    zIndex: 98, position: "absolute", height: "100%",
                 }}>
+                    <div style=
+                        {{
+                            position: "absolute", left: this.props.leftval, top: "0px", height: "100%", overflow: "hidden", writingMode: "vertical-rl",
+                            textOrientation: "mixed", borderLeft: "1px black solid"
+                        }} />
                     <div style={{
-                        border: "3px solid #9c9396",
-                        backgroundColor: "9c9396",
-                        borderRadius: "10px 10px 0px 0px",
-                        whiteSpace: "nowrap",
-                        textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: -30 - this.props.scale, zIndex: 99, width: this.props.scale, height: "30px"
-                    }}> {this.props.doc.title}</div>
-                    <div style={{ width: this.props.scale, height: "30", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
-                        <EditableView
-                            contents={this.caption}
-                            SetValue={(strng) => this.captionupdate(this.props.doc, strng)}
-                            GetValue={() => this.caption}
-                            display={"inline"}
-                            height={30}
-                            oneLine={true}
-                        />
-                    </div>
-                    <div style={{ height: "100% ", alignItems: "center", justifyItems: "center", display: "flex", position: "fixed", width: "1px", zIndex: -400, backgroundColor: "#9c9396" }}>
-                    </div>
-                    <div style={{ height: "100% ", alignItems: "center", justifyItems: "center", display: "flex", top: "-" + String(this.props.top), position: "fixed", width: "1px", zIndex: -400, backgroundColor: "#9c9396" }}>
-                    </div>
-                    <div style={{ paddingLeft: "3px", width: this.props.scale, overflow: "hidden" }}>
-                        {this.props.sortstate}:{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
+                        position: "absolute", width: this.props.scale, left: this.props.leftval - 30, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
+                        textOrientation: "mixed",
+                    }}>{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
                 </div>
             </div >
         );
@@ -196,9 +184,9 @@ export interface NodeProps {
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     pinToPres: (document: Doc) => void;
     scrollTop: number;
-    docheight: number;
     transition: boolean;
     toggleopac: boolean;
     tog: (booelan: boolean) => void;
     pointerDown: boolean;
+    timelineTop: number;
 }
