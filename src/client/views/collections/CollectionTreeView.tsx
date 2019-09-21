@@ -40,7 +40,7 @@ export interface TreeViewProps {
     ruleProvider: Doc | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
@@ -178,7 +178,7 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={undoBatch((value: string) => (Doc.GetProto(this.dataDoc)[key] = value) ? true : true)}
         OnFillDown={undoBatch((value: string) => {
             Doc.GetProto(this.dataDoc)[key] = value;
-            let doc = this.props.document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.detailedLayout)) : undefined;
+            let doc = this.props.document.layoutCustom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.layoutCustom)) : undefined;
             if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
             TreeView.loadId = doc[Id];
             return this.props.addDocument(doc);
@@ -405,7 +405,7 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
     public static GetChildElements(
-        docList: Doc[],
+        docs: Doc[],
         treeViewId: string,
         containingCollection: Doc,
         dataDoc: Doc | undefined,
@@ -414,7 +414,7 @@ class TreeView extends React.Component<TreeViewProps> {
         remove: ((doc: Doc) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
-        addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void,
+        addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean,
         pinToPres: (document: Doc) => void,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
@@ -425,19 +425,9 @@ class TreeView extends React.Component<TreeViewProps> {
         preventTreeViewOpen: boolean,
         renderedIds: string[]
     ) {
-        let docs = docList.filter(child => !child.excludeFromLibrary && child.opacity !== 0);
-        let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
+        const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
-            let script = viewSpecScript.script;
-            docs = docs.filter(d => {
-                let res = script.run({ doc: d });
-                if (res.success) {
-                    return res.result;
-                }
-                else {
-                    console.log(res.error);
-                }
-            });
+            docs = docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);
         }
 
         let ascending = Cast(containingCollection.sortAscending, "boolean", null);
@@ -548,7 +538,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) { // excludeFromLibrary means this is the user document
+        if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) {
             ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
             e.stopPropagation();
@@ -563,8 +553,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
     openNotifsCol = () => {
-        if (CollectionTreeView.NotifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(CollectionTreeView.NotifsCol, undefined);
+        if (CollectionTreeView.NotifsCol) {
+            this.props.addDocTab(CollectionTreeView.NotifsCol, undefined, "onRight");
         }
     }
 
@@ -614,7 +604,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     SetValue={undoBatch((value: string) => (Doc.GetProto(this.resolvedDataDoc).title = value) ? true : true)}
                     OnFillDown={undoBatch((value: string) => {
                         Doc.GetProto(this.props.Document).title = value;
-                        let doc = this.props.Document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.detailedLayout)) : undefined;
+                        let doc = this.props.Document.layoutCustom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.layoutCustom)) : undefined;
                         if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, false);

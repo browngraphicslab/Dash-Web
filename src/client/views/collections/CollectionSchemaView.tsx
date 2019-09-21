@@ -196,6 +196,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 fieldKey={this.props.fieldKey}
                 renderDepth={this.props.renderDepth}
                 moveDocument={this.props.moveDocument}
@@ -247,6 +248,7 @@ export interface SchemaTableProps {
     childDocs?: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
     deleteDocument: (document: Doc) => boolean;
@@ -254,7 +256,7 @@ export interface SchemaTableProps {
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     isSelected: () => boolean;
     isFocused: (document: Doc) => boolean;
@@ -913,7 +915,7 @@ interface CollectionSchemaPreviewProps {
     removeDocument: (document: Doc) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
@@ -946,13 +948,12 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let docDrag = de.data;
-            let computed = CompileScript("return this.image_data[0]", { params: { this: "Doc" } });
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                let doc = docDrag.draggedDocuments[0];
                 let target = Doc.GetProto(otherdoc);
-                target.layout = target.detailedLayout = Doc.MakeDelegate(doc);
-                computed.compiled && (target.miniLayout = new ComputedField(computed));
+                let layoutNative = Doc.MakeTitled("layoutNative");
+                layoutNative.layout = ComputedField.MakeFunction("this.image_data[0]");
+                target.layoutNative = layoutNative;
+                target.layoutCUstom = target.layout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
             });
             e.stopPropagation();
         }
@@ -1005,6 +1006,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         moveDocument={this.props.moveDocument}
                         whenActiveChanged={this.props.whenActiveChanged}
                         ContainingCollectionView={this.props.CollectionView}
+                        ContainingCollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}

@@ -52,16 +52,16 @@ export class InkingControl extends React.Component {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
                 let matchedColor = this._selectedColor;
-                const cv = view.props.ContainingCollectionView;
-                let ruleProvider: Doc | undefined;
-                if (cv) {
-                    if (!cv.props.Document.colorPalette) {
-                        let defaultPalette = ["rg14,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                const cvd = view.props.ContainingCollectionDoc;
+                let ruleProvider = view.props.ruleProvider;
+                if (cvd) {
+                    if (!cvd.colorPalette) {
+                        let defaultPalette = ["rg(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
                             "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
-                        let colorPalette = Cast(cv.props.Document.colorPalette, listSpec("string"));
-                        if (!colorPalette) cv.props.Document.colorPalette = new List<string>(defaultPalette);
+                        let colorPalette = Cast(cvd.colorPalette, listSpec("string"));
+                        if (!colorPalette) cvd.colorPalette = new List<string>(defaultPalette);
                     }
-                    let cp = Cast(cv.props.Document.colorPalette, listSpec("string")) as string[];
+                    let cp = Cast(cvd.colorPalette, listSpec("string")) as string[];
                     let closest = 0;
                     let dist = 10000000;
                     let ccol = Utils.fromRGBAstr(StrCast(targetDoc.backgroundColor));
@@ -74,9 +74,9 @@ export class InkingControl extends React.Component {
                         }
                     }
                     cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
-                    cv.props.Document.colorPalette = new List(cp);
+                    cvd.colorPalette = new List(cp);
                     matchedColor = cp[closest];
-                    ruleProvider = (view.props.Document.heading && cv && cv.props.ruleProvider) ? cv.props.ruleProvider : undefined;
+                    ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
                     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
                 !ruleProvider && (targetDoc.backgroundColor = matchedColor);

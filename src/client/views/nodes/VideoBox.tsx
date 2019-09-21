@@ -14,19 +14,18 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
-import { positionSchema } from "./DocumentView";
+import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faVideo } from "@fortawesome/free-solid-svg-icons";
-import { CompileScript } from "../../util/Scripting";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
 var path = require('path');
 
-type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
-const VideoDocument = makeInterface(positionSchema, pageSchema);
+type VideoDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
+const VideoDocument = makeInterface(documentSchema, pageSchema);
 
 library.add(faVideo);
 
@@ -116,18 +115,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                 width: 150, height: 50, title: NumCast(this.props.Document.curPage).toString()
             });
-            const script = CompileScript(`(self as any).curPage = ${NumCast(this.props.Document.curPage)}`, {
-                params: { this: Doc.name },
-                capturedVariables: { self: this.props.Document },
-                typecheck: false,
-                editable: true,
-            });
-            if (script.compiled) {
-                b.onClick = new ScriptField(script);
-                this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(b, false);
-            } else {
-                console.log(script.errors.map(error => error.messageText).join("\n"));
-            }
+            b.onClick = ScriptField.MakeScript(`this.curPage = ${NumCast(this.props.Document.curPage)}`);
         } else {
             //convert to desired file format
             var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
@@ -269,7 +257,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;

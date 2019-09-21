@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
@@ -40,6 +40,8 @@ export interface SubCollectionViewProps extends CollectionViewProps {
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
+        private _childLayoutDisposer?: IReactionDisposer;
+
         protected createDropTarget = (ele: HTMLDivElement) => {
             this.dropDisposer && this.dropDisposer();
             if (ele) {
@@ -50,35 +52,35 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
-        @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+        componentDidMount() {
+            this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
+                async (args) => args[1] instanceof Doc &&
+                    this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc))));
+
+        }
+        componentWillUnmount() {
+            this._childLayoutDisposer && this._childLayoutDisposer();
+        }
+
+        // The data field for rendeing this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
+        // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
+        // to its children which may be templates.
+        // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
+        @computed get dataField() {
+            return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+        }
 
 
         get childLayoutPairs() {
             return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
         }
-        get childDocs() {
-            //TODO tfs: This might not be what we want?
-            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            let docs = DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
-            let viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            if (viewSpecScript) {
-                let script = viewSpecScript.script;
-                docs = docs.filter(d => {
-                    let res = script.run({ doc: d });
-                    if (res.success) {
-                        return res.result;
-                    }
-                    else {
-                        console.log(res.error);
-                    }
-                });
-            }
-            return docs;
-        }
         get childDocList() {
-            //TODO tfs: This might not be what we want?
-            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
+            return Cast(this.dataField, listSpec(Doc));
+        }
+        get childDocs() {
+            let docs = DocListCast(this.dataField);
+            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         }
 
         @action
@@ -119,7 +121,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc)
                     );
                     e.stopPropagation();
                     return true;
@@ -264,6 +266,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     });
                     promises.push(prom);
                 }
+            }
+            if (text) {
+                this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                return;
             }
 
             if (promises.length) {
