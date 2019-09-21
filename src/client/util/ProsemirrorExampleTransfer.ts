@@ -97,7 +97,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         tx2.doc.descendants((node: any, offset: any, index: any) => {
             if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
                 let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
+                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
                 if (node.type === schema.nodes.ordered_list) depth++;
                 tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: node.attrs.mapStyle, bulletStyle: depth }, node.marks);
             }
@@ -145,7 +145,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         return tx;
-    }
+    };
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => dispatch(tx3))) {

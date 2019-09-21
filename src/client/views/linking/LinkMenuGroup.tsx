@@ -1,27 +1,25 @@
-import { action, observable } from "mobx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentView } from "../nodes/DocumentView";
-import { LinkMenuItem } from "./LinkMenuItem";
-import { LinkEditor } from "./LinkEditor";
-import './LinkMenu.scss';
-import React = require("react");
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { LinkManager } from "../../util/LinkManager";
-import { DragLinksAsDocuments, DragManager, SetupDrag } from "../../util/DragManager";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { DragManager, SetupDrag } from "../../util/DragManager";
+import { LinkManager } from "../../util/LinkManager";
 import { UndoManager } from "../../util/UndoManager";
-import { StrCast } from "../../../new_fields/Types";
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { DocumentView } from "../nodes/DocumentView";
+import './LinkMenu.scss';
+import { LinkMenuItem } from "./LinkMenuItem";
+import React = require("react");
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
     group: Doc[];
     groupType: string;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     docView: DocumentView;
 
 }

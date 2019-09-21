@@ -12,7 +12,7 @@ import { IconField } from "../../../new_fields/IconField";
 import { ContextMenu } from "../ContextMenu";
 import Measure from "react-measure";
 import { MINIMIZED_ICON_SIZE } from "../../views/globalCssVariables.scss";
-import { Scripting, CompileScript } from "../../util/Scripting";
+import { Scripting } from "../../util/Scripting";
 import { ComputedField } from "../../../new_fields/ScriptField";
 
 
@@ -45,8 +45,7 @@ export class IconBox extends React.Component<FieldViewProps> {
     }
 
     public static AutomaticTitle(doc: Doc) {
-        let computed = CompileScript(`return iconTitle(this);`, { params: { this: "Doc" }, typecheck: false });
-        computed.compiled && (Doc.GetProto(doc).title = new ComputedField(computed));
+        Doc.GetProto(doc).title = ComputedField.MakeFunction('iconTitle(this);');
     }
 
     public static DocumentIcon(layout: string) {

@@ -3,7 +3,7 @@ import { faEdit } from '@fortawesome/free-regular-svg-icons';
 import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
+import { Doc, DocListCastAsync, DocListCast } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
 import { ScriptField } from '../../../new_fields/ScriptField';
@@ -49,7 +49,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         funcs.push({
             description: "Clear Script Params", event: () => {
                 let params = Cast(this.props.Document.buttonParams, listSpec("string"));
-                params && params.map(p => this.props.Document[p] = undefined)
+                params && params.map(p => this.props.Document[p] = undefined);
             }, icon: "trash"
         });
 
@@ -68,7 +68,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     render() {
         let params = Cast(this.props.Document.buttonParams, listSpec("string"));
         let missingParams = params && params.filter(p => this.props.Document[p] === undefined);
-        params && params.map(async p => await DocListCastAsync(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
+        params && params.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
             <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div className="buttonBox-mainButton" style={{ background: StrCast(this.props.Document.backgroundColor), color: StrCast(this.props.Document.color, "black") }} >

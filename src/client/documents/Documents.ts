@@ -631,8 +631,8 @@ export namespace DocUtils {
                                 LinkManager.Instance.deleteLink(link);
                                 LinkManager.Instance.addLink(link);
                             }
-                        })
-                    })
+                        });
+                    });
                 }
             }
         });
@@ -640,7 +640,7 @@ export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
+        if (sv && sv.props.ContainingCollectionDoc === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
 
         let linkDocProto = new Doc(id, true);
@@ -663,10 +663,8 @@ export namespace DocUtils {
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            let script = `return links(this);`;
-            let computed = CompileScript(script, { params: { this: "Doc" }, typecheck: false });
-            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
-            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
+            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

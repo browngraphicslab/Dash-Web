@@ -1,30 +1,24 @@
-import * as htmlToImage from "html-to-image";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, FieldResult, DocListCast } from "../../../../new_fields/Doc";
-import { Id } from "../../../../new_fields/FieldSymbols";
+import { Doc, DocListCast } from "../../../../new_fields/Doc";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
+import { listSpec } from "../../../../new_fields/Schema";
+import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
+import { ComputedField } from "../../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
-import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
-import { Templates } from "../../Templates";
 import { CollectionViewType } from "../CollectionBaseView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
-import { string } from "prop-types";
-import { listSpec } from "../../../../new_fields/Schema";
-import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
-import { CompileScript } from "../../../util/Scripting";
-import { ComputedField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -234,18 +228,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
-    get ink() {
-        let container = this.props.container.props.Document;
-        let containerKey = this.props.container.props.fieldKey;
-        let extensionDoc = Doc.resolvedFieldDataDoc(container, containerKey, "true");
-        return Cast(extensionDoc.ink, InkField);
+    get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.
+        let cprops = this.props.container.props;
+        return Cast(Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
-        let container = Doc.GetProto(this.props.container.props.Document);
-        let containerKey = this.props.container.props.fieldKey;
-        let extensionDoc = Doc.resolvedFieldDataDoc(container, containerKey, "true");
-        extensionDoc.ink = value;
+        let cprops = this.props.container.props;
+        Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink = value;
     }
 
     @undoBatch
@@ -327,16 +317,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 });
                 newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                Doc.GetProto(newCollection).summaryDoc = summary;
                 Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
                 newCollection.x = bounds.left + bounds.width;
-                let computed = CompileScript(`return summaryTitle(this);`, { params: { this: "Doc" }, typecheck: false });
-                computed.compiled && (Doc.GetProto(newCollection).title = new ComputedField(computed));
+                Doc.GetProto(newCollection).summaryDoc = summary;
+                Doc.GetProto(newCollection).title = ComputedField.MakeFunction(`summaryTitle(this);`);
                 if (e.key === "s") { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
                     let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                     container.viewType = CollectionViewType.Stacking;
                     container.autoHeight = true;
-                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "inPlace", or "onRight"
+                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"
                     this.props.addLiveTextDocument(container);
                 } else if (e.key === "S") { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
                     Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"

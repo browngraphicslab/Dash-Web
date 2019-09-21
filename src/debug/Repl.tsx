@@ -28,12 +28,8 @@ class Repl extends React.Component {
             if (!script.compiled) {
                 this.executedCommands.push({ command: this.text, result: "Compile Error" });
             } else {
-                const result = script.run({ makeInterface });
-                if (result.success) {
-                    this.executedCommands.push({ command: this.text, result: result.result });
-                } else {
-                    this.executedCommands.push({ command: this.text, result: result.error.message || result.error });
-                }
+                const result = script.run({ makeInterface }, e => this.executedCommands.push({ command: this.text, result: e.message || e }));
+                result.success && this.executedCommands.push({ command: this.text, result: result.result });
             }
             this.text = "";
         }

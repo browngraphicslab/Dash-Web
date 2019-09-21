@@ -93,13 +93,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return { props: list };
     }
 
-    @computed get templates(): List<string> {
-        let field = this.props.Document.templates;
-        if (field && field instanceof List) {
-            return field;
-        }
-        return new List<string>();
-    }
     @computed get finalLayout() {
         return this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
     }
@@ -107,7 +100,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     render() {
         let self = this;
         if (this.props.renderDepth > 7) return (null);
-        if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
+        if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
             components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox }}

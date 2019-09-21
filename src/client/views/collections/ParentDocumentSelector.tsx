@@ -8,8 +8,15 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { NumCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "./CollectionBaseView";
+import { DocumentButtonBar } from "../DocumentButtonBar";
+import { DocumentManager } from "../../util/DocumentManager";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import { library } from "@fortawesome/fontawesome-svg-core";
 
-type SelectorProps = { Document: Doc, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
+library.add(faEdit);
+
+type SelectorProps = { Document: Doc, Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -83,10 +90,45 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
             );
         }
         return (
-            <span style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
+            <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
                 onMouseEnter={this.onMouseEnter}
                 onMouseLeave={this.onMouseLeave}>
                 <p>^</p>
+                {flyout}
+            </span>
+        );
+    }
+}
+
+@observer
+export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any }> {
+    @observable hover = false;
+
+    @action
+    onMouseLeave = () => {
+        this.hover = false;
+    }
+
+    @action
+    onMouseEnter = () => {
+        this.hover = true;
+    }
+
+    render() {
+        let flyout;
+        if (this.hover) {
+            let view = DocumentManager.Instance.getDocumentView(this.props.Document);
+            flyout = !view ? (null) : (
+                <div className="PDS-flyout" title=" " onMouseLeave={this.onMouseLeave}>
+                    <DocumentButtonBar views={[view]} stack={this.props.Stack} />
+                </div>
+            );
+        }
+        return (
+            <span className="buttonSelector"
+                onMouseEnter={this.onMouseEnter}
+                onMouseLeave={this.onMouseLeave}>
+                {this.hover ? (null) : <FontAwesomeIcon icon={faEdit} size={"sm"} />}
                 {flyout}
             </span>
         );

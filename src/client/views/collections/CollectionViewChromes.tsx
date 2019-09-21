@@ -213,14 +213,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
         let fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
-            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
-            `return (${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
-            "return true";
+            `${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
+            `(${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
+            "true";
 
-        let compiled = CompileScript(fullScript, { params: { doc: Doc.name }, typecheck: false });
-        if (compiled.compiled) {
-            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
-        }
+        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(fullScript, { doc: Doc.name });
     }
 
     @action
@@ -281,11 +278,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action.bound
     clearFilter = () => {
-        let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
-        if (compiled.compiled) {
-            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
-        }
-
+        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction("true", { doc: Doc.name });
         this._keyRestrictions = [];
         this.addKeyRestrictions([]);
     }

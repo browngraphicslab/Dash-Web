@@ -172,6 +172,7 @@ export class OverlayView extends React.Component {
                     ChromeHeight={returnZero}
                     isSelected={returnFalse}
                     select={emptyFunction}
+                    ruleProvider={undefined}
                     layoutKey={"layout"}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
@@ -185,9 +186,10 @@ export class OverlayView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
-                    addDocTab={emptyFunction}
+                    addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     zoomToScale={emptyFunction}
                     getScale={returnOne} />
             </div>;
