@@ -412,7 +412,7 @@ export class Keyframe extends React.Component<IProps> {
     makeKeyframeMenu = (kf :Doc, e:MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
         runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
-            CollectionDockingView.Instance.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
+            CollectionDockingView.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
         }), 
         TimelineMenu.Instance.addItem("button", "Delete", () => {
             runInAction(() => {
@@ -430,16 +430,34 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
         TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}),         
         TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{this.regions.splice(this.regions.indexOf(this.regiondata), 1);}),
-        TimelineMenu.Instance.addItem("input", "fadeIn", (val) => {this.regiondata.fadeIn = parseInt(val, 10);}), 
-        TimelineMenu.Instance.addItem("input", "fadeOut", (val) => {this.regiondata.fadeOut = parseInt(val, 10);}),
-        TimelineMenu.Instance.addItem("input", "position", (val) => {this.regiondata.position = parseInt(val, 10);}),
-        TimelineMenu.Instance.addItem("input", "duration", (val) => {this.regiondata.duration = parseInt(val, 10);}),
+        TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {runInAction(() => {
+            this.regiondata.fadeIn = parseInt(val, 10);
+        });}), 
+        TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {runInAction(() => {
+            this.regiondata.fadeOut = parseInt(val, 10);
+        });}),
+        TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {runInAction(() => {
+            if (this.checkInput(val)){
+                DocListCast(this.regions).forEach(region => {
+                    if (region !== this.regiondata){
+                        if (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration))){
+                            return undefined; 
+                        }
+                    }
+                });
+                this.regiondata.position = val; 
+            }
+            this.regiondata.position = parseInt(val, 10);
+        });}),
+        TimelineMenu.Instance.addItem("input", `duration: ${this.regiondata.duration}ms`, (val) => {runInAction(() => {
+            this.regiondata.duration = parseInt(val, 10);
+        });}),
         TimelineMenu.Instance.addMenu("Region"); 
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
     }
-    @action
-    private createKeyframeJSX = (kf: Doc, type = KeyframeFunc.KeyframeType.default) => {
-        
+
+    checkInput = (val: any) => {
+        return typeof(val === "number") 
     }
 
     onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
@@ -544,7 +562,7 @@ export class Keyframe extends React.Component<IProps> {
             <div>
                 <div className="bar" ref={this._bar} style={{ transform: `translate(${this.pixelPosition}px)`, 
                 width: `${this.pixelDuration}px`, 
-                background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.pixelFadeIn / this.pixelDuration}%, rgba(77, 153, 0, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
+                background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(77, 153, 0, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
                     onPointerDown={this.onBarPointerDown}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>

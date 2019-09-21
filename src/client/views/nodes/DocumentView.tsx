@@ -650,7 +650,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
+                    //transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
                     pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.Document.color),
                     outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
