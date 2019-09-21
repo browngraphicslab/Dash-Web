@@ -21,10 +21,12 @@ export interface PresModeMenuProps {
 export default class PresModeMenu extends React.Component<PresModeMenuProps> {
 
     @observable private _top: number = 20;
-    @observable private _right: number = 0;
+    @observable private _left: number = window.innerWidth - 160;
     @observable private _opacity: number = 1;
     @observable private _transition: string = "opacity 0.5s";
     @observable private _transitionDelay: string = "";
+    private _offsetY: number = 0;
+    private _offsetX: number = 0;
 
 
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
@@ -35,8 +37,8 @@ export default class PresModeMenu extends React.Component<PresModeMenuProps> {
      */
     @action
     dragging = (e: PointerEvent) => {
-        this._right -= e.movementX;
-        this._top += e.movementY;
+        this._left = e.pageX - this._offsetX;
+        this._top = e.pageY - this._offsetY;
 
         e.stopPropagation();
         e.preventDefault();
@@ -63,6 +65,9 @@ export default class PresModeMenu extends React.Component<PresModeMenuProps> {
         document.removeEventListener("pointerup", this.dragEnd);
         document.addEventListener("pointerup", this.dragEnd);
 
+        this._offsetX = this._mainCont.current!.getBoundingClientRect().width - e.nativeEvent.offsetX;
+        this._offsetY = e.nativeEvent.offsetY;
+
         e.stopPropagation();
         e.preventDefault();
     }
@@ -82,7 +87,7 @@ export default class PresModeMenu extends React.Component<PresModeMenuProps> {
     render() {
         return (
             <div className="presMenu-cont" ref={this._mainCont}
-                style={{ right: this._right, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay }}>
+                style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay }}>
                 <button title="Back" className="presMenu-button" onClick={this.props.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                 {this.renderPlayPauseButton()}
                 <button title="Next" className="presMenu-button" onClick={this.props.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
