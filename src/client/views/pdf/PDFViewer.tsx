@@ -5,11 +5,11 @@ import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Utils, numberRange } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -20,6 +20,8 @@ import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
 import requestPromise = require("request-promise");
+import PDFMenu from "./PDFMenu";
+import { DragManager } from "../../util/DragManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -55,6 +57,10 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private _searching: boolean = false;
     @observable private Index: number = -1;
+    @observable private _marqueeX: number = 0;
+    @observable private _marqueeY: number = 0;
+    @observable private _marqueeWidth: number = 0;
+    @observable private _marqueeHeight: number = 0;
 
     private _pageBuffer: number = 1;
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
@@ -64,9 +70,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     public _pdfViewer: any;
+    private _simpleLinkService: SimpleLinkService | undefined;
     private _pdfFindController: any;
     private _searchString: string = "";
     private _selectionText: string = "";
+    private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
+    private _marqueeing: boolean = false;
+    private _startY: number = 0;
+    private _startX: number = 0;
 
     @computed get panY(): number { return this.props.panY; }
 
@@ -87,15 +98,24 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
-    componentDidUpdate = (prevProps: IViewerProps) => this.panY !== prevProps.panY && this.renderPages();
+    componentDidUpdate = (prevProps: IViewerProps) => {
+        if (this.panY !== prevProps.panY && this._simpleLinkService) {
+            let p = this.getPageFromScroll(this.panY);
+            for (let i = Math.max(0, p - 1); i <= Math.min(this.props.pdf.numPages - 1, p + 1); i++) {
+                this._pdfViewer._ensurePdfPageLoaded(this._pdfViewer._pages[i]).then(() => {
+                    this._pdfViewer.renderingQueue.renderView(this._pdfViewer._pages[i]);
+                });
+            }
+        }
+    }
 
     componentDidMount = async () => {
         await this.initialLoad();
 
-        this._reactionDisposer = reaction(
-            () => [this.props.active(), this.startIndex, this._pageSizes.length ? this.endIndex : 0],
-            () => this.renderPages(),
-            { fireImmediately: true });
+        // this._reactionDisposer = reaction(
+        //     () => [this.props.active(), this.startIndex, this._pageSizes.length ? this.endIndex : 0],
+        //     () => this.renderPages(),
+        //     { fireImmediately: true });
 
         this._annotationReactionDisposer = reaction(
             () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
@@ -153,29 +173,55 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     initialLoad = async () => {
-        if (this._pageSizes.length === 0) {
-            this._isPage = Array<string>(this.props.pdf.numPages);
-            this._pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
-            this._visibleElements = Array<JSX.Element>(this.props.pdf.numPages);
+        this._pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
+        if (this._mainCont.current) {
+            this._simpleLinkService = new SimpleLinkService(this);
+            this._pdfViewer = new PDFJSViewer.PDFViewer({
+                container: this._mainCont.current,
+                viewer: this._viewer.current,
+                linkService: this._simpleLinkService
+            });
+            this._simpleLinkService.setPDFJSview(this._pdfViewer);
+            this._mainCont.current.addEventListener("pagesinit", () => {
+                this._pdfViewer.currentScaleValue = 1;
+            });
+            this._mainCont.current.addEventListener("pagerendered", () => console.log("rendered"));
+            this._pdfViewer.setDocument(this.props.pdf);
+            this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
+            this._pdfViewer.findController = this._pdfFindController;
             await Promise.all(this._pageSizes.map<Pdfjs.PDFPromise<any>>((val, i) =>
-                this.props.pdf.getPage(i + 1).then(action((page: Pdfjs.PDFPageProxy) => {
+                this.props.pdf.getPage(i + 1).then((page: Pdfjs.PDFPageProxy) => {
                     this._pageSizes.splice(i, 1, {
                         width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
                         height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
                     });
-                    this._visibleElements.splice(i, 1,
-                        <div key={`${this.props.url}-placeholder-${i + 1}`} className="pdfviewer-placeholder"
-                            style={{ width: this._pageSizes[i].width, height: this._pageSizes[i].height }}>
-                            "PAGE IS LOADING... "
-                </div>);
-                    this.getPlaceholderPage(i);
-                }))));
+                }
+                )));
             this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);
-
-            let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.panY));
-            this.props.setPanY && this.props.setPanY(startY);
-            this.props.scrollTo(startY);
         }
+        // if (this._pageSizes.length === 0) {
+        //     this._isPage = Array<string>(this.props.pdf.numPages);
+        //     this._pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
+        //     this._visibleElements = Array<JSX.Element>(this.props.pdf.numPages);
+        //     await Promise.all(this._pageSizes.map<Pdfjs.PDFPromise<any>>((val, i) =>
+        //         this.props.pdf.getPage(i + 1).then(action((page: Pdfjs.PDFPageProxy) => {
+        //             this._pageSizes.splice(i, 1, {
+        //                 width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
+        //                 height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
+        //             });
+        //             this._visibleElements.splice(i, 1,
+        //                 <div key={`${this.props.url}-placeholder-${i + 1}`} className="pdfviewer-placeholder"
+        //                     style={{ width: this._pageSizes[i].width, height: this._pageSizes[i].height }}>
+        //                     "PAGE IS LOADING... "
+        //         </div>);
+        //             this.getPlaceholderPage(i);
+        //         }))));
+        //     this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);
+
+        //     let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.panY));
+        //     this.props.setPanY && this.props.setPanY(startY);
+        //     this.props.scrollTo(startY);
+        // }
     }
 
     @action
@@ -416,12 +462,194 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return this._visibleElements;
     }
 
+    @action
+    onPointerDown = (e: React.PointerEvent): void => {
+        // if alt+left click, drag and annotate
+        if (NumCast(this.props.Document.scale, 1) !== 1) return;
+        if (!e.altKey && e.button === 0) {
+            PDFMenu.Instance.StartDrag = this.startDrag;
+            PDFMenu.Instance.Highlight = this.highlight;
+            PDFMenu.Instance.Snippet = this.createSnippet;
+            PDFMenu.Instance.Status = "pdf";
+            PDFMenu.Instance.fadeOut(true);
+            if (e.target && (e.target as any).parentElement.className === "textLayer") {
+                e.stopPropagation();
+                if (!e.ctrlKey) {
+                    this.receiveAnnotations([], -1);
+                }
+            }
+            else {
+                // set marquee x and y positions to the spatially transformed position
+                if (this._mainCont.current) {
+                    let boundingRect = this._mainCont.current.getBoundingClientRect();
+                    this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width);
+                    this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height);
+                }
+                this._marqueeing = true;
+                this._marquee.current && (this._marquee.current.style.opacity = "0.2");
+                this.receiveAnnotations([], -1);
+            }
+            document.removeEventListener("pointermove", this.onSelectStart);
+            document.addEventListener("pointermove", this.onSelectStart);
+            document.removeEventListener("pointerup", this.onSelectEnd);
+            document.addEventListener("pointerup", this.onSelectEnd);
+        }
+    }
+
+    @action
+    onSelectStart = (e: PointerEvent): void => {
+        if (this._marqueeing && this._mainCont.current) {
+            // transform positions and find the width and height to set the marquee to
+            let boundingRect = this._mainCont.current.getBoundingClientRect();
+            this._marqueeWidth = ((e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width)) - this._startX;
+            this._marqueeHeight = ((e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height)) - this._startY;
+            this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
+            this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
+            this._marqueeWidth = Math.abs(this._marqueeWidth);
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        else if (e.target && (e.target as any).parentElement === this._mainCont.current) {
+            e.stopPropagation();
+        }
+    }
+
+    @action
+    createTextAnnotation = (sel: Selection, selRange: Range) => {
+        if (this._mainCont.current) {
+            let boundingRect = this._mainCont.current.getBoundingClientRect();
+            let clientRects = selRange.getClientRects();
+            for (let i = 0; i < clientRects.length; i++) {
+                let rect = clientRects.item(i);
+                if (rect && rect.width !== this._mainCont.current.getBoundingClientRect().width && rect.height !== this._mainCont.current.getBoundingClientRect().height) {
+                    let annoBox = document.createElement("div");
+                    annoBox.className = "pdfPage-annotationBox";
+                    // transforms the positions from screen onto the pdf div
+                    annoBox.style.top = ((rect.top - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height)).toString();
+                    annoBox.style.left = ((rect.left - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width)).toString();
+                    annoBox.style.width = (rect.width * this._mainCont.current.offsetWidth / boundingRect.width).toString();
+                    annoBox.style.height = (rect.height * this._mainCont.current.offsetHeight / boundingRect.height).toString();
+                    this.createAnnotation(annoBox, this.getPageFromScroll(rect.height));
+                }
+            }
+        }
+        let text = selRange.cloneContents().textContent;
+        text && this.setSelectionText(text);
+
+        // clear selection
+        if (sel.empty) {  // Chrome
+            sel.empty();
+        } else if (sel.removeAllRanges) {  // Firefox
+            sel.removeAllRanges();
+        }
+    }
+
+    @action
+    onSelectEnd = (e: PointerEvent): void => {
+        if (this._marqueeing) {
+            this._marqueeing = false;
+            if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
+                if (this._marquee.current) { // make a copy of the marquee
+                    let copy = document.createElement("div");
+                    let style = this._marquee.current.style;
+                    copy.style.left = style.left;
+                    copy.style.top = style.top;
+                    copy.style.width = style.width;
+                    copy.style.height = style.height;
+                    copy.style.border = style.border;
+                    copy.style.opacity = style.opacity;
+                    copy.className = "pdfPage-annotationBox";
+                    this.createAnnotation(copy, this.getPageFromScroll(this._marqueeY));
+                    this._marquee.current.style.opacity = "0";
+                }
+
+                if (!e.ctrlKey) {
+                    PDFMenu.Instance.Status = "snippet";
+                    PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
+                }
+                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+            }
+
+            this._marqueeHeight = this._marqueeWidth = 0;
+        }
+        else {
+            let sel = window.getSelection();
+            if (sel && sel.type === "Range") {
+                let selRange = sel.getRangeAt(0);
+                this.createTextAnnotation(sel, selRange);
+                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+            }
+        }
+
+        if (PDFMenu.Instance.Highlighting) {
+            this.highlight(undefined, "goldenrod");
+        }
+        else {
+            PDFMenu.Instance.StartDrag = this.startDrag;
+            PDFMenu.Instance.Highlight = this.highlight;
+        }
+        document.removeEventListener("pointermove", this.onSelectStart);
+        document.removeEventListener("pointerup", this.onSelectEnd);
+    }
+
+    @action
+    highlight = (targetDoc: Doc | undefined, color: string) => {
+        // creates annotation documents for current highlights
+        let annotationDoc = this.makeAnnotationDocument(targetDoc, color, false);
+        Doc.AddDocToList(this.props.fieldExtensionDoc, "annotations", annotationDoc);
+        return annotationDoc;
+    }
+
+    /**
+     * This is temporary for creating annotations from highlights. It will
+     * start a drag event and create or put the necessary info into the drag event.
+     */
+    @action
+    startDrag = (e: PointerEvent, ele: HTMLElement): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
+        targetDoc.targetPage = this.getPageFromScroll(this._marqueeY);
+        let annotationDoc = this.highlight(undefined, "red");
+        annotationDoc.linkedToDoc = false;
+        let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
+        DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
+            handlers: {
+                dragComplete: async () => {
+                    if (!BoolCast(annotationDoc.linkedToDoc)) {
+                        let annotations = await DocListCastAsync(annotationDoc.annotations);
+                        annotations && annotations.forEach(anno => anno.target = targetDoc);
+                        DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`);
+                    }
+                }
+            },
+            hideSource: false
+        });
+    }
+
+    createSnippet = (marquee: { left: number, top: number, width: number, height: number }): void => {
+        let view = Doc.MakeAlias(this.props.Document);
+        let data = Doc.MakeDelegate(Doc.GetProto(this.props.Document));
+        data.title = StrCast(data.title) + "_snippet";
+        view.proto = data;
+        view.nativeHeight = marquee.height;
+        view.height = (this.props.Document[WidthSym]() / NumCast(this.props.Document.nativeWidth)) * marquee.height;
+        view.nativeWidth = this.props.Document.nativeWidth;
+        view.startY = marquee.top;
+        view.width = this.props.Document[WidthSym]();
+        DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view]), 0, 0);
+    }
+
     render() {
-        return (<div className="pdfViewer-viewer" ref={this._mainCont} >
-            <div className="pdfViewer-visibleElements" style={this._searching ? { position: "absolute", top: 0 } : {}}>
-                {this.visibleElementWrapper}
-            </div>
+        return (<div className="pdfViewer-viewer" ref={this._mainCont} onPointerDown={this.onPointerDown}>
             <div className="pdfViewer-text" ref={this._viewer} />
+            <div className="pdfPage-dragAnnotationBox" ref={this._marquee}
+                style={{
+                    left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
+                    width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
+                    border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
+                }}>
+            </div>
             <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
                 {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                     <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
@@ -481,12 +709,13 @@ class SimpleLinkService {
 
     get pagesCount() { return this._viewer._pdfViewer.pagesCount; }
 
-    get page() { return NumCast(this._viewer.props.Document.curPage); }
+    get page() { return this._viewer.getPageFromScroll(NumCast(this._viewer.props.panY)) + 1; }
     set page(p: number) {
         this._pdfjsView._ensurePdfPageLoaded(this._pdfjsView._pages[p - 1]).then(() => {
             this._pdfjsView.renderingQueue.renderView(this._pdfjsView._pages[p - 1]);
-            if (this._viewer.props.GoToPage)
+            if (this._viewer.props.GoToPage) {
                 this._viewer.props.GoToPage(p);
+            }
         });
     }
 

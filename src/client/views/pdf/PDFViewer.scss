@@ -1,13 +1,14 @@
-
 .pdfViewer-viewer {
-    pointer-events:inherit;
+    pointer-events: inherit;
     width: 100%;
+
     .pdfViewer-visibleElements {
         .pdfPage-cont {
             .pdfPage-textLayer {
                 div {
                     user-select: text;
                 }
+
                 span {
                     color: transparent;
                     position: absolute;
@@ -19,9 +20,14 @@
             }
         }
     }
+
     .pdfViewer-text {
         transform: scale(1.5);
         transform-origin: top left;
+
+        .page .textLayer {
+            user-select: text;
+        }
     }
 
     .pdfViewer-annotationLayer {
@@ -29,6 +35,7 @@
         top: 0;
         width: 100%;
         pointer-events: none;
+
         .pdfPage-annotationBox {
             position: absolute;
             background-color: red;
@@ -48,6 +55,7 @@
         padding: 20px;
         overflow: hidden;
         transition: left .5s;
+
         .pdfViewer-overlaySearchBar {
             width: 20%;
             height: 100%;
