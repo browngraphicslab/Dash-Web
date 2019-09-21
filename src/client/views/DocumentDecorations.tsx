@@ -393,10 +393,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onRadiusUp);
     }
 
+    _lastX = 0;
+    _lastY = 0;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
+            this._lastX = e.clientX;
+            this._lastY = e.clientY;
             this._isPointerDown = true;
             this._resizing = e.currentTarget.id;
             this.Interacting = true;
@@ -453,42 +457,47 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
+        let moveX = e.clientX - this._lastX; // e.movementX;
+        let moveY = e.clientY - this._lastY; // e.movementY;
+        this._lastX = e.clientX;
+        this._lastY = e.clientY;
+
         switch (this._resizing) {
             case "":
                 break;
             case "documentDecorations-topLeftResizer":
                 dX = -1;
                 dY = -1;
-                dW = -(e.movementX);
-                dH = -(e.movementY);
+                dW = -moveX;
+                dH = -moveY;
                 break;
             case "documentDecorations-topRightResizer":
-                dW = e.movementX;
+                dW = moveX;
                 dY = -1;
-                dH = -(e.movementY);
+                dH = -moveY;
                 break;
             case "documentDecorations-topResizer":
                 dY = -1;
-                dH = -(e.movementY);
+                dH = -moveY;
                 break;
             case "documentDecorations-bottomLeftResizer":
                 dX = -1;
-                dW = -(e.movementX);
-                dH = e.movementY;
+                dW = -moveX;
+                dH = moveY;
                 break;
             case "documentDecorations-bottomRightResizer":
-                dW = e.movementX;
-                dH = e.movementY;
+                dW = moveX;
+                dH = moveY;
                 break;
             case "documentDecorations-bottomResizer":
-                dH = e.movementY;
+                dH = moveY;
                 break;
             case "documentDecorations-leftResizer":
                 dX = -1;
-                dW = -(e.movementX);
+                dW = -moveX;
                 break;
             case "documentDecorations-rightResizer":
-                dW = e.movementX;
+                dW = moveX;
                 break;
         }
 
