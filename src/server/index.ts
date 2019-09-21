@@ -841,10 +841,8 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
 
     let failed = 0;
 
-    const newMediaItems = await BatchedArray.from(mediaInput).batchedMapInterval({
-        batcher: { batchSize: 25 },
-        interval: { magnitude: 100, unit: TimeUnit.Milliseconds },
-        converter: async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
+    const newMediaItems = await BatchedArray.from(mediaInput, { batchSize: 25 }).batchedMapInterval(
+        async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
             const newMediaItems: NewMediaItem[] = [];
             for (let element of batch) {
                 const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
@@ -858,8 +856,9 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
                 }
             }
             return newMediaItems;
-        }
-    });
+        },
+        { magnitude: 100, unit: TimeUnit.Milliseconds }
+    );
 
     if (failed) {
         return _error(res, tokenError);

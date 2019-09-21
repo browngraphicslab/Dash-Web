@@ -62,10 +62,8 @@ export namespace GooglePhotosUploadUtils {
     };
 
     export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        const newMediaItemResults = await BatchedArray.from(newMediaItems).batchedMapInterval({
-            batcher: { batchSize: 50 },
-            interval: { magnitude: 100, unit: TimeUnit.Milliseconds },
-            converter: async (batch: NewMediaItem[]) => {
+        const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapInterval(
+            async (batch: NewMediaItem[]) => {
                 const parameters = {
                     method: 'POST',
                     headers: headers('json'),
@@ -83,8 +81,9 @@ export namespace GooglePhotosUploadUtils {
                         }
                     });
                 })).newMediaItemResults;
-            }
-        });
+            },
+            { magnitude: 100, unit: TimeUnit.Milliseconds }
+        );
         return { newMediaItemResults };
     };
 
