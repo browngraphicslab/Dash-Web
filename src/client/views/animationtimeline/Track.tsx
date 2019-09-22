@@ -69,6 +69,7 @@ export class Track extends React.Component<IProps> {
         let keyframes: List<Doc> = (Cast(regiondata.keyframes, listSpec(Doc)) as List<Doc>);
         let kfIndex: number = keyframes.indexOf(ref);
         let kf = keyframes[kfIndex] as Doc;
+        if (!kf) return; 
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             kf.key = Doc.MakeCopy(this.props.node, true);
             let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); // lef keyframe, if it exists

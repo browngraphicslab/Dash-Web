@@ -416,48 +416,115 @@ export class Keyframe extends React.Component<IProps> {
         }), 
         TimelineMenu.Instance.addItem("button", "Delete", () => {
             runInAction(() => {
-                console.log(this.keyframes.indexOf(kf));
-                this.keyframes.splice(this.keyframes.indexOf(kf), 1);
+                (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
             });         
         }), 
-        TimelineMenu.Instance.addItem("input", "Move", (val) => {kf.time = parseInt(val, 10);});  
+        TimelineMenu.Instance.addItem("input", "Move", (val) => {
+            runInAction(() => {
+                if (this.checkInput(val)){
+                    let cannotMove:boolean = false; 
+                    let kfIndex:number = this.keyframes.indexOf(kf); 
+                    if (val < 0 ||( val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time)) ){
+                        cannotMove = true; 
+                    }
+                    if (!cannotMove){
+                        this.keyframes[kfIndex].time = parseInt(val, 10); 
+                        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
+                    }
+                }
+              });  
+            });
         TimelineMenu.Instance.addMenu("Keyframe"); 
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
     }
 
     @action 
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
-        TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
-        TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}),         
+        TimelineMenu.Instance.addItem("button", "Add Ease", () => {
+            // this.onContainerDown(kf, "interpolate");
+        }),
+        TimelineMenu.Instance.addItem("button", "Add Path", () => {
+            // this.onContainerDown(kf, "path");
+        }),         
         TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{this.regions.splice(this.regions.indexOf(this.regiondata), 1);}),
-        TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {runInAction(() => {
-            this.regiondata.fadeIn = parseInt(val, 10);
+        TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
+            runInAction(() => {
+                if (this.checkInput(val)){
+                    let cannotMove:boolean = false; 
+                    if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position){
+                        cannotMove = true; 
+                    }
+                    if (!cannotMove){
+                        this.regiondata.fadeIn = parseInt(val, 10); 
+                        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
+                    }
+                }
         });}), 
-        TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {runInAction(() => {
-            this.regiondata.fadeOut = parseInt(val, 10);
+        TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {
+            runInAction(() => {
+                if (this.checkInput(val)){
+                    let cannotMove:boolean = false; 
+                    if (val < 0 || val > this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[this.keyframes.length - 3].time)){
+                        cannotMove = true; 
+                    } 
+                    if (!cannotMove){
+                        this.regiondata.fadeOut = parseInt(val, 10); 
+                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - val; 
+                    }
+                }
         });}),
-        TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {runInAction(() => {
-            if (this.checkInput(val)){
+        TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {
+            runInAction(() => {
+            if (this.checkInput(val)){           
+                let prevPosition = this.regiondata.position;  
+                let cannotMove:boolean = false;  
                 DocListCast(this.regions).forEach(region => {
-                    if (region !== this.regiondata){
-                        if (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration))){
-                            return undefined; 
+                    if (NumCast(region.position) !== this.regiondata.position){
+                        if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration)))){
+                            cannotMove = true;
                         }
                     }
                 });
-                this.regiondata.position = val; 
+                if (!cannotMove) {
+                    this.regiondata.position = parseInt(val, 10);    
+                    this.updateKeyframes(this.regiondata.position - prevPosition ); 
+                }
             }
-            this.regiondata.position = parseInt(val, 10);
         });}),
-        TimelineMenu.Instance.addItem("input", `duration: ${this.regiondata.duration}ms`, (val) => {runInAction(() => {
-            this.regiondata.duration = parseInt(val, 10);
+        TimelineMenu.Instance.addItem("input", `duration: ${this.regiondata.duration}ms`, (val) => {
+            runInAction(() => {
+                if (this.checkInput(val)){           
+                    let cannotMove:boolean = false;  
+                    DocListCast(this.regions).forEach(region => {
+                        if (NumCast(region.position) !== this.regiondata.position){
+                            val += this.regiondata.position; 
+                            if ((val < 0 ) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration))){
+                                cannotMove = true;
+                            }
+                        }
+                    });
+                    if (!cannotMove) {
+                        this.regiondata.duration = parseInt(val, 10);
+                        this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration; 
+                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
+                    }
+                }
         });}),
         TimelineMenu.Instance.addMenu("Region"); 
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
     }
 
     checkInput = (val: any) => {
-        return typeof(val === "number") 
+        return typeof(val === "number"); 
+    }
+
+    @action
+    updateKeyframes = (incr:number, filter:number[] = []) => {
+        this.keyframes.forEach(kf => {
+            if (!filter.includes(this.keyframes.indexOf(kf))){
+                kf.time = NumCast(kf.time) + incr; 
+            }
+        });
     }
 
     onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
@@ -495,8 +562,6 @@ export class Keyframe extends React.Component<IProps> {
                 listenerCreated = true; 
             }
         });
-        
-        
     }
 
     @action
@@ -558,6 +623,7 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
     render() {
+        console.log("RERENDERING"); 
         return (
             <div>
                 <div className="bar" ref={this._bar} style={{ transform: `translate(${this.pixelPosition}px)`, 
@@ -579,11 +645,14 @@ export class Keyframe extends React.Component<IProps> {
                                 </div>
                             );
                         }
-                        return (
-                            <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
-                                <div className="divider"></div>
-                            </div>
-                        );
+                        else {
+                            return (
+                                <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                                    <div className="divider"></div>
+                                </div>
+                            );
+                        }
+                      
                     })}
                     {this.keyframes.map( kf => {
                        if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {

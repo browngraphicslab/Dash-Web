@@ -36,21 +36,25 @@ export class TimelineMenu extends React.Component {
     }
 
     @action
-    addItem = (type: "input" | "button", title: string, event: (e:any) => void) => {
+    addItem = (type: "input" | "button", title: string, event: (e:any, ...args:any[]) => void) => {
         if (type === "input"){
             let inputRef = React.createRef<HTMLInputElement>(); 
-            this._currentMenu.push( <div className="timeline-menu-item"><FontAwesomeIcon icon={faClipboard} size="lg"/><input className="timeline-menu-input" ref = {inputRef} placeholder={title} onChange={(e) => {
-                let text = e.target.value;
-                document.addEventListener("keypress", (e:KeyboardEvent) => {
-                    if (e.keyCode === 13) {
-                        event(text); 
-                        this.closeMenu(); 
-                    }
-                });
+            let text = ""; 
+            this._currentMenu.push(<div className="timeline-menu-item"><FontAwesomeIcon icon={faClipboard} size="lg"/><input className="timeline-menu-input" ref = {inputRef} placeholder={title} onChange={(e) => {
+                e.stopPropagation();
+                text = e.target.value;
+            }} onKeyDown={(e) => {
+                if (e.keyCode === 13) {
+                    event(text); 
+                    this.closeMenu();                    
+                     e.stopPropagation(); 
+                } 
             }}/></div>); 
         } else if (type === "button") {
             let buttonRef = React.createRef<HTMLDivElement>(); 
             this._currentMenu.push( <div className="timeline-menu-item"><FontAwesomeIcon icon={faChartLine}size="lg"/><p className="timeline-menu-desc" onClick={(e) => {
+                e.preventDefault(); 
+                e.stopPropagation(); 
                 event(e); 
                 this.closeMenu(); 
             }}>{title}</p></div>); 
