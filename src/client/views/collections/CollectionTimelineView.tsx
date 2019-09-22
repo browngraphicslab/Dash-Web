@@ -92,11 +92,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         for (let marker of markers) {
             let doc = await marker;
             let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
-            markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
-                style={{
-                    top: "71%", border: "2px solid" + (markerUnit.document.color),
-                    width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: 0.5, position: "fixed", left: 0,
-                }}></div>);
+            markerUnit.element = (<div>
+
+                < div ref={(el) => el ? markerUnit.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
+                    style={{
+                        top: "71%", border: "2px solid" + (markerUnit.document.color),
+                        width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: 0.5, position: "fixed", left: 0,
+                    }}>
+                </div></div>);
             markerUnit.map = <div className="ugh" ref={(el) => el ? markerUnit.mapref = el : null}
                 style={{
                     position: "absolute",
@@ -109,24 +112,61 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }}></div>;
         }
     }
+
+    @action
+    onPointerMove_LeftResize = (e: PointerEvent): void => {
+        e.stopPropagation();
+        this.markdoc!.initialLeft = NumCast(this.markdoc!.initialLeft) + e.movementX;
+        this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) - e.movementX;
+        document.addEventListener("pointerup", this.onPointerUp);
+    }
+
+    @observable markdoc: Doc | undefined = undefined;
+    @action
+    onPointerDown_LeftResize = (e: React.PointerEvent, doc: Doc): void => {
+        document.addEventListener("pointermove", (this.onPointerMove_LeftResize));
+        e.stopPropagation();
+        this.markdoc = doc;
+        this.downbool = (false);
+    }
+
+    @action
+    onPointerMove_RightResize = (e: PointerEvent): void => {
+        e.stopPropagation();
+        this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) + e.movementX;
+        document.addEventListener("pointerup", this.onPointerUp);
+    }
+
+    @action
+    onPointerDown_RightResize = (e: React.PointerEvent, doc: Doc): void => {
+        document.addEventListener("pointermove", (this.onPointerMove_RightResize));
+        e.stopPropagation();
+        this.markdoc = doc;
+        this.downbool = (false);
+    }
+
     createmarker = (doc: Doc): JSX.Element | undefined => {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
-        markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
-            style={{
-                border: "2px solid" + String(markerUnit.document.color),
-                top: this.rowval[NumCast(doc.row)],
-                width: NumCast(doc.initialWidth), height: this.rowscale, backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
-                position: "absolute", left: NumCast(doc.initialLeft),
-            }}>
-            <EditableView
-                contents={doc.annotation}
-                SetValue={this.annotationUpdate}
-                GetValue={() => ""}
-                display={"inline"}
-                height={30}
-                oneLine={true}
-            />
-        </div>);
+        markerUnit.element = (
+            < div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
+                style={{
+                    border: "2px solid" + String(markerUnit.document.color),
+                    top: this.rowval[NumCast(doc.row)],
+                    width: NumCast(doc.initialWidth), height: this.rowscale, backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
+                    position: "absolute", left: NumCast(doc.initialLeft),
+                }}>
+                <div className="v1" onPointerDown={(e) => this.onPointerDown_LeftResize(e, doc)} style={{ cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
+                <EditableView
+                    contents={doc.annotation}
+                    SetValue={this.annotationUpdate}
+                    GetValue={() => ""}
+                    display={"inline"}
+                    height={30}
+                    oneLine={true}
+                />
+                <div className="v1" onPointerDown={(e) => this.onPointerDown_RightResize(e, doc)} style={{ cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
+
+            </div>);
         if (markerUnit.document.sortstate === this.sortstate) {
             return markerUnit.element;
         }
@@ -854,6 +894,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointermove", this.onPointerMove_LeftBound);
         document.removeEventListener("pointermove", this.onPointerMove_RightBound);
         document.removeEventListener("pointermove", this.onPointerMove_OnBar);
+        document.removeEventListener("pointermove", this.onPointerMove_LeftResize);
+        document.removeEventListener("pointermove", this.onPointerMove_RightResize);
+
         document.body.style.cursor = "default";
         this.downbool = true;
     }
@@ -962,7 +1005,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
-                <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", position: "absolute", height: "80%", width: "100%", }}>
+                <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", position: "absolute", height: "100%", width: "100%", }}>
                     {this.rows}
                     {this.thumbnails.map(doc =>
                         <Thumbnail
