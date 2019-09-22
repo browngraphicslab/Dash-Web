@@ -32,6 +32,8 @@ import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 library.add(faFile);
 
+export type AddDocTabFunction = (doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
+
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;

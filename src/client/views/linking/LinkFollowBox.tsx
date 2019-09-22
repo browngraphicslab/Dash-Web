@@ -6,7 +6,7 @@ import { Doc, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { undoBatch } from "../../util/UndoManager";
 import { NumCast, FieldValue, Cast, StrCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "../collections/CollectionBaseView";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionDockingView, AddDocTabFunction } from "../collections/CollectionDockingView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -100,6 +100,12 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         }
     }
 
+    public display = (linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: AddDocTabFunction) => {
+        this.props.Document.isMinimized = false;
+        this.setLinkDocs(linkDoc, sourceDoc, destinationDoc);
+        this.setAddDocTab(addDocTab);
+    }
+
     @action
     resetVars = () => {
         this.selectedContext = undefined;
@@ -168,9 +174,12 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     openFullScreen = () => {
-        if (LinkFollowBox.destinationDoc) {
-            let view: DocumentView | null = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc);
+        if (this.notOpenInContext) {
+            let view: DocumentView | null = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc!);
             view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+        }
+        else {
+            this.selectedContext && this.openColFullScreen({ context: this.selectedContext });
         }
     }
 
@@ -195,9 +204,9 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     }
 
-    _addDocTab: (undefined | ((doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean));
+    _addDocTab: (undefined | AddDocTabFunction);
 
-    setAddDocTab = (addFunc: (doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean) => {
+    setAddDocTab = (addFunc: AddDocTabFunction) => {
         this._addDocTab = addFunc;
     }
 
@@ -222,11 +231,15 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     openLinkRight = () => {
-        if (LinkFollowBox.destinationDoc) {
-            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+        if (this.notOpenInContext) {
+            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
             (this._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
             this.highlightDoc();
             SelectionManager.DeselectAll();
+        }
+        // open in context
+        else {
+            this.selectedContext && this.openLinkColRight({ context: this.selectedContext, shouldZoom: false });
         }
 
     }
@@ -266,20 +279,32 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         }
     }
 
+    private get notOpenInContext() {
+        return this.selectedContextString === "self" || this.selectedContextString === LinkFollowBox.destinationDoc![Id];
+    }
+
     @undoBatch
     openLinkTab = () => {
-        if (LinkFollowBox.destinationDoc) {
-            let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+        // let notOpenInContext: boolean = this.selectedContextString === "self" || this.selectedContextString === LinkFollowBox.destinationDoc![Id];
+        // console.log("should not open in context:", notOpenInContext);
+        if (this.notOpenInContext) {
+            let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
             // this.prosp.addDocTab is empty -- use the link source's addDocTab 
             (this._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
         }
+        //open in a context
+        else {
+            console.log("open in a context");
+            //setting shouldZoom to false for now
+            this.selectedContext && this.openLinkColTab({ context: this.selectedContext, shouldZoom: false });
+        }
     }
 
     @undoBatch
-    openLinkColTab = (options: { context: Doc, shouldZoom: boolean }) => {
+    private openLinkColTab = (options: { context: Doc, shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
@@ -326,38 +351,35 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     //set this to be the default link behavior, can be any of the above
     public defaultLinkBehavior: (options?: any) => void = this.jumpToLink;
 
+    get shouldZoom() {
+        return this.selectedOption === FollowOptions.NOZOOM ? false : true;
+    }
+
     @action
     currentLinkBehavior = () => {
         // this.resetPan();
-        if (LinkFollowBox.destinationDoc) {
-            if (this.selectedContextString === "") {
-                this.selectedContextString = "self";
-                this.selectedContext = LinkFollowBox.destinationDoc;
-            }
-            if (this.selectedOption === "") this.selectedOption = FollowOptions.NOZOOM;
-            let shouldZoom: boolean = this.selectedOption === FollowOptions.NOZOOM ? false : true;
-            let notOpenInContext: boolean = this.selectedContextString === "self" || this.selectedContextString === LinkFollowBox.destinationDoc[Id];
-
-            if (this.selectedMode === FollowModes.INPLACE) {
-                if (shouldZoom !== undefined) this.openLinkInPlace({ shouldZoom: shouldZoom });
-            }
-            else if (this.selectedMode === FollowModes.OPENFULL) {
-                if (notOpenInContext) this.openFullScreen();
-                else this.selectedContext && this.openColFullScreen({ context: this.selectedContext });
-            }
-            else if (this.selectedMode === FollowModes.OPENRIGHT) {
-                if (notOpenInContext) this.openLinkRight();
-                else this.selectedContext && this.openLinkColRight({ context: this.selectedContext, shouldZoom: shouldZoom });
-            }
-            else if (this.selectedMode === FollowModes.OPENTAB) {
-                if (notOpenInContext) this.openLinkTab();
-                else this.selectedContext && this.openLinkColTab({ context: this.selectedContext, shouldZoom: shouldZoom });
-            }
-            else if (this.selectedMode === FollowModes.PAN) {
-                this.jumpToLink({ shouldZoom: shouldZoom });
-            }
-            else return;
+        if (this.selectedContextString === "") {
+            this.selectedContextString = "self";
+            this.selectedContext = LinkFollowBox.destinationDoc;
         }
+        if (this.selectedOption === "") this.selectedOption = FollowOptions.NOZOOM;
+
+        if (this.selectedMode === FollowModes.INPLACE) {
+            if (this.shouldZoom !== undefined) this.openLinkInPlace({ shouldZoom: this.shouldZoom });
+        }
+        else if (this.selectedMode === FollowModes.OPENFULL) {
+            this.openFullScreen();
+        }
+        else if (this.selectedMode === FollowModes.OPENRIGHT) {
+            this.openLinkRight();
+        }
+        else if (this.selectedMode === FollowModes.OPENTAB) {
+            this.openLinkTab();
+        }
+        else if (this.selectedMode === FollowModes.PAN) {
+            this.jumpToLink({ shouldZoom: this.shouldZoom });
+        }
+        else return;
     }
 
     @action

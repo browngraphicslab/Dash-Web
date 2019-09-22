@@ -28,6 +28,7 @@ interface LinkMenuItemProps {
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
+    @observable public defaultLinkBehavior: (options?: any) => void = LinkFollowBox.Instance!.jumpToLink;
     @action toggleShowMore() {
         this._showMore = !this._showMore;
     }
@@ -69,12 +70,15 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-        if (LinkFollowBox.Instance !== undefined) {
-            LinkFollowBox.Instance.props.Document.isMinimized = false;
-            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-            LinkFollowBox.Instance.setAddDocTab(this.props.addDocTab);
-        }
+        this.openLinkOverlay();
         e.stopPropagation();
+    }
+
+    openLinkOverlay = () => {
+        if (LinkFollowBox.Instance !== undefined) {
+            const { linkDoc, sourceDoc, destinationDoc, addDocTab } = this.props;
+            LinkFollowBox.Instance.display(linkDoc, sourceDoc, destinationDoc, addDocTab);
+        }
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
@@ -89,27 +93,29 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     onContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => this.openLinkFollower(), icon: "link" });
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: this.openLinkOverlay, icon: "link" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: this.followDefault, icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
     @action.bound
     async followDefault() {
         if (LinkFollowBox.Instance !== undefined) {
-            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            // LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            //if its open
+            // this.openLinkFollower();
             LinkFollowBox.Instance.defaultLinkBehavior();
         }
     }
 
-    @action.bound
-    async openLinkFollower() {
-        if (LinkFollowBox.Instance !== undefined) {
-            LinkFollowBox.Instance.props.Document.isMinimized = false;
-            MainView.Instance.toggleLinkFollowBox(false);
-            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-        }
-    }
+    // @action.bound
+    // async openLinkFollower() {
+    //     if (LinkFollowBox.Instance !== undefined) {
+    //         LinkFollowBox.Instance.props.Document.isMinimized = false;
+    //         MainView.Instance.toggleLinkFollowBox(false);
+    //         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+    //     }
+    // }
 
     render() {
 
