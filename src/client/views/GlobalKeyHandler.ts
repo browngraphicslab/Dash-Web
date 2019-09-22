@@ -31,7 +31,7 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key.toLowerCase();
+        let keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
@@ -90,9 +90,6 @@ export default class KeyManager {
                     });
                 }, "delete");
                 break;
-            case "enter":
-                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
-                break;
         }
 
         return {
@@ -146,7 +143,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
                 if (document.activeElement) {
@@ -154,7 +151,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "backspace":
                 if (document.activeElement) {
@@ -168,7 +165,7 @@ export default class KeyManager {
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];
-                target && target.fullScreenClicked();
+                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
                 break;
             case "r":
                 preventDefault = false;

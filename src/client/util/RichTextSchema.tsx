@@ -350,8 +350,9 @@ export const marks: { [index: string]: MarkSpec } = {
                         let style = getComputedStyle(p);
                         if (style.textDecoration === "underline") return null;
                         if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
-                            p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1)
+                            p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1) {
                             return null;
+                        }
                     }
                     return false;
                 }
@@ -372,10 +373,9 @@ export const marks: { [index: string]: MarkSpec } = {
                 getAttrs: (p: any) => {
                     if (typeof (p) !== "string") {
                         let style = getComputedStyle(p);
-                        if (style.textDecoration === "underline")
+                        if (style.textDecoration === "underline" || p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1) {
                             return null;
-                        if (p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1)
-                            return null;
+                        }
                     }
                     return false;
                 }
@@ -635,11 +635,11 @@ export class ImageResizeView {
                             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
                         } else {
                             DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
-                        } e.ctrlKey
+                        }
                     }
                 });
             }
-        }
+        };
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
@@ -778,11 +778,11 @@ export class FootnoteView {
         this.innerView.updateState(state);
 
         if (!tr.getMeta("fromOutside")) {
-            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1)
-            for (let i = 0; i < transactions.length; i++) {
-                let steps = transactions[i].steps;
-                for (let j = 0; j < steps.length; j++) {
-                    outerTr.step(steps[j].map(offsetMap));
+            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
+            for (let transaction of transactions) {
+                let steps = transaction.steps;
+                for (let step of steps) {
+                    outerTr.step(step.map(offsetMap));
                 }
             }
             if (outerTr.docChanged) this.outerView.dispatch(outerTr);

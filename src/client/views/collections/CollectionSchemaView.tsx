@@ -14,7 +14,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Gateway } from "../../northstar/manager/Gateway";
-import { SetupDrag, DragManager } from "../../util/DragManager";
+import { DragManager } from "../../util/DragManager";
 import { CompileScript, ts, Transformer } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
@@ -32,6 +32,7 @@ import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, Collection
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -161,6 +162,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
+                ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
                 width={this.previewWidth}
                 height={this.previewHeight}
                 getTransform={this.getPreviewTransform}
@@ -194,6 +196,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 fieldKey={this.props.fieldKey}
                 renderDepth={this.props.renderDepth}
                 moveDocument={this.props.moveDocument}
@@ -245,6 +248,7 @@ export interface SchemaTableProps {
     childDocs?: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
     deleteDocument: (document: Doc) => boolean;
@@ -252,7 +256,7 @@ export interface SchemaTableProps {
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     isSelected: () => boolean;
     isFocused: (document: Doc) => boolean;
@@ -901,6 +905,7 @@ interface CollectionSchemaPreviewProps {
     fitToBox?: boolean;
     width: () => number;
     height: () => number;
+    ruleProvider: Doc | undefined;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     onClick?: ScriptField;
@@ -910,7 +915,7 @@ interface CollectionSchemaPreviewProps {
     removeDocument: (document: Doc) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
@@ -943,13 +948,12 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let docDrag = de.data;
-            let computed = CompileScript("return this.image_data[0]", { params: { this: "Doc" } });
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                let doc = docDrag.draggedDocuments[0];
                 let target = Doc.GetProto(otherdoc);
-                target.layout = target.detailedLayout = Doc.MakeDelegate(doc);
-                computed.compiled && (target.miniLayout = new ComputedField(computed));
+                let layoutNative = Doc.MakeTitled("layoutNative");
+                layoutNative.layout = ComputedField.MakeFunction("this.image_data[0]");
+                target.layoutNative = layoutNative;
+                target.layoutCUstom = target.layout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
             });
             e.stopPropagation();
         }
@@ -995,12 +999,14 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
+                        ruleProvider={this.props.ruleProvider}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
                         whenActiveChanged={this.props.whenActiveChanged}
                         ContainingCollectionView={this.props.CollectionView}
+                        ContainingCollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}

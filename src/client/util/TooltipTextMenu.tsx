@@ -58,10 +58,6 @@ export class TooltipTextMenu {
 
     private _collapsed: boolean = false;
 
-    @observable
-    private _storedMarks: Mark<any>[] | null | undefined;
-
-
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.editorProps = editorProps;
@@ -83,8 +79,6 @@ export class TooltipTextMenu {
         this.extras.appendChild(dragger);
 
         this.dragElement(dragger);
-
-        this._storedMarks = this.view.state.storedMarks;
 
         // this.createCollapse();
         // if (this._collapseBtn) {
@@ -280,7 +274,7 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
-                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f, undefined);
+                                else this.editorProps.addDocTab(f, undefined, "onRight");
                             }
                         }));
                     }
@@ -310,8 +304,8 @@ export class TooltipTextMenu {
                             dragComplete: action(() => {
                                 let linkDoc = dragData.linkDocument;
                                 let proto = Doc.GetProto(linkDoc);
-                                if (proto && docView && docView.props.ContainingCollectionView) {
-                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                if (proto && docView) {
+                                    proto.sourceContext = docView.props.ContainingCollectionDoc;
                                 }
                                 linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
@@ -496,7 +490,7 @@ export class TooltipTextMenu {
             if (markType.name[0] === 'p') {
                 let size = this.fontSizeToNum.get(markType);
                 if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-                let ruleProvider = Cast(this.editorProps.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = this.editorProps.ruleProvider;
                 let heading = NumCast(this.editorProps.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleSize_" + heading] = size;
@@ -505,7 +499,7 @@ export class TooltipTextMenu {
             else {
                 let fontName = this.fontStylesToName.get(markType);
                 if (fontName) { this.updateFontStyleDropdown(fontName); }
-                let ruleProvider = Cast(this.editorProps.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = this.editorProps.ruleProvider;
                 let heading = NumCast(this.editorProps.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleFont_" + heading] = fontName;
@@ -523,12 +517,12 @@ export class TooltipTextMenu {
         tx2.doc.descendants((node: any, offset: any, index: any) => {
             if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
                 let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
+                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
                 if (node.type === schema.nodes.ordered_list) depth++;
                 tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
             }
         });
-    };
+    }
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
         //remove oldif (nodeType) { //add new

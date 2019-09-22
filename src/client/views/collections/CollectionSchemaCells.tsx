@@ -39,7 +39,7 @@ export interface CellProps {
     Document: Doc;
     fieldKey: string;
     renderDepth: number;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
@@ -149,7 +149,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
             fieldExt: "",
+            ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionDoc: this.props.CollectionView.props.Document,
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: this.props.renderDepth + 1,
@@ -171,7 +173,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         let onItemDown = (e: React.PointerEvent) => {
             if (fieldIsDoc) {
                 SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
+                    this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
             }
         };
         let onPointerEnter = (e: React.PointerEvent): void => {
@@ -235,13 +238,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
                             }}
                             OnFillDown={async (value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                if (!script.compiled) {
-                                    return;
+                                const script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                if (script.compiled) {
+                                    DocListCast(this.props.Document[this.props.fieldKey]).
+                                        forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, script.run));
                                 }
-                                const run = script.run;
-                                const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                                val && val.forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, run));
                             }}
                         />
                     </div >

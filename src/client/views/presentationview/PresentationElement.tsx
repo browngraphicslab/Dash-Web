@@ -351,6 +351,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     Document={this.props.document}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
+                    ruleProvider={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
@@ -365,6 +366,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     ContentScaling={scale}
                 />
                 <div style={{

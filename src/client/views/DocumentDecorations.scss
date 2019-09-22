@@ -154,7 +154,7 @@ $linkGap : 3px;
 .link-button-container {
     margin-top: $linkGap;
     grid-column: 1/4;
-    width: auto;
+    width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;

@@ -54,7 +54,9 @@ export namespace HistoryUtil {
     }
 
     export function getState(): ParsedUrl {
-        return copyState(history.state);
+        let state = copyState(history.state);
+        state.initializers = state.initializers || {};
+        return state;
     }
 
     // export function addHandler(handler: (state: ParsedUrl | null) => void) {

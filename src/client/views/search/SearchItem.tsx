@@ -76,7 +76,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                 col.panX = newPanX;
                 col.panY = newPanY;
             }
-            CollectionDockingView.Instance.AddRightSplit(col, undefined);
+            CollectionDockingView.AddRightSplit(col, undefined);
         };
     }
     render() {
@@ -110,7 +110,7 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
     unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
 
-    getOnClick = (col: Doc) => () => CollectionDockingView.Instance.AddRightSplit(col, undefined);
+    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col, undefined);
 
     render() {
         return (
@@ -165,6 +165,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
+                    ruleProvider={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
@@ -179,6 +180,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     ContentScaling={scale}
                 />
             </div>;
@@ -269,7 +271,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
-        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc], []), e.clientX, e.clientY, {
+        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
             handlers: { dragComplete: emptyFunction },
             hideSource: false,
         });

@@ -1,8 +1,5 @@
 import * as React from 'react';
-import { DocComponent } from '../../DocComponent';
 import { FieldViewProps } from '../../nodes/FieldView';
-import { createSchema, makeInterface } from '../../../../new_fields/Schema';
-import { createInterface } from 'readline';
 import { ImageBox } from '../../nodes/ImageBox';
 
 export default class ImageCard extends React.Component<FieldViewProps> {

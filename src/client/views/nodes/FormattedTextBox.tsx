@@ -41,7 +41,7 @@ import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import * as _ from "lodash";
 import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
 import { inputRules } from 'prosemirror-inputrules';
-import { select } from 'async';
+import { DocumentButtonBar } from '../DocumentButtonBar';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -81,15 +81,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _linkClicked = "";
     private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
-    private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
+    private _reactionDisposer: Opt<IReactionDisposer>;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
+    private _rulesReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
+    @observable private _fontSize = 13;
+    @observable private _fontFamily = "Arial";
+    @observable private _fontAlign = "";
     @observable private _entered = false;
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
     public static SelectOnLoad = "";
@@ -121,14 +125,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @undoBatch
     public setFontColor(color: string) {
-        this._editorView!.state.storedMarks;
-        if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
-        if (this._editorView!.state.selection.to - this._editorView!.state.selection.from > this._editorView!.state.doc.nodeSize - 3) {
+        let view = this._editorView!;
+        if (view.state.selection.from === view.state.selection.to) return false;
+        if (view.state.selection.to - view.state.selection.from > view.state.doc.nodeSize - 3) {
             this.props.Document.color = color;
         }
-        let colorMark = this._editorView!.state.schema.mark(this._editorView!.state.schema.marks.pFontColor, { color: color });
-        this._editorView!.dispatch(this._editorView!.state.tr.addMark(this._editorView!.state.selection.from,
-            this._editorView!.state.selection.to, colorMark));
+        let colorMark = view.state.schema.mark(view.state.schema.marks.pFontColor, { color: color });
+        view.dispatch(view.state.tr.addMark(view.state.selection.from, view.state.selection.to, colorMark));
         return true;
     }
 
@@ -142,10 +145,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     // this should be internal to prosemirror, but is needed
     // here to make sure that footnote view nodes in the overlay editor
@@ -170,6 +172,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    linkOnDeselect: Map<string, string> = new Map();
+
+    doLinkOnDeselect() {
+        Array.from(this.linkOnDeselect.entries()).map(entry => {
+            let key = entry[0];
+            let value = entry[1];
+            let id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
+            DocServer.GetRefField(value).then(doc => {
+                DocServer.GetRefField(id).then(linkDoc => {
+                    this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                    DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
+                    if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
+                    else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
+                });
+            });
+        });
+        this.linkOnDeselect.clear();
+    }
+
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             let metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
@@ -184,15 +205,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (split.length > 1 && split[1]) {
                     let key = split[0];
                     let value = split[split.length - 1];
+                    this.linkOnDeselect.set(key, value);
 
                     let id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    DocServer.GetRefField(value).then(doc => {
-                        DocServer.GetRefField(id).then(linkDoc => {
-                            this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
-                            if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                            else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id);
-                        });
-                    });
                     const link = this._editorView.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     let offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
@@ -256,12 +271,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     }
                 }
             });
-            //     const fieldkey = 'search_string';
-            //     if (Object.keys(this.props.Document).indexOf(fieldkey) !== -1) {
-            //         this.props.Document[fieldkey] = undefined;
-            //     }
-            //     else this.props.Document.proto![fieldkey] = undefined;
-            // }
         }
     }
     setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
@@ -292,16 +301,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && StrCast(draggedDoc.layout) !== "") {
-                this.props.Document.layout = draggedDoc;
-                draggedDoc.isTemplate = true;
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
+                if (de.mods === "AltKey") {
+                    if (draggedDoc.data instanceof RichTextField) {
+                        Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                        e.stopPropagation();
+                    }
+                } else {
+                    draggedDoc.isTemplate = true;
+                    if (typeof (draggedDoc.layout) === "string") {
+                        let layoutDelegateToOverrideFieldKey = Doc.MakeDelegate(draggedDoc);
+                        layoutDelegateToOverrideFieldKey.layout = StrCast(layoutDelegateToOverrideFieldKey.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
+                        this.props.Document.layout = layoutDelegateToOverrideFieldKey;
+                    } else {
+                        this.props.Document.layout = draggedDoc.layout instanceof Doc ? draggedDoc.layout : draggedDoc;
+                    }
+                }
                 e.stopPropagation();
             }
         }
     }
 
     recordKeyHandler = (e: KeyboardEvent) => {
-        if (this.props.Document === SelectionManager.SelectedDocuments()[0].props.Document) {
+        if (SelectionManager.SelectedDocuments().length && this.props.Document === SelectionManager.SelectedDocuments()[0].props.Document) {
             if (e.key === "R" && e.altKey) {
                 e.stopPropagation();
                 e.preventDefault();
@@ -380,6 +402,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentDidMount() {
+
         if (!this.props.isOverlay) {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
                 () => {
@@ -410,8 +433,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pullReactionDisposer = reaction(
             () => this.props.Document[Pulls],
             () => {
-                if (!DocumentDecorations.hasPulledHack) {
-                    DocumentDecorations.hasPulledHack = true;
+                if (!DocumentButtonBar.hasPulledHack) {
+                    DocumentButtonBar.hasPulledHack = true;
                     let unchanged = this.dataDoc.unchanged;
                     this.pullFromGoogleDoc(unchanged ? this.checkState : this.updateState);
                 }
@@ -421,8 +444,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pushReactionDisposer = reaction(
             () => this.props.Document[Pushes],
             () => {
-                if (!DocumentDecorations.hasPushedHack) {
-                    DocumentDecorations.hasPushedHack = true;
+                if (!DocumentButtonBar.hasPushedHack) {
+                    DocumentButtonBar.hasPushedHack = true;
                     this.pushToGoogleDoc();
                 }
             }
@@ -462,6 +485,39 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.unhighlightSearchTerms();
             }
         }, { fireImmediately: true });
+
+
+        this._rulesReactionDisposer = reaction(() => {
+            let ruleProvider = this.props.ruleProvider;
+            let heading = NumCast(this.props.Document.heading);
+            if (ruleProvider instanceof Doc) {
+                return {
+                    align: StrCast(ruleProvider["ruleAlign_" + heading], ""),
+                    font: StrCast(ruleProvider["ruleFont_" + heading], "Arial"),
+                    size: NumCast(ruleProvider["ruleSize_" + heading], 13)
+                };
+            }
+            return undefined;
+        },
+            action((rules: any) => {
+                this._fontFamily = rules ? rules.font : "Arial";
+                this._fontSize = rules ? rules.size : 13;
+                rules && setTimeout(() => {
+                    const view = this._editorView!;
+                    if (this._proseRef) {
+                        let n = new NodeSelection(view.state.doc.resolve(0));
+                        if (this._editorView!.state.doc.textContent === "") {
+                            view.dispatch(view.state.tr.setSelection(new TextSelection(view.state.doc.resolve(0), view.state.doc.resolve(2))).
+                                replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true));
+                        } else if (n.node && n.node.type === view.state.schema.nodes.paragraph) {
+                            view.dispatch(view.state.tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align }));
+                        }
+                        this.tryUpdateHeight();
+                    }
+                }, 0);
+            }), { fireImmediately: true }
+        );
+
         setTimeout(() => this.tryUpdateHeight(), 0);
     }
 
@@ -481,7 +537,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     response && (this.dataDoc[GoogleRef] = response.documentId);
                     let pushSuccess = response !== undefined && !("errors" in response);
                     dataDoc.unchanged = pushSuccess;
-                    DocumentDecorations.Instance.startPushOutcome(pushSuccess);
+                    DocumentButtonBar.Instance.startPushOutcome(pushSuccess);
                 }
             };
             let undo = () => {
@@ -529,7 +585,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         } else {
             delete dataDoc[GoogleRef];
         }
-        DocumentDecorations.Instance.startPullOutcome(pullSuccess);
+        DocumentButtonBar.Instance.startPullOutcome(pullSuccess);
     }
 
     checkState = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
@@ -538,7 +594,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let equalTitles = dataDoc.title === exportState.title;
             let unchanged = equalContent && equalTitles;
             dataDoc.unchanged = unchanged;
-            DocumentDecorations.Instance.setPullState(unchanged);
+            DocumentButtonBar.Instance.setPullState(unchanged);
         }
     }
 
@@ -585,7 +641,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                 let annotations = DocListCast(region.annotations);
                 annotations.forEach(anno => anno.target = this.props.Document);
-                let fieldExtDoc = Doc.resolvedFieldDataDoc(doc, "data", "true");
+                let fieldExtDoc = Doc.fieldExtensionDoc(doc, "data");
                 let targetAnnotations = DocListCast(fieldExtDoc.annotations);
                 if (targetAnnotations) {
                     targetAnnotations.push(region);
@@ -666,27 +722,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         else if (this.props.isOverlay) this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
-        let heading = this.props.Document.heading;
-        if (heading && selectOnLoad) {
-            PromiseValue(Cast(this.props.Document.ruleProvider, Doc)).then(ruleProvider => {
-                if (ruleProvider) {
-                    let align = StrCast(ruleProvider["ruleAlign_" + heading]);
-                    let font = StrCast(ruleProvider["ruleFont_" + heading]);
-                    let size = NumCast(ruleProvider["ruleSize_" + heading]);
-                    if (align) {
-                        let tr = this._editorView!.state.tr;
-                        tr = tr.setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(2))).
-                            replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: align }), true).
-                            setSelection(new TextSelection(tr.doc.resolve(0), tr.doc.resolve(0)));
-                        this._editorView!.dispatch(tr);
-                    }
-                    let sm = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
-                    size && (sm = [...sm, schema.marks.pFontSize.create({ fontSize: size })]);
-                    font && (sm = [...sm, this.getFont(font)]);
-                    this._editorView!.dispatch(this._editorView!.state.tr.setStoredMarks(sm));
-                }
-            });
-        }
     }
     getFont(font: string) {
         switch (font) {
@@ -702,6 +737,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
+        this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._textReactionDisposer && this._textReactionDisposer();
@@ -857,6 +893,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
+        this.doLinkOnDeselect();
     }
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
@@ -866,7 +903,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
+        this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
@@ -877,7 +914,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.isOverlay && this.props.Document.autoHeight && sh !== 0) {
+        if (!this.props.isOverlay && !this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0) {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
@@ -885,12 +922,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground ||
-            (this.props.Document.isButton && !this.props.isSelected()) ? "none" : "all";
+        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
+            ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
@@ -901,7 +937,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || Doc.IsBrushed(this.props.Document) ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive,
-                    fontSize: "13px"
+                    fontSize: this._fontSize,
+                    fontFamily: this._fontFamily,
                 }}
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
@@ -914,7 +951,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap" }} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.props.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
             </div>
         );
     }

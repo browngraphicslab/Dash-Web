@@ -256,37 +256,46 @@ export class MainView extends React.Component {
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         let received = CurrentUserUtils.MainDocId;
-        if (received && !this.userDoc) {
-            reaction(
-                () => CurrentUserUtils.GuestTarget,
-                target => target && this.createNewWorkspace(),
-                { fireImmediately: true }
-            );
-        } else {
-            if (received && this.urlState.sharing) {
+        if (received) {
+            if (!this.userDoc) {
                 reaction(
-                    () => {
-                        let docking = CollectionDockingView.Instance;
-                        return docking && docking.initialized;
-                    },
-                    initialized => {
-                        if (initialized && received) {
-                            DocServer.GetRefField(received).then(field => {
-                                if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
-                                    CollectionDockingView.Instance.AddRightSplit(field, undefined);
-                                    DocumentManager.Instance.jumpToDocument(field, true, undefined, undefined, undefined, undefined);
-                                }
-                            });
-                        }
-                    },
+                    () => CurrentUserUtils.GuestTarget,
+                    target => target && this.createNewWorkspace(),
+                    { fireImmediately: true }
                 );
-            }
-            let doc: Opt<Doc>;
-            if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
-                this.openWorkspace(doc);
+            } else if (this.urlState.sharing) {
+                if (received && this.urlState.sharing) {
+                    reaction(
+                        () => {
+                            let docking = CollectionDockingView.Instance;
+                            return docking && docking.initialized;
+                        },
+                        initialized => {
+                            if (initialized && received) {
+                                DocServer.GetRefField(received).then(field => {
+                                    if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
+                                        CollectionDockingView.AddRightSplit(field, undefined);
+                                        DocumentManager.Instance.jumpToDocument(field, true, undefined, undefined, undefined, undefined);
+                                    }
+                                });
+                            }
+                        },
+                    );
+                }
+                let doc: Opt<Doc>;
+                if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
+                    this.openWorkspace(doc);
+                } else {
+                    this.createNewWorkspace();
+                }
             } else {
-                this.createNewWorkspace();
+                DocServer.GetRefField(received).then(field => {
+                    field instanceof Doc ? this.openWorkspace(field) :
+                        this.createNewWorkspace(received);
+                });
             }
+        } else {
+            this.createNewWorkspace();
         }
     }
 
@@ -362,6 +371,7 @@ export class MainView extends React.Component {
                 }
             }
         }, 100);
+        return true;
     }
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -393,9 +403,10 @@ export class MainView extends React.Component {
                         <DocumentView Document={mainCont}
                             DataDoc={undefined}
                             addDocument={undefined}
-                            addDocTab={emptyFunction}
+                            addDocTab={this.addDocTabFunc}
                             pinToPres={emptyFunction}
                             onClick={undefined}
+                            ruleProvider={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
@@ -408,6 +419,7 @@ export class MainView extends React.Component {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}
                             zoomToScale={emptyFunction}
                             getScale={returnOne}
                         />}
@@ -440,11 +452,15 @@ export class MainView extends React.Component {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    addDocTabFunc = (doc: Doc) => {
+    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string) => {
+        if (where === "close") {
+            return CollectionDockingView.CloseRightSplit(doc);
+        }
         if (doc.dockingConfig) {
             this.openWorkspace(doc);
+            return true;
         } else {
-            CollectionDockingView.Instance.AddRightSplit(doc, undefined);
+            return CollectionDockingView.AddRightSplit(doc, undefined);
         }
     }
     @computed
@@ -460,6 +476,7 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             removeDocument={undefined}
+            ruleProvider={undefined}
             onClick={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
@@ -472,6 +489,7 @@ export class MainView extends React.Component {
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             ContainingCollectionView={undefined}
+            ContainingCollectionDoc={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne}>
         </DocumentView>;
@@ -643,7 +661,7 @@ export class MainView extends React.Component {
         let next = () => PresBox.CurrentPresentation.next();
         let back = () => PresBox.CurrentPresentation.back();
         let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document); });
+        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document, undefined, "close"); });
         return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>;
     }
 

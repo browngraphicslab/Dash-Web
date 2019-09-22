@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, BoolCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -14,19 +14,18 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
-import { positionSchema } from "./DocumentView";
+import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faVideo } from "@fortawesome/free-solid-svg-icons";
-import { CompileScript } from "../../util/Scripting";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
 var path = require('path');
 
-type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
-const VideoDocument = makeInterface(positionSchema, pageSchema);
+type VideoDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
+const VideoDocument = makeInterface(documentSchema, pageSchema);
 
 library.add(faVideo);
 
@@ -116,18 +115,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                 width: 150, height: 50, title: NumCast(this.props.Document.curPage).toString()
             });
-            const script = CompileScript(`(self as any).curPage = ${NumCast(this.props.Document.curPage)}`, {
-                params: { this: Doc.name },
-                capturedVariables: { self: this.props.Document },
-                typecheck: false,
-                editable: true,
-            });
-            if (script.compiled) {
-                b.onClick = new ScriptField(script);
-                this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(b, false);
-            } else {
-                console.log(script.errors.map(error => error.messageText).join("\n"));
-            }
+            b.onClick = ScriptField.MakeScript(`this.curPage = ${NumCast(this.props.Document.curPage)}`);
         } else {
             //convert to desired file format
             var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
@@ -204,7 +192,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         if (field) {
             let url = field.url.href;
             let subitems: ContextMenuProps[] = [];
@@ -216,7 +204,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @computed get content() {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
@@ -228,7 +216,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @computed get youtubeVideoId() {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         return field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
     }
 
@@ -269,6 +257,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     }
 
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
@@ -281,6 +271,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     render() {
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return <div style={{ pointerEvents: "all", width: "100%", height: "100%" }} onContextMenu={this.specificContextMenu}>
             {this.youtubeVideoId ? this.youtubeContent : this.content}
         </div>;

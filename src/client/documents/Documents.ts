@@ -20,8 +20,8 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt } from "../../new_fields/Doc";
-import { OmitKeys, JSONUtils, Utils } from "../../Utils";
+import { OmitKeys, JSONUtils } from "../../Utils";
+import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -65,7 +65,7 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    layout?: string;
+    layout?: string | Doc;
     isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
@@ -121,7 +121,7 @@ export namespace Docs {
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 }
+                options: { curPage: 0 }
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
@@ -137,7 +137,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 },
+                options: { curPage: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -614,10 +614,40 @@ export namespace Docs {
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string) {
+    export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
+        targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
+        DocServer.GetRefField(targetID).then(doc => {
+            if (promoteDoc !== doc) {
+                let copy = doc as Doc;
+                if (copy) {
+                    Doc.Overwrite(promoteDoc, copy, true);
+                } else {
+                    copy = Doc.MakeCopy(promoteDoc, true, targetID);
+                }
+                !doc && (copy.title = undefined) && (Doc.GetProto(copy).title = targetID);
+                addDoc && addDoc(copy);
+                remDoc && remDoc(promoteDoc);
+                if (!doc) {
+                    DocListCastAsync(promoteDoc.links).then(links => {
+                        links && links.map(async link => {
+                            if (link) {
+                                let a1 = await Cast(link.anchor1, Doc);
+                                if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
+                                let a2 = await Cast(link.anchor2, Doc);
+                                if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
+                                LinkManager.Instance.deleteLink(link);
+                                LinkManager.Instance.addLink(link);
+                            }
+                        });
+                    });
+                }
+            }
+        });
+    }
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
+        if (sv && sv.props.ContainingCollectionDoc === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
 
         let linkDocProto = new Doc(id, true);
@@ -633,16 +663,15 @@ export namespace DocUtils {
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
             linkDocProto.anchor1Groups = new List<Doc>([]);
+            linkDocProto.anchor1anchored = anchored1;
             linkDocProto.anchor2 = target;
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            let script = `return links(this);`;
-            let computed = CompileScript(script, { params: { this: "Doc" }, typecheck: false });
-            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
-            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
+            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

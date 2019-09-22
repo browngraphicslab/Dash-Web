@@ -279,6 +279,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             }} />
                         <label
                             htmlFor={"selector"}
+                            onClick={console.log}
                             style={{
                                 opacity: isEditing ? 0 : 1,
                                 pointerEvents: isEditing ? "none" : "all",

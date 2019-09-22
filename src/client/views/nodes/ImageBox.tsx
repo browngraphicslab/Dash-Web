@@ -17,13 +17,12 @@ import { Utils } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
-import { CompileScript } from '../../util/Scripting';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from '../DocComponent';
 import { InkingControl } from '../InkingControl';
-import { positionSchema } from './DocumentView';
+import { documentSchema } from './DocumentView';
 import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
@@ -50,8 +49,8 @@ declare class MediaRecorder {
     constructor(e: any);
 }
 
-type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
-const ImageDocument = makeInterface(pageSchema, positionSchema);
+type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
+const ImageDocument = makeInterface(pageSchema, documentSchema);
 
 @observer
 export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
@@ -65,7 +64,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private dropDisposer?: DragManager.DragDropDisposer;
     @observable private hoverActive = false;
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -81,32 +82,18 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         console.log("IMPLEMENT ME PLEASE");
     }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "Alternates"); }
-
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
-                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
-                    e.stopPropagation();
-                } else if (de.mods === "MetaKey") {
-                    if (this.extensionDoc !== this.dataDoc) {
-                        let layout = StrCast(drop.backgroundLayout);
-                        if (layout.indexOf(ImageBox.name) !== -1) {
-                            let imgData = this.extensionDoc.Alternates;
-                            if (!imgData) {
-                                Doc.GetProto(this.extensionDoc).Alternates = new List([]);
-                            }
-                            let imgList = Cast(this.extensionDoc.Alternates, listSpec(Doc), [] as any[]);
-                            imgList && imgList.push(drop);
-                            e.stopPropagation();
-                        }
-                    }
-                }
+            if (de.mods === "AltKey" && de.data.draggedDocuments.length && de.data.draggedDocuments[0].data instanceof ImageField) {
+                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(de.data.draggedDocuments[0].data.url);
+                e.stopPropagation();
+            }
+            de.mods === "MetaKey" && de.data.droppedDocuments.forEach(action((drop: Doc) => {
+                Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
+                e.stopPropagation();
             }));
-            // de.data.removeDocument()  bcz: need to implement
         }
     }
 
@@ -243,9 +230,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             results.tags.map((tag: Tag) => {
                 tagsList.push(tag.name);
                 let sanitized = tag.name.replace(" ", "_");
-                let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
-                let computed = CompileScript(script, { params: { this: "Doc" } });
-                computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
+                tagDoc[sanitized] = ComputedField.MakeFunction(`(${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`);
             });
             this.extensionDoc.generatedTags = tagsList;
             tagDoc.title = "Generated Tags Doc";
@@ -261,13 +246,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onDotDown(index: number) {
         this.Document.curPage = index;
     }
-
-    @computed get fieldExtensionDoc() {
-        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
-    }
-
     @computed private get url() {
-        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        let data = Cast(Doc.GetProto(this.props.Document)[this.props.fieldKey], ImageField);
         return data ? data.url.href : undefined;
     }
 
@@ -407,7 +387,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         // let w = bptX - sptX;
 
-        let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
         let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
@@ -433,13 +412,13 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 
         return (
-            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
+            <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onPointerEnter={action(() => this.hoverActive = true)}
                 onPointerLeave={action(() => this.hoverActive = false)}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
-                    <img id={id}
+                    <img
                         key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={srcpath}
                         style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}

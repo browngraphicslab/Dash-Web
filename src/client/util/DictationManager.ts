@@ -327,7 +327,7 @@ export namespace DictationManager {
             ["open fields", {
                 action: (target: DocumentView) => {
                     let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
-                    target.props.addDocTab(kvp, target.dataDoc, "onRight");
+                    target.props.addDocTab(kvp, target.props.DataDoc, "onRight");
                 }
             }],
 

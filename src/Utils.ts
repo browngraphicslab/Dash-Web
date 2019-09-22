@@ -123,28 +123,23 @@ export class Utils {
         // Calculate hue
 
         // No difference
-        if (delta == 0)
-            h = 0;
+        if (delta === 0) h = 0;
         // Red is max
-        else if (cmax == r)
-            h = ((g - b) / delta) % 6;
+        else if (cmax === r) h = ((g - b) / delta) % 6;
         // Green is max
-        else if (cmax == g)
-            h = (b - r) / delta + 2;
+        else if (cmax === g) h = (b - r) / delta + 2;
         // Blue is max
-        else
-            h = (r - g) / delta + 4;
+        else h = (r - g) / delta + 4;
 
         h = Math.round(h * 60);
 
         // Make negative hues positive behind 360°
-        if (h < 0)
-            h += 360; // Calculate lightness
+        if (h < 0) h += 360; // Calculate lightness
 
         l = (cmax + cmin) / 2;
 
         // Calculate saturation
-        s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+        s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
 
         // Multiply l and s by 100
         // s = +(s * 100).toFixed(1);
@@ -246,6 +241,10 @@ export function timenow() {
     }
     if (m < 10) m = '0' + m;
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
+}
+
+export function percent2frac(percent: string) {
+    return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }

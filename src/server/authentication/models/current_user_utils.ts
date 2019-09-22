@@ -38,46 +38,62 @@ export class CurrentUserUtils {
         doc.xMargin = 5;
         doc.yMargin = 5;
         doc.boxShadow = "0 0";
-        doc.excludeFromLibrary = true;
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
         return doc;
     }
 
     static updateUserDocument(doc: Doc) {
+
+        // setup workspaces library item
         if (doc.workspaces === undefined) {
             const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces", height: 100 });
-            workspaces.excludeFromLibrary = true;
-            workspaces.workspaceLibrary = true;
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
-        PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => workspaces && (workspaces.preventTreeViewOpen = true));
+        PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => {
+            if (workspaces) {
+                workspaces.preventTreeViewOpen = true;
+                workspaces.forceActive = true;
+                workspaces.lockedPosition = true;
+            }
+        });
+
+        // setup notes list
         if (doc.noteTypes === undefined) {
             let notes = [Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplate: true }),
             Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplate: true }),
             Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplate: true }),
             Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true })];
             const noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
-            noteTypes.excludeFromLibrary = true;
             doc.noteTypes = noteTypes;
         }
         PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
+
+        // setup Recently Closed library item
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
-            recentlyClosed.excludeFromLibrary = true;
             recentlyClosed.boxShadow = "0 0";
             doc.recentlyClosed = recentlyClosed;
         }
-        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && (recent.preventTreeViewOpen = true));
+        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => {
+            if (recent) {
+                recent.preventTreeViewOpen = true;
+                recent.forceActive = true;
+                recent.lockedPosition = true;
+            }
+        });
+
+
         if (doc.curPresentation === undefined) {
             const curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation" });
-            curPresentation.excludeFromLibrary = true;
             curPresentation.boxShadow = "0 0";
             doc.curPresentation = curPresentation;
         }
+
         if (doc.sidebar === undefined) {
             const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
-            sidebar.excludeFromLibrary = true;
+            sidebar.forceActive = true;
+            sidebar.lockedPosition = true;
             sidebar.gridGap = 5;
             sidebar.xMargin = 5;
             sidebar.yMargin = 5;
@@ -85,18 +101,22 @@ export class CurrentUserUtils {
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
+
         if (doc.overlays === undefined) {
             const overlays = Docs.Create.FreeformDocument([], { title: "Overlays" });
-            overlays.excludeFromLibrary = true;
             Doc.GetProto(overlays).backgroundColor = "#aca3a6";
             doc.overlays = overlays;
         }
+
         if (doc.linkFollowBox === undefined) {
             PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
         }
+
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
         doc.preventTreeViewOpen = true;
+        doc.forceActive = true;
+        doc.lockedPosition = true;
     }
 
     public static loadCurrentUser() {

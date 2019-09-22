@@ -15,6 +15,7 @@ import { AssertionError } from "assert";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { DocumentView } from "../../views/nodes/DocumentView";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export namespace GooglePhotos {
 
@@ -140,6 +141,8 @@ export namespace GooglePhotos {
     export namespace Query {
 
         const delimiter = ", ";
+        const comparator = (a: string, b: string) => (a < b) ? -1 : (a > b ? 1 : 0);
+
         export const TagChildImages = async (collection: Doc) => {
             const idMapping = await Cast(collection.googlePhotosIdMapping, Doc);
             if (!idMapping) {
@@ -172,7 +175,7 @@ export namespace GooglePhotos {
                 const tags = concatenated.split(delimiter);
                 if (tags.length > 1) {
                     const cleaned = concatenated.replace(ContentCategories.NONE + delimiter, "");
-                    image.googlePhotosTags = cleaned.split(delimiter).sort((a, b) => (a < b) ? -1 : (a > b ? 1 : 0)).join(delimiter);
+                    image.googlePhotosTags = cleaned.split(delimiter).sort(comparator).join(delimiter);
                 } else {
                     image.googlePhotosTags = ContentCategories.NONE;
                 }
@@ -326,7 +329,7 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                DocumentView.makeCustomViewClicked(target);
+                DocumentView.makeCustomViewClicked(target, undefined);
                 media.push({ url, description });
             });
             if (media.length) {

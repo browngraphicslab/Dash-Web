@@ -102,7 +102,7 @@ export default class SharingManager extends React.Component<{}> {
     populateUsers = async () => {
         let userList = await RequestPromise.get(Utils.prepend(RouteStore.getUsers));
         runInAction(() => {
-            this.users = (JSON.parse(userList) as User[]).filter(({ email }) => email !== CurrentUserUtils.email);
+            this.users = (JSON.parse(userList) as User[]).filter(({ email }) => email !== Doc.CurrentUserEmail);
         });
     }
 

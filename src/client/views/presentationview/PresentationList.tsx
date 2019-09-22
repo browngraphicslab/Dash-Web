@@ -17,7 +17,9 @@ interface PresListProps {
     presStatus: boolean;
     removeDocByRef(doc: Doc): boolean;
     clearElemMap(): void;
-
+    groupMappings: Map<String, Doc[]>;
+    presGroupBackUp: Doc;
+    presButtonBackUp: Doc;
 }
 
 

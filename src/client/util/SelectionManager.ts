@@ -24,6 +24,10 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.push(docView);
                 // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
+            } else if (!ctrlPressed && manager.SelectedDocuments.length > 1) {
+                manager.SelectedDocuments.map(dv => dv !== docView && dv.props.whenActiveChanged(false));
+                manager.SelectedDocuments = [docView];
+                FormattedTextBox.InputBoxOverlay = undefined;
             }
         }
         @action

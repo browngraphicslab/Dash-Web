@@ -76,7 +76,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         } else if (type === "script") {
             field = new ScriptField(script);
         } else {
-            let res = script.run({ this: target });
+            let res = script.run({ this: target }, console.log);
             if (!res.success) return false;
             field = res.result;
         }
@@ -124,7 +124,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let i = 0;
         const self = this;
         for (let key of Object.keys(ids).slice().sort()) {
-            rows.push(<KeyValuePair doc={realDoc} ref={(function () {
+            rows.push(<KeyValuePair doc={realDoc} addDocTab={this.props.addDocTab} ref={(function () {
                 let oldEl: KeyValuePair | undefined;
                 return (el: KeyValuePair) => {
                     if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
@@ -198,7 +198,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             return;
         }
         let previousViewType = fieldTemplate.viewType;
-        Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(parentStackingDoc));
+        Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(parentStackingDoc));
         previousViewType && (fieldTemplate.viewType = previousViewType);
 
         Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
