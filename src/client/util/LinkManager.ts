@@ -238,6 +238,21 @@ export class LinkManager {
         return index !== -1;
     }
 
+    // checks if a normal link (i.e. no in-text link) exists with given anchors
+    public doesNormalLinkExist(anchor1: Doc, anchor2: Doc): boolean {
+        let allLinks = LinkManager.Instance.getAllLinks();
+        let index = allLinks.findIndex(linkDoc => {
+            if ((Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor2)) ||
+                (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor1))) {
+                console.log("guid: " + linkDoc.guid);
+            }
+            return (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor2) && linkDoc.guid === undefined) ||
+                (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor1) && linkDoc.guid === undefined);
+        });
+        return index !== -1;
+    }
+
+
     // finds the opposite anchor of a given anchor in a link
     //TODO This should probably return undefined if there isn't an opposite anchor
     //TODO This should also await the return value of the anchor so we don't filter out promises
