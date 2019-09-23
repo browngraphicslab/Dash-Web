@@ -746,9 +746,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
                     let ref = editorView.domAtPos(editorView.state.selection.from);
-                    let r1 = (ref.node as any).getBoundingClientRect();
+                    let refNode = ref.node as any;
+                    while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
+                    let r1 = refNode && (refNode as any).getBoundingClientRect();
                     let r3 = self._ref.current!.getBoundingClientRect();
-                    self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale;
+                    r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
                     return true;
                 },
                 dispatchTransaction: this.dispatchTransaction,
