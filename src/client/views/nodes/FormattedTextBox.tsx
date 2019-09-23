@@ -80,7 +80,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
     private _searchReactionDisposer?: Lambda;
-    private _guidReactionDisposer: Opt<IReactionDisposer>;
+    private _scroolToRegionReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
@@ -140,7 +140,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
 
-        this._guidReactionDisposer = reaction(
+        this._scroolToRegionReactionDisposer = reaction(
             () => StrCast(this.props.Document.scrollToLinkID),
             async (scrollToLinkID) => {
                 let findLinkFrag = (frag: Fragment, editor: EditorView) => {
@@ -791,7 +791,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
-        this._guidReactionDisposer && this._guidReactionDisposer();
+        this._scroolToRegionReactionDisposer && this._scroolToRegionReactionDisposer();
         this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
