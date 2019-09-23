@@ -243,7 +243,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let proto = Doc.GetProto(LinkFollowBox.linkDoc);
             let targetContext = await Cast(proto.targetContext, Doc);
             let sourceContext = await Cast(proto.sourceContext, Doc);
-            let guid = StrCast(LinkFollowBox.linkDoc.guid);
+            let guid = StrCast(LinkFollowBox.linkDoc[Id]);
             const shouldZoom = options ? options.shouldZoom : false;
 
             let dockingFunc = (document: Doc) => { (this._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
@@ -255,12 +255,10 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
                 if (LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc) {
                     if (guid) {
-                        LinkFollowBox.destinationDoc.guid = guid;
+                        let views = DocumentManager.Instance.getDocumentViews(jumpToDoc);
+                        views.length && (views[0].props.Document.scrollToLinkID = guid);
                     } else {
                         jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
-                        let newguid = Utils.GenerateGuid();
-                        LinkFollowBox.linkDoc.guid = newguid;
-                        LinkFollowBox.destinationDoc.guid = newguid;
                     }
                 }
             }

@@ -80,6 +80,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
     private _searchReactionDisposer?: Lambda;
+    private _guidReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
@@ -139,66 +140,50 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
 
-        this.props.Document.guid = undefined;
-        this.props.Document.linkHref = undefined;
-
-        reaction(
-            () => StrCast(this.props.Document.guid),
-            async (guid) => {
-                let start = -1;
-                let href = this.props.Document.linkHref;
-
-                if (this._editorView && guid) {
-                    let editor = this._editorView;
-                    let ret = findLinkFrag(editor.state.doc.content, editor);
-
-                    if (ret.frag.size > 2) {
-                        let tr;
-                        if (ret.frag.firstChild) {
-                            let between = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize));
-                            tr = editor.state.tr.setSelection(between);
-                        } else {
-                            let near = TextSelection.near(editor.state.doc.resolve(ret.start));
-                            tr = editor.state.tr.setSelection(near);
-                        }
-
-                        editor.focus();
-                        editor.dispatch(tr.scrollIntoView());
-                        editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
-
-                        this.props.Document.guid = undefined;
-                        this.props.Document.linkHref = undefined;
-                    }
-                }
-
-                function findLinkFrag(frag: Fragment, editor: EditorView) {
+        this._guidReactionDisposer = reaction(
+            () => StrCast(this.props.Document.scrollToLinkID),
+            async (scrollToLinkID) => {
+                let findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
                     frag.forEach((node, index) => {
                         let examinedNode = findLinkNode(node, editor);
-                        if (examinedNode && examinedNode.textContent !== "") {
+                        if (examinedNode && examinedNode.textContent) {
                             nodes.push(examinedNode);
                             start += index;
                         }
                     });
                     return { frag: Fragment.fromArray(nodes), start: start };
                 }
-                function findLinkNode(node: Node, editor: EditorView) {
+                let findLinkNode = (node: Node, editor: EditorView) => {
                     if (!node.isText) {
                         const content = findLinkFrag(node.content, editor);
                         return node.copy(content.frag);
                     }
                     const marks = [...node.marks];
-                    const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-                    if (linkIndex !== -1) {
-                        if (guid === marks[linkIndex].attrs.guid) {
-                            return node;
-                        } else if (href && href === marks[linkIndex].attrs.href) { // retroactively fixing old in-text links by adding guid
-                            marks[linkIndex].attrs.guid = guid;
-                            return node;
-                        }
-                    }
-                    return undefined;
+                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
+                    return linkIndex !== -1 && scrollToLinkID === marks[linkIndex].attrs.href.replace(/.*\/doc\//, "") ? node : undefined;
                 }
+
+                let start = -1;
+
+                if (this._editorView && scrollToLinkID) {
+                    let editor = this._editorView;
+                    let ret = findLinkFrag(editor.state.doc.content, editor);
+
+                    if (ret.frag.size > 2 && ((!this.props.isOverlay && !this.props.isSelected()) || (this.props.isSelected() && this.props.isOverlay))) {
+                        let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
+                        if (ret.frag.firstChild) {
+                            selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
+                        }
+                        editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
+                        const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
+                        setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
+                        setTimeout(() => this.unhighlightSearchTerms(), 2000);
+
+                        this.props.Document.scrollToLinkID = undefined;
+                    }
+                }
+
             }
         );
     }
@@ -759,6 +744,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._editorView && this._editorView.destroy();
             this._editorView = new EditorView(this._proseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
+                handleScrollToSelection: (editorView) => {
+                    let ref = editorView.domAtPos(editorView.state.selection.from);
+                    let r1 = (ref.node as any).getBoundingClientRect();
+                    let r3 = self._ref.current!.getBoundingClientRect();
+                    self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale;
+                    return true;
+                },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
@@ -799,6 +791,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
+        this._guidReactionDisposer && this._guidReactionDisposer();
         this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
@@ -823,7 +816,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
-            let guid = (e.target as any).guid;
             let location: string;
             if ((e.target as any).attributes.location) {
                 location = (e.target as any).attributes.location.value;

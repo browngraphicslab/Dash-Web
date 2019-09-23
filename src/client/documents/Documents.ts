@@ -638,9 +638,6 @@ export namespace DocUtils {
         });
     }
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        // if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
-        if (LinkManager.Instance.doesNormalLinkExist(source, target) && description !== "in-text link being created") return undefined; // normal describes the type of link attempting to be created
-        // if normal link already exists and !normal (in text link is not being created) then return
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionDoc === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;

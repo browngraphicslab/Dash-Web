@@ -302,16 +302,16 @@ export class TooltipTextMenu {
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let linkDoc = dragData.linkDocument;
-                                let guid = Utils.GenerateGuid();
-                                let proto = Doc.GetProto(linkDoc);
-                                if (proto && docView) {
-                                    proto.sourceContext = docView.props.ContainingCollectionDoc;
-                                }
-                                linkDoc.guid = guid;
-                                let text = this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab", guid);
-                                if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
-                                    proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
+                                if (dragData.linkDocument) {
+                                    let linkDoc = dragData.linkDocument;
+                                    let proto = Doc.GetProto(linkDoc);
+                                    if (proto && docView) {
+                                        proto.sourceContext = docView.props.ContainingCollectionDoc;
+                                    }
+                                    let text = this.makeLink(linkDoc, ctrlKey ? "onRight" : "inTab");
+                                    if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
+                                        proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
+                                    }
                                 }
                             }),
                         },
@@ -398,9 +398,10 @@ export class TooltipTextMenu {
     //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     // }
 
-    makeLink = (target: string, location: string, guid?: string): string => {
+    makeLink = (targetDoc: Doc, location: string): string => {
+        let target = Utils.prepend("/doc/" + targetDoc[Id]);
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: guid });
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: targetDoc[Id] });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
