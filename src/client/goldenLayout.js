@@ -377,7 +377,7 @@
                 this._nOriginalY = coordinates.y;
 
                 this._oDocument.on('mousemove touchmove', this._fMove);
-                this._oDocument.one('mouseup touchend', this._fUp);
+                this._oDocument.on('mouseup touchend', this._fUp);
 
                 this._timeout = setTimeout(lm.utils.fnBind(this._startDrag, this), this._nDelay);
             }

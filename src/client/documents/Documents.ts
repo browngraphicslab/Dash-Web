@@ -638,7 +638,6 @@ export namespace DocUtils {
         });
     }
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionDoc === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
@@ -651,7 +650,6 @@ export namespace DocUtils {
             linkDocProto.sourceContext = sourceContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
-            linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
@@ -665,6 +663,7 @@ export namespace DocUtils {
 
             Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
             Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
+
         }, "make link");
         return linkDocProto;
     }
