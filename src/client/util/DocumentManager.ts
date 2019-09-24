@@ -132,9 +132,7 @@ export class DocumentManager {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
-            const page = NumCast(doc.page, linkPage || 0);
-            const curPage = NumCast(contextDoc.curPage, page);
-            if (page !== curPage) contextDoc.curPage = page;
+            contextDoc.panY = doc.y;
         }
 
         let docView: DocumentView | null;

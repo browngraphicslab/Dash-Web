@@ -52,10 +52,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
-        this._reactionDisposer = reaction(
-            () => this.Document.panY,
-            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: this.Document.panY || 0, behavior: "auto" })
-        );
     }
 
     componentWillUnmount() {
@@ -167,16 +163,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             this.Document.nativeWidth = nw;
             this.Document.nativeHeight = this.Document.nativeHeight ? nw * oldaspect : nh;
             this.Document.height = this.Document[WidthSym]() * (nh / nw);
-            this.Document.scrollHeight = np * this.Document.nativeHeight;
         }
     }
 
-    @action
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        if (e.currentTarget && this.props.ContainingCollectionDoc) {
-            this.props.Document.panTransformType = "None";
-            this.Document.panY = e.currentTarget.scrollTop;
-        }
+        e.stopPropagation();
     }
 
 
@@ -189,7 +180,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 onScroll={this.onScroll}
                 style={{ marginTop: `${(this.Document.panY || 0)}px` }}
                 ref={this._mainCont}>
-                <div className="pdfBox-scrollHack" style={{ height: NumCast(this.props.Document.scrollHeight) + ((this.Document.nativeHeight || 0) - (this.Document.nativeHeight || 0) / (this.Document.scale || 1)) }} />
                 <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={this.Document.panY || 0}
                     Document={this.props.Document} DataDoc={this.dataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY} GoToPage={this.GotoPage}

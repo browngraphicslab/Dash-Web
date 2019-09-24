@@ -1,33 +1,17 @@
 .pdfViewer-viewer {
     pointer-events: inherit;
     width: 100%;
+    height: 100%;
+    position: absolute;
+    overflow-y: scroll;
+    overflow-x: hidden;
 
-    .pdfViewer-visibleElements {
-        .pdfPage-cont {
-            .pdfPage-textLayer {
-                div {
-                    user-select: text;
-                }
-
-                span {
-                    color: transparent;
-                    position: absolute;
-                    white-space: pre;
-                    cursor: text;
-                    -webkit-transform-origin: 0% 0%;
-                    transform-origin: 0% 0%;
-                }
-            }
-        }
+    .page {
+        position: relative;
     }
 
     .pdfViewer-text {
-        transform: scale(1.5);
         transform-origin: top left;
-
-        .page .textLayer {
-            user-select: text;
-        }
     }
 
     .pdfViewer-annotationLayer {
