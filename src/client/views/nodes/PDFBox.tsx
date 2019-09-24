@@ -46,16 +46,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     componentDidMount() {
         this.props.setPdfBox && this.props.setPdfBox(this);
 
-        this.props.Document.curPage = ComputedField.MakeFunction("Math.floor(Number(this.panY) / Number(this.nativeHeight) + 1)");
+        this.props.Document.curPage = 1; //  ComputedField.MakeFunction("Math.floor(Number(this.panY) / Number(this.nativeHeight) + 1)");
 
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
-        this._reactionDisposer = reaction(
-            () => this.Document.panY,
-            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: this.Document.panY || 0, behavior: "auto" })
-        );
     }
 
     componentWillUnmount() {
@@ -63,36 +59,36 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     public GetPage() {
-        return Math.floor((this.Document.panY || 0) / (this.Document.nativeHeight || 0)) + 1;
+        return 1;//Math.floor((this.Document.panY || 0) / (this.Document.nativeHeight || 0)) + 1;
     }
 
     @action
     public BackPage() {
-        let cp = Math.ceil((this.Document.panY || 0) / (this.Document.nativeHeight || 0)) + 1;
-        cp = cp - 1;
-        if (cp > 0) {
-            this.Document.panY = (cp - 1) * (this.Document.nativeHeight || 0);
-        }
+        // let cp = Math.ceil((this.Document.panY || 0) / (this.Document.nativeHeight || 0)) + 1;
+        // cp = cp - 1;
+        // if (cp > 0) {
+        //     this.Document.panY = (cp - 1) * (this.Document.nativeHeight || 0);
+        // }
     }
 
     @action
     public GotoPage = (p: number) => {
-        if (p > 0 && p <= NumCast(this.dataDoc.numPages)) {
-            this.Document.panY = (p - 1) * (this.Document.nativeHeight || 0);
-        }
+        // if (p > 0 && p <= NumCast(this.dataDoc.numPages)) {
+        //     this.Document.panY = (p - 1) * (this.Document.nativeHeight || 0);
+        // }
     }
 
     @action
     public ForwardPage() {
-        let cp = this.GetPage() + 1;
-        if (cp <= NumCast(this.dataDoc.numPages)) {
-            this.Document.panY = (cp - 1) * (this.Document.nativeHeight || 0);
-        }
+        // let cp = this.GetPage() + 1;
+        // if (cp <= NumCast(this.dataDoc.numPages)) {
+        //     this.Document.panY = (cp - 1) * (this.Document.nativeHeight || 0);
+        // }
     }
 
     @action
     setPanY = (y: number) => {
-        this.Document.panY = y;
+        //this.Document.panY = y;
     }
 
     @action
@@ -120,8 +116,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     settingsPanel() {
         return !this.props.active() ? (null) :
             (<div className="pdfBox-settingsCont" onPointerDown={(e) => e.stopPropagation()}>
-                <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings"
-                    style={{ marginTop: `${this.Document.panY || 0}px` }}>
+                <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                     <div className="pdfBox-settingsButton-arrow"
                         style={{
                             borderTop: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
@@ -161,38 +156,31 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     loaded = (nw: number, nh: number, np: number) => {
+        // nh *= .33.33333;
+        // nw *= 1.33333;
         this.dataDoc.numPages = np;
         if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
             let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
             this.Document.nativeWidth = nw;
             this.Document.nativeHeight = this.Document.nativeHeight ? nw * oldaspect : nh;
             this.Document.height = this.Document[WidthSym]() * (nh / nw);
-            this.Document.scrollHeight = np * this.Document.nativeHeight;
         }
     }
-
-    @action
-    onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        if (e.currentTarget && this.props.ContainingCollectionDoc) {
-            this.props.Document.panTransformType = "None";
-            this.Document.panY = e.currentTarget.scrollTop;
-        }
-    }
-
 
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (!(pdfUrl instanceof PdfField) || !this._pdf ?
             <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
-            <div className={classname}
-                onScroll={this.onScroll}
-                style={{ marginTop: `${(this.Document.panY || 0)}px` }}
-                ref={this._mainCont}>
-                <div className="pdfBox-scrollHack" style={{ height: NumCast(this.props.Document.scrollHeight) + ((this.Document.nativeHeight || 0) - (this.Document.nativeHeight || 0) / (this.Document.scale || 1)) }} />
-                <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={this.Document.panY || 0}
+            <div className={classname} ref={this._mainCont} onWheel={(e: React.WheelEvent) => e.stopPropagation()} onPointerDown={(e: React.PointerEvent) => {
+                let hit = document.elementFromPoint(e.clientX, e.clientY);
+                if (hit && hit.localName === "span") {
+                    e.button === 0 && e.stopPropagation();
+                }
+            }}>
+                <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded}
                     Document={this.props.Document} DataDoc={this.dataDoc}
-                    addDocTab={this.props.addDocTab} setPanY={this.setPanY} GoToPage={this.GotoPage}
+                    addDocTab={this.props.addDocTab} GoToPage={this.GotoPage}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
                 {this.settingsPanel()}

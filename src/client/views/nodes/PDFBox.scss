@@ -5,9 +5,6 @@
     height: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
-    .pdfBox-scrollHack {
-        pointer-events: none;
-    }
 }
 
 .pdfBox-cont {
@@ -22,10 +19,11 @@
 
 .pdfBox-cont-interactive {
     pointer-events: all;
-    .pdfPage-textlayer {
-        span {
-            pointer-events: all !important;
-            user-select: text;
+    .pdfViewer-text {
+        .textLayer {
+            span {
+                user-select: text;
+            }
         }
     }
 }

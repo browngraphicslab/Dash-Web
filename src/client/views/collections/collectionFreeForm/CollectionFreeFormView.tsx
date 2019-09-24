@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, trace, ObservableMap, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -60,121 +60,22 @@ export interface ViewDefBounds {
     z?: number;
     width: number;
     height: number;
+    transition?: string;
+}
+
+interface PivotData {
+    type: string;
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fontSize: number;
 }
 
 export interface ViewDefResult {
     ele: JSX.Element;
     bounds?: ViewDefBounds;
-}
-
-export namespace PivotView {
-
-    export interface PivotData {
-        type: string;
-        text: string;
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        fontSize: number;
-    }
-
-    export const elements = (target: CollectionFreeFormView) => {
-        let collection = target.Document;
-        const field = StrCast(collection.pivotField) || "title";
-        const width = NumCast(collection.pivotWidth) || 200;
-        const groups = new Map<FieldResult<Field>, Doc[]>();
-
-        for (const doc of target.childDocs) {
-            const val = doc[field];
-            if (val === undefined) continue;
-
-            const l = groups.get(val);
-            if (l) {
-                l.push(doc);
-            } else {
-                groups.set(val, [doc]);
-            }
-        }
-
-        let minSize = Infinity;
-
-        groups.forEach((val, key) => minSize = Math.min(minSize, val.length));
-
-        const numCols = NumCast(collection.pivotNumColumns) || Math.ceil(Math.sqrt(minSize));
-        const fontSize = NumCast(collection.pivotFontSize);
-
-        const docMap = new Map<Doc, ViewDefBounds>();
-        const groupNames: PivotData[] = [];
-
-        let x = 0;
-        groups.forEach((val, key) => {
-            let y = 0;
-            let xCount = 0;
-            groupNames.push({
-                type: "text",
-                text: String(key),
-                x,
-                y: width + 50,
-                width: width * 1.25 * numCols,
-                height: 100, fontSize: fontSize
-            });
-            for (const doc of val) {
-                docMap.set(doc, {
-                    x: x + xCount * width * 1.25,
-                    y: -y,
-                    width,
-                    height: width
-                });
-                xCount++;
-                if (xCount >= numCols) {
-                    xCount = 0;
-                    y += width * 1.25;
-                }
-            }
-            x += width * 1.25 * (numCols + 1);
-        });
-
-        let elements = target.viewDefsToJSX(groupNames);
-        let docViews = target.childDocs.reduce((prev, doc) => {
-            let minim = BoolCast(doc.isMinimized);
-            if (minim === undefined || !minim) {
-                let defaultPosition = (): ViewDefBounds => {
-                    return {
-                        x: NumCast(doc.x),
-                        y: NumCast(doc.y),
-                        z: NumCast(doc.z),
-                        width: NumCast(doc.width),
-                        height: NumCast(doc.height)
-                    };
-                };
-                const pos = docMap.get(doc) || defaultPosition();
-                prev.push({
-                    ele: <CollectionFreeFormDocumentView
-                        key={doc[Id]}
-                        x={pos.x}
-                        y={pos.y}
-                        width={pos.width}
-                        height={pos.height}
-                        transition={"transform 1s"}
-                        jitterRotation={NumCast(target.props.Document.jitterRotation)}
-                        {...target.getChildDocumentViewProps(doc)}
-                    />,
-                    bounds: {
-                        x: pos.x,
-                        y: pos.y,
-                        z: pos.z,
-                        width: NumCast(pos.width),
-                        height: NumCast(pos.height)
-                    }
-                });
-            }
-            return prev;
-        }, elements);
-
-        return docViews;
-    };
-
 }
 
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
@@ -300,7 +201,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     let y = (z ? ypo : yp) - de.data.offset[1];
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
                     let dropY = NumCast(de.data.droppedDocuments[0].y);
-                    de.data.droppedDocuments.forEach(d => {
+                    de.data.droppedDocuments.forEach(action((d: Doc) => {
                         d.x = x + NumCast(d.x) - dropX;
                         d.y = y + NumCast(d.y) - dropY;
                         if (!NumCast(d.width)) {
@@ -312,7 +213,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
                         }
                         this.bringToFront(d);
-                    });
+                    }));
 
                     de.data.droppedDocuments.length === 1 && this.updateCluster(de.data.droppedDocuments[0]);
                 }
@@ -645,6 +546,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getScale = () => this.Document.scale ? this.Document.scale : 1;
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
+        trace();
         return {
             DataDoc: childData,
             Document: childLayout,
@@ -742,9 +644,99 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    @computed.struct
-    get elements() {
-        if (this.Document.usePivotLayout) return PivotView.elements(this);
+    lookupLayout = (doc: Doc, dataDoc?: Doc) => {
+        let data: any = undefined;
+        let compute = this.Document.usePivotLayout ? this.doPivotComputation.map : this._doComputation.map;
+        compute.forEach((value: any, key: { layout: Doc, data?: Doc }) => {
+            if (key.layout === doc && key.data === dataDoc) {
+                data = value;
+            }
+        });
+        return data ? { x: data.x, y: data.y, z: data.z, width: data.width, height: data.height, transition: data.transition } : undefined;
+    }
+
+    @computed get doPivotComputation() {
+        let layoutPoolData: Map<{ layout: Doc, data?: Doc }, any> = new Map();
+        const field = StrCast(this.props.Document.pivotField) || "title";
+        const width = NumCast(this.props.Document.pivotWidth) || 200;
+        const groups = new Map<FieldResult<Field>, Doc[]>();
+
+        for (const doc of this.childDocs) {
+            const val = doc[field];
+            if (val === undefined) continue;
+
+            const l = groups.get(val);
+            if (l) {
+                l.push(doc);
+            } else {
+                groups.set(val, [doc]);
+            }
+        }
+
+        let minSize = Infinity;
+
+        groups.forEach((val, key) => minSize = Math.min(minSize, val.length));
+
+        const numCols = NumCast(this.props.Document.pivotNumColumns) || Math.ceil(Math.sqrt(minSize));
+        const fontSize = NumCast(this.props.Document.pivotFontSize);
+
+        const docMap = new Map<Doc, ViewDefBounds>();
+        const groupNames: PivotData[] = [];
+
+        let x = 0;
+        groups.forEach((val, key) => {
+            let y = 0;
+            let xCount = 0;
+            groupNames.push({
+                type: "text",
+                text: String(key),
+                x,
+                y: width + 50,
+                width: width * 1.25 * numCols,
+                height: 100, fontSize: fontSize
+            });
+            for (const doc of val) {
+                docMap.set(doc, {
+                    x: x + xCount * width * 1.25,
+                    y: -y,
+                    width,
+                    height: width,
+                });
+                xCount++;
+                if (xCount >= numCols) {
+                    xCount = 0;
+                    y += width * 1.25;
+                }
+            }
+            x += width * 1.25 * (numCols + 1);
+        });
+
+        let elements = this.viewDefsToJSX(groupNames);
+        let pairs = this.childLayoutPairs;
+        pairs.map((pair, i) => {
+            let minim = BoolCast(pair.layout.isMinimized);
+            if (minim === undefined || !minim) {
+                let defaultPosition = (): ViewDefBounds => {
+                    return {
+                        x: NumCast(pair.layout.x),
+                        y: NumCast(pair.layout.y),
+                        z: NumCast(pair.layout.z),
+                        width: NumCast(pair.layout.width),
+                        height: NumCast(pair.layout.height),
+                        transition: "transform 1s"
+                    };
+                };
+                const pos = docMap.get(pair.layout) || defaultPosition();
+                layoutPoolData.set(pair, { transition: "transform 1s", ...pos });
+            }
+        });
+        return { map: layoutPoolData, elements: elements };
+    };
+
+
+    @computed
+    get _doComputation() {
+        let layoutPoolData: Map<{ layout: Doc, data?: Doc }, any> = new Map();
         let curPage = FieldValue(this.Document.curPage, -1);
         const initScript = this.Document.arrangeInit;
         let state: any = undefined;
@@ -759,24 +751,40 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 elements = this.viewDefsToJSX(views);
             }
         }
+        pairs.map((pair, i) => {
+            var page = NumCast(pair.layout.page, -1);
+            if (!pair.layout.isMinimized && ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1)) {
+                const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: pairs.map(pair => pair.layout), state });
+                state = pos.state === undefined ? state : pos.state;
+                layoutPoolData.set(pair, pos);
+            }
+        });
+        return { map: layoutPoolData, elements: elements };
+    }
+
+    @computed
+    get doComputation() {
+        let dc = this.Document.usePivotLayout ? this.doPivotComputation : this._doComputation;
+        let curPage = FieldValue(this.Document.curPage, -1);
+        let pairs = this.childLayoutPairs;
         let docviews = pairs.reduce((prev, pair) => {
             var page = NumCast(pair.layout.page, -1);
             if (!pair.layout.isMinimized && ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1)) {
-                const pos = this.getCalculatedPositions({ doc: pair.layout, index: prev.length, collection: this.Document, docs: pairs.map(pair => pair.layout), state });
-                state = pos.state === undefined ? state : pos.state;
                 prev.push({
-                    ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}
+                    ele: <CollectionFreeFormDocumentView key={pair.layout[Id]} dataProvider={this.lookupLayout}
                         ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
-                        jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                        transition={pos.transition} x={pos.x} y={pos.y} width={pos.width} height={pos.height}
-                        {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
-                    bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: pos.width || 0, height: pos.height || 0 }
+                        jitterRotation={NumCast(this.props.Document.jitterRotation)} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
+                    bounds: this.lookupLayout(pair.layout, pair.data)
                 });
             }
             return prev;
-        }, elements);
+        }, dc.elements);
 
-        return docviews;
+        return { map: dc.map, elements: docviews };
+    }
+    @computed.struct
+    get elements() {
+        return this.doComputation.elements;
     }
 
     @computed.struct
@@ -945,7 +953,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.fieldExtensionDoc} inkFieldKey={this._inkKey} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.fieldExtensionDoc} inkFieldKey={"ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>

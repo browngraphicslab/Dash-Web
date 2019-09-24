@@ -5,7 +5,7 @@ import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { ScriptField } from "../../../new_fields/ScriptField";
@@ -32,10 +32,8 @@ interface IViewerProps {
     fieldExtensionDoc: Doc;
     fieldKey: string;
     loaded: (nw: number, nh: number, np: number) => void;
-    panY: number;
     scrollTo: (y: number) => void;
     active: () => boolean;
-    setPanY?: (n: number) => void;
     GoToPage?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
@@ -47,16 +45,13 @@ interface IViewerProps {
  */
 @observer
 export class PDFViewer extends React.Component<IViewerProps> {
-    @observable.shallow private _visibleElements: JSX.Element[] = []; // _visibleElements is the array of JSX elements that gets rendered
-    @observable private _isPage: string[] = [];// _isPage is an array that tells us whether or not an index is rendered as a page or as a placeholder
-    @observable private _pageSizes: { width: number, height: number }[] = [];
+    @observable public _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private _searching: boolean = false;
     @observable private Index: number = -1;
 
-    private _pageBuffer: number = 1;
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
@@ -68,16 +63,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _searchString: string = "";
     private _selectionText: string = "";
 
-    @computed get panY(): number { return this.props.panY; }
-
-    // startIndex: where to start rendering pages
-    @computed get startIndex(): number { return Math.max(0, this.getPageFromScroll(this.panY) - this._pageBuffer); }
-
-    // endIndex: where to end rendering pages
-    @computed get endIndex(): number {
-        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.panY + (this._pageSizes[0] ? this._pageSizes[0].height : 0)) + this._pageBuffer);
-    }
-
     @computed get allAnnotations() {
         return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
             anno => this._script.run({ this: anno }, console.log, true).result);
@@ -87,15 +72,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
-    componentDidUpdate = (prevProps: IViewerProps) => this.panY !== prevProps.panY && this.renderPages();
-
     componentDidMount = async () => {
         await this.initialLoad();
-
-        this._reactionDisposer = reaction(
-            () => [this.props.active(), this.startIndex, this._pageSizes.length ? this.endIndex : 0],
-            () => this.renderPages(),
-            { fireImmediately: true });
 
         this._annotationReactionDisposer = reaction(
             () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
@@ -117,6 +95,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
         document.removeEventListener("copy", this.copy);
         document.addEventListener("copy", this.copy);
+
+        setTimeout(() => this.toggleSearch(undefined as any), 1000);
     }
 
     componentWillUnmount = () => {
@@ -154,27 +134,16 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @action
     initialLoad = async () => {
         if (this._pageSizes.length === 0) {
-            this._isPage = Array<string>(this.props.pdf.numPages);
             this._pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
-            this._visibleElements = Array<JSX.Element>(this.props.pdf.numPages);
             await Promise.all(this._pageSizes.map<Pdfjs.PDFPromise<any>>((val, i) =>
                 this.props.pdf.getPage(i + 1).then(action((page: Pdfjs.PDFPageProxy) => {
                     this._pageSizes.splice(i, 1, {
-                        width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
-                        height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
+                        width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
+                        height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0])
                     });
-                    this._visibleElements.splice(i, 1,
-                        <div key={`${this.props.url}-placeholder-${i + 1}`} className="pdfviewer-placeholder"
-                            style={{ width: this._pageSizes[i].width, height: this._pageSizes[i].height }}>
-                            "PAGE IS LOADING... "
-                </div>);
-                    this.getPlaceholderPage(i);
+                    i === this.props.pdf.numPages - 1 && this.props.loaded((page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
+                        (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]), i);
                 }))));
-            this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);
-
-            let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.panY));
-            this.props.setPanY && this.props.setPanY(startY);
-            this.props.scrollTo(startY);
         }
     }
 
@@ -228,61 +197,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._savedAnnotations.clear();
         this.Index = -1;
         return mainAnnoDoc;
-    }
-
-    @action
-    getPlaceholderPage = (page: number) => {
-        if (this._isPage[page] !== "none") {
-            this._isPage[page] = "none";
-            this._visibleElements[page] = (
-                <div key={`${this.props.url}-placeholder-${page + 1}`} className="pdfviewer-placeholder"
-                    style={{ width: this._pageSizes[page].width, height: this._pageSizes[page].height }}>
-                    "PAGE IS LOADING... "
-                </div>);
-        }
-    }
-
-    @action
-    getRenderedPage = (page: number) => {
-        if (this._isPage[page] !== "page") {
-            this._isPage[page] = "page";
-            this._visibleElements[page] = (<Page {...this.props}
-                size={this._pageSizes[page]}
-                numPages={this.props.pdf.numPages}
-                setSelectionText={this.setSelectionText}
-                page={page}
-                key={`${this.props.url}-rendered-${page + 1}`}
-                name={`${this.props.pdf.fingerprint + `-page${page + 1}`}`}
-                pageLoaded={this.pageLoaded}
-                renderAnnotations={this.renderAnnotations}
-                createAnnotation={this.createAnnotation}
-                sendAnnotations={this.receiveAnnotations}
-                makeAnnotationDocuments={this.makeAnnotationDocument}
-                getScrollFromPage={this.getScrollFromPage} />);
-        }
-    }
-
-    // change the address to be the file address of the PNG version of each page
-    // file address of the pdf
-    @action
-    getPageImage = async (page: number) => {
-        if (this._isPage[page] !== "image") {
-            this._isPage[page] = "image";
-            try {
-                let res = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${page + 1}.PNG`)));
-                runInAction(() => this._visibleElements[page] =
-                    <img key={res.path} src={res.path} onError={() => this.getRenderedPage(page)}
-                        style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    }
-
-    renderPages = () => {
-        numberRange(this.props.pdf.numPages).filter(p => this._isPage[p] !== undefined).map(i =>
-            (i < this.startIndex || i > this.endIndex) ? this.getPlaceholderPage(i) : // pages outside of the pdf use empty stand-in divs
-                this.props.active() ? this.getRenderedPage(i) : this.getPageImage(i));
     }
 
     @action
@@ -391,43 +305,44 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     toggleSearch = (e: React.MouseEvent) => {
-        e.stopPropagation();
+        e && e.stopPropagation();
         this._searching = !this._searching;
 
         if (this._searching) {
             if (!this._pdfFindController && this._mainCont.current && this._viewer.current && !this._pdfViewer) {
-                let simpleLinkService = new SimpleLinkService(this);
+                document.addEventListener("pagesinit", () => this._pdfViewer.currentScaleValue = this.props.Document[WidthSym]() / this._pageSizes[0].width);
+                document.addEventListener("pagerendered", () => console.log("rendered"));
+                var pdfLinkService = new PDFJSViewer.PDFLinkService();
+                this._pdfFindController = new PDFJSViewer.PDFFindController({
+                    linkService: pdfLinkService,
+                });
                 this._pdfViewer = new PDFJSViewer.PDFViewer({
                     container: this._mainCont.current,
                     viewer: this._viewer.current,
-                    linkService: simpleLinkService
-                })
-                simpleLinkService.setPDFJSview(this._pdfViewer);
-                this._mainCont.current.addEventListener("pagesinit", () => this._pdfViewer.currentScaleValue = 1);
-                this._mainCont.current.addEventListener("pagerendered", () => console.log("rendered"));
+                    linkService: pdfLinkService,
+                    findController: this._pdfFindController,
+                    renderer: "svg"
+                });
+                pdfLinkService.setViewer(this._pdfViewer);
+                pdfLinkService.setDocument(this.props.pdf, null);
                 this._pdfViewer.setDocument(this.props.pdf);
-                this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
-                this._pdfViewer.findController = this._pdfFindController;
             }
         }
     }
-    @computed get visibleElementWrapper() {
-        trace();
-        return this._visibleElements;
-    }
 
     render() {
-        return (<div className="pdfViewer-viewer" ref={this._mainCont} >
-            <div className="pdfViewer-visibleElements" style={this._searching ? { position: "absolute", top: 0 } : {}}>
-                {this.visibleElementWrapper}
+        trace();
+        let scaling = this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width / this.props.Document[WidthSym]() : 1;
+        return (<div className="pdfViewer-viewer" ref={this._mainCont}  >
+            <div className="pdfViewer-text" key="viewerText" style={{ transform: `scale(${scaling})` }} >
+                <div key="viewerReal" ref={this._viewer} />
             </div>
-            <div className="pdfViewer-text" ref={this._viewer} />
             <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
                 {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                     <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
             </div>
             <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
-                style={{ bottom: -this.props.panY, left: `${this._searching ? 0 : 100}%` }}>
+                style={{ bottom: 0, left: `${this._searching ? 0 : 100}%` }}>
                 <button className="pdfViewer-overlayButton" title="Open Search Bar" />
                 <input className="pdfViewer-overlaySearchBar" placeholder="Search" onChange={this.searchStringChanged}
                     onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} />
@@ -435,17 +350,17 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     <FontAwesomeIcon icon="search" size="3x" color="white" /></button>
             </div>
             <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
-                style={{ bottom: -this.props.panY + 280, right: 10, display: this.props.active() ? "flex" : "none" }}>
+                style={{ bottom: 280, right: 10, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="3x" /></div>
             </button>
             <button className="pdfViewer-overlayButton" onClick={this.nextAnnotation} title="Next Annotation"
-                style={{ bottom: -this.props.panY + 200, right: 10, display: this.props.active() ? "flex" : "none" }}>
+                style={{ bottom: 200, right: 10, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" /></div>
             </button>
             <button className="pdfViewer-overlayButton" onClick={this.toggleSearch} title="Open Search Bar"
-                style={{ bottom: -this.props.panY + 10, right: 0, display: this.props.active() ? "flex" : "none" }}>
+                style={{ bottom: 10, right: 0, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="3x" /></div>
@@ -455,42 +370,3 @@ export class PDFViewer extends React.Component<IViewerProps> {
 }
 
 export enum AnnotationTypes { Region }
-
-class SimpleLinkService {
-    _viewer: PDFViewer;
-    _pdfjsView: any;
-
-    constructor(viewer: PDFViewer) {
-        this._viewer = viewer;
-    }
-    setPDFJSview(v: any) { this._pdfjsView = v; }
-
-    navigateTo() { }
-
-    getDestinationHash() { return "#"; }
-
-    getAnchorUrl() { return "#"; }
-
-    setHash() { }
-
-    isPageVisible(page: number) { return true; }
-
-    executeNamedAction() { }
-
-    cachePageRef() { }
-
-    get pagesCount() { return this._viewer._pdfViewer.pagesCount; }
-
-    get page() { return NumCast(this._viewer.props.Document.curPage); }
-    set page(p: number) {
-        this._pdfjsView._ensurePdfPageLoaded(this._pdfjsView._pages[p - 1]).then(() => {
-            this._pdfjsView.renderingQueue.renderView(this._pdfjsView._pages[p - 1]);
-            if (this._viewer.props.GoToPage)
-                this._viewer.props.GoToPage(p);
-        });
-    }
-
-
-    get rotation() { return 0; }
-    set rotation(value: any) { }
-}
