@@ -198,6 +198,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
+            setFontSize: { default: undefined },
+            inheritedFontSize: { default: undefined },
             visibility: { default: true }
         },
         toDOM(node: Node<any>) {
@@ -205,8 +207,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
-            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
-                ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
+            let fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
+            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;font-size: ${fsize}` }, 0] :
+                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}` }];
         }
     },
 

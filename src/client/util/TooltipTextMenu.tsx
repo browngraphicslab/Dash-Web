@@ -19,6 +19,7 @@ import { LinkManager } from "./LinkManager";
 import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
 import { Cast, NumCast } from '../../new_fields/Types';
+import { updateBullets } from './ProsemirrorExampleTransfer';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -518,10 +519,11 @@ export class TooltipTextMenu {
                 }
             }
             //actually apply font
-            return toggleMark(markType)(view.state, view.dispatch, view);
-        }
-        else {
-            return;
+            if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
+                view.dispatch(updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                    { ...(view.state.selection as NodeSelection).node.attrs, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema));
+            }
+            else toggleMark(markType)(view.state, view.dispatch, view);
         }
     }
 
