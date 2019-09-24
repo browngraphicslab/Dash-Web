@@ -12,6 +12,8 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
 import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { FollowModes, LinkFollowBox } from './LinkFollowBox';
+import { ChangeEvent } from "react-autosuggest";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -346,6 +348,7 @@ interface LinkEditorProps {
 }
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
+    @observable private _linkOption: string = FollowModes.PAN;
 
     @action
     deleteLink = (): void => {
@@ -370,6 +373,12 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
         LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, this.props.sourceDoc, groupDoc);
     }
+    @action
+    linkOptionClick = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        console.log(`clicked on ` + e.target.value);
+        this._linkOption = e.target.value;
+        // TODODO set defaultbehavior from linkfollowbox based on what was selected
+    }
 
     render() {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
@@ -378,7 +387,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
-
+        // TODODO properly set linkoption based on default from linkfollowbox
         if (destination) {
             return (
                 <div className="linkEditor">
@@ -386,6 +395,55 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     <div className="linkEditor-info">
                         <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
                         <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    </div>
+                    <div className="linkEditor-linkType">
+                        <b>Change Link Type Here:</b>
+                        {/* TODODO radio buttons here 
+                        pan and in place dont work unless freeform
+                        confirm button (no accidental overwrites of complicated link follows)
+                        EVENTUALLY: should b able to clean this up once we know
+                        1) how to determine if follow type is valid
+                        2) mapping over all the FollowType enums */}
+                        <form className="linkEditor-linkForm">
+                            <div className="linkEditor-linkOption">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        value={FollowModes.PAN}
+                                        checked={this._linkOption === FollowModes.PAN}
+                                        onChange={this.linkOptionClick} />
+                                    {FollowModes.PAN}</label>
+                            </div>
+                            <div className="linkEditor-linkOption">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        value={FollowModes.INPLACE}
+                                        checked={this._linkOption === FollowModes.INPLACE}
+                                        onChange={this.linkOptionClick} />
+                                    {FollowModes.INPLACE}</label>
+                            </div>
+
+                            { /* for now -- maintaining only two radio buttons to work with styling and whatnot */}
+                            {/* <input
+                                type="radio"
+                                value={FollowModes.OPENTAB}
+                                checked={this._linkOption === FollowModes.OPENTAB}
+                                onChange={this.linkOptionClick} />
+                            <label> {FollowModes.OPENTAB}</label>
+                            <input
+                                type="radio"
+                                value={FollowModes.OPENRIGHT}
+                                checked={this._linkOption === FollowModes.OPENRIGHT}
+                                onChange={this.linkOptionClick} />
+                            <label> {FollowModes.OPENRIGHT} </label>
+                            <input
+                                type="radio"
+                                value={FollowModes.OPENFULL}
+                                checked={this._linkOption === FollowModes.OPENFULL}
+                                onChange={this.linkOptionClick} />
+                            <label> {FollowModes.OPENFULL} </label> */}
+                        </form>
                     </div>
                     <div className="linkEditor-groupsLabel">
                         <b>Relationships:</b>

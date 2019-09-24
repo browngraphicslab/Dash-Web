@@ -19,7 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { docs_v1 } from "googleapis";
 
-enum FollowModes {
+export enum FollowModes {
     OPENTAB = "Open in Tab",
     OPENRIGHT = "Open in Right Split",
     OPENFULL = "Open Full Screen",
