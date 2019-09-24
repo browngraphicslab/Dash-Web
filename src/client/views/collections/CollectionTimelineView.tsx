@@ -126,48 +126,48 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable markdoc: Doc | undefined = undefined;
     @action
     onPointerDown_LeftResize = (e: React.PointerEvent, doc: Doc): void => {
-        if (e.button===2) {
+        if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
-              e.preventDefault();
+            e.preventDefault();
             e.stopPropagation();
         }
         else {
-        document.addEventListener("pointermove", (this.onPointerMove_LeftResize));
-        e.stopPropagation();
-        this.markdoc = doc;
-        this.downbool = (false);
+            document.addEventListener("pointermove", (this.onPointerMove_LeftResize));
+            e.stopPropagation();
+            this.markdoc = doc;
+            this.downbool = (false);
         }
     }
 
     @action
     onPointerMove_RightResize = (e: PointerEvent): void => {
-        
+
         e.stopPropagation();
         this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) + e.movementX;
         document.addEventListener("pointerup", this.onPointerUp);
-        
+
     }
 
     @action
     onPointerDown_RightResize = (e: React.PointerEvent, doc: Doc): void => {
-           if (e.button===2) {
+        if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
-  e.preventDefault();
+            e.preventDefault();
             e.stopPropagation();
         }
-        else{
-        document.addEventListener("pointermove", (this.onPointerMove_RightResize));
-        e.stopPropagation();
-        this.markdoc = doc;
-        this.downbool = (false);
+        else {
+            document.addEventListener("pointermove", (this.onPointerMove_RightResize));
+            e.stopPropagation();
+            this.markdoc = doc;
+            this.downbool = (false);
         }
     }
 
     createmarker = (doc: Doc): JSX.Element | undefined => {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
-        markerUnit.element = (  
+        markerUnit.element = (
             < div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
                 style={{
                     border: "2px solid" + String(markerUnit.document.color),
@@ -175,7 +175,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     width: NumCast(doc.initialWidth), height: this.rowscale, backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
                     position: "absolute", left: NumCast(doc.initialLeft),
                 }}>
-                <div onPointerDown={(e) => this.onPointerDown_LeftResize(e, doc)} style={{ position:"absolute", width:"10px", cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
+                <div onPointerDown={(e) => this.onPointerDown_LeftResize(e, doc)} style={{ position: "absolute", width: "10px", cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
                 <EditableView
                     contents={doc.annotation}
                     SetValue={this.annotationUpdate}
@@ -184,7 +184,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     height={30}
                     oneLine={true}
                 />
-                <div onPointerDown={(e) => this.onPointerDown_RightResize(e, doc)} style={{position:"absolute", left:NumCast(doc.initialWidth), width:"10px", cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
+                <div onPointerDown={(e) => this.onPointerDown_RightResize(e, doc)} style={{ position: "absolute", left: NumCast(doc.initialWidth), width: "10px", cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
             </div>);
         if (markerUnit.document.sortstate === this.sortstate) {
             return markerUnit.element;
@@ -319,14 +319,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onPointerDown_DeleteMarker = (e: React.PointerEvent, annotation: string, markerUnit: MarkerUnit): void => {
         this.downbool = false;
 
-        if (e.button===2) {
+        if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
             e.preventDefault();
             e.stopPropagation();
         }
         else {
-             e.preventDefault();
+            e.preventDefault();
             e.stopPropagation();
             this.selectedMarker ? this.selectedMarker.ref!.style.opacity = "0.5" : null;
             this.selectedMarker ? this.selectedMarker.ref!.style.border = "0px solid black" : null;
@@ -378,7 +378,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerUp_Selector = async (e: PointerEvent) => {
         this.downbool = true;
-        
+
         document.removeEventListener("pointermove", this.onPointerMove_Selector, true);
         let mintick: React.RefObject<HTMLDivElement>;
         let minticknum = Infinity;
@@ -731,7 +731,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private get opac() {
         let doc = this.props.Document;
         if (!doc.opac) {
-            console.log("yu");
             this.opac = false;
         }
         return BoolCast(doc.opac);
@@ -775,15 +774,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     rightboundSet = (number: number) => {
         this.props.Document.transtate = false;
-        this.rightbound = number; 
+        this.rightbound = number;
         this.markerrender();
     }
 
     @action
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
         e.persist();
-        this._downX = this._lastX = e.pageX;
-        this._downY = this._lastY = e.pageY;
+        this._downX = e.pageX;
+        this._downY = e.pageY;
+        this.downbool = false;
+
+        if (e.button === 2) {
+            document.addEventListener("pointermove", this.onPointerMove_Marquee, true);
+            document.addEventListener("pointerup", this.onPointerUp_Marquee, true);
+        }
+    }
+
+    @action
+    onPointerDown_Timeline = async (e: React.PointerEvent) => {
+        e.persist();
+        this._downX = e.pageX;
+        this._downY = e.pageY;
+        console.log(this._downX);
         this.downbool = false;
         let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
         let mintick: React.RefObject<HTMLDivElement>;
@@ -797,58 +810,59 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
         }
-        if (e.button===0){
+        if (e.button === 0) {
             leftval = parseFloat(mintick!.current!.style.left!);
             let d = new Doc;
             document.addEventListener("pointermove", this.onPointerMove_Selector, true);
             document.addEventListener("pointerup", this.onPointerUp_Selector, true);
-        this.preventbug = true;
-        e.preventDefault;
-        d.initialLeft = leftval;
-        d.firstLeft = leftval;
-        d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-        d.initialX = this.leftbound;
-        d.initialWidth = 10;
-        d.initialMapLeft = (((leftval / this.barref.current!.clientWidth)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
-        d.initialMapWidth = 10;
+            this.preventbug = true;
+            e.preventDefault;
+            d.initialLeft = leftval;
+            d.firstLeft = leftval;
+            d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
+            d.initialX = this.leftbound;
+            d.initialWidth = 10;
+            d.initialMapLeft = (((leftval / this.barref.current!.clientWidth)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+            d.initialMapWidth = 10;
             d.annotation = "hi";
             d.color = this.selectedColor;
             d.sortstate = this.sortstate;
             this.markerDocs.push(d);
         }
-        if (e.button===2){
+        if (e.button === 2) {
             document.addEventListener("pointermove", this.onPointerMove_Marquee, true);
             document.addEventListener("pointerup", this.onPointerUp_Marquee, true);
         }
     }
+
 
     @action
     onPointerMove_Marquee = async (e: PointerEvent) => {
         console.log("FGSF")
         this._lastY = e.pageY;
         this._lastX = e.pageX;
-        
-        
-            this.marqueeSelect();
-            if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
-                Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
-                this._visible = true;
-                console.log("YUHHH");
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        
+
+
+        this.marqueeSelect();
+        if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
+            Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
+            this._visible = true;
+            console.log("YUHHH");
+            e.stopPropagation();
+            e.preventDefault();
+        }
+
     }
-    
+
     @action
-    onPointerUp_Selector = (e: PointerEvent): void => {
+    onPointerUp_Marquee = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove_Marquee, true);
         if (this._visible) {
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(undefined);
             }
         }
-        runInAction(()=>this._visible = false);
+        runInAction(() => this._visible = false);
         this.preventbug = false;
         for (let select of this.newselect) {
             if (!this.selections.includes(select)) {
@@ -857,31 +871,31 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-     marqueeSelect() {
-        let newselect = [];
+    marqueeSelect() {
+        //let newselect = [];
         if (this.marqueeref.current !== null) {
             let posInfo = this.marqueeref.current.getBoundingClientRect();
-            for (let thumbnails of this.thumbnails) {
-                if (thumbnails.thumbnailref !== undefined) {
-                    let thumbnail = thumbnails.thumbnailref;
-                    let thumbnailinfo = thumbnail!.getBoundingClientRect();
-                    let header = thumbnails.headerref;
-                    if ((thumbnailinfo.left > posInfo.left && thumbnailinfo.left < posInfo.right) || (thumbnailinfo.right > posInfo.left && thumbnailinfo.right < posInfo.right)) {
-                        this.focus(thumbnail, header);
-                        newselect.push(thumbnail);
-                    }
-                    else {
-                        this.unfocus(thumbnail, header);
-                    }
-                    for (let select of this.selections) {
-                        if (select === thumbnail) {
-                            this.focus(thumbnail, header);
-                        }
-                    }
-                }
-            }
+            // for (let thumbnails of this.thumbnails) {
+            //     if (thumbnails.thumbnailref !== undefined) {
+            //         let thumbnail = thumbnails.thumbnailref;
+            //         let thumbnailinfo = thumbnail!.getBoundingClientRect();
+            //         let header = thumbnails.headerref;
+            //         if ((thumbnailinfo.left > posInfo.left && thumbnailinfo.left < posInfo.right) || (thumbnailinfo.right > posInfo.left && thumbnailinfo.right < posInfo.right)) {
+            //             this.focus(thumbnail, header);
+            //             newselect.push(thumbnail);
+            //         }
+            //         else {
+            //             this.unfocus(thumbnail, header);
+            //         }
+            //         for (let select of this.selections) {
+            //             if (select === thumbnail) {
+            //                 this.focus(thumbnail, header);
+            //             }
+            //         }
+            //     }
+            // }
         }
-        this.newselect = newselect;
+        //this.newselect = newselect;
     }
     private newselect: (HTMLDivElement | undefined)[] = [];
 
@@ -1065,7 +1079,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
-                    {<div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
+                    {<div style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                         {this._visible ? this.marqueeDiv : null}
                     </div>}
                 </div>
@@ -1118,7 +1132,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     )}
                     {console.log(this.markerDocs.length)}
                     {this.markerDocs.map(d => this.createmarker(d))}
-                    <div style={{
+                    <div onPointerDown={this.onPointerDown_Timeline} style={{
                         position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
                     }}>
                         {this.ticks}
