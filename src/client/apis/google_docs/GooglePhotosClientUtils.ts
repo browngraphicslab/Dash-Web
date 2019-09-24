@@ -12,17 +12,11 @@ import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
 import { AssertionError } from "assert";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
 import { DocumentView } from "../../views/nodes/DocumentView";
 
 export namespace GooglePhotos {
 
-    const endpoint = async () => {
-        const getToken = Utils.prepend(RouteStore.googlePhotosAccessToken);
-        const token = await (await fetch(getToken)).text();
-        return new Photos(token);
-    };
+    const endpoint = async () => new Photos(await PostToServer(RouteStore.googlePhotosAccessToken));
 
     export enum MediaType {
         ALL_MEDIA = 'ALL_MEDIA',

@@ -4,6 +4,7 @@ import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { RouteStore } from './server/RouteStore';
 import requestPromise = require('request-promise');
+import { CurrentUserUtils } from './server/authentication/models/current_user_utils';
 
 export class Utils {
 
@@ -293,12 +294,13 @@ export namespace JSONUtils {
 
 }
 
-export function PostToServer(relativeRoute: string, body: any) {
+export function PostToServer(relativeRoute: string, body?: any) {
+    body = { userId: CurrentUserUtils.id, ...body };
     let options = {
         method: "POST",
         uri: Utils.prepend(relativeRoute),
         json: true,
-        body: body
+        body
     };
     return requestPromise.post(options);
 }

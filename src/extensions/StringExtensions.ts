@@ -1,9 +1,4 @@
-interface String {
-    removeTrailingNewlines(): string;
-    hasNewline(): boolean;
-}
-
-module.exports.Assign = function () {
+function Assign() {
 
     String.prototype.removeTrailingNewlines = function () {
         let sliced = this;
@@ -17,4 +12,6 @@ module.exports.Assign = function () {
         return this.endsWith("\n");
     };
 
-};
+}
+
+export { Assign };
