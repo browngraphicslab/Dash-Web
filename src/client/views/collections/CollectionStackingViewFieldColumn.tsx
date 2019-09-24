@@ -253,10 +253,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     }
 
     renderMenu = () => {
+        let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         return (
             <div className="collectionStackingView-optionPicker">
                 <div className="optionOptions">
-                    <div className="optionPicker">Delete</div>
+                    <div className="optionPicker" onClick={() => this.deleteColumn()}>Delete</div>
                     <div className="optionPicker">Edit</div>
                     <div className="optionPicker">Collapse</div>
                     <div className="optionPicker">Alias</div>
