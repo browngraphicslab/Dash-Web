@@ -294,7 +294,7 @@ export class Track extends React.Component<IProps> {
         return (
             <div className="track-container">
                 <div className="track">
-                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
+                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerOver = {() => {Doc.BrushDoc(this.props.node);}}onPointerOut={() => {Doc.UnBrushDoc(this.props.node);}}>
                         {DocListCast(this.regions).map((region) => {
                             return <Keyframe {...this.props} RegionData={region} />;
                         })}

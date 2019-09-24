@@ -423,7 +423,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                             </div>
                         </div>
                         <div key="timeline_title"className="title-container" ref={this._titleContainer}>
-                            {DocListCast(this.children).map(doc => <div className="datapane"><p>{doc.title}</p></div>)}
+                            {DocListCast(this.children).map(doc => <div className="datapane" onPointerOver={() => {Doc.BrushDoc(doc);}} onPointerOut={() => {Doc.UnBrushDoc(doc);}}><p>{doc.title}</p></div>)}
                         </div>
                         <div key="timeline_resize" onPointerDown={this.onResizeDown}>
                             <FontAwesomeIcon className="resize" icon={faGripLines} />

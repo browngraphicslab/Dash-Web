@@ -532,6 +532,7 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         let div = ref.current!;
         div.style.opacity = "1";
+        Doc.BrushDoc(this.props.node); 
     }
 
     onContainerOut = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
@@ -539,6 +540,7 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         let div = ref.current!;
         div.style.opacity = "0";
+        Doc.UnBrushDoc(this.props.node); 
     }
 
 
@@ -623,7 +625,6 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
     render() {
-        console.log("RERENDERING"); 
         return (
             <div>
                 <div className="bar" ref={this._bar} style={{ transform: `translate(${this.pixelPosition}px)`, 
