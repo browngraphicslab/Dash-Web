@@ -73,7 +73,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     }
                 });
                 if (this.selectedContext instanceof Doc) {
-                    let aliases = await SearchUtil.GetViewsOfDocument(this.selectedContext);
+                    let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(this.selectedContext));
                     runInAction(() => { this.selectedContextAliases = aliases; });
                 }
             }
@@ -175,16 +175,21 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @undoBatch
     openFullScreen = () => {
         if (this.notOpenInContext) {
-            let view: DocumentView | null = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc!);
-            view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+            this.openSelfFullScreen();
         }
         else {
-            this.selectedContext && this.openColFullScreen({ context: this.selectedContext });
+            this.selectedContext && this.openColFullScreen({ shouldZoom: this.shouldZoom, context: this.selectedContext });
         }
     }
 
     @undoBatch
-    openColFullScreen = (options: { context: Doc }) => {
+    openSelfFullScreen = () => {
+        let view: DocumentView | null = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc!);
+        view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+    }
+
+    @undoBatch
+    openColFullScreen = (options: { shouldZoom: boolean, context: Doc }) => {
         if (LinkFollowBox.destinationDoc) {
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
                 const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
@@ -194,6 +199,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             }
             let view = DocumentManager.Instance.getDocumentView(options.context);
             view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+            if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
             this.highlightDoc();
         }
     }
@@ -211,7 +217,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     @undoBatch
-    openLinkColRight = () => {
+    private openLinkColRight = (options: { shouldZoom: boolean, context: Doc }) => {
         let context = this.selectedContext;
         if (LinkFollowBox.destinationDoc) {
             context = Doc.IsPrototype(context!) ? Doc.MakeDelegate(context) : context;
@@ -223,30 +229,35 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             }
             (this._addDocTab || this.props.addDocTab)(context!, undefined, "onRight");
 
-            if (this.shouldZoom) this.jumpToLink();
+            if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
         }
+    }
+
+    @undoBatch
+    private openLinkSelfRight = () => {
+        let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
+        (this._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
+        this.highlightDoc();
+        SelectionManager.DeselectAll();
     }
 
     @undoBatch
     openLinkRight = () => {
         if (this.notOpenInContext) {
-            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
-            (this._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
-            this.highlightDoc();
-            SelectionManager.DeselectAll();
+            this.openLinkSelfRight();
         }
         // open in context
         else {
-            this.selectedContext && this.openLinkColRight();
+            this.selectedContext && this.openLinkColRight({ shouldZoom: this.shouldZoom, context: this.selectedContext });
         }
 
     }
 
     @undoBatch
-    jumpToLink = async () => {
+    jumpToLink = async (options: { shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc && LinkFollowBox.linkDoc) {
             let jumpToDoc: Doc = LinkFollowBox.destinationDoc;
             let pdfDoc = FieldValue(Cast(LinkFollowBox.destinationDoc, Doc));
@@ -261,18 +272,18 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let dockingFunc = (document: Doc) => { (this._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
             if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, this.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
             }
             else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, this.shouldZoom, false, document => dockingFunc(sourceContext!));
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, document => dockingFunc(sourceContext!));
             }
             else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, this.shouldZoom, undefined, undefined,
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, undefined, undefined,
                     NumCast((LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 ? LinkFollowBox.linkDoc.anchor2Page : LinkFollowBox.linkDoc.anchor1Page)));
 
             }
             else {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, this.shouldZoom, false, dockingFunc);
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
             }
 
             this.highlightDoc();
@@ -287,32 +298,37 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @undoBatch
     openLinkTab = () => {
         if (this.notOpenInContext) {
-            let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
-            // this.prosp.addDocTab is empty -- use the link source's addDocTab 
-            (this._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
-
-            this.highlightDoc();
-            SelectionManager.DeselectAll();
+            this.openLinkSelfTab();
         }
         //open in a context
         else {
-            this.selectedContext && this.openLinkColTab();
+            this.selectedContext && this.openLinkColTab({ shouldZoom: this.shouldZoom, context: this.selectedContext });
         }
     }
 
     @undoBatch
-    private openLinkColTab = () => {
-        let context = this.selectedContext;
+    private openLinkSelfTab = () => {
+        let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
+        // this.prosp.addDocTab is empty -- use the link source's addDocTab 
+        (this._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
+
+        this.highlightDoc();
+        SelectionManager.DeselectAll();
+    }
+
+    @undoBatch
+    private openLinkColTab = (options: { shouldZoom: boolean, context: Doc }) => {
+        // let context = this.selectedContext;
         if (LinkFollowBox.destinationDoc) {
-            context = Doc.IsPrototype(context!) ? Doc.MakeDelegate(context) : context;
-            if (NumCast(context!.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            let context: Doc = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
+            if (NumCast(context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
                 const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
                 const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
-                context!.panX = newPanX;
-                context!.panY = newPanY;
+                context.panX = newPanX;
+                context.panY = newPanY;
             }
-            (this._addDocTab || this.props.addDocTab)(context!, undefined, "inTab");
-            if (this.shouldZoom) this.jumpToLink();
+            (this._addDocTab || this.props.addDocTab)(context, undefined, "inTab");
+            if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -320,7 +336,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     @undoBatch
-    openLinkInPlace = () => {
+    openLinkInPlace = (options: { shouldZoom: boolean }) => {
 
         if (LinkFollowBox.destinationDoc && LinkFollowBox.sourceDoc) {
             let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
@@ -339,18 +355,73 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 this.sourceView.props.addDocument(alias, false);
             }
 
-            this.jumpToLink();
+            this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
         }
     }
 
-    //set this to be the default link behavior, can be any of the above
-    public defaultLinkBehavior: (options?: any) => void = this.jumpToLink;
+    // set this is the default link behavior. it parses the string that "contains" the behavior
+    // and then calls the correct function
+    @action
+    public defaultLinkBehavior(followString: string) {
+        let params: string[] = this.defaultLinkBehaviorString.split(",");
+        console.log(LinkFollowBox.destinationDoc![Id]);
+        console.log(params)
+        let mode = params[0];
+        let context = params[1];
+        let shouldZoomString = params[2];
+        let shouldZoom: boolean = shouldZoomString === "true" ? true : false;
+
+        let shouldOpenInContext = context !== "self" && context !== LinkFollowBox.destinationDoc![Id];
+        if (shouldOpenInContext) {
+
+        }
+
+        // works
+        if (mode === FollowModes.INPLACE) {
+            this.openLinkInPlace({ shouldZoom: shouldZoom });
+        }
+        else if (mode === FollowModes.OPENFULL) {
+            // this.openFullScreen();
+            if (shouldOpenInContext) {
+
+            } else {
+                this.openSelfFullScreen();
+            }
+        }
+        else if (mode === FollowModes.OPENRIGHT) {
+            // this.openLinkRight();
+            if (shouldOpenInContext) {
+
+            } else {
+                this.openLinkSelfRight();
+            }
+        }
+        else if (mode === FollowModes.OPENTAB) {
+            // this.openLinkTab();
+            if (shouldOpenInContext) {
+                this.openLinkColTab({ shouldZoom: shouldZoom, context: })
+            } else {
+                this.openLinkSelfTab();
+            }
+        }
+        else if (mode === FollowModes.PAN) {
+            this.jumpToLink({ shouldZoom: shouldZoom });
+        }
+        else return;
+    }
+
+    public defaultLinkBehaviorString: string = FollowModes.PAN + "," + "none,false";
 
     get shouldZoom() {
         return this.selectedOption === FollowOptions.NOZOOM ? false : true;
+    }
+
+    @action
+    public setDefaultFollowBehavior = (followMode: string, context: string, shouldZoom: boolean) => {
+        this.defaultLinkBehaviorString = followMode + "," + context + "," + shouldZoom.toString();
     }
 
     @action
@@ -363,7 +434,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (this.selectedOption === "") this.selectedOption = FollowOptions.NOZOOM;
 
         if (this.selectedMode === FollowModes.INPLACE) {
-            this.openLinkInPlace();
+            this.openLinkInPlace({ shouldZoom: this.shouldZoom });
         }
         else if (this.selectedMode === FollowModes.OPENFULL) {
             this.openFullScreen();
@@ -375,7 +446,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             this.openLinkTab();
         }
         else if (this.selectedMode === FollowModes.PAN) {
-            this.jumpToLink();
+            this.jumpToLink({ shouldZoom: this.shouldZoom });
         }
         else return;
     }
@@ -526,12 +597,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         );
     }
 
+    //if the zoom option should show up in the options tab
     @computed
     get shouldShowZoom(): boolean {
-        if (this.selectedMode === FollowModes.OPENFULL) return false;
         if (this.shouldUseOnlyParentContext) return true;
         if (LinkFollowBox.destinationDoc ? this.selectedContextString === LinkFollowBox.destinationDoc[Id] : "self") return false;
-
         let contextMatch: boolean = false;
         if (this.selectedContextAliases) {
             this.selectedContextAliases.forEach(alias => {
@@ -539,7 +609,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             });
         }
         if (contextMatch) return true;
-
         return false;
     }
 
@@ -610,9 +679,16 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 <div className="linkFollowBox-footer">
                     <button
                         onClick={this.resetVars}>
-                        Clear Link
+                        Clear<br></br>Link
                     </button>
-                    <div style={{ width: 20 }}></div>
+                    <button
+                    >
+                        Save Behavior
+                    </button>
+                    <button
+                        onClick={() => this.setDefaultFollowBehavior(this.selectedMode, this.selectedContextString, this.shouldZoom)}>
+                        Set As Default
+                    </button>
                     <button
                         onClick={this.currentLinkBehavior}
                         disabled={(LinkFollowBox.linkDoc) ? false : true}>

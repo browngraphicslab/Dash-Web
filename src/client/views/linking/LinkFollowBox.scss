@@ -45,10 +45,12 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        width: 100%;
+        justify-content: space-around;
 
         button {
             background-color: $darker-alt-accent;
-            width: 30%;
+            width: 20%;
         }
     }
 
