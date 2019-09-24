@@ -98,9 +98,8 @@ export class Thumbnail extends React.Component<NodeProps> {
             this.props.tog(false);
 
         }
-        if (e.altKey) {
+        if (e.button==="0") {
             this.props.createportal();
-
         }
         let ting = this.props.leftval;
     }
