@@ -402,7 +402,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else if (mode === FollowModes.OPENTAB) {
             // this.openLinkTab();
             if (shouldOpenInContext) {
-                this.openLinkColTab({ shouldZoom: shouldZoom, context: })
+                // this.openLinkColTab({ shouldZoom: shouldZoom, context: })
             } else {
                 this.openLinkSelfTab();
             }
