@@ -138,7 +138,7 @@
             .editableView-input:hover,
             .editableView-container-editing:hover,
             .editableView-container-editing-oneLine:hover {
-                cursor: text
+                cursor: text;
             }
 
             .editableView-input {
@@ -174,6 +174,42 @@
                 }
 
                 .colorPicker {
+                    cursor: pointer;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 10px;
+                    margin: 3px;
+
+                    &.active {
+                        border: 2px solid white;
+                        box-shadow: 0 0 0 2px lightgray;
+                    }
+                }
+            }
+        }
+
+        .collectionStackingView-sectionOptions {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+
+            [class*="css"] {
+                max-width: 102px;
+            }
+
+            .collectionStackingView-sectionOptionButton {
+                height: 35px;
+            }
+
+            .collectionStackingView-optionPicker {
+                width: 78px;
+
+                .optionOptions {
+                    display: inline;
+                }
+
+                .optionPicker {
                     cursor: pointer;
                     width: 20px;
                     height: 20px;

@@ -327,11 +327,11 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                             </ Flyout >
                         </div>
                     }
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        (null) :
-                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteRow}>
-                            <FontAwesomeIcon icon="trash" />
-                        </button>}
+                    {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
+                        <button className="collectionStackingView-sectionOptions" onClick={this.deleteRow}>
+                            <FontAwesomeIcon icon="ellipsis-v" size="lg"></FontAwesomeIcon>
+                        </button>
+                    }
                 </div>
             </div > : (null);
         const background = this._background; //to account for observables in Measure
@@ -351,7 +351,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                             {collapsed ? (null) :
                                 < div >
                                     <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
-                                        // ref={this.getTrueHeight}
                                         ref={this._contRef}
                                         style={{
                                             padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,

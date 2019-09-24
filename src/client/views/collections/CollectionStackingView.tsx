@@ -25,8 +25,6 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ScriptBox } from "../ScriptBox";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 
-// let _height: number = 0;
-
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
@@ -103,8 +101,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 args[1] instanceof Doc &&
                     this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined));
             });
-
-
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking and masonry views -eeng
         this._heightDisposer = reaction(() => {
             if (BoolCast(this.props.Document.autoHeight)) {
@@ -114,9 +110,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)), 0);
                 } else {
                     let sum = Array.from(this._heightMap.values()).reduce((acc: number, curr: number) => acc += curr, 0);
-                    // let transformScale = this.props.ScreenToLocalTransform().Scale;
-                    // let trueHeight = 30 * transformScale;
-                    // sum += trueHeight;
                     sum += 30;
                     return this.props.ContentScaling() * (sum + (this.Sections.size ? 50 : 0));
                 }

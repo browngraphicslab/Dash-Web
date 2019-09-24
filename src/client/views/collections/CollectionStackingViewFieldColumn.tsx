@@ -20,6 +20,7 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
+import Measure from "react-measure";
 
 library.add(faPalette);
 
@@ -38,6 +39,9 @@ interface CSVFieldColumnProps {
 @observer
 export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldColumnProps> {
     @observable private _background = "inherit";
+    @observable private _selected: boolean = false;
+    @observable private _mouseX: number = 0;
+    @observable private _mouseY: number = 0;
 
     private _dropRef: HTMLDivElement | null = null;
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -248,6 +252,19 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         );
     }
 
+    renderMenu = () => {
+        return (
+            <div className="collectionStackingView-optionPicker">
+                <div className="optionOptions">
+                    <div className="optionPicker">Delete</div>
+                    <div className="optionPicker">Edit</div>
+                    <div className="optionPicker">Collapse</div>
+                    <div className="optionPicker">Alias</div>
+                </div>
+            </div>
+        );
+    }
+
     @observable private collapsed: boolean = false;
 
     private toggleVisibility = action(() => {
@@ -312,11 +329,15 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             </ Flyout >
                         </div>
                     }
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        (null) :
-                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
-                            <FontAwesomeIcon icon="trash" />
-                        </button>}
+                    {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
+                        <div className="collectionStackingView-sectionOptions">
+                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderMenu()}>
+                                <button className="collectionStackingView-sectionOptionButton">
+                                    <FontAwesomeIcon icon="ellipsis-v" size="lg"></FontAwesomeIcon>
+                                </button>
+                            </Flyout>
+                        </div>
+                    }
                 </div>
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
