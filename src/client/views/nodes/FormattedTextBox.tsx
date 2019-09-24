@@ -746,9 +746,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
                     let ref = editorView.domAtPos(editorView.state.selection.from);
-                    let r1 = (ref.node as any).getBoundingClientRect();
+                    let refNode = ref.node as any;
+                    while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
+                    let r1 = refNode && (refNode as any).getBoundingClientRect();
                     let r3 = self._ref.current!.getBoundingClientRect();
-                    self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale;
+                    r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
                     return true;
                 },
                 dispatchTransaction: this.dispatchTransaction,
@@ -908,7 +910,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
                 let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
                 if (node === this._nodeClicked && node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
-                    this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                    let hit = this._editorView!.domAtPos(pos.pos).node as any;
+                    let beforeEle = document.querySelector("." + hit.className) as Element;
+                    let before = beforeEle ? window.getComputedStyle(beforeEle, ':before') : undefined;
+                    let beforeWidth = before ? Number(before.getPropertyValue('width').replace("px", "")) : undefined;
+                    if (beforeWidth && e.nativeEvent.offsetX < beforeWidth) {
+                        let ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
+                        if (ol && ol.type === schema.nodes.ordered_list && !e.shiftKey) {
+                            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
+                        } else {
+                            this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                        }
+                    }
                 }
             }
         }
@@ -959,7 +972,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
+        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
