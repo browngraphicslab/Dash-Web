@@ -41,7 +41,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document, this.props.DataDoc) ? this.props.dataProvider(this.props.Document, this.props.DataDoc) : undefined; }
     @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
-    @computed get scaleToOverridingWidth() { return this.width / FieldValue(this.Document.width, this.width); }
 
     @computed get renderScriptDim() {
         if (this.Document.renderScript) {
@@ -74,7 +73,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling()).scale(1 / this.scaleToOverridingWidth)
+        .scale(1 / this.contentScaling())
 
     borderRounding = () => {
         let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
@@ -100,9 +99,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @observable _animPos: number[] | undefined = undefined;
 
+    finalPanelWidh = () => { return this.dataProvider ? this.dataProvider.width : this.panelWidth(); }
+    finalPanelHeight = () => { return this.dataProvider ? this.dataProvider.height : this.panelHeight(); }
+
     render() {
-        console.log("this.props =" + this.props.dataProvider);
-        trace();
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
@@ -123,8 +123,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     ContentScaling={this.contentScaling}
                     ScreenToLocalTransform={this.getTransform}
                     backgroundColor={this.clusterColorFunc}
-                    PanelWidth={this.panelWidth}
-                    PanelHeight={this.panelHeight}
+                    PanelWidth={this.finalPanelWidh}
+                    PanelHeight={this.finalPanelHeight}
                 />
             </div>
         );
