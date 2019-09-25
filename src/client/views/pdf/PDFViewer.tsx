@@ -54,7 +54,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
 
-    private _resizeReaction: IReactionDisposer | undefined;
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
@@ -109,7 +108,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     componentWillUnmount = () => {
-        this._resizeReaction && this._resizeReaction();
         this._reactionDisposer && this._reactionDisposer();
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
@@ -153,9 +151,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     setupPdfJsViewer = () => {
-        this._reactionDisposer = reaction(() => this.props.Document[WidthSym](),
-            () => this._pdfViewer.currentScaleValue = (this.props.Document[WidthSym]() / this._pageSizes[0].width));
-        document.addEventListener("pagesinit", () => this._pdfViewer.currentScaleValue = (this.props.Document[WidthSym]() / this._pageSizes[0].width));
+        document.addEventListener("pagesinit", () => this._pdfViewer.currentScaleValue = 1);
         document.addEventListener("pagerendered", () => console.log("rendered"));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
@@ -511,9 +507,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     render() {
-        let scaling = this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width / this.props.Document[WidthSym]() : 1;
         return (<div className="pdfViewer-viewer" onPointerDown={this.onPointerDown} ref={this._mainCont}>
-            <div className="pdfViewer-text" style={{ transform: `scale(${scaling})` }}>
+            <div className="pdfViewer-text">
                 <div key="viewerReal" ref={this._viewer} />
             </div>
             <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}

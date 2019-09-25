@@ -47,29 +47,29 @@
 .pdfBox-settingsCont {
     position: absolute;
     right: 0;
-    top: 0;
+    top: 3;
 
     .pdfBox-settingsButton {
         border-bottom-left-radius: 50%;
         display: flex;
         justify-content: space-evenly;
         align-items: center;
-        height: 70px;
+        height: 30px;
         background: none;
         padding: 0;
 
         .pdfBox-settingsButton-arrow {
             width: 0;
             height: 0;
-            border-top: 25px solid transparent;
-            border-bottom: 25px solid transparent;
-            border-right: 25px solid #121721;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-right: 15px solid #121721;
             transition: all 0.5s;
         }
 
         .pdfBox-settingsButton-iconCont {
             background: #121721;
-            height: 50px;
+            height: 30px;
             width: 70px;
             display: flex;
             justify-content: center;
@@ -84,16 +84,15 @@
     }
 
     .pdfBox-settingsFlyout {
-        width: 600px;
         position: absolute;
         background: #323232;
         box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
-        left: -400px;
+        right: 20px;
         border-radius: 7px;
         padding: 20px;
         display: flex;
         flex-direction: column;
-        font-size: 30px;
+        font-size: 14px;
         transition: all 0.5s;
 
         .pdfBox-settingsFlyout-title {
@@ -108,10 +107,10 @@
     }
 }
 
-.pdfViewer-overlayCont {
+.pdfBox-overlayCont {
     position: absolute;
     width: 100%;
-    height: 100px;
+    height: 40px;
     background: #121721;
     bottom: 0;
     display: flex;
@@ -121,36 +120,34 @@
     overflow: hidden;
     transition: left .5s;
 
-    .pdfViewer-overlaySearchBar {
+    .pdfBox-overlaySearchBar {
         width: 70%;
-        height: 100%;
-        font-size: 30px;
-        padding: 5px;
+        font-size: 14px;
     }
 }
 
-.pdfViewer-overlayButton {
+.pdfBox-overlayButton {
     border-bottom-left-radius: 50%;
     display: flex;
     justify-content: space-evenly;
     align-items: center;
-    height: 70px;
+    height: 30px;
     background: none;
     padding: 0;
     position: absolute;
 
-    .pdfViewer-overlayButton-arrow {
+    .pdfBox-overlayButton-arrow {
         width: 0;
         height: 0;
-        border-top: 25px solid transparent;
-        border-bottom: 25px solid transparent;
-        border-right: 25px solid #121721;
+        border-top: 15px solid transparent;
+        border-bottom: 15px solid transparent;
+        border-right: 15px solid #121721;
         transition: all 0.5s;
     }
 
-    .pdfViewer-overlayButton-iconCont {
+    .pdfBox-overlayButton-iconCont {
         background: #121721;
-        height: 50px;
+        height: 30px;
         width: 70px;
         display: flex;
         justify-content: center;
@@ -160,32 +157,8 @@
     }
 }
 
-.pdfViewer-overlayButton:hover {
+.pdfBox-overlayButton:hover {
     background: none;
-}
-.collectionPdfView-buttonTray {
-    top: 15px;
-    left: 20px;
-    position: relative;
-    transform-origin: left top;
-    position: absolute;
-}
-.collectionPdfView-backward {
-    color: white;
-    font-size: 24px;
-    top: 0px;
-    left: 0px;
-    position: absolute;
-    background-color: rgba(50, 50, 50, 0.2);
-}
-
-.collectionPdfView-forward {
-    color: white;
-    font-size: 24px;
-    top: 0px;
-    left: 45px;
-    position: absolute;
-    background-color: rgba(50, 50, 50, 0.2);
 }
 
 
