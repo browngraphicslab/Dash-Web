@@ -176,10 +176,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (!(pdfUrl instanceof PdfField) || !this._pdf ?
             <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
-            <div className={classname}
-                onScroll={this.onScroll}
-                style={{ marginTop: `${(this.Document.panY || 0)}px` }}
-                ref={this._mainCont}>
+            <div className={classname} onWheel={(e: React.WheelEvent) => e.stopPropagation()} onPointerDown={(e: React.PointerEvent) => {
+                let hit = document.elementFromPoint(e.clientX, e.clientY);
+                if (hit && hit.localName === "span") {
+                    e.button === 0 && e.stopPropagation();
+                }
+            }}>
                 <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={this.Document.panY || 0}
                     Document={this.props.Document} DataDoc={this.dataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY} GoToPage={this.GotoPage}

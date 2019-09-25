@@ -1,4 +1,4 @@
-import { computed } from "mobx";
+import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { emptyFunction } from "../../../Utils";
@@ -46,6 +46,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
     }
 
     render() {
+        trace();
         return (
             <CollectionBaseView {...this.props} className={"collectionPdfView-cont"} onContextMenu={this.onContextMenu}>
                 {this.subView}

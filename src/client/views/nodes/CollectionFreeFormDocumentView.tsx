@@ -99,6 +99,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @observable _animPos: number[] | undefined = undefined;
 
     render() {
+        trace();
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
