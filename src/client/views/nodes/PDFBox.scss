@@ -3,8 +3,9 @@
     display: flex;
     flex-direction: row;
     height: 100%;
-    overflow-y: scroll;
-    overflow-x: hidden;
+    width:100%;
+    overflow: hidden;
+    position:absolute;
 }
 
 .pdfBox-cont {

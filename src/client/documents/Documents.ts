@@ -144,7 +144,7 @@ export namespace Docs {
                 options: { height: 32 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] as CollectionViewType },
+                layout: { view: PDFBox },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
