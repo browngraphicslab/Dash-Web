@@ -62,6 +62,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public search(string: string) {
         this._pdfViewer && this._pdfViewer.search(string);
     }
+    public prevAnnotation() {
+        this._pdfViewer && this._pdfViewer.prevAnnotation();
+    }
+    public nextAnnotation() {
+        this._pdfViewer && this._pdfViewer.nextAnnotation();
+    }
 
     setPdfViewer = (pdfViewer: PDFViewer) => {
         this._pdfViewer = pdfViewer;
@@ -122,46 +128,88 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private newValueChange = (e: React.ChangeEvent<HTMLInputElement>) => this._valueValue = e.currentTarget.value;
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
+    searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
+    private _searchString: string = "";
     settingsPanel() {
         return !this.props.active() ? (null) :
-            (<div className="pdfBox-settingsCont" onPointerDown={(e) => e.stopPropagation()}>
-                <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
-                    <div className="pdfBox-settingsButton-arrow"
-                        style={{
-                            borderTop: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
-                            borderBottom: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
-                            borderRight: `25px solid ${this._flyout ? "transparent" : "#121721"}`,
-                            transform: `scaleX(${this._flyout ? -1 : 1})`
-                        }} />
-                    <div className="pdfBox-settingsButton-iconCont">
-                        <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="3x" />
-                    </div>
+            (<>
+                <div className="pdfViewer-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()}
+                    style={{ bottom: 0, left: `${this._searching ? 0 : 100}%` }}>
+                    <button className="pdfViewer-overlayButton" title="Open Search Bar" />
+                    <input className="pdfViewer-overlaySearchBar" placeholder="Search" onChange={this.searchStringChanged}
+                        onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} />
+                    <button title="Search" onClick={() => this.search(this._searchString)}>
+                        <FontAwesomeIcon icon="search" size="3x" color="white" /></button>
+                </div>
+                <button className="pdfViewer-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar"
+                    style={{ bottom: 10, right: 0, display: this.props.active() ? "flex" : "none" }}>
+                    <div className="pdfViewer-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
+                    <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
-                <div className="pdfBox-settingsFlyout" style={{ left: `${this._flyout ? -600 : 100}px` }} >
-                    <div className="pdfBox-settingsFlyout-title">
-                        Annotation View Settings
-                    </div>
-                    <div className="pdfBox-settingsFlyout-kvpInput">
-                        <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange}
-                            style={{ gridColumn: 1 }} ref={this._keyRef} />
-                        <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange}
-                            style={{ gridColumn: 3 }} ref={this._valueRef} />
-                    </div>
-                    <div className="pdfBox-settingsFlyout-kvpInput">
-                        <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
-                    </div>
-                    <div className="pdfBox-settingsFlyout-kvpInput">
-                        <button style={{ gridColumn: 1 }} onClick={this.resetFilters}>
-                            <FontAwesomeIcon style={{ color: "white" }} icon="trash" size="lg" />
-                            &nbsp; Reset Filters
-                        </button>
-                        <button style={{ gridColumn: 3 }} onClick={this.applyFilter}>
-                            <FontAwesomeIcon style={{ color: "white" }} icon="check" size="lg" />
-                            &nbsp; Apply
-                        </button>
+                <button className="pdfViewer-overlayButton-iconCont" title="Previous Annotation"
+                    onClick={e => { e.stopPropagation(); this.prevAnnotation(); }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{ left: 110, top: 5, height: "30px", position: "absolute", display: this.props.active() ? "flex" : "none" }}>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="sm" />
+                </button>
+                <button className="pdfViewer-overlayButton-iconCont" title="Next Annotation"
+                    onClick={e => { e.stopPropagation(); this.nextAnnotation(); }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{ left: 80, top: 5, height: "30px", position: "absolute", display: this.props.active() ? "flex" : "none" }}>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
+                </button>
+                <button className="pdfViewer-overlayButton-iconCont" key="back" title="Page Back"
+                    onPointerDown={(e) => { e.stopPropagation() }}
+                    onClick={() => this.BackPage()}
+                    style={{ left: 20, top: 5, height: "30px", position: "absolute", pointerEvents: "all", display: this.props.active() ? "flex" : "none" }}>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
+                </button>
+                <button className="pdfViewer-overlayButton-iconCont" key="fwd" title="Page Forward"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => this.ForwardPage()}
+                    style={{ left: 50, top: 5, height: "30px", position: "absolute", pointerEvents: "all", display: this.props.active() ? "flex" : "none" }}>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
+                </button>
+                <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
+                    <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
+                        <div className="pdfBox-settingsButton-arrow"
+                            style={{
+                                borderTop: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
+                                borderBottom: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
+                                borderRight: `25px solid ${this._flyout ? "transparent" : "#121721"}`,
+                                transform: `scaleX(${this._flyout ? -1 : 1})`
+                            }} />
+                        <div className="pdfBox-settingsButton-iconCont">
+                            <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="3x" />
+                        </div>
+                    </button>
+                    <div className="pdfBox-settingsFlyout" style={{ left: `${this._flyout ? -600 : 100}px` }} >
+                        <div className="pdfBox-settingsFlyout-title">
+                            Annotation View Settings
+                        </div>
+                        <div className="pdfBox-settingsFlyout-kvpInput">
+                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange}
+                                style={{ gridColumn: 1 }} ref={this._keyRef} />
+                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange}
+                                style={{ gridColumn: 3 }} ref={this._valueRef} />
+                        </div>
+                        <div className="pdfBox-settingsFlyout-kvpInput">
+                            <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
+                        </div>
+                        <div className="pdfBox-settingsFlyout-kvpInput">
+                            <button style={{ gridColumn: 1 }} onClick={this.resetFilters}>
+                                <FontAwesomeIcon style={{ color: "white" }} icon="trash" size="lg" />
+                                &nbsp; Reset Filters
+                            </button>
+                            <button style={{ gridColumn: 3 }} onClick={this.applyFilter}>
+                                <FontAwesomeIcon style={{ color: "white" }} icon="check" size="lg" />
+                                &nbsp; Apply
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>);
+            </>);
     }
 
     loaded = (nw: number, nh: number, np: number) => {

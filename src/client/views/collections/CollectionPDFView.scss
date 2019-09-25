@@ -1,26 +1,4 @@
-.collectionPdfView-buttonTray {
-    top: 15px;
-    left: 20px;
-    position: relative;
-    transform-origin: left top;
-    position: absolute;
-}
 
-.collectionPdfView-thumb {
-    width: 25px;
-    height: 25px;
-    transform-origin: left top;
-    position: absolute;
-    background: darkgray;
-}
-
-.collectionPdfView-slider {
-    width: 25px;
-    height: 25px;
-    transform-origin: left top;
-    position: absolute;
-    background: lightgray;
-}
 
 .collectionPdfView-cont {
     width: 100%;
@@ -30,22 +8,4 @@
     left: 0;
     z-index: -1;
     overflow: hidden !important;
-}
-
-.collectionPdfView-backward {
-    color: white;
-    font-size: 24px;
-    top: 0px;
-    left: 0px;
-    position: absolute;
-    background-color: rgba(50, 50, 50, 0.2);
-}
-
-.collectionPdfView-forward {
-    color: white;
-    font-size: 24px;
-    top: 0px;
-    left: 45px;
-    position: absolute;
-    background-color: rgba(50, 50, 50, 0.2);
 }

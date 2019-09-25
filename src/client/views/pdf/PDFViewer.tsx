@@ -238,8 +238,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @action
-    prevAnnotation = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    prevAnnotation = () => {
         this.Index = Math.max(this.Index - 1, 0);
         let scrollToAnnotation = this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index];
         this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
@@ -248,8 +247,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @action
-    nextAnnotation = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
         let scrollToAnnotation = this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index];
         this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
@@ -529,16 +527,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                     <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
             </div>
-            <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
-                style={{ bottom: 280, right: 10, display: this.props.active() ? "flex" : "none" }}>
-                <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="3x" /></div>
-            </button>
-            <button className="pdfViewer-overlayButton" onClick={this.nextAnnotation} title="Next Annotation"
-                style={{ bottom: 200, right: 10, display: this.props.active() ? "flex" : "none" }}>
-                <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" /></div>
-            </button>
         </div >);
     }
 }
