@@ -364,19 +364,22 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     // set this is the default link behavior. it parses the string that "contains" the behavior
     // and then calls the correct function
-    @action
-    public defaultLinkBehavior(followString: string) {
+    async public defaultLinkBehavior(followString: string) {
         let params: string[] = this.defaultLinkBehaviorString.split(",");
         console.log(LinkFollowBox.destinationDoc![Id]);
         console.log(params)
         let mode = params[0];
-        let context = params[1];
+        let contextString = params[1];
         let shouldZoomString = params[2];
+        let context: Doc | undefined = undefined;
         let shouldZoom: boolean = shouldZoomString === "true" ? true : false;
 
-        let shouldOpenInContext = context !== "self" && context !== LinkFollowBox.destinationDoc![Id];
+        let shouldOpenInContext = contextString !== "self" && contextString !== LinkFollowBox.destinationDoc![Id];
         if (shouldOpenInContext) {
-
+            let ref = await DocServer.GetRefField(this.selectedContextString);
+            if (ref instanceof Doc) {
+                context = ref;
+            }
         }
 
         // works
@@ -402,7 +405,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else if (mode === FollowModes.OPENTAB) {
             // this.openLinkTab();
             if (shouldOpenInContext) {
-                // this.openLinkColTab({ shouldZoom: shouldZoom, context: })
+                context && this.openLinkColTab({ shouldZoom: shouldZoom, context: context });
             } else {
                 this.openLinkSelfTab();
             }
