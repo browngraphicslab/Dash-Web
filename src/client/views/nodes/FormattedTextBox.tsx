@@ -80,6 +80,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
     private _searchReactionDisposer?: Lambda;
+    private _scroolToRegionReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
@@ -138,6 +139,53 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
+
+        this._scroolToRegionReactionDisposer = reaction(
+            () => StrCast(this.props.Document.scrollToLinkID),
+            async (scrollToLinkID) => {
+                let findLinkFrag = (frag: Fragment, editor: EditorView) => {
+                    const nodes: Node[] = [];
+                    frag.forEach((node, index) => {
+                        let examinedNode = findLinkNode(node, editor);
+                        if (examinedNode && examinedNode.textContent) {
+                            nodes.push(examinedNode);
+                            start += index;
+                        }
+                    });
+                    return { frag: Fragment.fromArray(nodes), start: start };
+                }
+                let findLinkNode = (node: Node, editor: EditorView) => {
+                    if (!node.isText) {
+                        const content = findLinkFrag(node.content, editor);
+                        return node.copy(content.frag);
+                    }
+                    const marks = [...node.marks];
+                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
+                    return linkIndex !== -1 && scrollToLinkID === marks[linkIndex].attrs.href.replace(/.*\/doc\//, "") ? node : undefined;
+                }
+
+                let start = -1;
+
+                if (this._editorView && scrollToLinkID) {
+                    let editor = this._editorView;
+                    let ret = findLinkFrag(editor.state.doc.content, editor);
+
+                    if (ret.frag.size > 2 && ((!this.props.isOverlay && !this.props.isSelected()) || (this.props.isSelected() && this.props.isOverlay))) {
+                        let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
+                        if (ret.frag.firstChild) {
+                            selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
+                        }
+                        editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
+                        const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
+                        setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
+                        setTimeout(() => this.unhighlightSearchTerms(), 2000);
+
+                        this.props.Document.scrollToLinkID = undefined;
+                    }
+                }
+
+            }
+        );
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -696,6 +744,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._editorView && this._editorView.destroy();
             this._editorView = new EditorView(this._proseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
+                handleScrollToSelection: (editorView) => {
+                    let ref = editorView.domAtPos(editorView.state.selection.from);
+                    let refNode = ref.node as any;
+                    while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
+                    let r1 = refNode && (refNode as any).getBoundingClientRect();
+                    let r3 = self._ref.current!.getBoundingClientRect();
+                    r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    return true;
+                },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
@@ -736,6 +793,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
+        this._scroolToRegionReactionDisposer && this._scroolToRegionReactionDisposer();
         this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
@@ -783,9 +841,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                 let proto = Doc.GetProto(linkDoc);
                                 let targetContext = await Cast(proto.targetContext, Doc);
                                 let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
+
                                 if (jumpToDoc) {
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-
                                         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
                                         return;
                                     }
@@ -852,7 +910,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
                 let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
                 if (node === this._nodeClicked && node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
-                    this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                    let hit = this._editorView!.domAtPos(pos.pos).node as any;
+                    let beforeEle = document.querySelector("." + hit.className) as Element;
+                    let before = beforeEle ? window.getComputedStyle(beforeEle, ':before') : undefined;
+                    let beforeWidth = before ? Number(before.getPropertyValue('width').replace("px", "")) : undefined;
+                    if (beforeWidth && e.nativeEvent.offsetX < beforeWidth) {
+                        let ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
+                        if (ol && ol.type === schema.nodes.ordered_list && !e.shiftKey) {
+                            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
+                        } else {
+                            this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                        }
+                    }
                 }
             }
         }
@@ -903,7 +972,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
+        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");

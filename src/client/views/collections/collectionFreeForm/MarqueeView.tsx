@@ -30,6 +30,7 @@ interface MarqueeViewProps {
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
+    isAnnotationOverlay: boolean;
 }
 
 @observer
@@ -297,8 +298,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 y: bounds.top,
                 panX: 0,
                 panY: 0,
-                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
-                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : chosenColor,
+                backgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
+                defaultBackgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
                 width: bounds.width,
                 height: bounds.height,
                 title: "a nested collection",

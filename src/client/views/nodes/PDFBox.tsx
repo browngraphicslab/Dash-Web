@@ -26,11 +26,12 @@ const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 @observer
 export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
-    private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
+    @observable private _searching: boolean = false;
+    private _pdfViewer: PDFViewer | undefined;
     private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _valueRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _scriptRef: React.RefObject<HTMLInputElement> = React.createRef();
@@ -46,7 +47,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     componentDidMount() {
         this.props.setPdfBox && this.props.setPdfBox(this);
 
-        this.props.Document.curPage = ComputedField.MakeFunction("Math.floor(Number(this.panY) / Number(this.nativeHeight) + 1)");
+        this.props.Document.curPage = 1; //  ComputedField.MakeFunction("Math.floor(Number(this.panY) / Number(this.nativeHeight) + 1)");
 
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
@@ -56,6 +57,14 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
+    }
+
+    public search(string: string) {
+        this._pdfViewer && this._pdfViewer.search(string);
+    }
+
+    setPdfViewer = (pdfViewer: PDFViewer) => {
+        this._pdfViewer = pdfViewer;
     }
 
     public GetPage() {
@@ -99,7 +108,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     scrollTo = (y: number) => {
-        this._mainCont.current && this._mainCont.current.scrollTo({ top: Math.max(y - (this._mainCont.current.offsetHeight / 2), 0), behavior: "auto" });
+
     }
 
     private resetFilters = () => {
@@ -116,8 +125,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     settingsPanel() {
         return !this.props.active() ? (null) :
             (<div className="pdfBox-settingsCont" onPointerDown={(e) => e.stopPropagation()}>
-                <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings"
-                    style={{ marginTop: `${this.Document.panY || 0}px` }}>
+                <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                     <div className="pdfBox-settingsButton-arrow"
                         style={{
                             borderTop: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
@@ -157,6 +165,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     loaded = (nw: number, nh: number, np: number) => {
+        // nh *= .33.33333;
+        // nw *= 1.33333;
         this.dataDoc.numPages = np;
         if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
             let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
@@ -165,11 +175,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             this.Document.height = this.Document[WidthSym]() * (nh / nw);
         }
     }
-
-    onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        e.stopPropagation();
-    }
-
 
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
@@ -182,9 +187,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     e.button === 0 && e.stopPropagation();
                 }
             }}>
-                <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={this.Document.panY || 0}
+                <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded}
+                    setPdfViewer={this.setPdfViewer}
                     Document={this.props.Document} DataDoc={this.dataDoc}
-                    addDocTab={this.props.addDocTab} setPanY={this.setPanY} GoToPage={this.GotoPage}
+                    addDocTab={this.props.addDocTab} GoToPage={this.GotoPage}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
                 {this.settingsPanel()}
