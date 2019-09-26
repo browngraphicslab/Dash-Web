@@ -644,7 +644,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return (null);
         }
         let resolvedDataDoc = this._document.layout instanceof Doc ? this._document : this._dataDoc;
-        console.log("Wid = " + this.panelWidth() + " " + this.panelHeight());
         return <DocumentView key={this._document[Id]}
             Document={this._document}
             DataDoc={resolvedDataDoc}

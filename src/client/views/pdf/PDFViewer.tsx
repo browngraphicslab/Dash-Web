@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -24,6 +24,9 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
+const pdfjsLib = require("pdfjs-dist");
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
 
 interface IViewerProps {
     pdf: Pdfjs.PDFDocumentProxy;
@@ -164,6 +167,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
     }
 
+
     @action
     setupPdfJsViewer = () => {
         document.addEventListener("pagesinit", () => this.pdfViewer.currentScaleValue = 1);
@@ -177,7 +181,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             viewer: this._viewer.current,
             linkService: pdfLinkService,
             findController: pdfFindController,
-            renderer: "svg"
+            renderer: "canvas",
         });
         pdfLinkService.setViewer(this.pdfViewer);
         pdfLinkService.setDocument(this.props.pdf, null);
@@ -584,8 +588,9 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
     render() {
+        trace();
         return (<div className="pdfViewer-viewer" onScroll={this.onScroll} onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
-            <div className="pdfViewer-text" ref={this._viewer} />
+            <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />
             {!this._marqueeing ? (null) : <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
                 style={{
                     left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,

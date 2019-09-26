@@ -6,6 +6,7 @@
     width:100%;
     overflow: hidden;
     position:absolute;
+    z-index: -1;
 }
 
 .pdfBox-cont {
@@ -38,6 +39,7 @@
     position: absolute;
     right: 0;
     top: 3;
+    pointer-events: all;
 
     .pdfBox-settingsButton {
         border-bottom-left-radius: 50%;
@@ -109,6 +111,7 @@
     padding: 20px;
     overflow: hidden;
     transition: left .5s;
+    pointer-events: all;
 
     .pdfBox-searchBar {
         width: 70%;
@@ -125,6 +128,7 @@
     background: none;
     padding: 0;
     position: absolute;
+    pointer-events: all;
 
     .pdfBox-overlayButton-arrow {
         width: 0;
