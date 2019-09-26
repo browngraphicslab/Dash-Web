@@ -55,10 +55,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this.dataDoc.numPages = np;
         if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
             let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
-            this.Document.nativeWidth = nw;
-            this.Document.nativeHeight = this.Document.nativeHeight ? nw * oldaspect : nh;
-            this.Document.height = this.Document[WidthSym]() * (nh / nw);
+            this.Document.nativeWidth = nw * 96 / 72;
+            this.Document.nativeHeight = this.Document.nativeHeight ? nw * 96 / 72 * oldaspect : nh * 96 / 72;
         }
+        this.Document.height = this.Document[WidthSym]() * (nh / nw);
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
