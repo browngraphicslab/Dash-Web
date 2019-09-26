@@ -16,6 +16,9 @@
             user-select: none; 
         }
     }
+    .collectionFreeFormView-none {
+        pointer-events: none;
+    }
 }
 
 .pdfBox-cont-interactive {

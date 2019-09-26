@@ -50,7 +50,7 @@ export const panZoomSchema = createSchema({
     useClusters: "boolean",
     isRuleProvider: "boolean",
     fitToBox: "boolean",
-    panTransformType: "string"
+    panTransformType: "string",
 });
 
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
@@ -61,6 +61,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastX: number = 0;
     private _lastY: number = 0;
     private _clusterDistance: number = 75;
+    private _hitCluster = false;
     @observable _clusterSets: (Doc[])[] = [];
 
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
@@ -265,7 +266,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return clusterColor;
     }
 
-    _hitCluster = false;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
@@ -286,7 +286,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble && this.props.layoutKey) {
+        if (!e.cancelBubble && !this.isAnnotationOverlay) {
             if (this._hitCluster && this.tryDragCluster(e)) {
                 e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                 e.preventDefault();
@@ -451,7 +451,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.CollectionView.props.Document,
+            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             parentActive: this.props.active,
@@ -478,7 +478,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             PanelHeight: layoutDoc[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.CollectionView.props.Document,
+            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
             focus: this.focusDocument,
             backgroundColor: returnEmptyString,
             parentActive: this.props.active,
@@ -699,10 +699,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         return (
-            <div className={"collectionfreeformview-container"} style={{ height: this.props.layoutKey ? "100%" : this.props.PanelHeight() }} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+            <div className={"collectionfreeformview-container"} style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? "100%" : this.props.PanelHeight() }} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
-                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox} setPreviewCursor={this.props.setPreviewCursor}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -725,7 +725,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     render() {
         return <DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
-            renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />
+            renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />;
     }
 }
 
@@ -734,7 +734,7 @@ class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps
     render() {
         return !this.props.Document.backgroundLayout ? (null) :
             (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-                renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />)
+                renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
 }
 

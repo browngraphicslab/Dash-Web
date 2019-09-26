@@ -264,7 +264,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove);
         }
-        else if (!e.cancelBubble && this.active) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) ||
+            this.props.parentActive())) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.Document.lockedPosition)) {
                     document.removeEventListener("pointermove", this.onPointerMove);

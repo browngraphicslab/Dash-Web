@@ -603,9 +603,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     contentScaling = () => {
         if (this._document!.type === DocumentType.PDF) {
-            if (this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth))
+            if (this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
                 return this._panelWidth / NumCast(this._document!.nativeWidth);
-            else return this._panelHeight / NumCast(this._document!.nativeHeight);
+            } else {
+                return this._panelHeight / NumCast(this._document!.nativeHeight);
+            }
         }
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();

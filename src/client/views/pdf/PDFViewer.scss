@@ -18,9 +18,8 @@
     .page {
         position: relative;
     }
-
-    .pdfViewer-text {
-        transform-origin: top left;
+    .collectionfreeformview-container {
+        pointer-events: none;
     }
 
     .pdfViewer-dragAnnotationBox {

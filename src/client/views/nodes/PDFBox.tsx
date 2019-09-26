@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from 'mobx';
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -25,7 +25,7 @@ const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
 export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
-    public static LayoutString() { return FieldView.LayoutString(PDFBox); }
+    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(PDFBox, "data", fieldExt); }
     private _reactionDisposer?: IReactionDisposer;
     private _keyValue: string = "";
     private _valueValue: string = "";
@@ -73,24 +73,24 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     public GetPage() {
-        return this._pdfViewer!._pdfViewer.currentPageNumber;
+        return this._pdfViewer!.pdfViewer.currentPageNumber;
     }
 
     @action
     public BackPage() {
-        this._pdfViewer!._pdfViewer.scrollPageIntoView({ pageNumber: Math.max(1, this.GetPage() - 1) });
+        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: Math.max(1, this.GetPage() - 1) });
         this.props.Document.curPage = this.GetPage();
     }
 
     @action
     public GotoPage = (p: number) => {
-        this._pdfViewer!._pdfViewer.scrollPageIntoView(p);
+        this._pdfViewer!.pdfViewer.scrollPageIntoView(p);
         this.props.Document.curPage = this.GetPage();
     }
 
     @action
     public ForwardPage() {
-        this._pdfViewer!._pdfViewer.scrollPageIntoView({ pageNumber: Math.min(this._pdfViewer!._pdfViewer.pagesCount, this.GetPage() + 1) });
+        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(this._pdfViewer!.pdfViewer.pagesCount, this.GetPage() + 1) });
         this.props.Document.curPage = this.GetPage();
     }
 
@@ -153,7 +153,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
                 </button>
                 <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                    onPointerDown={(e) => { e.stopPropagation() }}
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => this.BackPage()}
                     style={{ left: 20, top: 5, height: "30px", position: "absolute", pointerEvents: "all", display: this.props.active() ? "flex" : "none" }}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
@@ -211,7 +211,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
+        let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive");
         return (!(pdfUrl instanceof PdfField) || !this._pdf ?
             <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
             <div className={classname} onWheel={(e: React.WheelEvent) => e.stopPropagation()} onPointerDown={(e: React.PointerEvent) => {
@@ -221,11 +221,13 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 }
             }}>
                 <PDFViewer {...this.props} pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded}
-                    setPdfViewer={this.setPdfViewer}
+                    setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
+                    renderDepth={this.props.renderDepth}
                     Document={this.props.Document} DataDoc={this.dataDoc}
                     addDocTab={this.props.addDocTab} GoToPage={this.GotoPage}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    isSelected={this.props.isSelected}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
                 {this.settingsPanel()}
             </div>);

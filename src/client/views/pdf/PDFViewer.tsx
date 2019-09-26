@@ -1,29 +1,29 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult, WidthSym, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange } from "../../../Utils";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { numberRange, emptyFunction, returnOne } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
-import { KeyCodes } from "../../northstar/utils/KeyCodes";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
+import { Transform } from "../../util/Transform";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
-import requestPromise = require("request-promise");
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
-import { listSpec } from "../../../new_fields/Schema";
-import { Transform } from "../../util/Transform";
+import { SelectionManager } from "../../util/SelectionManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 interface IViewerProps {
@@ -33,6 +33,9 @@ interface IViewerProps {
     DataDoc?: Doc;
     fieldExtensionDoc: Doc;
     fieldKey: string;
+    fieldExt: string;
+    renderDepth: number;
+    isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
     scrollTo: (y: number) => void;
     active: () => boolean;
@@ -42,7 +45,7 @@ interface IViewerProps {
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
-
+    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
 }
 
 /**
@@ -60,18 +63,22 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
 
+    public pdfViewer: any;
+    private _isChildActive = false;
+    private _setPreviewCursor: undefined | ((x: number, y: number) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    public _pdfViewer: any;
     private _selectionText: string = "";
     private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
     private _marqueeing: boolean = false;
-    private _startY: number = 0;
     private _startX: number = 0;
+    private _startY: number = 0;
+    private _downX: number = 0;
+    private _downY: number = 0;
 
     @computed get allAnnotations() {
         return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
@@ -157,22 +164,22 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     setupPdfJsViewer = () => {
-        document.addEventListener("pagesinit", () => this._pdfViewer.currentScaleValue = 1);
+        document.addEventListener("pagesinit", () => this.pdfViewer.currentScaleValue = 1);
         document.addEventListener("pagerendered", () => console.log("rendered"));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
         });
-        this._pdfViewer = new PDFJSViewer.PDFViewer({
+        this.pdfViewer = new PDFJSViewer.PDFViewer({
             container: this._mainCont.current,
             viewer: this._viewer.current,
             linkService: pdfLinkService,
             findController: pdfFindController,
             renderer: "svg"
         });
-        pdfLinkService.setViewer(this._pdfViewer);
+        pdfLinkService.setViewer(this.pdfViewer);
         pdfLinkService.setDocument(this.props.pdf, null);
-        this._pdfViewer.setDocument(this.props.pdf);
+        this.pdfViewer.setDocument(this.props.pdf);
     }
 
     @action
@@ -195,7 +202,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             annoDocs.push(annoDoc);
             annoDoc.isButton = true;
             anno.remove();
-            this.props.addDocument && this.props.addDocument(annoDoc, false);
+            // this.props.addDocument && this.props.addDocument(annoDoc, false);
             mainAnnoDoc = annoDoc;
             mainAnnoDocProto.y = annoDoc.y;
             mainAnnoDocProto = Doc.GetProto(annoDoc);
@@ -305,8 +312,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     search = (searchString: string) => {
-        if (this._pdfViewer._pageViewsReady) {
-            this._pdfViewer.findController.executeCommand('findagain', {
+        if (this.pdfViewer._pageViewsReady) {
+            this.pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: undefined,
                 highlightAll: true,
@@ -316,7 +323,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
         else if (this._mainCont.current) {
             let executeFind = () => {
-                this._pdfViewer.findController.executeCommand('find', {
+                this.pdfViewer.findController.executeCommand('find', {
                     caseSensitive: false,
                     findPrevious: undefined,
                     highlightAll: true,
@@ -333,7 +340,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
         if (NumCast(this.props.Document.scale, 1) !== 1) return;
-        if (!e.altKey && e.button === 0) {
+        this._marqueeing = false;
+        if (!e.altKey && e.button === 0 && this.active()) {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.Snippet = this.createSnippet;
@@ -346,6 +354,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 }
             }
             else {
+                this._downX = e.clientX;
+                this._downY = e.clientY;
                 // set marquee x and y positions to the spatially transformed position
                 if (this._mainCont.current) {
                     let boundingRect = this._mainCont.current.getBoundingClientRect();
@@ -356,15 +366,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 this._marquee.current && (this._marquee.current.style.opacity = "0.2");
                 this.receiveAnnotations([], -1);
             }
-            document.removeEventListener("pointermove", this.onSelectStart);
-            document.addEventListener("pointermove", this.onSelectStart);
+            document.removeEventListener("pointermove", this.onSelectMove);
+            document.addEventListener("pointermove", this.onSelectMove);
             document.removeEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.onSelectEnd);
         }
     }
 
     @action
-    onSelectStart = (e: PointerEvent): void => {
+    onSelectMove = (e: PointerEvent): void => {
         if (this._marqueeing && this._mainCont.current) {
             // transform positions and find the width and height to set the marquee to
             let boundingRect = this._mainCont.current.getBoundingClientRect();
@@ -419,7 +429,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @action
     onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
-            this._marqueeing = false;
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
                 if (this._marquee.current) { // make a copy of the marquee
                     let copy = document.createElement("div");
@@ -444,23 +453,23 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
             this._marqueeHeight = this._marqueeWidth = 0;
         }
-        // else {
-        //     let sel = window.getSelection();
-        //     if (sel && sel.type === "Range") {
-        //         let selRange = sel.getRangeAt(0);
-        //         this.createTextAnnotation(sel, selRange);
-        //         PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
-        //     }
-        // }
+        else {
+            let sel = window.getSelection();
+            if (sel && sel.type === "Range") {
+                let selRange = sel.getRangeAt(0);
+                this.createTextAnnotation(sel, selRange);
+                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+            }
+        }
 
-        // if (PDFMenu.Instance.Highlighting) {
-        //     this.highlight(undefined, "goldenrod");
-        // }
-        // else {
-        //     PDFMenu.Instance.StartDrag = this.startDrag;
-        //     PDFMenu.Instance.Highlight = this.highlight;
-        // }
-        document.removeEventListener("pointermove", this.onSelectStart);
+        if (PDFMenu.Instance.Highlighting) {
+            this.highlight(undefined, "goldenrod");
+        }
+        else {
+            PDFMenu.Instance.StartDrag = this.startDrag;
+            PDFMenu.Instance.Highlight = this.highlight;
+        }
+        document.removeEventListener("pointermove", this.onSelectMove);
         document.removeEventListener("pointerup", this.onSelectEnd);
     }
 
@@ -468,7 +477,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     highlight = (targetDoc: Doc | undefined, color: string) => {
         // creates annotation documents for current highlights
         let annotationDoc = this.makeAnnotationDocument(targetDoc, color, false);
-        Doc.AddDocToList(this.props.fieldExtensionDoc, "annotations", annotationDoc);
+        Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, annotationDoc);
         return annotationDoc;
     }
 
@@ -529,7 +538,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     removeDocument(doc: Doc): boolean {
         //TODO This won't create the field if it doesn't already exist
         let targetDataDoc = this.props.fieldExtensionDoc;
-        let targetField = "annotations";
+        let targetField = this.props.fieldExt;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
@@ -539,8 +548,22 @@ export class PDFViewer extends React.Component<IViewerProps> {
     scrollXf = () => {
         return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._mainCont.current.scrollTop) : this.props.ScreenToLocalTransform();
     }
+    setPreviewCursor = (func?: (x: number, y: number) => void) => {
+        this._setPreviewCursor = func;
+    }
+    onClick = (e: React.MouseEvent) => {
+        this._setPreviewCursor && this._marqueeing && Math.abs(e.clientX - this._downX) < 3 && Math.abs(e.clientY - this._downY) < 3 &&
+            this._setPreviewCursor(e.clientX, e.clientY);
+    }
+    whenActiveChanged = (isActive: boolean) => {
+        this._isChildActive = isActive;
+        //this.props.whenActiveChanged(isActive); // bcz: is this needed here?
+    }
+    active = () => {
+        return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
+    }
     render() {
-        return (<div className="pdfViewer-viewer" onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} ref={this._mainCont}>
+        return (<div className="pdfViewer-viewer" onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
             <div className="pdfViewer-text" ref={this._viewer} />
             <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
                 style={{
@@ -554,17 +577,24 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
             </div>
             <CollectionFreeFormView {...this.props}
-                fieldExt="annotations"
+                setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={() => this._pageSizes.length && this._pageSizes[0] ? this.props.pdf.numPages * this._pageSizes[0].height : 300}
+                PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : 300}
+                focus={emptyFunction}
+                isSelected={this.props.isSelected}
+                select={emptyFunction}
+                active={this.active}
+                ContentScaling={returnOne}
+                whenActiveChanged={this.whenActiveChanged}
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
-                addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, "annotations", doc); return true; }}
+                addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
                 CollectionView={this.props.ContainingCollectionView}
                 ScreenToLocalTransform={this.scrollXf}
-                ruleProvider={this.props.ruleProvider}
-                chromeCollapsed={true}
-                layoutKey={undefined}
-                backgroundLayout={undefined} >
+                ruleProvider={undefined}
+                renderDepth={this.props.renderDepth + 1}
+                ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
+                chromeCollapsed={true}>
             </CollectionFreeFormView>
         </div >);
     }

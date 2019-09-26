@@ -12,7 +12,7 @@ import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { random } from "animejs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc, dataDoc?: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined
+    dataProvider?: (doc: Doc, dataDoc?: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
     x?: number;
     y?: number;
     width?: number;
@@ -99,8 +99,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @observable _animPos: number[] | undefined = undefined;
 
-    finalPanelWidh = () => { return this.dataProvider ? this.dataProvider.width : this.panelWidth(); }
-    finalPanelHeight = () => { return this.dataProvider ? this.dataProvider.height : this.panelHeight(); }
+    finalPanelWidh = () => this.dataProvider ? this.dataProvider.width : this.panelWidth();
+    finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
 
     render() {
         trace();

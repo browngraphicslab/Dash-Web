@@ -90,9 +90,7 @@ export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: 
         layoutPoolData.set(pair, { transition: "transform 1s", ...pos });
     });
     return { map: layoutPoolData, elements: viewDefsToJSX(groupNames) };
-};
-
-
+}
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {
     return () => {

@@ -31,6 +31,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     isAnnotationOverlay: boolean;
+    setPreviewCursor?: (func: (x: number, y: number) => void) => void;
 }
 
 @observer
@@ -43,6 +44,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @observable _downY: number = 0;
     @observable _visible: boolean = false;
     _commandExecuted = false;
+
+    componentDidMount() {
+        this.props.setPreviewCursor && this.props.setPreviewCursor(this.setPreviewCursor);
+    }
 
     @action
     cleanupInteractions = (all: boolean = false) => {
@@ -203,11 +208,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
     }
 
+    setPreviewCursor = (x: number, y: number) => {
+        this._downX = x;
+        this._downY = y;
+        PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
+    }
+
     @action
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
+            this.setPreviewCursor(e.clientX, e.clientY);
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
