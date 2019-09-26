@@ -432,7 +432,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @action
     public setDefaultFollowBehavior = (followMode: string, context: string, shouldZoom: boolean) => {
-        LinkFollowBox.linkDoc && LinkFollowBox.linkDoc.defaultLinkFollow = followMode + "," + context + "," + shouldZoom.toString();
+        if (LinkFollowBox.linkDoc) { LinkFollowBox.linkDoc.defaultLinkFollow = followMode + "," + context + "," + shouldZoom.toString(); }
         // return followMode + "," + context + "," + shouldZoom.toString();
     }
 
