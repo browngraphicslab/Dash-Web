@@ -375,7 +375,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     // set this is the default link behavior. it parses the string that "contains" the behavior
     // and then calls the correct function
     public async defaultLinkBehavior(followString: string) {
-        let params: string[] = this.defaultLinkBehaviorString.split(",");
+        let params: string[] = followString.split(",");
         console.log(LinkFollowBox.destinationDoc![Id]);
         console.log(params)
         let mode = params[0];
@@ -426,15 +426,14 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else return;
     }
 
-    public defaultLinkBehaviorString: string = FollowModes.PAN + "," + "none,false";
-
     get shouldZoom() {
         return this.selectedOption === FollowOptions.NOZOOM ? false : true;
     }
 
     @action
     public setDefaultFollowBehavior = (followMode: string, context: string, shouldZoom: boolean) => {
-        this.defaultLinkBehaviorString = followMode + "," + context + "," + shouldZoom.toString();
+        LinkFollowBox.linkDoc && LinkFollowBox.linkDoc.defaultLinkFollow = followMode + "," + context + "," + shouldZoom.toString();
+        // return followMode + "," + context + "," + shouldZoom.toString();
     }
 
     @action

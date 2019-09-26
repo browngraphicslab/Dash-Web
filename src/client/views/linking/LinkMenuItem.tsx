@@ -29,6 +29,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }
+    // @observable defaultLinkBehaviorString: string ="Pan to Document,none,false";
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -101,7 +102,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             //if its open
             // this.openLinkFollower();
-            LinkFollowBox.Instance.defaultLinkBehavior();
+            LinkFollowBox.Instance.defaultLinkBehavior(this.defaultLinkBehaviorString);
         }
     }
 
