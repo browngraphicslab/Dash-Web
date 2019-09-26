@@ -8,7 +8,7 @@ import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';
 import Photos = require('googlephotos');
-
+import { Database } from "../../database";
 /**
  * Server side authentication for Google Api queries.
  */
@@ -35,9 +35,9 @@ export namespace GoogleApiServerUtils {
         Slides = "Slides"
     }
 
-    export interface CredentialPaths {
+    export interface CredentialInformation {
         credentialsPath: string;
-        tokenPath: string;
+        userId: string;
     }
 
     export type ApiResponse = Promise<GaxiosResponse>;
@@ -48,7 +48,7 @@ export namespace GoogleApiServerUtils {
     export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };
     export type EndpointParameters = GlobalOptions & { version: "v1" };
 
-    export const GetEndpoint = (sector: string, paths: CredentialPaths) => {
+    export const GetEndpoint = (sector: string, paths: CredentialInformation) => {
         return new Promise<Opt<Endpoint>>(resolve => {
             RetrieveCredentials(paths).then(authentication => {
                 let routed: Opt<Endpoint>;
@@ -66,28 +66,28 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    export const RetrieveCredentials = (paths: CredentialPaths) => {
+    export const RetrieveCredentials = (information: CredentialInformation) => {
         return new Promise<TokenResult>((resolve, reject) => {
-            readFile(paths.credentialsPath, async (err, credentials) => {
+            readFile(information.credentialsPath, async (err, credentials) => {
                 if (err) {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                authorize(parseBuffer(credentials), paths.tokenPath).then(resolve, reject);
+                authorize(parseBuffer(credentials), information.userId).then(resolve, reject);
             });
         });
     };
 
-    export const RetrieveAccessToken = (paths: CredentialPaths) => {
+    export const RetrieveAccessToken = (information: CredentialInformation) => {
         return new Promise<string>((resolve, reject) => {
-            RetrieveCredentials(paths).then(
+            RetrieveCredentials(information).then(
                 credentials => resolve(credentials.token.access_token!),
                 error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
             );
         });
     };
 
-    export const RetrievePhotosEndpoint = (paths: CredentialPaths) => {
+    export const RetrievePhotosEndpoint = (paths: CredentialInformation) => {
         return new Promise<any>((resolve, reject) => {
             RetrieveAccessToken(paths).then(
                 token => resolve(new Photos(token)),
@@ -101,20 +101,20 @@ export namespace GoogleApiServerUtils {
      * Create an OAuth2 client with the given credentials, and returns the promise resolving to the authenticated client
      * @param {Object} credentials The authorization client credentials.
      */
-    export function authorize(credentials: any, token_path: string): Promise<TokenResult> {
+    export function authorize(credentials: any, userId: string): Promise<TokenResult> {
         const { client_secret, client_id, redirect_uris } = credentials.installed;
         const oAuth2Client = new google.auth.OAuth2(
             client_id, client_secret, redirect_uris[0]);
 
         return new Promise<TokenResult>((resolve, reject) => {
-            readFile(token_path, (err, token) => {
-                // Check if we have previously stored a token.
-                if (err) {
-                    return getNewToken(oAuth2Client, token_path).then(resolve, reject);
+            Database.Auxiliary.FetchGoogleAuthenticationToken(userId).then(token => {
+                // Check if we have previously stored a token for this userId.
+                if (!token) {
+                    return getNewToken(oAuth2Client, userId).then(resolve, reject);
                 }
                 let parsed: Credentials = parseBuffer(token);
                 if (parsed.expiry_date! < new Date().getTime()) {
-                    return refreshToken(parsed, client_id, client_secret, oAuth2Client, token_path).then(resolve, reject);
+                    return refreshToken(parsed, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
                 }
                 oAuth2Client.setCredentials(parsed);
                 resolve({ token: parsed, client: oAuth2Client });

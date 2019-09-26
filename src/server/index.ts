@@ -41,13 +41,14 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GooglePhotosUploadUtils, DownloadUtils as UploadUtils } from './apis/google/GooglePhotosUploadUtils';
+import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
 import BatchedArray, { TimeUnit } from "array-batcher";
+import { DashUploadUtils } from './DashUploadUtils';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -581,8 +582,8 @@ app.post(
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
-                const metadata = await UploadUtils.InspectImage(uploadDirectory + filename);
-                await UploadUtils.UploadImage(metadata, filename).catch(() => console.log(`Unable to process ${filename}`));
+                const metadata = await DashUploadUtils.InspectImage(uploadDirectory + filename);
+                await DashUploadUtils.UploadImage(metadata, filename).catch(() => console.log(`Unable to process ${filename}`));
                 results.push({ name, type, path: `/files/${filename}` });
             }
             _success(res, results);
@@ -809,7 +810,7 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
     let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, tokenPath }).then(endpoint => {
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.body.userId }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(
@@ -823,7 +824,7 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, tokenPath }).then(token => res.send(token)));
+app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.body.userId }).then(token => res.send(token)));
 
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
@@ -836,12 +837,13 @@ export interface NewMediaItem {
 }
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
-    const mediaInput: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
-    await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
+    const { userId, media } = req.body;
+
+    await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
 
     let failed = 0;
 
-    const newMediaItems = await BatchedArray.from(mediaInput, { batchSize: 25 }).batchedMapInterval(
+    const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapInterval(
         async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
             const newMediaItems: NewMediaItem[] = [];
             for (let element of batch) {
@@ -879,31 +881,36 @@ const prefix = "google_photos_";
 const downloadError = "Encountered an error while executing downloads.";
 const requestError = "Unable to execute download: the body's media items were malformed.";
 
-app.get("/gapiCleanup", (req, res) => {
-    write_text_file(file, "");
+app.get("/deleteWithAux", async (req, res) => {
+    await Database.Auxiliary.DeleteAll();
     res.redirect(RouteStore.delete);
 });
 
-const file = "./apis/google/existing_uploads.json";
+const UploadError = (count: number) => `Unable to upload ${count} images to Dash's server`;
 app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
     const contents: { mediaItems: MediaItem[] } = req.body;
+    let failed = 0;
     if (contents) {
-        const completed: Opt<UploadUtils.UploadInformation>[] = [];
-        const content = await read_text_file(file);
-        let existing = content.length ? JSON.parse(content) : {};
+        const completed: Opt<DashUploadUtils.UploadInformation>[] = [];
         for (let item of contents.mediaItems) {
-            const { contentSize, ...attributes } = await UploadUtils.InspectImage(item.baseUrl);
-            const found: UploadUtils.UploadInformation = existing[contentSize!];
+            const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
+            const found: Opt<DashUploadUtils.UploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
             if (!found) {
-                const upload = await UploadUtils.UploadImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
-                upload && completed.push(existing[contentSize!] = upload);
+                const upload = await DashUploadUtils.UploadImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
+                if (upload) {
+                    completed.push(upload);
+                    await Database.Auxiliary.LogUpload(upload);
+                } else {
+                    failed++;
+                }
             } else {
                 completed.push(found);
             }
         }
-        await write_text_file(file, JSON.stringify(existing));
-        _success(res, completed);
-        return;
+        if (failed) {
+            return _error(res, UploadError(failed));
+        }
+        return _success(res, completed);
     }
     _invalid(res, requestError);
 });
