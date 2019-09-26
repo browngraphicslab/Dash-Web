@@ -52,7 +52,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 });
             }
         }
-
         return (<div className="link-metadata">{mdRows}</div>);
     }
 
@@ -102,7 +101,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             //if its open
             // this.openLinkFollower();
-            LinkFollowBox.Instance.defaultLinkBehavior(this.defaultLinkBehaviorString);
+            LinkFollowBox.Instance.defaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow));
         }
     }
 
