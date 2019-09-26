@@ -254,21 +254,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
+        if (this.active && e.button === 0) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
     }
     onPointerMove = (e: PointerEvent): void => {
-        console.log("Move " + e.clientX + " " + this.props.Document.title);
         if (e.cancelBubble && this.active) {
-            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) ||
-            this.props.parentActive())) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive())) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.Document.lockedPosition)) {
+                if (!e.altKey && !this.topMost && e.buttons === 1 && !this.Document.lockedPosition) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);

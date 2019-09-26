@@ -103,7 +103,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
 
     render() {
-        trace();
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{

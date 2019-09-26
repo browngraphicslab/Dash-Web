@@ -69,7 +69,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     public pdfViewer: any;
     private _isChildActive = false;
-    private _setPreviewCursor: undefined | ((x: number, y: number) => void);
+    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
@@ -355,7 +355,12 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
+        this._downX = e.clientX;
+        this._downY = e.clientY;
         if (NumCast(this.props.Document.scale, 1) !== 1) return;
+        if (e.button !== 0 && this.active()) {
+            this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
+        }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active()) {
             PDFMenu.Instance.StartDrag = this.startDrag;
@@ -370,8 +375,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 }
             }
             else {
-                this._downX = e.clientX;
-                this._downY = e.clientY;
                 // set marquee x and y positions to the spatially transformed position
                 if (this._mainCont.current) {
                     let boundingRect = this._mainCont.current.getBoundingClientRect();
@@ -564,15 +567,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
     scrollXf = () => {
         return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._mainCont.current.scrollTop) : this.props.ScreenToLocalTransform();
     }
-    setPreviewCursor = (func?: (x: number, y: number) => void) => {
+    setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => {
         this._setPreviewCursor = func;
     }
     onClick = (e: React.MouseEvent) => {
         this._setPreviewCursor &&
-            this._marqueeing &&
+            e.button === 0 &&
             Math.abs(e.clientX - this._downX) < 3 &&
             Math.abs(e.clientY - this._downY) < 3 &&
-            this._setPreviewCursor(e.clientX, e.clientY);
+            this._setPreviewCursor(e.clientX, e.clientY, false);
     }
     whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
