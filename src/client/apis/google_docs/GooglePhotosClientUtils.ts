@@ -1,4 +1,4 @@
-import { PostToServer, Utils } from "../../../Utils";
+import { Utils } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { ImageField } from "../../../new_fields/URLField";
 import { Cast, StrCast } from "../../../new_fields/Types";
@@ -14,6 +14,7 @@ import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/Share
 import { AssertionError } from "assert";
 import { DocumentView } from "../../views/nodes/DocumentView";
 import { DocumentManager } from "../../util/DocumentManager";
+import { PostToServer } from "../../Network";
 
 export namespace GooglePhotos {
 

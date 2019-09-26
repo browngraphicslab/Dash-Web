@@ -231,18 +231,36 @@ export namespace Database {
 
         const GoogleAuthentication = "GoogleAuthentication";
 
-        const SanitizedSingletonQuery = async (query: { [key: string]: any }, collection: string) => {
+        const SanitizedCappedQuery = async (query: { [key: string]: any }, collection: string, cap: number) => {
             const cursor = await Instance.query(query, undefined, collection);
-            const existing = (await cursor.toArray())[0];
-            if (existing) {
-                delete existing._id;
-            }
-            return existing;
+            const results = await cursor.toArray();
+            const slice = results.slice(0, Math.min(cap, results.length));
+            return slice.map(result => {
+                delete result._id;
+                return result;
+            });
+        };
+
+        const SanitizedSingletonQuery = async (query: { [key: string]: any }, collection: string) => {
+            const results = await SanitizedCappedQuery(query, collection, 1);
+            return results.length ? results[0] : undefined;
         };
 
         export const QueryUploadHistory = async (contentSize: number): Promise<Opt<DashUploadUtils.UploadInformation>> => {
             return SanitizedSingletonQuery({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
+
+        export namespace GoogleAuthenticationToken {
+
+            export const Fetch = async (userId: string) => {
+                return SanitizedSingletonQuery({ userId }, GoogleAuthentication);
+            };
+
+            export const Write = async (userId: string, token: any) => {
+                return Instance.insert({ userId, ...token }, GoogleAuthentication);
+            };
+
+        }
 
         export const LogUpload = async (information: DashUploadUtils.UploadInformation) => {
             const bundle = {
@@ -256,10 +274,6 @@ export namespace Database {
             const collectionNames = Object.values(AuxiliaryCollections);
             const pendingDeletions = collectionNames.map(name => Instance.deleteAll(name, persist));
             return Promise.all(pendingDeletions);
-        };
-
-        export const FetchGoogleAuthenticationToken = async (userId: string) => {
-            return SanitizedSingletonQuery({ userId }, GoogleAuthentication);
         };
 
     }

@@ -810,7 +810,7 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
     let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.body.userId }).then(endpoint => {
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.headers.userId as string }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(
@@ -824,10 +824,11 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.body.userId }).then(token => res.send(token)));
+app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.headers.userId as string }).then(token => res.send(token)));
 
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
+const userIdError = "Unable to parse the identification of the user!";
 
 export interface NewMediaItem {
     description: string;
@@ -837,7 +838,12 @@ export interface NewMediaItem {
 }
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
-    const { userId, media } = req.body;
+    const { media } = req.body;
+    const { userId } = req.headers;
+
+    if (!userId || Array.isArray(userId)) {
+        return _error(res, userIdError);
+    }
 
     await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
 

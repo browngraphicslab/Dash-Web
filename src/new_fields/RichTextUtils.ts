@@ -7,17 +7,17 @@ import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt, Doc } from "./Doc";
 import Color = require('color');
 import { sinkListItem } from "prosemirror-schema-list";
-import { Utils, PostToServer } from "../Utils";
+import { Utils } from "../Utils";
 import { RouteStore } from "../server/RouteStore";
 import { Docs } from "../client/documents/Documents";
 import { schema } from "../client/util/RichTextSchema";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
-import { SchemaHeaderField } from "./SchemaHeaderField";
 import { DocServer } from "../client/DocServer";
 import { Cast, StrCast } from "./Types";
 import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
 import { AssertionError } from "assert";
+import { PostToServer } from "../client/Network";
 
 export namespace RichTextUtils {
 

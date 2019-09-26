@@ -21,6 +21,7 @@ import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
 import BatchedArray from "array-batcher";
+import { PostFormDataToServer } from "../../Network";
 
 const unsupported = ["text/html", "text/plain"];
 interface FileResponse {
@@ -106,7 +107,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync(async batch => {
             const formData = new FormData();
-            const parameters = { method: 'POST', body: formData };
 
             batch.forEach(file => {
                 sizes.push(file.size);
@@ -114,7 +114,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            const responses = await (await fetch(RouteStore.upload, parameters)).json();
+            const responses = await PostFormDataToServer(RouteStore.upload, formData);
             runInAction(() => this.completed += batch.length);
             return responses as FileResponse[];
         });

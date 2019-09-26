@@ -3,22 +3,20 @@ import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { RouteStore } from './server/RouteStore';
-import requestPromise = require('request-promise');
-import { CurrentUserUtils } from './server/authentication/models/current_user_utils';
 
-export class Utils {
+export namespace Utils {
 
-    public static DRAG_THRESHOLD = 4;
+    export const DRAG_THRESHOLD = 4;
 
-    public static GenerateGuid(): string {
+    export function GenerateGuid(): string {
         return v4();
     }
 
-    public static GenerateDeterministicGuid(seed: string): string {
+    export function GenerateDeterministicGuid(seed: string): string {
         return v5(seed, v5.URL);
     }
 
-    public static GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
+    export function GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
         if (!ele) {
             return { scale: 1, translateX: 1, translateY: 1 };
         }
@@ -35,23 +33,23 @@ export class Utils {
      * requested extension
      * @param extension the specified sub-path to append to the window origin
      */
-    public static prepend(extension: string): string {
+    export function prepend(extension: string): string {
         return window.location.origin + extension;
     }
 
-    public static fileUrl(filename: string): string {
-        return this.prepend(`/files/${filename}`);
+    export function fileUrl(filename: string): string {
+        return prepend(`/files/${filename}`);
     }
 
-    public static shareUrl(documentId: string): string {
-        return this.prepend(`/doc/${documentId}?sharing=true`);
+    export function shareUrl(documentId: string): string {
+        return prepend(`/doc/${documentId}?sharing=true`);
     }
 
-    public static CorsProxy(url: string): string {
-        return this.prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
+    export function CorsProxy(url: string): string {
+        return prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
     }
 
-    public static CopyText(text: string) {
+    export function CopyText(text: string) {
         var textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -63,7 +61,7 @@ export class Utils {
         document.body.removeChild(textArea);
     }
 
-    public static fromRGBAstr(rgba: string) {
+    export function fromRGBAstr(rgba: string) {
         let rm = rgba.match(/rgb[a]?\(([0-9]+)/);
         let r = rm ? Number(rm[1]) : 0;
         let gm = rgba.match(/rgb[a]?\([0-9]+,([0-9]+)/);
@@ -74,11 +72,12 @@ export class Utils {
         let a = am ? Number(am[1]) : 0;
         return { r: r, g: g, b: b, a: a };
     }
-    public static toRGBAstr(col: { r: number, g: number, b: number, a?: number }) {
+
+    export function toRGBAstr(col: { r: number, g: number, b: number, a?: number }) {
         return "rgba(" + col.r + "," + col.g + "," + col.b + (col.a !== undefined ? "," + col.a : "") + ")";
     }
 
-    public static HSLtoRGB(h: number, s: number, l: number) {
+    export function HSLtoRGB(h: number, s: number, l: number) {
         // Must be fractions of 1
         // s /= 100;
         // l /= 100;
@@ -108,7 +107,7 @@ export class Utils {
         return { r: r, g: g, b: b };
     }
 
-    public static RGBToHSL(r: number, g: number, b: number) {
+    export function RGBToHSL(r: number, g: number, b: number) {
         // Make r, g, and b fractions of 1
         r /= 255;
         g /= 255;
@@ -150,7 +149,7 @@ export class Utils {
     }
 
 
-    public static GetClipboardText(): string {
+    export function GetClipboardText(): string {
         var textArea = document.createElement("textarea");
         document.body.appendChild(textArea);
         textArea.focus();
@@ -163,51 +162,53 @@ export class Utils {
         return val;
     }
 
-    public static loggingEnabled: Boolean = false;
-    public static logFilter: number | undefined = undefined;
-    private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
-        if (!this.loggingEnabled) {
+    export const loggingEnabled: Boolean = false;
+    export const logFilter: number | undefined = undefined;
+
+    function log(prefix: string, messageName: string, message: any, receiving: boolean) {
+        if (!loggingEnabled) {
             return;
         }
         message = message || {};
-        if (this.logFilter !== undefined && this.logFilter !== message.type) {
+        if (logFilter !== undefined && logFilter !== message.type) {
             return;
         }
         let idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
         console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
     }
-    private static loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
+
+    function loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
         return (args: any) => {
-            this.log(prefix, messageName, args, true);
+            log(prefix, messageName, args, true);
             func(args);
         };
     }
 
-    public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
-        this.log("Emit", message.Name, args, false);
+    export function Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
+        log("Emit", message.Name, args, false);
         socket.emit(message.Message, args);
     }
 
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
-        this.log("Emit", message.Name, args, false);
+    export function EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
+    export function EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
+    export function EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
+        log("Emit", message.Name, args, false);
         if (fn) {
-            socket.emit(message.Message, args, this.loggingCallback('Receiving', fn, message.Name));
+            socket.emit(message.Message, args, loggingCallback('Receiving', fn, message.Name));
         } else {
-            return new Promise<any>(res => socket.emit(message.Message, args, this.loggingCallback('Receiving', res, message.Name)));
+            return new Promise<any>(res => socket.emit(message.Message, args, loggingCallback('Receiving', res, message.Name)));
         }
     }
 
-    public static AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
-        socket.on(message.Message, this.loggingCallback('Incoming', handler, message.Name));
+    export function AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
+        socket.on(message.Message, loggingCallback('Incoming', handler, message.Name));
     }
 
-    public static AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
+    export function AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
         socket.on(message.Message, (arg: T, fn: (res: any) => any) => {
-            this.log('S receiving', message.Name, arg, true);
-            handler([arg, this.loggingCallback('S sending', fn, message.Name)]);
+            log('S receiving', message.Name, arg, true);
+            handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
     }
 }
@@ -291,15 +292,4 @@ export namespace JSONUtils {
         return results;
     }
 
-}
-
-export function PostToServer(relativeRoute: string, body?: any) {
-    body = { userId: CurrentUserUtils.id, ...body };
-    let options = {
-        method: "POST",
-        uri: Utils.prepend(relativeRoute),
-        json: true,
-        body
-    };
-    return requestPromise.post(options);
 }

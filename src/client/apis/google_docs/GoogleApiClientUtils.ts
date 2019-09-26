@@ -1,9 +1,9 @@
 import { docs_v1, slides_v1 } from "googleapis";
-import { PostToServer } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
+import { PostToServer } from "../../Network";
 
 export const Pulls = "googleDocsPullCount";
 export const Pushes = "googleDocsPushCount";

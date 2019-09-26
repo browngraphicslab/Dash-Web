@@ -66,6 +66,15 @@ export namespace GoogleApiServerUtils {
         });
     };
 
+    export const RetrieveAccessToken = (information: CredentialInformation) => {
+        return new Promise<string>((resolve, reject) => {
+            RetrieveCredentials(information).then(
+                credentials => resolve(credentials.token.access_token!),
+                error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
+            );
+        });
+    };
+
     export const RetrieveCredentials = (information: CredentialInformation) => {
         return new Promise<TokenResult>((resolve, reject) => {
             readFile(information.credentialsPath, async (err, credentials) => {
@@ -75,15 +84,6 @@ export namespace GoogleApiServerUtils {
                 }
                 authorize(parseBuffer(credentials), information.userId).then(resolve, reject);
             });
-        });
-    };
-
-    export const RetrieveAccessToken = (information: CredentialInformation) => {
-        return new Promise<string>((resolve, reject) => {
-            RetrieveCredentials(information).then(
-                credentials => resolve(credentials.token.access_token!),
-                error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
-            );
         });
     };
 
@@ -107,7 +107,7 @@ export namespace GoogleApiServerUtils {
             client_id, client_secret, redirect_uris[0]);
 
         return new Promise<TokenResult>((resolve, reject) => {
-            Database.Auxiliary.FetchGoogleAuthenticationToken(userId).then(token => {
+            Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(token => {
                 // Check if we have previously stored a token for this userId.
                 if (!token) {
                     return getNewToken(oAuth2Client, userId).then(resolve, reject);
@@ -123,8 +123,8 @@ export namespace GoogleApiServerUtils {
     }
 
     const refreshEndpoint = "https://oauth2.googleapis.com/token";
-    const refreshToken = (credentials: Credentials, client_id: string, client_secret: string, oAuth2Client: OAuth2Client, token_path: string) => {
-        return new Promise<TokenResult>((resolve, reject) => {
+    const refreshToken = (credentials: Credentials, client_id: string, client_secret: string, oAuth2Client: OAuth2Client, userId: string) => {
+        return new Promise<TokenResult>(resolve => {
             let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
             let queryParameters = {
                 refreshToken: credentials.refresh_token,
@@ -133,19 +133,13 @@ export namespace GoogleApiServerUtils {
                 grant_type: "refresh_token"
             };
             let url = `${refreshEndpoint}?${qs.stringify(queryParameters)}`;
-            request.post(url, headerParameters).then(response => {
+            request.post(url, headerParameters).then(async response => {
                 let parsed = JSON.parse(response);
                 credentials.access_token = parsed.access_token;
                 credentials.expiry_date = new Date().getTime() + (parsed.expires_in * 1000);
-                writeFile(token_path, JSON.stringify(credentials), (err) => {
-                    if (err) {
-                        console.error(err);
-                        reject(err);
-                    }
-                    console.log('Refreshed token stored to', token_path);
-                    oAuth2Client.setCredentials(credentials);
-                    resolve({ token: credentials, client: oAuth2Client });
-                });
+                oAuth2Client.setCredentials(credentials);
+                await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, credentials);
+                resolve({ token: credentials, client: oAuth2Client });
             });
         });
     };
@@ -156,7 +150,7 @@ export namespace GoogleApiServerUtils {
      * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
      * @param {getEventsCallback} callback The callback for the authorized client.
      */
-    function getNewToken(oAuth2Client: OAuth2Client, token_path: string) {
+    function getNewToken(oAuth2Client: OAuth2Client, userId: string) {
         return new Promise<TokenResult>((resolve, reject) => {
             const authUrl = oAuth2Client.generateAuthUrl({
                 access_type: 'offline',
@@ -169,20 +163,13 @@ export namespace GoogleApiServerUtils {
             });
             rl.question('Enter the code from that page here: ', (code) => {
                 rl.close();
-                oAuth2Client.getToken(code, (err, token) => {
+                oAuth2Client.getToken(code, async (err, token) => {
                     if (err || !token) {
                         reject(err);
                         return console.error('Error retrieving access token', err);
                     }
                     oAuth2Client.setCredentials(token);
-                    // Store the token to disk for later program executions
-                    writeFile(token_path, JSON.stringify(token), (err) => {
-                        if (err) {
-                            console.error(err);
-                            reject(err);
-                        }
-                        console.log('Token stored to', token_path);
-                    });
+                    await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, token);
                     resolve({ token, client: oAuth2Client });
                 });
             });
