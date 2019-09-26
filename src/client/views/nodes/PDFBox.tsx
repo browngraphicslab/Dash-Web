@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, trace } from 'mobx';
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -19,6 +19,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { CollectionSchemaBooleanCell } from '../collections/CollectionSchemaCells';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -30,6 +31,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
+    private _searchString: string = "";
     @observable private _searching: boolean = false;
     private _pdfViewer: PDFViewer | undefined;
     private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
@@ -58,8 +60,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this._reactionDisposer && this._reactionDisposer();
     }
 
-    public search(string: string) {
-        this._pdfViewer && this._pdfViewer.search(string);
+    public search(string: string, fwd: boolean) {
+        this._pdfViewer && this._pdfViewer.search(string, fwd);
     }
     public prevAnnotation() {
         this._pdfViewer && this._pdfViewer.prevAnnotation();
@@ -72,26 +74,19 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this._pdfViewer = pdfViewer;
     }
 
-    public GetPage() {
-        return this._pdfViewer!.pdfViewer.currentPageNumber;
-    }
-
     @action
     public BackPage() {
-        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: Math.max(1, this.GetPage() - 1) });
-        this.props.Document.curPage = this.GetPage();
+        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: Math.max(1, NumCast(this.props.Document.curPage) - 1) });
     }
 
     @action
     public GotoPage = (p: number) => {
-        this._pdfViewer!.pdfViewer.scrollPageIntoView(p);
-        this.props.Document.curPage = this.GetPage();
+        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: p });
     }
 
     @action
     public ForwardPage() {
-        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(this._pdfViewer!.pdfViewer.pagesCount, this.GetPage() + 1) });
-        this.props.Document.curPage = this.GetPage();
+        this._pdfViewer!.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(this._pdfViewer!.pdfViewer.pagesCount, NumCast(this.props.Document.curPage) + 1) });
     }
 
     @action
@@ -121,49 +116,66 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private newValueChange = (e: React.ChangeEvent<HTMLInputElement>) => this._valueValue = e.currentTarget.value;
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
+    _isChildActive = false;
+    whenActiveChanged = (isActive: boolean) => {
+        this._isChildActive = isActive;
+        this.props.whenActiveChanged(isActive);
+    }
+    active = () => {
+        return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
+    }
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
-    private _searchString: string = "";
+    @observable _pageControls = false;
     settingsPanel() {
+        trace();
+        let pageBtns = <>
+            <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => this.BackPage()}
+                style={{ left: 50, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
+                <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
+            </button>
+            <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => this.ForwardPage()}
+                style={{ left: 80, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
+                <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
+            </button>
+        </>
         return !this.props.active() ? (null) :
-            (<>
+            (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true} style={{ display: this.active() ? "flex" : "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()}
                     style={{ bottom: 0, left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
                     <input className="pdfBox-overlaySearchBar" placeholder="Search" onChange={this.searchStringChanged}
-                        onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} />
-                    <button title="Search" onClick={() => this.search(this._searchString)}>
+                        onKeyDown={e => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString, !e.shiftKey) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} />
+                    <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
+                    <button className="pdfBox-overlayButton-iconCont" title="Previous Annotation"
+                        onClick={e => { e.stopPropagation(); this.prevAnnotation(); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{ left: 50, top: 5, height: "30px", position: "absolute" }}>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="sm" />
+                    </button>
+                    <button className="pdfBox-overlayButton-iconCont" title="Next Annotation"
+                        onClick={e => { e.stopPropagation(); this.nextAnnotation(); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{ left: 20, top: 5, height: "30px", position: "absolute" }}>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
+                    </button>
                 </div>
                 <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar"
-                    style={{ bottom: 8, right: 0, display: this.props.active() ? "flex" : "none" }}>
+                    style={{ bottom: 8, right: 0 }}>
                     <div className="pdfBox-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
-                <button className="pdfBox-overlayButton-iconCont" title="Previous Annotation"
-                    onClick={e => { e.stopPropagation(); this.prevAnnotation(); }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    style={{ left: 110, top: 5, height: "30px", position: "absolute", display: this.props.active() ? "flex" : "none" }}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="sm" />
-                </button>
-                <button className="pdfBox-overlayButton-iconCont" title="Next Annotation"
-                    onClick={e => { e.stopPropagation(); this.nextAnnotation(); }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    style={{ left: 80, top: 5, height: "30px", position: "absolute", display: this.props.active() ? "flex" : "none" }}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
-                </button>
-                <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => this.BackPage()}
-                    style={{ left: 20, top: 5, height: "30px", position: "absolute", pointerEvents: "all", display: this.props.active() ? "flex" : "none" }}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
-                </button>
-                <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => this.ForwardPage()}
-                    style={{ left: 50, top: 5, height: "30px", position: "absolute", pointerEvents: "all", display: this.props.active() ? "flex" : "none" }}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
-                </button>
+                <span contentEditable={true} onInput={e => this.GotoPage(Number(e.currentTarget.textContent))}
+                    style={{ left: 20, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
+                    onClick={action(() => this._pageControls = !this._pageControls)}>
+                    {`${NumCast(this.props.Document.curPage)}`}
+                </span>
+                {this._pageControls ? pageBtns : (null)}
                 <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                         <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />
@@ -176,10 +188,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                             Annotation View Settings
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
-                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange}
-                                style={{ gridColumn: 1 }} ref={this._keyRef} />
-                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange}
-                                style={{ gridColumn: 3 }} ref={this._valueRef} />
+                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange} style={{ gridColumn: 1 }} ref={this._keyRef} />
+                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange} style={{ gridColumn: 3 }} ref={this._valueRef} />
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
                             <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
@@ -196,7 +206,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                         </div>
                     </div>
                 </div>
-            </>);
+            </div>);
     }
 
     loaded = (nw: number, nh: number, np: number) => {
@@ -211,7 +221,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive");
+        let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
         return (!(pdfUrl instanceof PdfField) || !this._pdf ?
             <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
             <div className={classname} onWheel={(e: React.WheelEvent) => e.stopPropagation()} onPointerDown={(e: React.PointerEvent) => {
@@ -222,12 +232,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             }}>
                 <PDFViewer {...this.props} pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded}
                     setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
-                    renderDepth={this.props.renderDepth}
-                    Document={this.props.Document} DataDoc={this.dataDoc}
+                    renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
+                    Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                     addDocTab={this.props.addDocTab} GoToPage={this.GotoPage}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                    isSelected={this.props.isSelected}
+                    isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
                 {this.settingsPanel()}
             </div>);

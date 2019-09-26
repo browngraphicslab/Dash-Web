@@ -34,6 +34,9 @@ interface IViewerProps {
     fieldExtensionDoc: Doc;
     fieldKey: string;
     fieldExt: string;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
+    ContentScaling: () => number;
     renderDepth: number;
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
@@ -46,6 +49,7 @@ interface IViewerProps {
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 /**
@@ -62,6 +66,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeY: number = 0;
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
+    @observable private _marqueeing: boolean = false;
 
     public pdfViewer: any;
     private _isChildActive = false;
@@ -74,7 +79,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
     private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
-    private _marqueeing: boolean = false;
     private _startX: number = 0;
     private _startY: number = 0;
     private _downX: number = 0;
@@ -165,7 +169,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @action
     setupPdfJsViewer = () => {
         document.addEventListener("pagesinit", () => this.pdfViewer.currentScaleValue = 1);
-        document.addEventListener("pagerendered", () => console.log("rendered"));
+        //  document.addEventListener("pagerendered", () => console.log("rendered")); // bcz: works, but not needed except to debug
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
@@ -249,19 +253,23 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @action
     prevAnnotation = () => {
         this.Index = Math.max(this.Index - 1, 0);
-        let scrollToAnnotation = this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index];
-        this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
-        Doc.BrushDoc(scrollToAnnotation);
-        this.props.scrollTo(NumCast(scrollToAnnotation.y));
+        this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
     }
 
     @action
     nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
-        let scrollToAnnotation = this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index];
+        this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
+    }
+
+    @action
+    scrollToAnnotation = (scrollToAnnotation: Doc) => {
         this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
+        let windowHgt = this.props.PanelHeight() / this.props.ContentScaling();
+        let scrollRange = this._mainCont.current!.scrollHeight - windowHgt;
+        let pgScroll = scrollRange / this._pageSizes.length;
+        this._mainCont.current!.scrollTo(0, NumCast(scrollToAnnotation.y) - pgScroll / 2);
         Doc.BrushDoc(scrollToAnnotation);
-        this.props.scrollTo(NumCast(scrollToAnnotation.y));
     }
 
     sendAnnotations = (page: number) => {
@@ -278,6 +286,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
     }
 
+    @action
+    onScroll = (e: React.UIEvent<HTMLElement>) => {
+        this.props.Document.curPage = this.pdfViewer.currentPageNumber;
+    }
+
     // get the page index that the vertical offset passed in is on
     getPageFromScroll = (vOffset: number) => {
         let index = 0;
@@ -286,10 +299,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             currOffset -= this._pageSizes[index++].height;
         }
         return index;
-    }
-
-    getScrollFromPage = (index: number): number => {
-        return numberRange(Math.min(this.props.pdf.numPages, index)).reduce((counter, i) => counter + this._pageSizes[i].height, 0);
     }
 
     @action
@@ -311,11 +320,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @action
-    search = (searchString: string) => {
-        if (this.pdfViewer._pageViewsReady) {
+    search = (searchString: string, fwd: boolean) => {
+        if (!searchString) {
+            fwd ? this.nextAnnotation() : this.prevAnnotation();
+        }
+        else if (this.pdfViewer._pageViewsReady) {
             this.pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
-                findPrevious: undefined,
+                findPrevious: !fwd,
                 highlightAll: true,
                 phraseSearch: true,
                 query: searchString
@@ -325,7 +337,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             let executeFind = () => {
                 this.pdfViewer.findController.executeCommand('find', {
                     caseSensitive: false,
-                    findPrevious: undefined,
+                    findPrevious: !fwd,
                     highlightAll: true,
                     phraseSearch: true,
                     query: searchString
@@ -383,6 +395,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
             this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
             this._marqueeWidth = Math.abs(this._marqueeWidth);
+            this._marqueeHeight = Math.abs(this._marqueeHeight);
             e.stopPropagation();
             e.preventDefault();
         }
@@ -399,7 +412,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             for (let i = 0; i < clientRects.length; i++) {
                 let rect = clientRects.item(i);
                 if (rect/* && rect.width !== this._mainCont.current.getBoundingClientRect().width && rect.height !== this._mainCont.current.getBoundingClientRect().height / this.props.pdf.numPages*/) {
-                    let page = this.getPageFromScroll(rect.top);
                     let scaleY = this._mainCont.current.offsetHeight / boundingRect.height;
                     let scaleX = this._mainCont.current.offsetWidth / boundingRect.width;
                     if (rect.width !== this._mainCont.current.clientWidth) {
@@ -552,26 +564,29 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._setPreviewCursor = func;
     }
     onClick = (e: React.MouseEvent) => {
-        this._setPreviewCursor && this._marqueeing && Math.abs(e.clientX - this._downX) < 3 && Math.abs(e.clientY - this._downY) < 3 &&
+        this._setPreviewCursor &&
+            this._marqueeing &&
+            Math.abs(e.clientX - this._downX) < 3 &&
+            Math.abs(e.clientY - this._downY) < 3 &&
             this._setPreviewCursor(e.clientX, e.clientY);
     }
     whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        //this.props.whenActiveChanged(isActive); // bcz: is this needed here?
+        this.props.whenActiveChanged(isActive); // bcz: is this needed here?
     }
     active = () => {
         return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
     render() {
-        return (<div className="pdfViewer-viewer" onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
+        return (<div className="pdfViewer-viewer" onScroll={this.onScroll} onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
             <div className="pdfViewer-text" ref={this._viewer} />
-            <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
+            {!this._marqueeing ? (null) : <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
                 style={{
                     left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
                     width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
-                    border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
+                    border: `${this._marqueeWidth === 0 ? "" : "2px dashed black"}`
                 }}>
-            </div>
+            </div>}
             <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
                 {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                     <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
