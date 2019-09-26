@@ -364,7 +364,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     // set this is the default link behavior. it parses the string that "contains" the behavior
     // and then calls the correct function
-    async public defaultLinkBehavior(followString: string) {
+    public async defaultLinkBehavior(followString: string) {
         let params: string[] = this.defaultLinkBehaviorString.split(",");
         console.log(LinkFollowBox.destinationDoc![Id]);
         console.log(params)
@@ -389,7 +389,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else if (mode === FollowModes.OPENFULL) {
             // this.openFullScreen();
             if (shouldOpenInContext) {
-
+                context && this.openColFullScreen({ shouldZoom: shouldZoom, context: context });
             } else {
                 this.openSelfFullScreen();
             }
@@ -397,7 +397,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else if (mode === FollowModes.OPENRIGHT) {
             // this.openLinkRight();
             if (shouldOpenInContext) {
-
+                context && this.openLinkColRight({ shouldZoom: shouldZoom, context: context });
             } else {
                 this.openLinkSelfRight();
             }
