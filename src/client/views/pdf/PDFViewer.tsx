@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -23,7 +23,6 @@ import React = require("react");
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
-import { SelectionManager } from "../../util/SelectionManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 interface IViewerProps {

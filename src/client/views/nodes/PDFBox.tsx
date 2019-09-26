@@ -122,17 +122,15 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
                     </button>
                 </div>
-                <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar"
-                    style={{ bottom: 8, right: 0 }}>
+                <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar" style={{ bottom: 8, right: 0 }}>
                     <div className="pdfBox-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
-                <span contentEditable={true} onInput={e => this.gotoPage(Number(e.currentTarget.textContent))}
+                <input value={`${NumCast(this.props.Document.curPage)}`}
+                    onChange={e => this.gotoPage(Number(e.currentTarget.value))}
                     style={{ left: 20, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
-                    onClick={action(() => this._pageControls = !this._pageControls)}>
-                    {`${NumCast(this.props.Document.curPage)}`}
-                </span>
+                    onClick={action(() => this._pageControls = !this._pageControls)} />
                 {this._pageControls ? pageBtns : (null)}
                 <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
