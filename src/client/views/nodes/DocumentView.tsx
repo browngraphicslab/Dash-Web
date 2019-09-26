@@ -185,7 +185,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
-            e.preventDefault();
+            let preventDefault = true;
             if (this._doubleTap && this.props.renderDepth) {
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
@@ -200,7 +200,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
-            } else SelectionManager.SelectDoc(this, e.ctrlKey);
+            } else {
+                SelectionManager.SelectDoc(this, e.ctrlKey);
+                preventDefault = false;
+            }
+            preventDefault && e.preventDefault();
         }
     }
 
