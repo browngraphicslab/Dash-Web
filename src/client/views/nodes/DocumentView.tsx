@@ -261,6 +261,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.addEventListener("pointerup", this.onPointerUp);
     }
     onPointerMove = (e: PointerEvent): void => {
+        console.log("Move " + e.clientX + " " + this.props.Document.title);
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove);
         }

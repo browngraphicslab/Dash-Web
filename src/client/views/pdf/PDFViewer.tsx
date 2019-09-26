@@ -40,7 +40,6 @@ interface IViewerProps {
     renderDepth: number;
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
-    scrollTo: (y: number) => void;
     active: () => boolean;
     GoToPage?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
@@ -260,6 +259,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
     nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
+    }
+
+    @action
+    gotoPage = (p: number) => {
+        this.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
     }
 
     @action
