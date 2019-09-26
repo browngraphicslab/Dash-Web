@@ -82,7 +82,7 @@ function sinkListItem(itemType) {
         if (dispatch) {
             var nestedBefore = nodeBefore.lastChild && nodeBefore.lastChild.type == parent.type;
             var inner = prosemirrorModel.Fragment.from(nestedBefore ? itemType.create() : null);
-            let slice = new prosemirrorModel.Slice(prosemirrorModel.Fragment.from(itemType.create(null, prosemirrorModel.Fragment.from(parent.type.create(parent.attrs, inner)))),
+            let slice = new prosemirrorModel.Slice(prosemirrorModel.Fragment.from(itemType.create(null, prosemirrorModel.Fragment.from(parent.type.create({ ...parent.attrs, fontSize: parent.attrs.fontSize ? parent.attrs.fontSize - 4 : undefined }, inner)))),
                 nestedBefore ? 3 : 1, 0);
             var before = range.start, after = range.end;
             dispatch(state.tr.step(new prosemirrorTransform.ReplaceAroundStep(before - (nestedBefore ? 3 : 1), after,

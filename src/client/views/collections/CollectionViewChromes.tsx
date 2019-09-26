@@ -262,7 +262,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @observable private pivotKeyDisplay = this.pivotKey;
     getPivotInput = () => {
-        if (!this.document.usePivotLayout) {
+        if (StrCast(this.document.freeformLayoutEngine) !== "pivot") {
             return (null);
         }
         return (<input className="collectionViewBaseChrome-viewSpecsInput"
@@ -398,6 +398,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Pivot View</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"

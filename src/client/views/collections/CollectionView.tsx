@@ -18,6 +18,7 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -59,8 +60,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
+            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Freeform:
             default:
+                this.props.Document.freeformLayoutEngine = undefined;
                 return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
         }
         return (null);
@@ -89,7 +92,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
             let subItems: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
-            subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; delete this.props.Document.usePivotLayout; }, icon: "signature" });
+            subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; }, icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
@@ -103,10 +106,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
                 }, icon: "ellipsis-v"
             });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
+            subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
-                    subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
-                    subItems.push({ description: "Pivot", icon: "copy", event: () => this.props.Document.usePivotLayout = true });
+                    subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
                     break;
                 }
             }

@@ -18,6 +18,7 @@ import { DocServer } from "../../DocServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { docs_v1 } from "googleapis";
+import { Utils } from "../../../Utils";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -267,7 +268,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let proto = Doc.GetProto(LinkFollowBox.linkDoc);
             let targetContext = await Cast(proto.targetContext, Doc);
             let sourceContext = await Cast(proto.sourceContext, Doc);
-            // const shouldZoom = this.shouldZoom : false;
+            let guid = StrCast(LinkFollowBox.linkDoc[Id]);
+            const shouldZoom = options ? options.shouldZoom : false;
 
             let dockingFunc = (document: Doc) => { (this._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
@@ -275,7 +277,15 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
             }
             else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, document => dockingFunc(sourceContext!));
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
+                if (LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc) {
+                    if (guid) {
+                        let views = DocumentManager.Instance.getDocumentViews(jumpToDoc);
+                        views.length && (views[0].props.Document.scrollToLinkID = guid);
+                    } else {
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
+                    }
+                }
             }
             else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, undefined, undefined,

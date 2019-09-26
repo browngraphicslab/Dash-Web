@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -30,10 +30,11 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     chromeCollapsed: boolean;
+    setPreviewCursor?: (func: (x: number, y: number) => void) => void;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     ruleProvider: Doc | undefined;
 }
 

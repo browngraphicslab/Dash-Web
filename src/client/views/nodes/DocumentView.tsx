@@ -264,7 +264,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove);
         }
-        else if (!e.cancelBubble && this.active) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) ||
+            this.props.parentActive())) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.Document.lockedPosition)) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -350,7 +351,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.data.linkSourceDocument !== this.props.Document &&
-                (de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc));
+                (de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc, undefined, "in-text link being created")); // TODODO this is where in text links get passed
         }
     }
 
