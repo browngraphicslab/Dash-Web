@@ -355,7 +355,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
             this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
-            e.preventDefault();
         }
     }
 
