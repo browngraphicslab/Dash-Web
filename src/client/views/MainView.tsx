@@ -256,7 +256,10 @@ export class MainView extends React.Component {
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         let received = CurrentUserUtils.MainDocId;
-        if (received) {
+        let doc: Opt<Doc>;
+        if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
+            this.openWorkspace(doc);
+        } else if (received) {
             if (!this.userDoc) {
                 reaction(
                     () => CurrentUserUtils.GuestTarget,
@@ -281,12 +284,6 @@ export class MainView extends React.Component {
                             }
                         },
                     );
-                }
-                let doc: Opt<Doc>;
-                if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
-                    this.openWorkspace(doc);
-                } else {
-                    this.createNewWorkspace();
                 }
             } else {
                 DocServer.GetRefField(received).then(field => {
@@ -661,7 +658,7 @@ export class MainView extends React.Component {
         let next = () => PresBox.CurrentPresentation.next();
         let back = () => PresBox.CurrentPresentation.back();
         let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document, undefined, "close"); });
+        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document, undefined, "onRight"); });
         return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>;
     }
 

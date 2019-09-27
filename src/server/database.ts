@@ -3,6 +3,7 @@ import { Transferable } from './Message';
 import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
+import { Credentials } from 'google-auth-library';
 
 export namespace Database {
 
@@ -240,21 +241,23 @@ export namespace Database {
             }) : slice;
         };
 
-        const SanitizedSingletonQuery = async (query: { [key: string]: any }, collection: string, removeId = true) => {
+        const SanitizedSingletonQuery = async <T>(query: { [key: string]: any }, collection: string, removeId = true): Promise<Opt<T>> => {
             const results = await SanitizedCappedQuery(query, collection, 1, removeId);
             return results.length ? results[0] : undefined;
         };
 
-        export const QueryUploadHistory = async (contentSize: number): Promise<Opt<DashUploadUtils.UploadInformation>> => {
-            return SanitizedSingletonQuery({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
+        export const QueryUploadHistory = async (contentSize: number) => {
+            return SanitizedSingletonQuery<DashUploadUtils.UploadInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
 
         export namespace GoogleAuthenticationToken {
 
             const GoogleAuthentication = "googleAuthentication";
 
+            export type StoredCredentials = Credentials & { _id: string };
+
             export const Fetch = async (userId: string, removeId = true) => {
-                return SanitizedSingletonQuery({ userId }, GoogleAuthentication, removeId);
+                return SanitizedSingletonQuery<StoredCredentials>({ userId }, GoogleAuthentication, removeId);
             };
 
             export const Write = async (userId: string, token: any) => {

@@ -28,9 +28,7 @@ interface LinkMenuItemProps {
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
-    @action toggleShowMore() {
-        this._showMore = !this._showMore;
-    }
+    @action toggleShowMore() { this._showMore = !this._showMore; }
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();

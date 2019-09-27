@@ -4,14 +4,11 @@ import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Copy, Id } from '../../../new_fields/FieldSymbols';
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
+import { Id } from '../../../new_fields/FieldSymbols';
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { RouteStore } from '../../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -42,10 +39,8 @@ import React = require("react");
 import { DocumentType } from '../../documents/DocumentTypes';
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../../new_fields/URLField';
-import { IDisposable } from '../../northstar/utils/IDisposable';
 import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
-const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
@@ -262,7 +257,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
+        if (this.active && e.button === 0) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -270,11 +265,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble && this.active) {
-            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && this.active) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive())) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.Document.lockedPosition)) {
+                if (!e.altKey && !this.topMost && e.buttons === 1 && !this.Document.lockedPosition) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
@@ -361,7 +356,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.data.linkSourceDocument !== this.props.Document &&
-                (de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc));
+                (de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc, undefined, "in-text link being created")); // TODODO this is where in text links get passed
         }
     }
 

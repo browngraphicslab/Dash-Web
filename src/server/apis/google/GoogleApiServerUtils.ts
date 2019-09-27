@@ -111,7 +111,7 @@ export namespace GoogleApiServerUtils {
                     // No token registered, so awaiting input from user
                     return getNewToken(oAuth2Client, userId).then(resolve, reject);
                 }
-                if (token.expiry_date < new Date().getTime()) {
+                if (token.expiry_date! < new Date().getTime()) {
                     // Token has expired, so submitting a request for a refreshed access token
                     return refreshToken(token, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
                 }

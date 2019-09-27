@@ -95,12 +95,13 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        type LayoutSource = { LayoutString: () => string };
+        type LayoutSource = { LayoutString: (ext?: string) => string };
         type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
         type CollectionViewType = [CollectionLayoutSource, string, string?];
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
+                ext?: string, // optional extension field for layout source
                 collectionView?: CollectionViewType
             },
             options?: Partial<DocumentOptions>
@@ -144,7 +145,7 @@ export namespace Docs {
                 options: { height: 32 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] as CollectionViewType },
+                layout: { view: PDFBox, ext: anno },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
@@ -253,7 +254,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title: title, type: type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            let primary = layout.view.LayoutString();
+            let primary = layout.view.LayoutString(layout.ext);
             let collectionView = layout.collectionView;
             if (collectionView) {
                 options.layout = collectionView[0].LayoutString(collectionView[1], collectionView[2]);
@@ -337,18 +338,18 @@ export namespace Docs {
                 let extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            if (target !== "http://www.cs.brown.edu/") {
-                requestImageSize(target)
-                    .then((size: any) => {
-                        let aspect = size.height / size.width;
-                        if (!inst.proto!.nativeWidth) {
-                            inst.proto!.nativeWidth = size.width;
-                        }
-                        inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                        inst.proto!.height = NumCast(inst.proto!.width) * aspect;
-                    })
-                    .catch((err: any) => console.log(err));
-            }
+            // if (target !== "http://www.cs.brown.edu/") {
+            requestImageSize(target)
+                .then((size: any) => {
+                    let aspect = size.height / size.width;
+                    if (!inst.proto!.nativeWidth) {
+                        inst.proto!.nativeWidth = size.width;
+                    }
+                    inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                    inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                })
+                .catch((err: any) => console.log(err));
+            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
@@ -647,7 +648,6 @@ export namespace DocUtils {
         });
     }
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionDoc === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
@@ -660,7 +660,6 @@ export namespace DocUtils {
             linkDocProto.sourceContext = sourceContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
-            linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;

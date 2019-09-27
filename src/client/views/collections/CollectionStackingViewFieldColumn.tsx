@@ -266,7 +266,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 style={{
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
-                            ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
+                            ((this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
                 }}>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
@@ -297,7 +297,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         return (
-            <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
+            <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
                 {headingView}
                 <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
@@ -315,7 +315,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     {this.children(this.props.docList)}
                     {singleColumn ? (null) : this.props.parent.columnDragger}
                 </div>
-                {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                {(this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'disabled') ?
                     <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                         style={{ width: style.columnWidth / style.numGroupColumns }}>
                         <EditableView {...newEditableViewProps} />

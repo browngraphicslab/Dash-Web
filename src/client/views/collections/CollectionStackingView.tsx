@@ -42,7 +42,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.sectionFilter && (this.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.CollectionView.props.Document.chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.sectionFilter && this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
@@ -347,7 +347,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     onToggle = (checked: Boolean) => {
-        this.props.CollectionView.props.Document.chromeStatus = checked ? "collapsed" : "view-mode";
+        this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus = checked ? "collapsed" : "view-mode");
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -391,10 +391,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         style={{ width: this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                         <EditableView {...editableViewProps} />
                     </div>}
-                {this.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? <Switch
+                {this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled' ? <Switch
                     onChange={this.onToggle}
                     onClick={this.onToggle}
-                    defaultChecked={this.props.CollectionView.props.Document.chromeStatus !== 'view-mode'}
+                    defaultChecked={this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode'}
                     checkedChildren="edit"
                     unCheckedChildren="view"
                 /> : null}

@@ -21,7 +21,8 @@ export enum CollectionViewType {
     Docking,
     Tree,
     Stacking,
-    Masonry
+    Masonry,
+    Pivot,
 }
 
 export namespace CollectionViewType {
@@ -33,7 +34,8 @@ export namespace CollectionViewType {
         ["docking", CollectionViewType.Docking],
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
-        ["masonry", CollectionViewType.Masonry]
+        ["masonry", CollectionViewType.Masonry],
+        ["pivot", CollectionViewType.Pivot]
     ]);
 
     export const valueOf = (value: string) => {
