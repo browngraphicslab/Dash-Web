@@ -230,7 +230,6 @@ export namespace Database {
             GooglePhotosUploadHistory = "uploadedFromGooglePhotos"
         }
 
-
         const SanitizedCappedQuery = async (query: { [key: string]: any }, collection: string, cap: number, removeId = true) => {
             const cursor = await Instance.query(query, undefined, collection);
             const results = await cursor.toArray();
@@ -259,7 +258,7 @@ export namespace Database {
             };
 
             export const Write = async (userId: string, token: any) => {
-                return Instance.insert({ userId, ...token }, GoogleAuthentication);
+                return Instance.insert({ userId, canAccess: [], ...token }, GoogleAuthentication);
             };
 
             export const Update = async (userId: string, access_token: string, expiry_date: number) => {
@@ -269,6 +268,8 @@ export namespace Database {
                     return Instance.update(entry._id, parameters, emptyFunction, true, GoogleAuthentication);
                 }
             };
+
+            export const DeleteAll = () => Instance.deleteAll(GoogleAuthentication, false);
 
         }
 

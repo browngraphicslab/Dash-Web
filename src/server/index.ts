@@ -892,6 +892,11 @@ app.get("/deleteWithAux", async (req, res) => {
     res.redirect(RouteStore.delete);
 });
 
+app.get("/deleteWithGoogleCredentials", async (req, res) => {
+    await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
+    res.redirect(RouteStore.delete);
+});
+
 const UploadError = (count: number) => `Unable to upload ${count} images to Dash's server`;
 app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
     const contents: { mediaItems: MediaItem[] } = req.body;
