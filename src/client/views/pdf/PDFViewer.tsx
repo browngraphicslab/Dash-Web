@@ -152,6 +152,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     i === this.props.pdf.numPages - 1 && this.props.loaded((page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
                         (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]), i);
                 }))));
+            Doc.GetProto(this.props.Document).scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0);
         }
     }
 
@@ -635,7 +636,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             </div>
             <CollectionFreeFormView {...this.props}
                 setPreviewCursor={this.setPreviewCursor}
-                PanelHeight={() => this._pageSizes.length && this._pageSizes[0] ? this.props.pdf.numPages * this._pageSizes[0].height : NumCast(this.props.Document.nativeHeight)}
+                PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
                 PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
                 focus={emptyFunction}
                 isSelected={this.props.isSelected}

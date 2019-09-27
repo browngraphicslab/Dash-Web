@@ -1,11 +1,10 @@
 import React = require("react");
 import "./PDFMenu.scss";
-import { observable, action, runInAction } from "mobx";
+import { observable, action, } from "mobx";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { emptyFunction, returnFalse } from "../../../Utils";
 import { Doc } from "../../../new_fields/Doc";
-import { handleBackspace } from "../nodes/PDFBox";
 
 @observer
 export default class PDFMenu extends React.Component {
@@ -238,8 +237,8 @@ export default class PDFMenu extends React.Component {
                 <button key="6" className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}>
                     <FontAwesomeIcon icon="map-pin" size="lg" /></button>,
                 <div key="7" className="pdfMenu-addTag" >
-                    <input onKeyDown={handleBackspace} onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
-                    <input onKeyDown={handleBackspace} onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
+                    <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
+                    <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 </div>,
                 <button key="8" className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}>
                     <FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" /></button>,
