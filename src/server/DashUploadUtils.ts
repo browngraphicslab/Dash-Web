@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import { Utils } from '../Utils';
 import * as path from 'path';
-import { Opt } from '../new_fields/Doc';
 import * as sharp from 'sharp';
 import request = require('request-promise');
 
@@ -39,6 +38,28 @@ export namespace DashUploadUtils {
     const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
     const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
 
+    /**
+     * Uploads an image specified by the @param source to Dash's /public/files/
+     * directory, and returns information generated during that upload 
+     * 
+     * @param {string} source is either the absolute path of an already uploaded image or
+     * the url of a remote image
+     * @param {string} filename dictates what to call the image. If not specified,
+     * the name {@param prefix}_upload_{GUID}
+     * @param {string} prefix is a string prepended to the generated image name in the
+     * event that @param filename is not specified
+     * 
+     * @returns {UploadInformation} This method returns
+     * 1) the paths to the uploaded image
+     * 2) the file name of each of the resized images
+     * 3) the size of the image, in bytes (4432130)
+     * 4) the content type of the image (jpg | png | etc.)
+     */
+    export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<UploadInformation> => {
+        const metadata = await InspectImage(source);
+        return UploadInspectedImage(metadata, filename, prefix);
+    };
+
     export interface InspectionResults {
         isLocal: boolean;
         stream: any;
@@ -47,18 +68,25 @@ export namespace DashUploadUtils {
         contentType?: string;
     }
 
-    export const InspectImage = async (url: string): Promise<InspectionResults> => {
-        const { isLocal, stream, normalized: normalizedUrl } = classify(url);
+    /**
+     * Based on the url's classification as local or remote, gleans
+     * as much information as possible about the specified image
+     * 
+     * @param source is the path or url to the image in question
+     */
+    export const InspectImage = async (source: string): Promise<InspectionResults> => {
+        const { isLocal, stream, normalized: normalizedUrl } = classify(source);
         const results = {
             isLocal,
             stream,
             normalizedUrl
         };
+        // stop here if local, since request.head() can't handle local paths, only urls on the web
         if (isLocal) {
             return results;
         }
         const metadata = (await new Promise<any>((resolve, reject) => {
-            request.head(url, async (error, res) => {
+            request.head(source, async (error, res) => {
                 if (error) {
                     return reject(error);
                 }
@@ -72,7 +100,7 @@ export namespace DashUploadUtils {
         };
     };
 
-    export const UploadImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
+    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<UploadInformation> => {
         const { isLocal, stream, normalizedUrl, contentSize, contentType } = metadata;
         const resolved = filename ? sanitize(filename) : generate(prefix, normalizedUrl);
         let extension = path.extname(normalizedUrl) || path.extname(resolved);

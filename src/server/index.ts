@@ -582,8 +582,7 @@ app.post(
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
-                const metadata = await DashUploadUtils.InspectImage(uploadDirectory + filename);
-                await DashUploadUtils.UploadImage(metadata, filename).catch(() => console.log(`Unable to process ${filename}`));
+                await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
                 results.push({ name, type, path: `/files/${filename}` });
             }
             _success(res, results);
@@ -907,7 +906,7 @@ app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
             const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
             const found: Opt<DashUploadUtils.UploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
             if (!found) {
-                const upload = await DashUploadUtils.UploadImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
+                const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
                 if (upload) {
                     completed.push(upload);
                     await Database.Auxiliary.LogUpload(upload);
