@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -20,9 +20,11 @@ import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
+import * as rp from "request-promise";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
+import { JSXElement } from "babel-types";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -96,6 +98,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     componentDidMount = async () => {
+        let res = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${2}.PNG`)));
         this.props.setPdfViewer(this);
         await this.initialLoad();
 
@@ -124,6 +127,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
         document.removeEventListener("copy", this.copy);
         document.addEventListener("copy", this.copy);
         this.setupPdfJsViewer();
+        setTimeout(() => this.getCoverImage(res));
+
     }
 
     componentWillUnmount = () => {
@@ -587,8 +592,20 @@ export class PDFViewer extends React.Component<IViewerProps> {
     active = () => {
         return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
+
+    @observable _coverPage: JSX.Element | null = (null);
+    // change the address to be the file address of the PNG version of each page
+    // file address of the pdf
+    @action
+    getCoverImage = (res: any, page: number = 2) => {
+        this._coverPage = <div></div>;
+        // <img key={res.path} src={res.path}
+        //     style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${parseInt(res.width)}px`, height: `${parseInt(res.height)}px` }} />;
+    }
+
     render() {
         trace();
+
         return (<div className="pdfViewer-viewer" onScroll={this.onScroll} onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
             <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />
             {!this._marqueeing ? (null) : <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
@@ -622,6 +639,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
                 chromeCollapsed={true}>
             </CollectionFreeFormView>
+            {this._coverPage ? this._coverPage : (null)}
             {this._showWaiting ? <img
                 style={{
                     width: "100%",

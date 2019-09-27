@@ -65,7 +65,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
     public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
     public backPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) - 1); }
-    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); }
+    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
     public forwardPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) + 1); }
 
     @undoBatch
@@ -89,7 +89,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
     active = () => this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
-    setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; }
+    setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {
@@ -106,7 +106,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 style={{ left: 80, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
-        </>
+        </>;
         return !this.props.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
