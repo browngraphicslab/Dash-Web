@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult, WidthSym, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult, WidthSym, Opt, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -24,7 +24,7 @@ import * as rp from "request-promise";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
-import { JSXElement } from "babel-types";
+import { SelectionManager } from "../../util/SelectionManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -71,22 +71,25 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeHeight: number = 0;
     @observable private _marqueeing: boolean = false;
     @observable private _showWaiting = true;
+    @observable private _showCover = false;
 
     public pdfViewer: any;
     private _isChildActive = false;
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
+    private _selectionReactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _selectionText: string = "";
     private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
+    private _selectionText: string = "";
     private _startX: number = 0;
     private _startY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _coverPath: any;
 
     @computed get allAnnotations() {
         return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
@@ -98,43 +101,22 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     componentDidMount = async () => {
-        let res = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${2}.PNG`)));
-        this.props.setPdfViewer(this);
-        await this.initialLoad();
-
-        this._annotationReactionDisposer = reaction(
-            () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
-            annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
-            { fireImmediately: true });
-
-        this._filterReactionDisposer = reaction(
-            () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
-            action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
-                let oldScript = this._script.originalScript;
-                this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
-                if (this._script.originalScript !== oldScript) {
-                    this.Index = -1;
-                }
-                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
-            }),
-            { fireImmediately: true }
-        );
-        this._reactionDisposer = reaction(
-            () => this.props.Document.panY,
-            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.props.Document.panY) || 0, behavior: "auto" })
-        );
-
-        document.removeEventListener("copy", this.copy);
-        document.addEventListener("copy", this.copy);
-        this.setupPdfJsViewer();
-        setTimeout(() => this.getCoverImage(res));
-
+        // change the address to be the file address of the PNG version of each page
+        // file address of the pdf
+        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
+        runInAction(() => this._showWaiting = this._showCover = true);
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => {
+            this.setupPdfJsViewer();
+            this._selectionReactionDisposer && this._selectionReactionDisposer();
+            this._selectionReactionDisposer = undefined;
+        })
     }
 
     componentWillUnmount = () => {
         this._reactionDisposer && this._reactionDisposer();
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
+        this._selectionReactionDisposer && this._selectionReactionDisposer();
         document.removeEventListener("copy", this.copy);
     }
 
@@ -174,9 +156,40 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @action
-    setupPdfJsViewer = () => {
-        document.addEventListener("pagesinit", () => this.pdfViewer.currentScaleValue = 1);
-        document.addEventListener("pagerendered", action(() => this._showWaiting = false));
+    setupPdfJsViewer = async () => {
+        this._showWaiting = true;
+        this.props.setPdfViewer(this);
+        await this.initialLoad();
+
+        this._annotationReactionDisposer = reaction(
+            () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
+            annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
+            { fireImmediately: true });
+
+        this._filterReactionDisposer = reaction(
+            () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
+            action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
+                let oldScript = this._script.originalScript;
+                this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
+                if (this._script.originalScript !== oldScript) {
+                    this.Index = -1;
+                }
+                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
+            }),
+            { fireImmediately: true }
+        );
+        this._reactionDisposer = reaction(
+            () => this.props.Document.panY,
+            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.props.Document.panY) || 0, behavior: "auto" })
+        );
+
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
+        document.addEventListener("pagesinit", () => {
+            this.pdfViewer.currentScaleValue = 1;
+            this.gotoPage(NumCast(this.props.Document.curPage, 1));
+        });
+        document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
@@ -271,7 +284,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     gotoPage = (p: number) => {
-        this.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+        this.pdfViewer && this.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
     }
 
     @action
@@ -300,7 +313,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this.props.Document.curPage = this.pdfViewer.currentPageNumber;
+        this.pdfViewer && (this.props.Document.curPage = this.pdfViewer.currentPageNumber);
     }
 
     // get the page index that the vertical offset passed in is on
@@ -587,20 +600,21 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
     whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        this.props.whenActiveChanged(isActive); // bcz: is this needed here?
+        this.props.whenActiveChanged(isActive);
     }
     active = () => {
         return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
 
-    @observable _coverPage: JSX.Element | null = (null);
-    // change the address to be the file address of the PNG version of each page
-    // file address of the pdf
-    @action
-    getCoverImage = (res: any, page: number = 2) => {
-        this._coverPage = <div></div>;
-        // <img key={res.path} src={res.path}
-        //     style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${parseInt(res.width)}px`, height: `${parseInt(res.height)}px` }} />;
+    getCoverImage = () => {
+        let nativeWidth = NumCast(this.props.Document.nativeWidth);
+        if (!this.props.Document[HeightSym]()) {
+            this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
+            this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width
+        }
+        let nativeHeight = NumCast(this.props.Document.nativeHeight);
+        return <img key={this._coverPath.path} src={this._coverPath.path} onLoad={action(() => this._showWaiting = false)}
+            style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
 
     render() {
@@ -621,8 +635,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
             </div>
             <CollectionFreeFormView {...this.props}
                 setPreviewCursor={this.setPreviewCursor}
-                PanelHeight={() => this._pageSizes.length && this._pageSizes[0] ? this.props.pdf.numPages * this._pageSizes[0].height : 300}
-                PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : 300}
+                PanelHeight={() => this._pageSizes.length && this._pageSizes[0] ? this.props.pdf.numPages * this._pageSizes[0].height : NumCast(this.props.Document.nativeHeight)}
+                PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
                 focus={emptyFunction}
                 isSelected={this.props.isSelected}
                 select={emptyFunction}
@@ -639,19 +653,17 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
                 chromeCollapsed={true}>
             </CollectionFreeFormView>
-            {this._coverPage ? this._coverPage : (null)}
-            {this._showWaiting ? <img
+            {this._showCover ? this.getCoverImage() : (null)}
+            {this._showWaiting ? <img src={"/assets/loading.gif"}
                 style={{
-                    width: "100%",
-                    height: "100%",
-                    top: 0,
-                    left: 0,
+                    width: "70%",
+                    height: "70%",
+                    margin: "15%",
                     transition: "0.4s opacity ease",
                     opacity: 0.7,
                     position: "absolute",
                     zIndex: 10
-                }}
-                src={"/assets/loading.gif"}></img> : (null)}
+                }} /> : (null)}
         </div >);
     }
 }
