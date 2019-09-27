@@ -416,10 +416,9 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        setTimeout(() =>
-            eles.map(ele => (ele.hidden = hideSource) &&
-                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource))),
-            0);
+
+        // we're dragging a documentView, but it may be a child of a CollectionFreeFormDocumentView.  If it is, we want to hide that as well -- this should be generalized somehow in case other draggable things might contain a DocumentView.
+        eles.map(ele => (ele.hidden = hideSource));
 
         let lastX = downX;
         let lastY = downY;
