@@ -417,8 +417,7 @@ export namespace DragManager {
             }
         }
 
-        // we're dragging a documentView, but it may be a child of a CollectionFreeFormDocumentView.  If it is, we want to hide that as well -- this should be generalized somehow in case other draggable things might contain a DocumentView.
-        eles.map(ele => (ele.hidden = hideSource));
+        eles.map(ele => ele.hidden = hideSource);
 
         let lastX = downX;
         let lastY = downY;
@@ -446,12 +445,9 @@ export namespace DragManager {
             );
         };
 
-        let hideDragElements = () => {
+        let hideDragShowOriginalElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => {
-                ele.hidden = false;
-                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = false));
-            });
+            eles.map(ele => ele.hidden = false);
         };
         let endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
@@ -462,12 +458,12 @@ export namespace DragManager {
         };
 
         AbortDrag = () => {
-            hideDragElements();
+            hideDragShowOriginalElements();
             SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
-            hideDragElements();
+            hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
             SelectionManager.SetIsDragging(false);
             endDrag();

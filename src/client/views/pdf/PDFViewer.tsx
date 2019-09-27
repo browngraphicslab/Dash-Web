@@ -72,6 +72,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeing: boolean = false;
     @observable private _showWaiting = true;
     @observable private _showCover = false;
+    @observable private _zoomed = 1;
 
     public pdfViewer: any;
     private _isChildActive = false;
@@ -186,10 +187,10 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
         document.removeEventListener("copy", this.copy);
         document.addEventListener("copy", this.copy);
-        document.addEventListener("pagesinit", () => {
-            this.pdfViewer.currentScaleValue = 1;
+        document.addEventListener("pagesinit", action(() => {
+            this.pdfViewer.currentScaleValue = this._zoomed = 1;
             this.gotoPage(NumCast(this.props.Document.curPage, 1));
-        });
+        }));
         document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
@@ -618,10 +619,20 @@ export class PDFViewer extends React.Component<IViewerProps> {
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
 
+
+    @action
+    onZoomWheel = (e: React.WheelEvent) => {
+        e.stopPropagation();
+        if (e.ctrlKey) {
+            let curScale = Number(this.pdfViewer.currentScaleValue);
+            this.pdfViewer.currentScaleValue = Math.max(1, Math.min(10, curScale + curScale * e.deltaY / 1000));
+            this._zoomed = Number(this.pdfViewer.currentScaleValue);
+        }
+    }
     render() {
         trace();
 
-        return (<div className="pdfViewer-viewer" onScroll={this.onScroll} onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
+        return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
             <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />
             {!this._marqueeing ? (null) : <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
                 style={{
@@ -630,41 +641,45 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     border: `${this._marqueeWidth === 0 ? "" : "2px dashed black"}`
                 }}>
             </div>}
-            <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
-                {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                    <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
+            <div className="pdfViewer-overlay" style={{ transform: `scale(${this._zoomed})` }}>
+                <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
+                    {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
+                        <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
+                </div>
+                <CollectionFreeFormView {...this.props}
+                    setPreviewCursor={this.setPreviewCursor}
+                    PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
+                    PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
+                    focus={emptyFunction}
+                    isSelected={this.props.isSelected}
+                    select={emptyFunction}
+                    active={this.active}
+                    ContentScaling={returnOne}
+                    whenActiveChanged={this.whenActiveChanged}
+                    removeDocument={this.removeDocument}
+                    moveDocument={this.moveDocument}
+                    addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
+                    CollectionView={this.props.ContainingCollectionView}
+                    ScreenToLocalTransform={this.scrollXf}
+                    ruleProvider={undefined}
+                    renderDepth={this.props.renderDepth + 1}
+                    ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
+                    chromeCollapsed={true}>
+                </CollectionFreeFormView>
             </div>
-            <CollectionFreeFormView {...this.props}
-                setPreviewCursor={this.setPreviewCursor}
-                PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
-                PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
-                focus={emptyFunction}
-                isSelected={this.props.isSelected}
-                select={emptyFunction}
-                active={this.active}
-                ContentScaling={returnOne}
-                whenActiveChanged={this.whenActiveChanged}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
-                CollectionView={this.props.ContainingCollectionView}
-                ScreenToLocalTransform={this.scrollXf}
-                ruleProvider={undefined}
-                renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
-                chromeCollapsed={true}>
-            </CollectionFreeFormView>
             {this._showCover ? this.getCoverImage() : (null)}
-            {this._showWaiting ? <img src={"/assets/loading.gif"}
-                style={{
-                    width: "70%",
-                    height: "70%",
-                    margin: "15%",
-                    transition: "0.4s opacity ease",
-                    opacity: 0.7,
-                    position: "absolute",
-                    zIndex: 10
-                }} /> : (null)}
+            {
+                this._showWaiting ? <img src={"/assets/loading.gif"}
+                    style={{
+                        width: "70%",
+                        height: "70%",
+                        margin: "15%",
+                        transition: "0.4s opacity ease",
+                        opacity: 0.7,
+                        position: "absolute",
+                        zIndex: 10
+                    }} /> : (null)
+            }
         </div >);
     }
 }

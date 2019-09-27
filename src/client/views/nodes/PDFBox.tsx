@@ -170,7 +170,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
         return (!(pdfUrl instanceof PdfField) || !this._pdf ?
             <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
-            <div className={classname} onWheel={(e: React.WheelEvent) => e.stopPropagation()} onPointerDown={(e: React.PointerEvent) => {
+            <div className={classname} onPointerDown={(e: React.PointerEvent) => {
                 let hit = document.elementFromPoint(e.clientX, e.clientY);
                 if (hit && hit.localName === "span" && this.props.isSelected()) {
                     e.button === 0 && e.stopPropagation();
