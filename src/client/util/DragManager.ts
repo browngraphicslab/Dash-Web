@@ -349,8 +349,8 @@ export namespace DragManager {
         let xs: number[] = [];
         let ys: number[] = [];
 
-        const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
+        const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments :
+            dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -379,22 +379,20 @@ export namespace DragManager {
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
-            // bcz: if PDFs are rendered with svg's, then this code isn't needed
-            // bcz: PDFs don't show up if you clone them when rendered using a canvas. 
-            //      however, PDF's have a thumbnail field that contains an image of their canvas.
-            //      So we replace the pdf's canvas with the image thumbnail
-            // if (docs.length) {
-            //     var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
-            //     let thumbnail = docs[0].GetT(KeyStore.Thumbnail, ImageField);
-            //     if (pdfBox && pdfBox.childElementCount && thumbnail) {
-            //         let img = new Image();
-            //         img.src = thumbnail.toString();
-            //         img.style.position = "absolute";
-            //         img.style.width = `${rect.width / scaleX}px`;
-            //         img.style.height = `${rect.height / scaleY}px`;
-            //         pdfBox.replaceChild(img, pdfBox.children[0])
-            //     }
-            // }
+            if (docs.length) {
+                var pdfBox = dragElement.getElementsByTagName("canvas");
+                var pdfBoxSrc = ele.getElementsByTagName("canvas");
+                Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
+                var pdfView = dragElement.getElementsByClassName("pdfViewer-viewer");
+                var pdfViewSrc = ele.getElementsByClassName("pdfViewer-viewer");
+                let tops = Array.from(pdfViewSrc).map(p => p.scrollTop);
+                let oldopacity = dragElement.style.opacity;
+                dragElement.style.opacity = "0";
+                setTimeout(() => {
+                    dragElement.style.opacity = oldopacity;
+                    Array.from(pdfView).map((v, i) => v.scrollTo({ top: tops[i] }));
+                }, 0);
+            }
             let set = dragElement.getElementsByTagName('*');
             if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
             // tslint:disable-next-line: prefer-for-of
@@ -418,8 +416,10 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        eles.map(ele => (ele.hidden = hideSource) &&
-            (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource)));
+        setTimeout(() =>
+            eles.map(ele => (ele.hidden = hideSource) &&
+                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource))),
+            0);
 
         let lastX = downX;
         let lastY = downY;
