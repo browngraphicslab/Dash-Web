@@ -47,8 +47,8 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
-import BatchedArray, { TimeUnit } from "array-batcher";
 import { DashUploadUtils } from './DashUploadUtils';
+import { BatchedArray, TimeUnit } from 'array-batcher';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -848,7 +848,8 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
 
     let failed = 0;
 
-    const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapInterval(
+    const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
+        { magnitude: 100, unit: TimeUnit.Milliseconds },
         async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
             const newMediaItems: NewMediaItem[] = [];
             for (let element of batch) {
@@ -863,8 +864,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
                 }
             }
             return newMediaItems;
-        },
-        { magnitude: 100, unit: TimeUnit.Milliseconds }
+        }
     );
 
     if (failed) {

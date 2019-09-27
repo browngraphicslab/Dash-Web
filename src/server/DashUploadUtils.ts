@@ -50,10 +50,10 @@ export namespace DashUploadUtils {
      * event that @param filename is not specified
      * 
      * @returns {UploadInformation} This method returns
-     * 1) the paths to the uploaded image
+     * 1) the paths to the uploaded images (plural due to resizing)
      * 2) the file name of each of the resized images
      * 3) the size of the image, in bytes (4432130)
-     * 4) the content type of the image (jpg | png | etc.)
+     * 4) the content type of the image, i.e. image/(jpeg | png | ...)
      */
     export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<UploadInformation> => {
         const metadata = await InspectImage(source);

@@ -3,7 +3,7 @@ import { GoogleApiServerUtils } from './GoogleApiServerUtils';
 import * as path from 'path';
 import { MediaItemCreationResult } from './SharedTypes';
 import { NewMediaItem } from "../../index";
-import BatchedArray, { FixedBatcher, TimeUnit, Interval } from "array-batcher";
+import { BatchedArray, TimeUnit } from 'array-batcher';
 
 export namespace GooglePhotosUploadUtils {
 
@@ -53,7 +53,8 @@ export namespace GooglePhotosUploadUtils {
     };
 
     export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapInterval(
+        const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapPatientInterval(
+            { magnitude: 100, unit: TimeUnit.Milliseconds },
             async (batch: NewMediaItem[]) => {
                 const parameters = {
                     method: 'POST',
@@ -72,8 +73,7 @@ export namespace GooglePhotosUploadUtils {
                         }
                     });
                 })).newMediaItemResults;
-            },
-            { magnitude: 100, unit: TimeUnit.Milliseconds }
+            }
         );
         return { newMediaItemResults };
     };

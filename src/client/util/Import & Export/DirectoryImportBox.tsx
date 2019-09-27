@@ -20,10 +20,11 @@ import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
-import BatchedArray from "array-batcher";
 import { Identified } from "../../Network";
+import { BatchedArray } from "array-batcher";
 
 const unsupported = ["text/html", "text/plain"];
+
 interface FileResponse {
     name: string;
     path: string;
