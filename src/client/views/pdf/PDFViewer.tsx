@@ -68,6 +68,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
     @observable private _marqueeing: boolean = false;
+    @observable private _showWaiting = true;
 
     public pdfViewer: any;
     private _isChildActive = false;
@@ -167,11 +168,10 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
     }
 
-
     @action
     setupPdfJsViewer = () => {
         document.addEventListener("pagesinit", () => this.pdfViewer.currentScaleValue = 1);
-        //  document.addEventListener("pagerendered", () => console.log("rendered")); // bcz: works, but not needed except to debug
+        document.addEventListener("pagerendered", action(() => this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
@@ -622,6 +622,18 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
                 chromeCollapsed={true}>
             </CollectionFreeFormView>
+            {this._showWaiting ? <img
+                style={{
+                    width: "100%",
+                    height: "100%",
+                    top: 0,
+                    left: 0,
+                    transition: "0.4s opacity ease",
+                    opacity: 0.7,
+                    position: "absolute",
+                    zIndex: 10
+                }}
+                src={"/assets/loading.gif"}></img> : (null)}
         </div >);
     }
 }
