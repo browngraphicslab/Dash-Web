@@ -14,11 +14,14 @@ import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/Share
 import { AssertionError } from "assert";
 import { DocumentView } from "../../views/nodes/DocumentView";
 import { DocumentManager } from "../../util/DocumentManager";
-import { PostToServer } from "../../Network";
+import { Identified } from "../../Network";
 
 export namespace GooglePhotos {
 
-    const endpoint = async () => new Photos(await PostToServer(RouteStore.googlePhotosAccessToken));
+    const endpoint = async () => {
+        const accessToken = await Identified.FetchFromServer(RouteStore.googlePhotosAccessToken);
+        return new Photos(accessToken);
+    };
 
     export enum MediaType {
         ALL_MEDIA = 'ALL_MEDIA',
@@ -296,7 +299,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, body);
+            const uploads = await Identified.PostToServer(RouteStore.googlePhotosMediaDownload, body);
             return uploads;
         };
 
@@ -316,7 +319,7 @@ export namespace GooglePhotos {
                 album = await Create.Album(album.title);
             }
             const media: MediaInput[] = [];
-            sources.forEach(source => {
+            for (let source of sources) {
                 const data = Cast(Doc.GetProto(source).data, ImageField);
                 if (!data) {
                     return;
@@ -324,11 +327,11 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                DocumentView.makeCustomViewClicked(target, undefined);
+                await DocumentView.makeCustomViewClicked(target, undefined);
                 media.push({ url, description });
-            });
+            }
             if (media.length) {
-                const uploads: NewMediaItemResult[] = await PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                const uploads: NewMediaItemResult[] = await Identified.PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
                 return uploads;
             }
         };

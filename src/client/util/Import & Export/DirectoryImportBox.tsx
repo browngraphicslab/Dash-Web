@@ -21,7 +21,7 @@ import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
 import BatchedArray from "array-batcher";
-import { PostFormDataToServer } from "../../Network";
+import { Identified } from "../../Network";
 
 const unsupported = ["text/html", "text/plain"];
 interface FileResponse {
@@ -114,7 +114,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            const responses = await PostFormDataToServer(RouteStore.upload, formData);
+            const responses = await Identified.PostFormDataToServer(RouteStore.upload, formData);
             runInAction(() => this.completed += batch.length);
             return responses as FileResponse[];
         });
@@ -279,7 +279,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             }} />
                         <label
                             htmlFor={"selector"}
-                            onClick={console.log}
                             style={{
                                 opacity: isEditing ? 0 : 1,
                                 pointerEvents: isEditing ? "none" : "all",

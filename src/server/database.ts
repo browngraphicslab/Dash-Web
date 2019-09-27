@@ -1,7 +1,7 @@
 import * as mongodb from 'mongodb';
 import { Transferable } from './Message';
 import { Opt } from '../new_fields/Doc';
-import { Utils } from '../Utils';
+import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 
 export namespace Database {
@@ -21,7 +21,7 @@ export namespace Database {
             });
         }
 
-        public update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
+        public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
             if (this.db) {
                 let collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
@@ -40,6 +40,7 @@ export namespace Database {
                 };
                 newProm = prom ? prom.then(run) : run();
                 this.currentWrites[id] = newProm;
+                return newProm;
             } else {
                 this.onConnect.push(() => this.update(id, value, callback, upsert, collectionName));
             }
@@ -226,23 +227,22 @@ export namespace Database {
     export namespace Auxiliary {
 
         export enum AuxiliaryCollections {
-            GooglePhotosUploadHistory = "UploadedFromGooglePhotos"
+            GooglePhotosUploadHistory = "uploadedFromGooglePhotos"
         }
 
-        const GoogleAuthentication = "GoogleAuthentication";
 
-        const SanitizedCappedQuery = async (query: { [key: string]: any }, collection: string, cap: number) => {
+        const SanitizedCappedQuery = async (query: { [key: string]: any }, collection: string, cap: number, removeId = true) => {
             const cursor = await Instance.query(query, undefined, collection);
             const results = await cursor.toArray();
             const slice = results.slice(0, Math.min(cap, results.length));
-            return slice.map(result => {
+            return removeId ? slice.map(result => {
                 delete result._id;
                 return result;
-            });
+            }) : slice;
         };
 
-        const SanitizedSingletonQuery = async (query: { [key: string]: any }, collection: string) => {
-            const results = await SanitizedCappedQuery(query, collection, 1);
+        const SanitizedSingletonQuery = async (query: { [key: string]: any }, collection: string, removeId = true) => {
+            const results = await SanitizedCappedQuery(query, collection, 1, removeId);
             return results.length ? results[0] : undefined;
         };
 
@@ -252,12 +252,22 @@ export namespace Database {
 
         export namespace GoogleAuthenticationToken {
 
-            export const Fetch = async (userId: string) => {
-                return SanitizedSingletonQuery({ userId }, GoogleAuthentication);
+            const GoogleAuthentication = "googleAuthentication";
+
+            export const Fetch = async (userId: string, removeId = true) => {
+                return SanitizedSingletonQuery({ userId }, GoogleAuthentication, removeId);
             };
 
             export const Write = async (userId: string, token: any) => {
                 return Instance.insert({ userId, ...token }, GoogleAuthentication);
+            };
+
+            export const Update = async (userId: string, access_token: string, expiry_date: number) => {
+                const entry = await Fetch(userId, false);
+                if (entry) {
+                    const parameters = { $set: { access_token, expiry_date } };
+                    return Instance.update(entry._id, parameters, emptyFunction, true, GoogleAuthentication);
+                }
             };
 
         }

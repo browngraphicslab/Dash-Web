@@ -824,7 +824,7 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.headers.userId as string }).then(token => res.send(token)));
+app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.header("userId")! }).then(token => res.send(token)));
 
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
@@ -839,9 +839,9 @@ export interface NewMediaItem {
 
 app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const { media } = req.body;
-    const { userId } = req.headers;
+    const userId = req.header("userId");
 
-    if (!userId || Array.isArray(userId)) {
+    if (!userId) {
         return _error(res, userIdError);
     }
 

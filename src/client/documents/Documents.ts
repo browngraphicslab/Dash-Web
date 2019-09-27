@@ -337,16 +337,18 @@ export namespace Docs {
                 let extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            requestImageSize(target)
-                .then((size: any) => {
-                    let aspect = size.height / size.width;
-                    if (!inst.proto!.nativeWidth) {
-                        inst.proto!.nativeWidth = size.width;
-                    }
-                    inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                    inst.proto!.height = NumCast(inst.proto!.width) * aspect;
-                })
-                .catch((err: any) => console.log(err));
+            if (target !== "http://www.cs.brown.edu/") {
+                requestImageSize(target)
+                    .then((size: any) => {
+                        let aspect = size.height / size.width;
+                        if (!inst.proto!.nativeWidth) {
+                            inst.proto!.nativeWidth = size.width;
+                        }
+                        inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                        inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                    })
+                    .catch((err: any) => console.log(err));
+            }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {

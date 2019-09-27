@@ -103,21 +103,21 @@ export namespace GoogleApiServerUtils {
      */
     export function authorize(credentials: any, userId: string): Promise<TokenResult> {
         const { client_secret, client_id, redirect_uris } = credentials.installed;
-        const oAuth2Client = new google.auth.OAuth2(
-            client_id, client_secret, redirect_uris[0]);
-
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
         return new Promise<TokenResult>((resolve, reject) => {
+            // Attempting to authorize user (${userId})
             Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(token => {
-                // Check if we have previously stored a token for this userId.
                 if (!token) {
+                    // No token registered, so awaiting input from user
                     return getNewToken(oAuth2Client, userId).then(resolve, reject);
                 }
-                let parsed: Credentials = parseBuffer(token);
-                if (parsed.expiry_date! < new Date().getTime()) {
-                    return refreshToken(parsed, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
+                if (token.expiry_date < new Date().getTime()) {
+                    // Token has expired, so submitting a request for a refreshed access token
+                    return refreshToken(token, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
                 }
-                oAuth2Client.setCredentials(parsed);
-                resolve({ token: parsed, client: oAuth2Client });
+                // Authentication successful!
+                oAuth2Client.setCredentials(token);
+                resolve({ token, client: oAuth2Client });
             });
         });
     }
@@ -134,11 +134,12 @@ export namespace GoogleApiServerUtils {
             };
             let url = `${refreshEndpoint}?${qs.stringify(queryParameters)}`;
             request.post(url, headerParameters).then(async response => {
-                let parsed = JSON.parse(response);
-                credentials.access_token = parsed.access_token;
-                credentials.expiry_date = new Date().getTime() + (parsed.expires_in * 1000);
+                let { access_token, expires_in } = JSON.parse(response);
+                const expiry_date = new Date().getTime() + (expires_in * 1000);
+                await Database.Auxiliary.GoogleAuthenticationToken.Update(userId, access_token, expiry_date);
+                credentials.access_token = access_token;
+                credentials.expiry_date = expiry_date;
                 oAuth2Client.setCredentials(credentials);
-                await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, credentials);
                 resolve({ token: credentials, client: oAuth2Client });
             });
         });

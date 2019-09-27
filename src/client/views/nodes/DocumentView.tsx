@@ -295,10 +295,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    static makeNativeViewClicked = (doc: Doc): void => { swapViews(doc, "layoutNative", "layoutCustom"); }
+    static makeNativeViewClicked = async (doc: Doc): Promise<void> => swapViews(doc, "layoutNative", "layoutCustom")
 
-    @undoBatch
     static makeCustomViewClicked = async (doc: Doc, dataDoc: Opt<Doc>) => {
+        const batch = UndoManager.StartBatch("CustomViewClicked");
         if (doc.layoutCustom === undefined) {
             Doc.GetProto(dataDoc || doc).layoutNative = Doc.MakeTitled("layoutNative");
             await swapViews(doc, "", "layoutNative");
@@ -320,8 +320,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             Doc.ApplyTemplateTo(docTemplate, doc, undefined);
             Doc.GetProto(dataDoc || doc).layoutCustom = Doc.MakeTitled("layoutCustom");
         } else {
-            swapViews(doc, "layoutCustom", "layoutNative");
+            await swapViews(doc, "layoutCustom", "layoutNative");
         }
+        batch.end();
     }
 
     @undoBatch
