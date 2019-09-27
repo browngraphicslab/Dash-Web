@@ -392,7 +392,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             if (e.target && (e.target as any).parentElement.className === "textLayer") {
-                e.stopPropagation();
                 if (!e.ctrlKey) {
                     this.receiveAnnotations([], -1);
                 }
@@ -405,7 +404,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
                 }
                 this._marqueeing = true;
-                this._marquee.current && (this._marquee.current.style.opacity = "0.2");
+                let marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
+                if (marquees && marquees.length) { // make a copy of the marquee
+                    let marquee = marquees[0] as HTMLDivElement;
+                    marquee.style.opacity = "0.2";
+                }
                 this.receiveAnnotations([], -1);
             }
             document.removeEventListener("pointermove", this.onSelectMove);
@@ -472,9 +475,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
     onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
-                if (this._marquee.current) { // make a copy of the marquee
+                let marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
+                if (marquees && marquees.length) { // make a copy of the marquee
                     let copy = document.createElement("div");
-                    let style = this._marquee.current.style;
+                    let marquee = marquees[0] as HTMLDivElement;
+                    let style = marquee.style;
                     copy.style.left = style.left;
                     copy.style.top = style.top;
                     copy.style.width = style.width;
@@ -483,7 +488,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     copy.style.opacity = style.opacity;
                     copy.className = "pdfPage-annotationBox";
                     this.createAnnotation(copy, this.getPageFromScroll(this._marqueeY));
-                    this._marquee.current.style.opacity = "0";
+                    marquee.style.opacity = "0";
                 }
 
                 if (!e.ctrlKey) {
@@ -609,11 +614,13 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     getCoverImage = () => {
-        let nativeWidth = NumCast(this.props.Document.nativeWidth);
         if (!this.props.Document[HeightSym]()) {
-            this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-            this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width
+            setTimeout(() => {
+                this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
+                this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+            }, 0);
         }
+        let nativeWidth = NumCast(this.props.Document.nativeWidth);
         let nativeHeight = NumCast(this.props.Document.nativeHeight);
         return <img key={this._coverPath.path} src={this._coverPath.path} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
@@ -629,23 +636,37 @@ export class PDFViewer extends React.Component<IViewerProps> {
             this._zoomed = Number(this.pdfViewer.currentScaleValue);
         }
     }
+
+    @computed get annotationLayer() {
+        trace();
+        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
+            {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
+                <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
+        </div>;
+    }
+    @computed get pdfViewerDiv() {
+        trace();
+        return <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />;
+    }
+    @computed get standinViews() {
+        trace();
+        return <>
+            {this._showCover ? this.getCoverImage() : (null)}
+            {this._showWaiting ? <img className="pdfViewer-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
+        </>;
+    }
+    marqueeWidth = () => this._marqueeWidth;
+    marqueeHeight = () => this._marqueeHeight;
+    marqueeX = () => this._marqueeX;
+    marqueeY = () => this._marqueeY;
+    marqueeing = () => this._marqueeing;
     render() {
         trace();
-
         return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
-            <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />
-            {!this._marqueeing ? (null) : <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
-                style={{
-                    left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
-                    width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
-                    border: `${this._marqueeWidth === 0 ? "" : "2px dashed black"}`
-                }}>
-            </div>}
+            {this.pdfViewerDiv}
+            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
             <div className="pdfViewer-overlay" style={{ transform: `scale(${this._zoomed})` }}>
-                <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
-                    {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                        <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
-                </div>
+                {this.annotationLayer}
                 <CollectionFreeFormView {...this.props}
                     setPreviewCursor={this.setPreviewCursor}
                     PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
@@ -667,21 +688,31 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     chromeCollapsed={true}>
                 </CollectionFreeFormView>
             </div>
-            {this._showCover ? this.getCoverImage() : (null)}
-            {
-                this._showWaiting ? <img src={"/assets/loading.gif"}
-                    style={{
-                        width: "70%",
-                        height: "70%",
-                        margin: "15%",
-                        transition: "0.4s opacity ease",
-                        opacity: 0.7,
-                        position: "absolute",
-                        zIndex: 10
-                    }} /> : (null)
-            }
+            {this.standinViews}
         </div >);
     }
 }
+
+interface PdfViewerMarqueeProps {
+    isMarqueeing: () => boolean;
+    width: () => number;
+    height: () => number;
+    x: () => number;
+    y: () => number;
+}
+
+@observer
+class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
+    render() {
+        return !this.props.isMarqueeing() ? (null) : <div className="pdfViewer-dragAnnotationBox"
+            style={{
+                left: `${this.props.x()}px`, top: `${this.props.y()}px`,
+                width: `${this.props.width()}px`, height: `${this.props.height()}px`,
+                border: `${this.props.width() === 0 ? "" : "2px dashed black"}`
+            }}>
+        </div>
+    }
+}
+
 
 export enum AnnotationTypes { Region }
