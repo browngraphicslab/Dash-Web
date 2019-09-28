@@ -234,7 +234,7 @@ export class MainView extends React.Component {
         } else {
             DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field => {
                 field instanceof Doc ? this.openWorkspace(field) :
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId)
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
             });
         }
     }
@@ -375,8 +375,9 @@ export class MainView extends React.Component {
     }
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string) => {
-        if (where === "close")
+        if (where === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
+        }
         if (doc.dockingConfig) {
             this.openWorkspace(doc);
             return true;
@@ -568,7 +569,7 @@ export class MainView extends React.Component {
         let next = () => PresBox.CurrentPresentation.next();
         let back = () => PresBox.CurrentPresentation.back();
         let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document); });
+        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document, undefined, "onRight"); });
         return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>;
     }
 

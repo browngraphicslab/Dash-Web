@@ -258,7 +258,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
+        if (this.active && e.button === 0 && !this.Document.lockedPosition) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -266,11 +266,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble && this.active) {
-            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && this.active) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.Document.lockedPosition)) {
+                if (!e.altKey && !this.topMost && e.buttons === 1) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
@@ -300,7 +300,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             await swapViews(this.props.Document, "", "layoutNative");
 
             let options = { title: "data", width: (this.Document.width || 0), x: -(this.Document.width || 0) / 2, y: - (this.Document.height || 0) / 2, };
-            let fieldTemplate = this.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
+            let fieldTemplate = this.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : this.Document.type === DocumentType.PDF ? Docs.Create.PdfDocument("http://www.msn.com", options) :
                 this.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
                     Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
 
@@ -605,7 +605,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
         const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");

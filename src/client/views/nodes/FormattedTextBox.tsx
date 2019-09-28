@@ -153,7 +153,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         }
                     });
                     return { frag: Fragment.fromArray(nodes), start: start };
-                }
+                };
                 let findLinkNode = (node: Node, editor: EditorView) => {
                     if (!node.isText) {
                         const content = findLinkFrag(node.content, editor);
@@ -162,7 +162,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     const marks = [...node.marks];
                     const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
                     return linkIndex !== -1 && scrollToLinkID === marks[linkIndex].attrs.href.replace(/.*\/doc\//, "") ? node : undefined;
-                }
+                };
 
                 let start = -1;
 
@@ -748,7 +748,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let ref = editorView.domAtPos(editorView.state.selection.from);
                     let refNode = ref.node as any;
                     while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
-                    let r1 = refNode && (refNode as any).getBoundingClientRect();
+                    let r1 = refNode && refNode.getBoundingClientRect();
                     let r3 = self._ref.current!.getBoundingClientRect();
                     r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
                     return true;

@@ -246,7 +246,7 @@ export interface SchemaTableProps {
     PanelHeight: () => number;
     PanelWidth: () => number;
     childDocs?: Doc[];
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
@@ -804,7 +804,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         csv.substring(0, csv.length - 1);
         let dbName = StrCast(this.props.Document.title);
         let res = await Gateway.Instance.PostSchema(csv, dbName);
-        if (self.props.CollectionView.props.addDocument) {
+        if (self.props.CollectionView && self.props.CollectionView.props.addDocument) {
             let schemaDoc = await Docs.Create.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
             if (schemaDoc) {
                 //self.props.CollectionView.props.addDocument(schemaDoc, false);

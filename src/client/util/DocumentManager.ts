@@ -132,9 +132,7 @@ export class DocumentManager {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
-            const page = NumCast(doc.page, linkPage || 0);
-            const curPage = NumCast(contextDoc.curPage, page);
-            if (page !== curPage) contextDoc.curPage = page;
+            contextDoc.panY = doc.y;
         }
 
         let docView: DocumentView | null;
@@ -188,13 +186,8 @@ export class DocumentManager {
 
     @action
     zoomIntoScale = (docDelegate: Doc, scale: number) => {
-        let doc = Doc.GetProto(docDelegate);
-
-        let docView: DocumentView | null;
-        docView = DocumentManager.Instance.getDocumentView(doc);
-        if (docView) {
-            docView.props.zoomToScale(scale);
-        }
+        let docView = DocumentManager.Instance.getDocumentView(Doc.GetProto(docDelegate));
+        docView && docView.props.zoomToScale(scale);
     }
 
     getScaleOfDocView = (docDelegate: Doc) => {

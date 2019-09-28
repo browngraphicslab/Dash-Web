@@ -9,7 +9,7 @@ import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { FieldId } from "../../../new_fields/RefField";
@@ -30,6 +30,7 @@ import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
+import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faFile);
 
 @observer
@@ -595,12 +596,19 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     panelWidth = () => this._document!.ignoreAspect ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => this._document!.ignoreAspect ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), NumCast(this._document!.nativeHeight, this._panelHeight)));
+    panelHeight = () => this._document!.ignoreAspect ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), this.nativeHeight()));
 
     nativeWidth = () => !this._document!.ignoreAspect ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
     nativeHeight = () => !this._document!.ignoreAspect ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
+        if (this._document!.type === DocumentType.PDF) {
+            if (this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
+                return this._panelWidth / NumCast(this._document!.nativeWidth);
+            } else {
+                return this._panelHeight / NumCast(this._document!.nativeHeight);
+            }
+        }
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
         if (!nativeW || !nativeH) return 1;
@@ -619,6 +627,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return this.nativeWidth() && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() / this.ScreenToLocalTransform().Scale) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
+        SelectionManager.DeselectAll();
         if (doc.dockingConfig) {
             MainView.Instance.openWorkspace(doc);
             return true;

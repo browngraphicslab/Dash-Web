@@ -1,12 +1,12 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { BoolCast, Cast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -30,10 +30,11 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     chromeCollapsed: boolean;
+    setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     ruleProvider: Doc | undefined;
 }
 

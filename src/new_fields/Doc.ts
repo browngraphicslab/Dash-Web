@@ -13,6 +13,7 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
+import { intersectRect } from "../Utils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -612,6 +613,18 @@ export namespace Doc {
             if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
             fieldTemplate.proto = templateDataDoc;
         }), 0);
+    }
+
+    export function overlapping(doc: Doc, doc2: Doc, clusterDistance: number) {
+        var x2 = NumCast(doc2.x) - clusterDistance;
+        var y2 = NumCast(doc2.y) - clusterDistance;
+        var w2 = NumCast(doc2.width) + clusterDistance;
+        var h2 = NumCast(doc2.height) + clusterDistance;
+        var x = NumCast(doc.x) - clusterDistance;
+        var y = NumCast(doc.y) - clusterDistance;
+        var w = NumCast(doc.width) + clusterDistance;
+        var h = NumCast(doc.height) + clusterDistance;
+        return doc.z === doc2.z && intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 });
     }
 
     export function isBrushedHighlightedDegree(doc: Doc) {
