@@ -177,7 +177,7 @@ ul {
 
 .collectionTimelineViewBottomUI-grid {
     display: grid;
-    grid-template-columns: 100px 100px 100px 25px 25px 25px 25px 1fr 1fr 1fr;
+    grid-template-columns: 100px 100px 100px 25px 25px 25px 25px 1fr 1fr 1fr 1fr;
     grid-template-rows: 100%;
     width: 100%;
     z-index: 10000;
@@ -260,6 +260,12 @@ ul {
         align-self: center;
         justify-self: center;
         grid-column: 9/10;
+    }
+
+    .update {
+        align-self: center;
+        justify-self: center;
+        grid-column: 10/11;
     }
 
 

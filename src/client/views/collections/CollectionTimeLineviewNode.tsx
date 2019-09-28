@@ -87,28 +87,33 @@ export class Thumbnail extends React.Component<NodeProps> {
     }
     @action
     toggleSelection(e: React.PointerEvent) {
-        if (this.classref.current!.classList.contains("unselection")) {
-            this.classref.current!.classList.remove("unselection");
-            this.classref.current!.classList.add("selection");
-            this.props.tog(true);
-        }
-        else {
-            this.classref.current!.classList.remove("selection");
-            this.classref.current!.classList.add("unselection");
-            this.props.tog(false);
-
-        }
-        if (e.button==="0") {
+        this.selectclass = !this.selectclass;
+        console.log(this.props.update)
+        if (e.button === 2) {
+            e.preventDefault();
             this.props.createportal();
         }
-        let ting = this.props.leftval;
+        else if (this.props.update === true) {
+            document.addEventListener("pointermove", (this.adjust));
+            document.addEventListener("pointerup", (this.onPointerUp));
+        }
+
     }
+
+    @action
+    adjust = (e: PointerEvent): void => {
+        console.log(this.props.doc[this.props.sortstate]);
+        this.props.doc[this.props.sortstate] += e.movementX / this.props.range;
+    }
+
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.adjust);
+    }
+
 
     returnData() {
         return this.props.doc.data;
     }
-
-    @observable selectclass: string = "unselection";
 
     @observable classref = React.createRef<HTMLDivElement>();
 
@@ -123,24 +128,27 @@ export class Thumbnail extends React.Component<NodeProps> {
     @action
     tog() {
         if (this.classref.current) {
-            if (this.props.toggleopac === true && this.classref.current.classList.contains("unselection")) {
-                this.opacity = 0.3;
-            }
-            else {
-                this.opacity = 1;
-            }
+            // if (this.props.toggleopac === true && this.classref.current.classList.contains("unselection")) {
+            //     this.opacity = 0.3;
+            // }
+            //else {
+            this.opacity = 1;
+            //}
         }
     }
 
     opacity: number | undefined;
 
+    @observable selectclass: boolean = this.props.select;
+
     render() {
         this.maketransition();
         this.getCaption();
         this.tog();
+        console.log(this.selectclass);
         return (
             <div>
-                <div onClick={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
+                <div onPointerDown={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
                     <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
@@ -150,7 +158,7 @@ export class Thumbnail extends React.Component<NodeProps> {
                         </div>
                     </div>
                 </div>
-                <div ref={this.classref} className="unselection" style={{
+                <div ref={this.classref} className={this.selectclass === true ? "selection " : "unselection"} style={{
                     zIndex: 98, position: "absolute", height: "100%",
                 }}>
                     <div style=
@@ -158,13 +166,14 @@ export class Thumbnail extends React.Component<NodeProps> {
                             position: "absolute", left: this.props.leftval, top: "0px", height: "100%", overflow: "hidden", writingMode: "vertical-rl",
                             textOrientation: "mixed", borderLeft: "1px black solid"
                         }} />
-                    <div style={{
+                    < div style={{
                         position: "absolute", width: this.props.scale, left: this.props.leftval - 30, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
                         textOrientation: "mixed",
                     }}>{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
                 </div>
             </div >
         );
+
 
     }
 }
@@ -188,4 +197,7 @@ export interface NodeProps {
     tog: (booelan: boolean) => void;
     pointerDown: boolean;
     timelineTop: number;
+    select: boolean;
+    update: true;
+    range: number;
 }

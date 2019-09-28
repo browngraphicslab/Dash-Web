@@ -43,6 +43,7 @@ type MarkerUnit = {
 
 type Node = {
     doc: Doc;
+    select?: boolean;
     leftval: number;
     top: number;
     mapleft: number;
@@ -126,6 +127,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable markdoc: Doc | undefined = undefined;
     @action
     onPointerDown_LeftResize = (e: React.PointerEvent, doc: Doc): void => {
+        this.downbool = false;
         if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
@@ -136,7 +138,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             document.addEventListener("pointermove", (this.onPointerMove_LeftResize));
             e.stopPropagation();
             this.markdoc = doc;
-            this.downbool = (false);
         }
     }
 
@@ -151,6 +152,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_RightResize = (e: React.PointerEvent, doc: Doc): void => {
+        this.downbool = false;
         if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
@@ -161,7 +163,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             document.addEventListener("pointermove", (this.onPointerMove_RightResize));
             e.stopPropagation();
             this.markdoc = doc;
-            this.downbool = (false);
         }
     }
 
@@ -490,6 +491,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let newNode = {
                 mapleft: ((values[i] - values[0] + (this._range * 0.05)) * this.barwidth / (this._range * 1.1)), leftval: parseFloat(leftval), doc: docs[i], top: 20, row: Math.round(this.rows.length / 2) - 1,
             } as Node;
+            console.log(newNode.select);
             this.thumbnails.push(newNode);
         }
         this.thumbnails = this.filterDocs(this.thumbnails);
@@ -706,10 +708,22 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let doc = this.props.Document;
         if (!doc.rowPrev) {
             this.rowPrev = false;
-            console.log("hm");
         }
         return BoolCast(doc.rowPrev);
     }
+
+    private set update(boolean: boolean) {
+        this.props.Document.update = boolean;
+    }
+
+    private get update() {
+        let doc = this.props.Document;
+        if (!doc.update) {
+            this.update = false;
+        }
+        return BoolCast(doc.update);
+    }
+
 
     private set transtate(boolean: boolean) {
         this.props.Document.transtate = boolean;
@@ -784,7 +798,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this._downX = e.pageX;
         this._downY = e.pageY;
         this.downbool = false;
-
         if (e.button === 2) {
             document.addEventListener("pointermove", this.onPointerMove_Marquee, true);
             document.addEventListener("pointerup", this.onPointerUp_Marquee, true);
@@ -796,7 +809,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.persist();
         this._downX = e.pageX;
         this._downY = e.pageY;
-        console.log(this._downX);
         this.downbool = false;
         let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
         let mintick: React.RefObject<HTMLDivElement>;
@@ -838,16 +850,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerMove_Marquee = async (e: PointerEvent) => {
-        console.log("FGSF")
         this._lastY = e.pageY;
         this._lastX = e.pageX;
-
-
         this.marqueeSelect();
         if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
             Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
             this._visible = true;
-            console.log("YUHHH");
             e.stopPropagation();
             e.preventDefault();
         }
@@ -856,6 +864,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerUp_Marquee = (e: PointerEvent): void => {
+        this.downbool = true;
         document.removeEventListener("pointermove", this.onPointerMove_Marquee, true);
         if (this._visible) {
             if (!e.shiftKey) {
@@ -875,29 +884,50 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         //let newselect = [];
         if (this.marqueeref.current !== null) {
             let posInfo = this.marqueeref.current.getBoundingClientRect();
-            // for (let thumbnails of this.thumbnails) {
-            //     if (thumbnails.thumbnailref !== undefined) {
-            //         let thumbnail = thumbnails.thumbnailref;
-            //         let thumbnailinfo = thumbnail!.getBoundingClientRect();
-            //         let header = thumbnails.headerref;
-            //         if ((thumbnailinfo.left > posInfo.left && thumbnailinfo.left < posInfo.right) || (thumbnailinfo.right > posInfo.left && thumbnailinfo.right < posInfo.right)) {
-            //             this.focus(thumbnail, header);
-            //             newselect.push(thumbnail);
-            //         }
-            //         else {
-            //             this.unfocus(thumbnail, header);
-            //         }
-            //         for (let select of this.selections) {
-            //             if (select === thumbnail) {
-            //                 this.focus(thumbnail, header);
-            //             }
-            //         }
-            //     }
-            // }
+            let offset = this.screenref.current!.getBoundingClientRect().left;
+            let offsety = this.screenref.current!.getBoundingClientRect().top;
+            for (let thumbnails of this.thumbnails) {
+                let thumbnailinfoleft = thumbnails.leftval + offset;
+                let thumbnailinforight = thumbnails.leftval + this.rowscale + offset;
+                let thumbnailinfotop = this.rowval[thumbnails.row] + offsety;
+                let thumbnailinfobottom = this.rowval[thumbnails.row] + this.rowscale + offsety;
+                console.log(thumbnailinfotop, posInfo.top);
+                if ((thumbnailinfoleft > posInfo.left && thumbnailinfoleft < posInfo.right) || (thumbnailinforight > posInfo.left && thumbnailinforight < posInfo.right)) {
+                    if ((thumbnailinfobottom < posInfo.bottom && thumbnailinfobottom > posInfo.top) || (thumbnailinfotop > posInfo.top && thumbnailinfotop < posInfo.bottom)) {
+                        thumbnails.select = true;
+                        console.log('HIT', thumbnailinfoleft, posInfo.left);
+                    }
+
+                }
+
+                // else {
+                //     thumbnails.select = false;
+                // }
+                // for (let select of this.selections) {
+                //     if (select === thumbnail) {
+                //         this.focus(thumbnail, header);
+                //     }
+                // }
+
+            }
         }
         //this.newselect = newselect;
     }
     private newselect: (HTMLDivElement | undefined)[] = [];
+
+    focus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
+        thumbnail!.classList.toggle("selected", true);
+        thumbnail!.classList.toggle("unselected", false);
+        header!.classList.toggle("selection", true);
+        header!.classList.toggle("unselection", false);
+    }
+
+    unfocus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
+        thumbnail!.classList.toggle("selected", false);
+        thumbnail!.classList.toggle("unselected", true);
+        header!.classList.toggle("selection", false);
+        header!.classList.toggle("unselection", true);
+    }
 
 
     @computed
@@ -907,7 +937,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         </div>;
 
     }
-
 
 
     @action
@@ -944,7 +973,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     opacset = (boolean: boolean) => {
-        console.log('hit');
         this.opac = boolean;
     }
 
@@ -1127,10 +1155,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             tog={this.opacset}
                             pointerDown={this.downbool ? this.downbool : false}
                             timelineTop={this.rowval[Math.round(this.rowval.length / 2)]}
+                            select={doc.select ? doc.select : false}
+                            update={this.update}
+                            range={this._range}
                         >
                         </Thumbnail>
                     )}
-                    {console.log(this.markerDocs.length)}
                     {this.markerDocs.map(d => this.createmarker(d))}
                     <div onPointerDown={this.onPointerDown_Timeline} style={{
                         position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"

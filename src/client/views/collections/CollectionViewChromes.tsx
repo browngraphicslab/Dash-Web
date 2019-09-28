@@ -862,6 +862,11 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         this.props.CollectionView.props.Document.rowPrev = e.currentTarget.checked;
     }
 
+    @action.bound
+    toggleUpdate(e: React.ChangeEvent<HTMLInputElement>) {
+        this.props.CollectionView.props.Document.update = e.currentTarget.checked;
+    }
+
 
     render() {
         return (
@@ -893,6 +898,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                     <div className="sortinputRIGHT"><input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + StrCast(this.props.CollectionView.props.Document.sortstate)} onChange={this.onChange3} onKeyPress={this.enter3} />
                     </div>
                     <input className="rows" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" />
+                    <input className="update" type="checkbox" onChange={this.toggleUpdate} id="add-menu-toggle" />
                 </div >
             </div>
         );
