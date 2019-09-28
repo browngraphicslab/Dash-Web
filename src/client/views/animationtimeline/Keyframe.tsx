@@ -8,7 +8,6 @@ import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { TimelineMenu } from "./TimelineMenu";
@@ -138,48 +137,13 @@ export class Keyframe extends React.Component<IProps> {
     @observable private _mouseToggled = false; 
     @observable private _doubleClickEnabled = false; 
 
-    @computed
-    private get regiondata() {
-        let index = this.regions.indexOf(this.props.RegionData);
-        return RegionData(this.regions[index] as Doc);
-    }
-
-    @computed
-    private get regions() {
-        return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
-    }
-
-    @computed
-    private get firstKeyframe() {
-        let first: (Doc | undefined) = undefined;
-        DocListCast(this.regiondata.keyframes!).forEach(kf => {
-            if (kf.type !== KeyframeFunc.KeyframeType.fade) {
-                if (!first || first && NumCast(kf.time) < NumCast(first.time)) {
-                    first = kf;
-                }
-            }
-        });
-        return first;
-    }
-
-    @computed
-    private get lastKeyframe() {
-        let last: (Doc | undefined) = undefined;
-        DocListCast(this.regiondata.keyframes!).forEach(kf => {
-            if (kf.type !== KeyframeFunc.KeyframeType.fade) {
-                if (!last || last && NumCast(kf.time) > NumCast(last.time)) {
-                    last = kf;
-                }
-            }
-        });
-        return last;
-    }
-
-    @computed
-    private get keyframes(){
-        return DocListCast(this.regiondata.keyframes); 
-    }
-
+    @computed private get regiondata() { return RegionData(this.regions[this.regions.indexOf(this.props.RegionData)] as Doc);}
+    @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;}
+    @computed private get keyframes(){ return DocListCast(this.regiondata.keyframes); }
+    @computed private get pixelPosition(){ return KeyframeFunc.convertPixelTime(this.regiondata.position, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);}    
+    @computed private get pixelDuration(){ return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
+    @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
+    @computed private get pixelFadeOut(){ return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed
     private get inks() {
         if (this.props.collection.data_ext) {
@@ -191,38 +155,18 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
-    @computed 
-    private get pixelPosition(){
-        return KeyframeFunc.convertPixelTime(this.regiondata.position, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
-    }
-
-    @computed 
-    private get pixelDuration(){
-        return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
-    }
-
-    @computed
-    private get pixelFadeIn() {
-        return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
-    }
-
-    @computed
-    private get pixelFadeOut(){
-        return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
-    }
-
-    async componentWillMount() {
-        if (!this.regiondata.keyframes) {
-            this.regiondata.keyframes = new List<Doc>();
-        }
-        let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
-        let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
-        let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-        let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
-        (fadeIn.key! as Doc).opacity = 1;
-        (fadeOut.key! as Doc).opacity = 1;
-        (start.key! as Doc).opacity = 0.1;
-        (finish.key! as Doc).opacity = 0.1;
+    componentWillMount() {
+        runInAction(async () => {
+            if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
+            let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
+            let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
+            let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+            let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
+            (fadeIn.key! as Doc).opacity = 1;
+            (fadeOut.key! as Doc).opacity = 1;
+            (start.key! as Doc).opacity = 0.1;
+            (finish.key! as Doc).opacity = 0.1;
+        }); 
     }
 
     @action
@@ -336,7 +280,7 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
-        let firstkf: (Doc | undefined) = this.firstKeyframe;
+        let firstkf: (Doc | undefined) = this.keyframes[0];
         if (firstkf && this.regiondata.position + this.regiondata.fadeIn + offset >= NumCast(firstkf!.time)) {
             let dif = NumCast(firstkf!.time) - (this.pixelPosition + this.pixelFadeIn);
             this.regiondata.position = NumCast(firstkf!.time) - this.regiondata.fadeIn;
@@ -364,8 +308,8 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
-        if (this.lastKeyframe! && this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= NumCast((this.lastKeyframe! as Doc).time)) {
-            let dif = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - NumCast((this.lastKeyframe! as Doc).time);
+        if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= NumCast((this.keyframes[this.keyframes.length - 1]).time)) {
+            let dif = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - NumCast((this.keyframes[this.keyframes.length - 1]).time);
             this.regiondata.duration -= dif;
         } else if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut) { // nokeyframes, just fades
             this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;

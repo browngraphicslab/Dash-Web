@@ -120,3 +120,23 @@
         background-color: grey; 
     }
 }
+
+.round-toggle {
+    position: absolute;
+    height: 40px;
+    width: 80px;
+    background-color: white;
+    border: 2px solid purple;
+    border-radius: 20px;
+    input{
+        opacity: 0; 
+        height: 0; 
+        width: 0; 
+    }
+    .slider{
+        height: 40px; 
+        width: 40px; 
+        background-color: black; 
+        border-radius: 20px; 
+    }
+}
