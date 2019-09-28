@@ -7,9 +7,9 @@
     border-radius: inherit;
     box-sizing: border-box;
     height: 100%;
-    width:100%;
+    width: 100%;
     position: absolute;
-    top:0;
+    top: 0;
     padding-top: 20px;
     padding-left: 10px;
     padding-right: 0px;
@@ -51,7 +51,7 @@
     .editableView-container-editing {
         display: block;
         text-overflow: ellipsis;
-        font-size: 24px;
+        font-size: 1vw;
         white-space: nowrap;
     }
 }
