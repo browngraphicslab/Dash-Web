@@ -144,7 +144,7 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param id the id of the requested document
      */
-    const _GetRefFieldImpl = (id: string, mongoCollection?: string): Promise<Opt<RefField>> => {
+    const _GetRefFieldImpl = (id: string): Promise<Opt<RefField>> => {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache
@@ -155,7 +155,7 @@ export namespace DocServer {
             // synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
             // field for the given ids. This returns a promise, which, when resolved, indicates the the JSON serialized version of
             // the field has been returned from the server
-            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, { id, mongoCollection });
+            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, id);
 
             // when the serialized RefField has been received, go head and begin deserializing it into an object.
             // Here, once deserialized, we also invoke .proto to 'load' the document's prototype, which ensures that all
@@ -190,8 +190,8 @@ export namespace DocServer {
 
     let _GetRefField: (id: string, mongoCollection?: string) => Promise<Opt<RefField>> = errorFunc;
 
-    export function GetRefField(id: string, mongoCollection = "newDocuments"): Promise<Opt<RefField>> {
-        return _GetRefField(id, mongoCollection);
+    export function GetRefField(id: string): Promise<Opt<RefField>> {
+        return _GetRefField(id);
     }
 
     export async function getYoutubeChannels() {

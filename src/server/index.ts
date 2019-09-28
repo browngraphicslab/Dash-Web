@@ -21,15 +21,15 @@ import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
-import User, { DashUserModel } from './authentication/models/user_model';
+import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput, SourceSpecified } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
 import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
 const config = require('../../webpack.config');
-import { createCanvas, loadImage, Canvas } from "canvas";
+import { createCanvas } from "canvas";
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 4321;
@@ -162,7 +162,8 @@ app.get("/buxton", (req, res) => {
 const STATUS = {
     OK: 200,
     BAD_REQUEST: 400,
-    EXECUTION_ERROR: 500
+    EXECUTION_ERROR: 500,
+    PERMISSION_DENIED: 403
 };
 
 const command_line = (command: string, fromDirectory?: string) => {
@@ -202,7 +203,7 @@ app.get("/version", (req, res) => {
 // SEARCH
 const solrURL = "http://localhost:8983/solr/#/dash";
 
-// GETTERSå
+// GETTERS
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
@@ -671,8 +672,7 @@ addSecureRoute(
     Method.GET,
     (user, res, req) => {
         if (release) {
-            res.send("no");
-            return;
+            return _permission_denied(res, deletionPermissionError);
         }
         deleteFields().then(() => res.redirect(RouteStore.home));
     },
@@ -682,10 +682,9 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res, req) => {
+    (_user, res, _req) => {
         if (release) {
-            res.send("no");
-            return;
+            return _permission_denied(res, deletionPermissionError);
         }
         deleteAll().then(() => res.redirect(RouteStore.home));
     },
@@ -777,8 +776,8 @@ function setField(socket: Socket, newValue: Transferable) {
     }
 }
 
-function GetRefField([args, callback]: [SourceSpecified, (result?: Transferable) => void]) {
-    Database.Instance.getDocument(args.id, callback, args.mongoCollection || "newDocuments");
+function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(id, callback, "newDocuments");
 }
 
 function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
@@ -798,11 +797,10 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
 }
 
 const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
-const tokenPath = path.join(__dirname, "./credentials/google_docs_token.json");
 
 const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
-    ["retrieve", (api, params) => api.get(params, { params: "fields=inlineObjects" })],
+    ["retrieve", (api, params) => api.get(params)],
     ["update", (api, params) => api.batchUpdate(params)],
 ]);
 
@@ -885,13 +883,20 @@ const prefix = "google_photos_";
 
 const downloadError = "Encountered an error while executing downloads.";
 const requestError = "Unable to execute download: the body's media items were malformed.";
+const deletionPermissionError = "Cannot perform specialized delete outside of the development environment!";
 
-app.get("/deleteWithAux", async (req, res) => {
+app.get("/deleteWithAux", async (_req, res) => {
+    if (release) {
+        return _permission_denied(res, deletionPermissionError);
+    }
     await Database.Auxiliary.DeleteAll();
     res.redirect(RouteStore.delete);
 });
 
 app.get("/deleteWithGoogleCredentials", async (req, res) => {
+    if (release) {
+        return _permission_denied(res, deletionPermissionError);
+    }
     await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
     res.redirect(RouteStore.delete);
 });
@@ -937,6 +942,11 @@ const _success = (res: Response, body: any) => {
 const _invalid = (res: Response, message: string) => {
     res.statusMessage = message;
     res.status(STATUS.BAD_REQUEST).send();
+};
+
+const _permission_denied = (res: Response, message: string) => {
+    res.statusMessage = message;
+    res.status(STATUS.BAD_REQUEST).send("Permission Denied!");
 };
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
