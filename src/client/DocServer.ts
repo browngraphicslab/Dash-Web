@@ -188,7 +188,7 @@ export namespace DocServer {
         }
     };
 
-    let _GetRefField: (id: string, mongoCollection?: string) => Promise<Opt<RefField>> = errorFunc;
+    let _GetRefField: (id: string) => Promise<Opt<RefField>> = errorFunc;
 
     export function GetRefField(id: string): Promise<Opt<RefField>> {
         return _GetRefField(id);
