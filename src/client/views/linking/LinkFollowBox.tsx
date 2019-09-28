@@ -18,6 +18,7 @@ import { DocServer } from "../../DocServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { docs_v1 } from "googleapis";
+// TODODO import scss from linkeditor
 
 export enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -436,8 +437,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @computed
     get availableModes() {
         return (
-            <div>
-                <label><input
+            <div className="linkEditor-linkForm">
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.OPENRIGHT}
@@ -446,7 +447,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={false} />
                     {FollowModes.OPENRIGHT}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.OPENTAB}
@@ -455,7 +456,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={false} />
                     {FollowModes.OPENTAB}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.OPENFULL}
@@ -464,7 +465,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={false} />
                     {FollowModes.OPENFULL}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.PAN}
@@ -473,7 +474,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={!this.canPan} />
                     {FollowModes.PAN}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.INPLACE}

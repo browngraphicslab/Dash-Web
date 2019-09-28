@@ -349,6 +349,7 @@ interface LinkEditorProps {
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable private _linkOption: string = FollowModes.PAN;
+    @observable private _linkConfirm: boolean = false;
 
     @action
     deleteLink = (): void => {
@@ -374,19 +375,29 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, this.props.sourceDoc, groupDoc);
     }
     @action
-    linkOptionClick = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        console.log(`clicked on ` + e.target.value);
+    linkChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this._linkConfirm = (e.target.value !== this._linkOption ? true : false);
         this._linkOption = e.target.value;
-        // TODODO set defaultbehavior from linkfollowbox based on what was selected
+    }
+
+    @action
+    changeLinkBehavior = (e: React.MouseEvent<HTMLButtonElement>): void => {
+        e.preventDefault();
+        console.log(e);
+        if (e.target.value === "confirm") { // TODO this says there's an error but there isnt i promis :(
+            // reset linkfollowbox link behavior to chosen behavior
+            console.log('change behavior');
+        }
+        this._linkConfirm = false;
     }
 
     render() {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-
         let groupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
+
         // TODODO properly set linkoption based on default from linkfollowbox
         if (destination) {
             return (
@@ -397,21 +408,21 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                     </div>
                     <div className="linkEditor-linkType">
-                        <b>Change Link Type Here:</b>
+                        Change Link Type Here:
                         {/* TODODO radio buttons here 
                         pan and in place dont work unless freeform
-                        confirm button (no accidental overwrites of complicated link follows)
+                        DONE: confirm button (no accidental overwrites of complicated link follows)
                         EVENTUALLY: should b able to clean this up once we know
                         1) how to determine if follow type is valid
                         2) mapping over all the FollowType enums */}
-                        <form className="linkEditor-linkForm">
+                        <div className="linkEditor-linkForm">
                             <div className="linkEditor-linkOption">
                                 <label>
                                     <input
                                         type="radio"
                                         value={FollowModes.PAN}
-                                        checked={this._linkOption === FollowModes.PAN}
-                                        onChange={this.linkOptionClick} />
+                                        checked={this._linkOption === FollowModes.PAN} // in future: check with linkfollowbox
+                                        onChange={this.linkChange} />
                                     {FollowModes.PAN}</label>
                             </div>
                             <div className="linkEditor-linkOption">
@@ -420,30 +431,16 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                         type="radio"
                                         value={FollowModes.INPLACE}
                                         checked={this._linkOption === FollowModes.INPLACE}
-                                        onChange={this.linkOptionClick} />
+                                        onChange={this.linkChange} />
                                     {FollowModes.INPLACE}</label>
                             </div>
+                            {this._linkConfirm ?
+                                <div>
+                                    <button value="confirm" onClick={this.changeLinkBehavior}>confirm</button>
+                                    <button value="cancel" onClick={this.changeLinkBehavior}>cancel</button>
+                                </div> : null}
+                        </div>
 
-                            { /* for now -- maintaining only two radio buttons to work with styling and whatnot */}
-                            {/* <input
-                                type="radio"
-                                value={FollowModes.OPENTAB}
-                                checked={this._linkOption === FollowModes.OPENTAB}
-                                onChange={this.linkOptionClick} />
-                            <label> {FollowModes.OPENTAB}</label>
-                            <input
-                                type="radio"
-                                value={FollowModes.OPENRIGHT}
-                                checked={this._linkOption === FollowModes.OPENRIGHT}
-                                onChange={this.linkOptionClick} />
-                            <label> {FollowModes.OPENRIGHT} </label>
-                            <input
-                                type="radio"
-                                value={FollowModes.OPENFULL}
-                                checked={this._linkOption === FollowModes.OPENFULL}
-                                onChange={this.linkOptionClick} />
-                            <label> {FollowModes.OPENFULL} </label> */}
-                        </form>
                     </div>
                     <div className="linkEditor-groupsLabel">
                         <b>Relationships:</b>
