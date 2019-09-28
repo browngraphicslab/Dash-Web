@@ -17,7 +17,7 @@ import { Cast, StrCast } from "./Types";
 import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
 import { AssertionError } from "assert";
-import { PostToServer } from "../client/Network";
+import { Identified } from "../client/Network";
 
 export namespace RichTextUtils {
 
@@ -129,7 +129,7 @@ export namespace RichTextUtils {
                     return { baseUrl, filename };
                 });
 
-                const uploads = await PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems });
+                const uploads = await Identified.PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems });
 
                 if (uploads.length !== mediaItems.length) {
                     throw new AssertionError({ expected: mediaItems.length, actual: uploads.length, message: "Error with internally uploading inlineObjects!" });
