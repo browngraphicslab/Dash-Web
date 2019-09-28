@@ -7,6 +7,8 @@ var w2v = require('word2vec');
 var assert = require('assert');
 var arxivapi = require('arxiv-api-node');
 import requestPromise = require("request-promise");
+import * as use from '@tensorflow-models/universal-sentence-encoder';
+import { Tensor } from "@tensorflow/tfjs-core/dist/tensor";
 
 //http://gnuwin32.sourceforge.net/packages/make.htm
 
@@ -15,10 +17,29 @@ export class Recommender {
     private _model: any;
     static Instance: Recommender;
     private dimension: number = 0;
+    private choice: string = "";
 
     constructor() {
         console.log("creating recommender...");
         Recommender.Instance = this;
+    }
+
+    /***
+     * Loads pre-trained model from TF
+     */
+
+    public async loadTFModel() {
+        let self = this;
+        return new Promise(res => {
+            use.load().then(model => {
+                self.choice = "TF";
+                self._model = model;
+                self.dimension = 512;
+                res(model);
+            });
+        }
+
+        );
     }
 
     /***
@@ -29,6 +50,7 @@ export class Recommender {
         let self = this;
         return new Promise(res => {
             w2v.loadModel("./node_modules/word2vec/examples/fixtures/vectors.txt", function (err: any, model: any) {
+                self.choice = "WV";
                 self._model = model;
                 self.dimension = model.size;
                 res(model);
@@ -42,11 +64,28 @@ export class Recommender {
 
     public async testModel() {
         if (!this._model) {
-            await this.loadModel();
+            await this.loadTFModel();
         }
         if (this._model) {
-            let similarity = this._model.similarity('father', 'mother');
-            console.log(similarity);
+            if (this.choice === "WV") {
+                let similarity = this._model.similarity('father', 'mother');
+                console.log(similarity);
+            }
+            else if (this.choice === "TF") {
+                const model = this._model as use.UniversalSentenceEncoder;
+                // Embed an array of sentences.
+                const sentences = [
+                    'Hello.',
+                    'How are you?'
+                ];
+                const embeddings = await this.vectorize(sentences);
+                if (embeddings) embeddings.print(true /*verbose*/);
+                // model.embed(sentences).then(embeddings => {
+                //     // `embeddings` is a 2D tensor consisting of the 512-dimensional embeddings for each sentence.
+                //     // So in this example `embeddings` has the shape [2, 512].
+                //     embeddings.print(true /* verbose */);
+                // });
+            }
         }
         else {
             console.log("model not found :(");
@@ -54,28 +93,27 @@ export class Recommender {
     }
 
     /***
-     * Tests if instance exists
-     */
-
-    public async testInstance(text: string) {
-        if (!this._model) {
-            await this.loadModel();
-        }
-        console.log(text);
-    }
-
-    /***
      * Uses model to convert words to vectors
      */
 
-    public async vectorize(text: string[]) {
+    public async vectorize(text: string[]): Promise<Tensor | undefined> {
         if (!this._model) {
-            await this.loadModel();
+            await this.loadTFModel();
         }
         if (this._model) {
-            let word_vecs = this._model.getVectors(text);
+            if (this.choice === "WV") {
+                let word_vecs = this._model.getVectors(text);
+                return word_vecs;
+            }
+            else if (this.choice === "TF") {
+                const model = this._model as use.UniversalSentenceEncoder;
+                return new Promise<Tensor>(res => {
+                    model.embed(text).then(embeddings => {
+                        res(embeddings);
+                    });
+                });
 
-            return word_vecs;
+            }
         }
     }
 
@@ -94,34 +132,5 @@ export class Recommender {
         });
         console.log("phrased!!!");
     }
-
-    public async arxivRequest(query: string) {
-        // let xhttp = new XMLHttpRequest();
-        // let serveraddress = "http://export.arxiv.org/api/query?search_query=all:electron&start=0&max_results=1";
-        // let promisified = (resolve: any, reject: any) => {
-        //     xhttp.onreadystatechange = function () {
-        //         if (this.readyState === 4) {
-        //             let result = xhttp.response;
-        //             switch (this.status) {
-        //                 case 200:
-        //                     console.log(result);
-        //                     return resolve(result);
-        //                 case 400:
-        //                 default:
-        //                     return reject(result);
-        //             }
-        //         }
-        //     };
-        //     xhttp.open("GET", serveraddress, true);
-        //     xhttp.send();
-        // };
-        // return new Promise<any>(promisified);
-
-        let res = await arxivapi.query("all:electrons");
-        console.log(res);
-    }
-
-
-
 
 }

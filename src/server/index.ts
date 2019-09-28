@@ -688,13 +688,15 @@ app.use(RouteStore.corsProxy, (req, res) => {
 
 let recommender = new Recommender();
 recommender.testModel();
-recommender.trainModel();
-recommender.arxivRequest("Triangle-GAN");
 
 app.post("/recommender", async (req, res) => {
     let keyphrases = req.body.keyphrases;
     let wordvecs = await recommender.vectorize(keyphrases);
-    res.send(wordvecs);
+    let embedding: number[][] = [];
+    if (wordvecs && wordvecs.array()) {
+        wordvecs.array().then(array => embedding = array as number[][]);
+    }
+    res.send(embedding);
 });
 
 

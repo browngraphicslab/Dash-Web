@@ -269,7 +269,7 @@ export namespace CognitiveServices {
                 //keyterms = ["father", "king"];
                 let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
                 await requestPromise.post(args).then(async (wordvecs) => {
-                    if (wordvecs.length > 0) {
+                    if (wordvecs.shape[0] > 0) {
                         console.log("successful vectorization!");
                         var vectorValues = new Set<number[]>();
                         wordvecs.forEach((wordvec: any) => {
@@ -282,7 +282,8 @@ export namespace CognitiveServices {
                         console.log("unsuccessful :( word(s) not in vocabulary");
                     }
                     //console.log(vectorValues.size);
-                });
+                }
+                );
             }
 
             export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, mainDoc: boolean = false, internal: boolean = true) => {
