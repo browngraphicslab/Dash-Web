@@ -1,15 +1,15 @@
-import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult, WidthSym, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult, WidthSym, Opt, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -20,9 +20,11 @@ import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
+import * as rp from "request-promise";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
+import { SelectionManager } from "../../util/SelectionManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -68,22 +70,27 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
     @observable private _marqueeing: boolean = false;
+    @observable private _showWaiting = true;
+    @observable private _showCover = false;
+    @observable private _zoomed = 1;
 
     public pdfViewer: any;
     private _isChildActive = false;
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
+    private _selectionReactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _selectionText: string = "";
     private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
+    private _selectionText: string = "";
     private _startX: number = 0;
     private _startY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _coverPath: any;
 
     @computed get allAnnotations() {
         return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
@@ -95,40 +102,22 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     componentDidMount = async () => {
-        this.props.setPdfViewer(this);
-        await this.initialLoad();
-
-        this._annotationReactionDisposer = reaction(
-            () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
-            annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
-            { fireImmediately: true });
-
-        this._filterReactionDisposer = reaction(
-            () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
-            action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
-                let oldScript = this._script.originalScript;
-                this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
-                if (this._script.originalScript !== oldScript) {
-                    this.Index = -1;
-                }
-                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
-            }),
-            { fireImmediately: true }
-        );
-        this._reactionDisposer = reaction(
-            () => this.props.Document.panY,
-            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.props.Document.panY) || 0, behavior: "auto" })
-        );
-
-        document.removeEventListener("copy", this.copy);
-        document.addEventListener("copy", this.copy);
-        this.setupPdfJsViewer();
+        // change the address to be the file address of the PNG version of each page
+        // file address of the pdf
+        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
+        runInAction(() => this._showWaiting = this._showCover = true);
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => {
+            this.setupPdfJsViewer();
+            this._selectionReactionDisposer && this._selectionReactionDisposer();
+            this._selectionReactionDisposer = undefined;
+        })
     }
 
     componentWillUnmount = () => {
         this._reactionDisposer && this._reactionDisposer();
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
+        this._selectionReactionDisposer && this._selectionReactionDisposer();
         document.removeEventListener("copy", this.copy);
     }
 
@@ -164,14 +153,45 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     i === this.props.pdf.numPages - 1 && this.props.loaded((page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
                         (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]), i);
                 }))));
+            Doc.GetProto(this.props.Document).scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0);
         }
     }
 
-
     @action
-    setupPdfJsViewer = () => {
-        document.addEventListener("pagesinit", () => this.pdfViewer.currentScaleValue = 1);
-        //  document.addEventListener("pagerendered", () => console.log("rendered")); // bcz: works, but not needed except to debug
+    setupPdfJsViewer = async () => {
+        this._showWaiting = true;
+        this.props.setPdfViewer(this);
+        await this.initialLoad();
+
+        this._annotationReactionDisposer = reaction(
+            () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
+            annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
+            { fireImmediately: true });
+
+        this._filterReactionDisposer = reaction(
+            () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
+            action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
+                let oldScript = this._script.originalScript;
+                this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
+                if (this._script.originalScript !== oldScript) {
+                    this.Index = -1;
+                }
+                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
+            }),
+            { fireImmediately: true }
+        );
+        this._reactionDisposer = reaction(
+            () => this.props.Document.panY,
+            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.props.Document.panY) || 0, behavior: "auto" })
+        );
+
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
+        document.addEventListener("pagesinit", action(() => {
+            this.pdfViewer.currentScaleValue = this._zoomed = 1;
+            this.gotoPage(NumCast(this.props.Document.curPage, 1));
+        }));
+        document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
@@ -266,7 +286,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     gotoPage = (p: number) => {
-        this.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+        this.pdfViewer && this.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
     }
 
     @action
@@ -295,7 +315,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this.props.Document.curPage = this.pdfViewer.currentPageNumber;
+        this.pdfViewer && (this.props.Document.curPage = this.pdfViewer.currentPageNumber);
     }
 
     // get the page index that the vertical offset passed in is on
@@ -372,7 +392,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             if (e.target && (e.target as any).parentElement.className === "textLayer") {
-                e.stopPropagation();
                 if (!e.ctrlKey) {
                     this.receiveAnnotations([], -1);
                 }
@@ -385,7 +404,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
                 }
                 this._marqueeing = true;
-                this._marquee.current && (this._marquee.current.style.opacity = "0.2");
+                let marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
+                if (marquees && marquees.length) { // make a copy of the marquee
+                    let marquee = marquees[0] as HTMLDivElement;
+                    marquee.style.opacity = "0.2";
+                }
                 this.receiveAnnotations([], -1);
             }
             document.removeEventListener("pointermove", this.onSelectMove);
@@ -452,9 +475,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
     onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
-                if (this._marquee.current) { // make a copy of the marquee
+                let marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
+                if (marquees && marquees.length) { // make a copy of the marquee
                     let copy = document.createElement("div");
-                    let style = this._marquee.current.style;
+                    let marquee = marquees[0] as HTMLDivElement;
+                    let style = marquee.style;
                     copy.style.left = style.left;
                     copy.style.top = style.top;
                     copy.style.width = style.width;
@@ -463,7 +488,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     copy.style.opacity = style.opacity;
                     copy.className = "pdfPage-annotationBox";
                     this.createAnnotation(copy, this.getPageFromScroll(this._marqueeY));
-                    this._marquee.current.style.opacity = "0";
+                    marquee.style.opacity = "0";
                 }
 
                 if (!e.ctrlKey) {
@@ -582,48 +607,112 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
     whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        this.props.whenActiveChanged(isActive); // bcz: is this needed here?
+        this.props.whenActiveChanged(isActive);
     }
     active = () => {
         return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
+
+    getCoverImage = () => {
+        if (!this.props.Document[HeightSym]()) {
+            setTimeout(() => {
+                this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
+                this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+            }, 0);
+        }
+        let nativeWidth = NumCast(this.props.Document.nativeWidth);
+        let nativeHeight = NumCast(this.props.Document.nativeHeight);
+        return <img key={this._coverPath.path} src={this._coverPath.path} onLoad={action(() => this._showWaiting = false)}
+            style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
+    }
+
+
+    @action
+    onZoomWheel = (e: React.WheelEvent) => {
+        e.stopPropagation();
+        if (e.ctrlKey) {
+            let curScale = Number(this.pdfViewer.currentScaleValue);
+            this.pdfViewer.currentScaleValue = Math.max(1, Math.min(10, curScale + curScale * e.deltaY / 1000));
+            this._zoomed = Number(this.pdfViewer.currentScaleValue);
+        }
+    }
+
+    @computed get annotationLayer() {
+        trace();
+        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
+            {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
+                <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
+        </div>;
+    }
+    @computed get pdfViewerDiv() {
+        trace();
+        return <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />;
+    }
+    @computed get standinViews() {
+        trace();
+        return <>
+            {this._showCover ? this.getCoverImage() : (null)}
+            {this._showWaiting ? <img className="pdfViewer-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
+        </>;
+    }
+    marqueeWidth = () => this._marqueeWidth;
+    marqueeHeight = () => this._marqueeHeight;
+    marqueeX = () => this._marqueeX;
+    marqueeY = () => this._marqueeY;
+    marqueeing = () => this._marqueeing;
     render() {
         trace();
-        return (<div className="pdfViewer-viewer" onScroll={this.onScroll} onPointerDown={this.onPointerDown} onWheel={(e) => e.stopPropagation()} onClick={this.onClick} ref={this._mainCont}>
-            <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />
-            {!this._marqueeing ? (null) : <div className="pdfViewer-dragAnnotationBox" ref={this._marquee}
-                style={{
-                    left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
-                    width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
-                    border: `${this._marqueeWidth === 0 ? "" : "2px dashed black"}`
-                }}>
-            </div>}
-            <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
-                {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                    <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
+        return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
+            {this.pdfViewerDiv}
+            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
+            <div className="pdfViewer-overlay" style={{ transform: `scale(${this._zoomed})` }}>
+                {this.annotationLayer}
+                <CollectionFreeFormView {...this.props}
+                    setPreviewCursor={this.setPreviewCursor}
+                    PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
+                    PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
+                    focus={emptyFunction}
+                    isSelected={this.props.isSelected}
+                    select={emptyFunction}
+                    active={this.active}
+                    ContentScaling={returnOne}
+                    whenActiveChanged={this.whenActiveChanged}
+                    removeDocument={this.removeDocument}
+                    moveDocument={this.moveDocument}
+                    addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
+                    CollectionView={this.props.ContainingCollectionView}
+                    ScreenToLocalTransform={this.scrollXf}
+                    ruleProvider={undefined}
+                    renderDepth={this.props.renderDepth + 1}
+                    ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
+                    chromeCollapsed={true}>
+                </CollectionFreeFormView>
             </div>
-            <CollectionFreeFormView {...this.props}
-                setPreviewCursor={this.setPreviewCursor}
-                PanelHeight={() => this._pageSizes.length && this._pageSizes[0] ? this.props.pdf.numPages * this._pageSizes[0].height : 300}
-                PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : 300}
-                focus={emptyFunction}
-                isSelected={this.props.isSelected}
-                select={emptyFunction}
-                active={this.active}
-                ContentScaling={returnOne}
-                whenActiveChanged={this.whenActiveChanged}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
-                CollectionView={this.props.ContainingCollectionView}
-                ScreenToLocalTransform={this.scrollXf}
-                ruleProvider={undefined}
-                renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
-                chromeCollapsed={true}>
-            </CollectionFreeFormView>
+            {this.standinViews}
         </div >);
     }
 }
+
+interface PdfViewerMarqueeProps {
+    isMarqueeing: () => boolean;
+    width: () => number;
+    height: () => number;
+    x: () => number;
+    y: () => number;
+}
+
+@observer
+class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
+    render() {
+        return !this.props.isMarqueeing() ? (null) : <div className="pdfViewer-dragAnnotationBox"
+            style={{
+                left: `${this.props.x()}px`, top: `${this.props.y()}px`,
+                width: `${this.props.width()}px`, height: `${this.props.height()}px`,
+                border: `${this.props.width() === 0 ? "" : "2px dashed black"}`
+            }}>
+        </div>
+    }
+}
+
 
 export enum AnnotationTypes { Region }

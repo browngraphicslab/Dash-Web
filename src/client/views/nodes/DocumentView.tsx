@@ -257,7 +257,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active && e.button === 0) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+        if (this.active && e.button === 0 && !this.Document.lockedPosition) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -267,9 +267,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive())) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && !this.topMost && e.buttons === 1 && !this.Document.lockedPosition) {
+                if (!e.altKey && !this.topMost && e.buttons === 1) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
@@ -301,9 +301,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const width = NumCast(doc.width);
             const height = NumCast(doc.height);
             const options = { title: "data", width, x: -width / 2, y: - height / 2, };
-            let fieldTemplate = doc.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) :
-                doc.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
-                    Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+
+            let fieldTemplate: Doc;
+            switch (doc.type) {
+                case DocumentType.TEXT:
+                    fieldTemplate = Docs.Create.TextDocument(options);
+                    break;
+                case DocumentType.PDF:
+                    fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+                    break;
+                case DocumentType.VID:
+                    fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+                    break;
+                default:
+                    fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+            }
 
             fieldTemplate.backgroundColor = doc.backgroundColor;
             fieldTemplate.heading = 1;
@@ -596,7 +608,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
         const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");

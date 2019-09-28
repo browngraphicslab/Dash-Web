@@ -74,10 +74,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private easing = () => this.props.Document.panTransformType === "Ease";
     private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document.panX || 0;
     private panY = () => this.fitToContent ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document.panY || 0;
-    private zoomScaling = () => (this.fitToContent ?
+    private zoomScaling = () => (1 / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
         this.Document.scale || 1)
-        / this.parentScaling
     private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -356,7 +355,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
             this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
-            e.preventDefault();
         }
     }
 
@@ -699,7 +697,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         return (
-            <div className={"collectionfreeformview-container"} style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: !this.isAnnotationOverlay ? "100%" : this.props.PanelHeight() }} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+            <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+                style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (NumCast(this.props.Document.scrollHeight) ? NumCast(this.props.Document.scrollHeight) : "100%") : this.props.PanelHeight() }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox} setPreviewCursor={this.props.setPreviewCursor}
