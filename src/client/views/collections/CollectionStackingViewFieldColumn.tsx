@@ -257,10 +257,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         return (
             <div className="collectionStackingView-optionPicker">
                 <div className="optionOptions">
-                    <div className="optionPicker" onClick={() => this.deleteColumn()}>Delete</div>
-                    <div className="optionPicker">Edit</div>
-                    <div className="optionPicker">Collapse</div>
-                    <div className="optionPicker">Alias</div>
+                    <div className="optionPicker">Create Alias</div>
                 </div>
             </div>
         );
@@ -325,11 +322,16 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         <div className="collectionStackingView-sectionColor">
                             <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
                                 <button className="collectionStackingView-sectionColorButton">
-                                    <FontAwesomeIcon icon="palette" size="sm" />
+                                    <FontAwesomeIcon icon="palette" size="lg" />
                                 </button>
                             </ Flyout >
                         </div>
                     }
+                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
+                        (null) :
+                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
+                            <FontAwesomeIcon icon="trash" size="lg" />
+                        </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionOptions">
                             <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderMenu()}>

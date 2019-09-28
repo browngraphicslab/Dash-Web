@@ -261,6 +261,17 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         );
     }
 
+    renderMenu = () => {
+        let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+        return (
+            <div className="collectionStackingView-optionPicker">
+                <div className="optionOptions">
+                    <div className="optionPicker">Create Alias</div>
+                </div>
+            </div>
+        );
+    }
+
     @observable private collapsed: boolean = false;
 
     private toggleVisibility = action(() => {
@@ -327,10 +338,19 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                             </ Flyout >
                         </div>
                     }
+                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
+                        (null) :
+                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteRow}>
+                            <FontAwesomeIcon icon="trash" size="lg" />
+                        </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
-                        <button className="collectionStackingView-sectionOptions" onClick={this.deleteRow}>
-                            <FontAwesomeIcon icon="ellipsis-v" size="lg"></FontAwesomeIcon>
-                        </button>
+                        <div className="collectionStackingView-sectionOptions">
+                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderMenu()}>
+                                <button className="collectionStackingView-sectionOptionButton">
+                                    <FontAwesomeIcon icon="ellipsis-v" size="lg"></FontAwesomeIcon>
+                                </button>
+                            </Flyout>
+                        </div>
                     }
                 </div>
             </div > : (null);
