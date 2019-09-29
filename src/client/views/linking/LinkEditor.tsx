@@ -349,6 +349,7 @@ interface LinkEditorProps {
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable private _linkOption: string = FollowModes.PAN;
+    @observable private _linkOldOption: string = FollowModes.PAN;
     @observable private _linkConfirm: boolean = false;
 
     @action
@@ -376,18 +377,21 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
     @action
     linkChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this._linkConfirm = (e.target.value !== this._linkOption ? true : false);
+        this._linkOldOption = this._linkOption;
         this._linkOption = e.target.value;
+        this._linkConfirm = (e.target.value !== this._linkOldOption ? true : false);
     }
 
     @action
     changeLinkBehavior = (e: React.MouseEvent<HTMLButtonElement>): void => {
         e.preventDefault();
-        console.log(e);
-        // if (e.target.value === "confirm") { // TODO this says there's an error but there isnt i promis :(
-        //     // reset linkfollowbox link behavior to chosen behavior
-        //     console.log('change behavior');
-        // }
+        if (e.currentTarget.value === "confirm") {
+            // set linkfollowbox to selected behavior = this._linkOption
+            console.log('changed behavior');
+        } else {
+            console.log('reverted behavior');
+            this._linkOption = this._linkOldOption;
+        }
         this._linkConfirm = false;
     }
 
