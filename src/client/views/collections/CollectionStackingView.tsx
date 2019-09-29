@@ -160,13 +160,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
-        if (!d.ignoreAspect && nw && nh) {
+        if (!d.ignoreAspect && !d.fitWidth && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
             let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
             if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
             return wid * aspect;
         }
-        return d[HeightSym]();
+        return d.fitWidth ? Math.min(this.props.PanelHeight() - 2 * this.yMargin, d[HeightSym]()) : d[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
