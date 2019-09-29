@@ -34,6 +34,8 @@ import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
+export type AddDocTabFunction = (doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
+
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;

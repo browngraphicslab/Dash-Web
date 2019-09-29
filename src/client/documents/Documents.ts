@@ -21,7 +21,7 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
-import { OmitKeys, JSONUtils } from "../../Utils";
+import { OmitKeys, JSONUtils, emptyFunction } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -82,6 +82,7 @@ export interface DocumentOptions {
     dockingConfig?: string;
     autoHeight?: boolean;
     dbDoc?: Doc;
+    defaultLinkFollow?: string;
     // [key: string]: Opt<Field>;
 }
 
@@ -159,7 +160,7 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
+                options: {defaultLinkFollow: "Pan to Document,none,false"}
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
