@@ -132,7 +132,7 @@ export class DocumentManager {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
-            contextDoc.panY = doc.y;
+            contextDoc.scrollY = NumCast(doc.y) - NumCast(contextDoc.height) / 2;
         }
 
         let docView: DocumentView | null;
@@ -178,7 +178,7 @@ export class DocumentManager {
                     (dockFunc || CollectionDockingView.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
                         this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
-                    }, 10);
+                    }, 1000);
                 }
             }
         }

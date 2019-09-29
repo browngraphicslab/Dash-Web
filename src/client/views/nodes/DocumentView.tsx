@@ -227,15 +227,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         else if (linkedDocs.length) {
             SelectionManager.DeselectAll();
             let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document) && !d.anchor1anchored);
+            let second = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor2 as Doc, this.props.Document) && !d.anchor2anchored);
             let firstUnshown = first.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
+            let secondUnshown = second.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
             if (firstUnshown.length) first = [firstUnshown[0]];
-            let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
+            if (secondUnshown.length) second = [secondUnshown[0]];
+            let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : second.length ? [second[0].anchor1 as Doc, second[0].anchor1 as Doc] : undefined;
 
             // @TODO: shouldn't always follow target context
             let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
             let linkedFwdPage = [first.length ? NumCast(first[0].anchor2Page, undefined) : undefined, undefined];
 
-            if (!linkedFwdDocs.some(l => l instanceof Promise)) {
+            if (linkedFwdDocs && !linkedFwdDocs.some(l => l instanceof Promise)) {
                 let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
                 let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionDoc) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
                 DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
@@ -605,7 +608,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
         const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
+        const nativeHeight = this.Document.ignoreAspect || this.props.Document.fitWidth ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");

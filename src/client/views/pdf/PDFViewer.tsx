@@ -9,14 +9,12 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import smoothScroll, { Utils, emptyFunction, returnOne } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
@@ -24,7 +22,8 @@ import * as rp from "request-promise";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
-import { SelectionManager } from "../../util/SelectionManager";
+import Annotation from "./Annotation";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -41,6 +40,7 @@ interface IViewerProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     ContentScaling: () => number;
+    select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
@@ -106,11 +106,20 @@ export class PDFViewer extends React.Component<IViewerProps> {
         // file address of the pdf
         this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
         runInAction(() => this._showWaiting = this._showCover = true);
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => {
-            this.setupPdfJsViewer();
-            this._selectionReactionDisposer && this._selectionReactionDisposer();
-            this._selectionReactionDisposer = undefined;
-        })
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => this.setupPdfJsViewer());
+        this._reactionDisposer = reaction(
+            () => this.props.Document.scrollY,
+            (scrollY) => {
+                if (scrollY !== undefined) {
+                    if (this._showCover || this._showWaiting) {
+                        this.setupPdfJsViewer();
+                    }
+                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, NumCast(this.props.Document.scrollY) || 0);
+                    this.props.Document.scrollY = undefined;
+                }
+            },
+            { fireImmediately: true }
+        );
     }
 
     componentWillUnmount = () => {
@@ -153,12 +162,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     i === this.props.pdf.numPages - 1 && this.props.loaded((page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
                         (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]), i);
                 }))));
-            Doc.GetProto(this.props.Document).scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0);
+            Doc.GetProto(this.props.Document).scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
         }
     }
 
     @action
     setupPdfJsViewer = async () => {
+        this._selectionReactionDisposer && this._selectionReactionDisposer();
+        this._selectionReactionDisposer = undefined;
         this._showWaiting = true;
         this.props.setPdfViewer(this);
         await this.initialLoad();
@@ -179,10 +190,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
             }),
             { fireImmediately: true }
-        );
-        this._reactionDisposer = reaction(
-            () => this.props.Document.panY,
-            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.props.Document.panY) || 0, behavior: "auto" })
         );
 
         document.removeEventListener("copy", this.copy);
@@ -228,10 +235,9 @@ export class PDFViewer extends React.Component<IViewerProps> {
             annoDocs.push(annoDoc);
             annoDoc.isButton = true;
             anno.remove();
-            // this.props.addDocument && this.props.addDocument(annoDoc, false);
             mainAnnoDoc = annoDoc;
+            mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
             mainAnnoDocProto.y = annoDoc.y;
-            mainAnnoDocProto = Doc.GetProto(annoDoc);
         } else {
             this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
                 let annoDoc = new Doc();
@@ -381,7 +387,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (NumCast(this.props.Document.scale, 1) !== 1) return;
-        if (e.button !== 0 && this.active()) {
+        if ((e.button !== 0 || e.altKey) && this.active()) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
         }
         this._marqueeing = false;
@@ -638,18 +644,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @computed get annotationLayer() {
-        trace();
         return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                 <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
         </div>;
     }
     @computed get pdfViewerDiv() {
-        trace();
         return <div className="pdfViewer-text" ref={this._viewer} style={{ transformOrigin: "left top" }} />;
     }
     @computed get standinViews() {
-        trace();
         return <>
             {this._showCover ? this.getCoverImage() : (null)}
             {this._showWaiting ? <img className="pdfViewer-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
@@ -710,7 +713,7 @@ class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
                 width: `${this.props.width()}px`, height: `${this.props.height()}px`,
                 border: `${this.props.width() === 0 ? "" : "2px dashed black"}`
             }}>
-        </div>
+        </div>;
     }
 }
 

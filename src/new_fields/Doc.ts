@@ -344,7 +344,7 @@ export namespace Doc {
         let list = Cast(target[key], listSpec(Doc));
         if (list) {
             if (allowDuplicates !== true) {
-                let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
+                let pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
                 if (pind !== -1) {
                     list.splice(pind, 1);
                 }

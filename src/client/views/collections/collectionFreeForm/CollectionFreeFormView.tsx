@@ -405,27 +405,34 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
         }
         SelectionManager.DeselectAll();
-        const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
-        const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
-        const newState = HistoryUtil.getState();
-        newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
-        HistoryUtil.pushState(newState);
+        if (this.props.Document.scrollHeight) {
+            let annotOn = Cast(doc.annotationOn, Doc) as Doc;
+            let offset = annotOn && (NumCast(annotOn.height) / 2);
+            this.props.Document.scrollY = NumCast(doc.y) - offset;
+        } else {
+            const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
+            const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+            const newState = HistoryUtil.getState();
+            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+            HistoryUtil.pushState(newState);
 
-        let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
+            let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
 
-        this.setPan(newPanX, newPanY);
-        this.Document.panTransformType = "Ease";
-        this.props.focus(this.props.Document);
-        willZoom && this.setScaleToZoom(doc, scale);
+            this.setPan(newPanX, newPanY);
+            this.Document.panTransformType = "Ease";
+            this.props.focus(this.props.Document);
+            willZoom && this.setScaleToZoom(doc, scale);
 
-        afterFocus && setTimeout(() => {
-            if (afterFocus && afterFocus()) {
-                this.Document.panX = savedState.px;
-                this.Document.panY = savedState.py;
-                this.Document.scale = savedState.s;
-                this.Document.panTransformType = savedState.pt;
-            }
-        }, 1000);
+            afterFocus && setTimeout(() => {
+                if (afterFocus && afterFocus()) {
+                    this.Document.panX = savedState.px;
+                    this.Document.panY = savedState.py;
+                    this.Document.scale = savedState.s;
+                    this.Document.panTransformType = savedState.pt;
+                }
+            }, 1000);
+        }
+
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
@@ -453,7 +460,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
+            ContainingCollectionDoc: this.props.Document,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             parentActive: this.props.active,
