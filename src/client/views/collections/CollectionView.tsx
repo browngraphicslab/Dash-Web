@@ -114,14 +114,6 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
-            subItems.push({
-                description: "Pivot", icon: "copy", event: async () => {
-                    const doc = this.props.Document;
-                    doc.viewType = CollectionViewType.Freeform;
-                    (await DocListCastAsync(doc.data))!.filter(doc => Cast(doc.data, ImageField)).forEach(doc => doc.ignoreAspect = true);
-                    doc.usePivotLayout = true;
-                }
-            });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             let existing = ContextMenu.Instance.findByDescription("Layout...");

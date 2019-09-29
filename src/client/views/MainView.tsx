@@ -164,16 +164,6 @@ export class MainView extends React.Component {
         }
     }
 
-    executeGooglePhotosRoutine = async () => {
-        // let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        // let doc = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
-        // doc.caption = "Well isn't this a nice cat image!";
-        // let photos = await GooglePhotos.endpoint();
-        // let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
-        // console.log(await GooglePhotos.UploadImages([doc], { id: albumId }));
-        GooglePhotos.Query.ContentSearch({ included: [GooglePhotos.ContentCategories.ANIMALS] }).then(console.log);
-    }
-
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         //close presentation 
