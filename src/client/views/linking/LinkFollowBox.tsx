@@ -43,6 +43,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @observable static destinationDoc: Doc | undefined = undefined;
     @observable static sourceDoc: Doc | undefined = undefined;
     @observable static isSaving: boolean = false;
+    @observable static isLoading: boolean = false;
     @observable selectedMode: string = "";
     @observable selectedContext: Doc | undefined = undefined;
     @observable selectedContextAliases: Doc[] | undefined = undefined;
@@ -85,6 +86,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     componentWillUnmount = () => {
         this._contextDisposer && this._contextDisposer();
+    }
+
+    @action
+    public minimize() {
+        this.props.Document.isMinimized = true;
     }
 
     async resetPan() {
@@ -412,7 +418,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     public saveLinkFollowBehavior = (followMode: string, context: string, shouldZoom: boolean) => {
 
         if (LinkFollowBox.linkDoc && LinkFollowBox.linkDoc.savedLinkFollows) {
-            Cast(LinkFollowBox.linkDoc.savedLinkFollows, listSpec("string"))!.push(followMode + "," + context + "," + shouldZoom.toString());
+            Cast(LinkFollowBox.linkDoc.savedLinkFollows, listSpec("string"))!.push(followMode + "," + context + "," + shouldZoom.toString() + LinkFollowBox.behaviorName);
         }
 
         LinkFollowBox.isSaving = false;
@@ -615,21 +621,63 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     @action
-    escapeSaving() {
+    escapeSaveLoad() {
         LinkFollowBox.isSaving = false;
+        LinkFollowBox.isLoading = false;
     }
 
     @action
-    startLinkFollowSave() {
-        console.log("start link follow save")
-        LinkFollowBox.isSaving = true;
-    }
+    startLinkFollowSave() { LinkFollowBox.isSaving = true; }
 
-    @observable static behaviorName = "";
+    @observable static behaviorName: string = "";
+
+    @action
+    startLoad() { LinkFollowBox.isLoading = true; }
+
+    @action
+    loadBehavior() {
+
+        LinkFollowBox.isLoading = false;
+
+        console.log("ending load")
+    }
 
     @computed
     get footer() {
-        if (!LinkFollowBox.isSaving) {
+        if (LinkFollowBox.isSaving) {
+            return (
+                <div className="linkFollowBox-footer">
+                    <div style={{ pointerEvents: "all" }}>
+                        <>Behavior Name: </>
+                        <input value={LinkFollowBox.behaviorName} onChange={this.onBehaviorTitleChange} onClick={() => console.log("clicking")} type="text"></input>
+                    </div>
+                    <button
+                        onClick={this.escapeSaveLoad}>
+                        Escape<br></br>Saving
+                    </button>
+                    <button
+                        onClick={() => this.saveLinkFollowBehavior(this.selectedMode, this.selectedContextString, this.shouldZoom)}>
+                        Confirm Save
+                    </button>
+                </div >
+            );
+
+        }
+        else if (LinkFollowBox.isLoading) {
+            return (
+                <div className="linkFollowBox-footer">
+                    <button
+                        onClick={this.escapeSaveLoad}>
+                        Escape<br></br>Loading
+                    </button>
+                    <button
+                        onClick={this.loadBehavior}>
+                        Load Behavior
+                    </button>
+                </div >
+            );
+        }
+        else {
             return (
                 <div className="linkFollowBox-footer">
                     <button
@@ -637,7 +685,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         Clear<br></br>Link
                     </button>
                     <button
-                    >
+                        onClick={this.startLoad}>
                         Load Behavior
                     </button>
                     <button
@@ -654,25 +702,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         Follow Link
                     </button>
                 </div>
-            );
-        }
-        else {
-            return (
-                <div className="linkFollowBox-footer">
-                    <button
-                        onClick={this.escapeSaving}>
-                        Escape<br></br>Saving
-                    </button>
-                    <div>
-                        <>Behavior Name: </>
-                        <input value={LinkFollowBox.behaviorName} onChange={this.onBehaviorTitleChange} type="text"></input>
-                    </div>
-                    <button
-                        onClick={() => this.saveLinkFollowBehavior(this.selectedMode, this.selectedContextString, this.shouldZoom)}
-                    >
-                        Confirm Save
-                    </button>
-                </div >
             );
         }
     }
@@ -720,7 +749,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 <div className="linkFollowBox-header">
                     <div className="topHeader">
                         {LinkFollowBox.linkDoc ? "Link Title: " + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
-                        <div onClick={() => this.props.Document.isMinimized = true} className="closeDocument"><FontAwesomeIcon icon={faTimes} size="lg" /></div>
+                        <div onClick={this.minimize} className="closeDocument"><FontAwesomeIcon icon={faTimes} size="lg" /></div>
                     </div>
                     <div className=" direction-indicator">{LinkFollowBox.linkDoc ?
                         LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc ? "Source: " + StrCast(LinkFollowBox.sourceDoc.title) + ", Destination: " + StrCast(LinkFollowBox.destinationDoc.title)
@@ -747,23 +776,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     </div>
                 </div>
                 <div>
-                    {/* <button
-                        onClick={this.resetVars}>
-                        Clear<br></br>Link
-                    </button>
-                    <button
-                    >
-                        Save Behavior
-                    </button>
-                    <button
-                        onClick={() => this.setDefaultFollowBehavior(this.selectedMode, this.selectedContextString, this.shouldZoom)}>
-                        Set As Default
-                    </button>
-                    <button
-                        onClick={this.currentLinkBehavior}
-                        disabled={(LinkFollowBox.linkDoc) ? false : true}>
-                        Follow Link
-                    </button> */}
                     {this.footer}
                 </div>
             </div>
