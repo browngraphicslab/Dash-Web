@@ -32,6 +32,7 @@ import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faFile);
+const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -534,12 +535,11 @@ interface DockedFrameProps {
 }
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
-    _mainCont: HTMLDivElement | undefined = undefined;
+    _mainCont: HTMLDivElement | null = null;
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
     @observable private _dataDoc: Opt<Doc>;
-
     @observable private _isActive: boolean = false;
 
     get _stack(): any {
@@ -577,6 +577,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     componentDidMount() {
+        let observer = new _global.ResizeObserver(action((entries: any) => {
+            for (let entry of entries) {
+                this._panelWidth = entry.contentRect.width;
+                this._panelHeight = entry.contentRect.height;
+            }
+        }));
+        observer.observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
@@ -595,15 +602,16 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    panelWidth = () => this._document!.ignoreAspect ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => this._document!.ignoreAspect ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), this.nativeHeight()));
+    panelWidth = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
+    panelHeight = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), this.nativeHeight()));
 
-    nativeWidth = () => !this._document!.ignoreAspect ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this._document!.ignoreAspect ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
         if (this._document!.type === DocumentType.PDF) {
-            if (this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
+            if ((this._document && this._document.fitWidth) ||
+                this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
                 return this._panelWidth / NumCast(this._document!.nativeWidth);
             } else {
                 return this._panelHeight / NumCast(this._document!.nativeHeight);
@@ -639,13 +647,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }
-    @computed get docView() {
-        if (!this._document) {
-            return (null);
-        }
-        let resolvedDataDoc = this._document.layout instanceof Doc ? this._document : this._dataDoc;
-        return <DocumentView key={this._document[Id]}
-            Document={this._document}
+    docView(document: Doc) {
+        let resolvedDataDoc = document.layout instanceof Doc ? document : this._dataDoc;
+        return <DocumentView key={document[Id]}
+            Document={document}
             DataDoc={resolvedDataDoc}
             bringToFront={emptyFunction}
             addDocument={undefined}
@@ -668,28 +673,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             getScale={returnOne} />;
     }
 
-    @computed get content() {
-        return (
-            <div className="collectionDockingView-content" ref={action((ref: HTMLDivElement) => {
-                this._mainCont = ref;
-                if (ref) {
-                    this._panelWidth = Number(getComputedStyle(ref).width!.replace("px", ""));
-                    this._panelHeight = Number(getComputedStyle(ref).height!.replace("px", ""));
-                }
-            })}
-                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
-                {this.docView}
-            </div >);
-    }
-
     render() {
-        if (!this._isActive || !this._document) return null;
-        let theContent = this.content;
-        return !this._document ? (null) :
-            <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>
-                {({ measureRef }) => <div ref={measureRef}>
-                    {theContent}
-                </div>}
-            </Measure>;
+        return (!this._isActive || !this._document) ? (null) :
+            (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
+                style={{
+                    transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
+                    height: this._document && this._document.fitWidth ? undefined : "100%"
+                }}>
+                {this.docView(this._document)}
+            </div >);
     }
 }

@@ -816,60 +816,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         }
         let ctrlKey = e.ctrlKey;
-        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
-            let href = (e.target as any).href;
-            let location: string;
-            if ((e.target as any).attributes.location) {
-                location = (e.target as any).attributes.location.value;
-            }
-            for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
-                href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
-            }
-            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
-            if (node) {
-                let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
-                href = link && link.attrs.href;
-                location = link && link.attrs.location;
-            }
-            if (href) {
-                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    if (this._linkClicked) {
-                        DocServer.GetRefField(this._linkClicked).then(async linkDoc => {
-                            if (linkDoc instanceof Doc) {
-                                let proto = Doc.GetProto(linkDoc);
-                                let targetContext = await Cast(proto.targetContext, Doc);
-                                let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
-
-                                if (jumpToDoc) {
-                                    if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
-                                        return;
-                                    }
-                                }
-                                if (targetContext) {
-                                    DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
-                                } else if (jumpToDoc) {
-                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
-                                } else {
-                                    DocumentManager.Instance.jumpToDocument(linkDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
-                                }
-                            }
-                        });
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                } else {
-                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
-                    this.props.addDocument && this.props.addDocument(webDoc);
-                    this._linkClicked = webDoc[Id];
-                }
-                e.stopPropagation();
-                e.preventDefault();
-            }
-
-        }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             e.preventDefault();
         }
@@ -903,6 +849,63 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
+        let ctrlKey = e.ctrlKey;
+        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+            let href = (e.target as any).href;
+            let location: string;
+            if ((e.target as any).attributes.location) {
+                location = (e.target as any).attributes.location.value;
+            }
+            for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
+                href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
+            }
+            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
+            if (node) {
+                let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
+                if (link && !(link.attrs.docref && link.attrs.title)) {  // bcz: getting hacky.  this indicates that we clicked on a PDF excerpt quotation.  In this case, we don't want to follow the link (we follow only the actual hyperlink for the quotation which is handled above).
+                    href = link && link.attrs.href;
+                    location = link && link.attrs.location;
+                }
+            }
+            if (href) {
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    if (this._linkClicked) {
+                        DocServer.GetRefField(this._linkClicked).then(async linkDoc => {
+                            if (linkDoc instanceof Doc) {
+                                let proto = Doc.GetProto(linkDoc);
+                                let targetContext = await Cast(proto.targetContext, Doc);
+                                let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
+
+                                if (jumpToDoc) {
+                                    if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                        return;
+                                    }
+                                }
+                                if (targetContext && (!jumpToDoc || targetContext !== await jumpToDoc.annotationOn)) {
+                                    DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                } else if (jumpToDoc) {
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                } else {
+                                    DocumentManager.Instance.jumpToDocument(linkDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                }
+                            }
+                        });
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                } else {
+                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
+                    this.props.addDocument && this.props.addDocument(webDoc);
+                    this._linkClicked = webDoc[Id];
+                }
+                e.stopPropagation();
+                e.preventDefault();
+            }
+
+        }
         // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
         if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });

@@ -308,3 +308,33 @@ export function PostToServer(relativeRoute: string, body: any) {
     };
     return requestPromise.post(options);
 }
+
+const easeInOutQuad = (currentTime: number, start: number, change: number, duration: number) => {
+    let newCurrentTime = currentTime / (duration / 2);
+
+    if (newCurrentTime < 1) {
+        return (change / 2) * newCurrentTime * newCurrentTime + start;
+    }
+
+    newCurrentTime -= 1;
+    return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
+};
+
+export default function smoothScroll(duration: number, element: HTMLElement, to: number) {
+    const start = element.scrollTop;
+    const change = to - start;
+    const startDate = new Date().getTime();
+
+    const animateScroll = () => {
+        const currentDate = new Date().getTime();
+        const currentTime = currentDate - startDate;
+        element.scrollTop = easeInOutQuad(currentTime, start, change, duration);
+
+        if (currentTime < duration) {
+            requestAnimationFrame(animateScroll);
+        } else {
+            element.scrollTop = to;
+        }
+    };
+    animateScroll();
+}

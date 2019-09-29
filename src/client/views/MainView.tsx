@@ -505,6 +505,7 @@ export class MainView extends React.Component {
                     <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button></li>
                     <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button></li>
                     <li key="inkControls"><InkingControl /></li>
+                    <li key="logout"><button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></li>
                 </ul>
             </div>
         </div >;
@@ -520,12 +521,8 @@ export class MainView extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
-        let logoutRef = React.createRef<HTMLDivElement>();
-
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
-            <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
     }
