@@ -1,23 +1,25 @@
 .pdfBox-cont,
 .pdfBox-cont-interactive {
-    display: flex;
+    display: inline-block;
     flex-direction: row;
     height: 100%;
     width:100%;
     overflow: hidden;
     position:absolute;
+    z-index: -1;
 }
 
 .pdfBox-cont {
     pointer-events: none;
-    .pdfPage-textlayer {
-        span {
-            pointer-events: none !important;
-            user-select: none; 
-        }
-    }
     .collectionFreeFormView-none {
         pointer-events: none;
+    }
+    .pdfViewer-text {
+        .textLayer {
+            span {
+                user-select: none;
+            }
+        }
     }
 }
 
@@ -32,26 +34,12 @@
     }
 }
 
-.react-pdf__Page {
-    transform-origin: left top;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-.react-pdf__Page__textContent span {
-    user-select: text;
-}
-
-.react-pdf__Document {
-    position: absolute;
-}
-
 
 .pdfBox-settingsCont {
     position: absolute;
     right: 0;
     top: 3;
+    pointer-events: all;
 
     .pdfBox-settingsButton {
         border-bottom-left-radius: 50%;
@@ -123,8 +111,9 @@
     padding: 20px;
     overflow: hidden;
     transition: left .5s;
+    pointer-events: all;
 
-    .pdfBox-overlaySearchBar {
+    .pdfBox-searchBar {
         width: 70%;
         font-size: 14px;
     }
@@ -139,6 +128,7 @@
     background: none;
     padding: 0;
     position: absolute;
+    pointer-events: all;
 
     .pdfBox-overlayButton-arrow {
         width: 0;
@@ -149,7 +139,9 @@
         transition: all 0.5s;
     }
 
-    .pdfBox-overlayButton-iconCont {
+    .pdfBox-overlayButton-iconCont,
+    .pdfBox-nextIcon, 
+    .pdfBox-prevIcon {
         background: #121721;
         height: 30px;
         width: 70px;
@@ -165,4 +157,9 @@
     background: none;
 }
 
-
+.pdfBox-nextIcon {
+    left: 20; top: 5; height: 30px; position: absolute;
+}
+.pdfBox-prevIcon {
+    left: 50; top: 5; height: 30px; position: absolute;
+}

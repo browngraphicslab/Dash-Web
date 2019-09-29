@@ -31,7 +31,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     isAnnotationOverlay: boolean;
-    setPreviewCursor?: (func: (x: number, y: number) => void) => void;
+    setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
 @observer
@@ -151,15 +151,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        this._downX = this._lastX = e.pageX;
-        this._downY = this._lastY = e.pageY;
-        this._commandExecuted = false;
-        PreviewCursor.Visible = false;
-        this.cleanupInteractions(true);
+        this._downX = this._lastX = e.clientX;
+        this._downY = this._lastY = e.clientY;
         if (e.button === 2 || (e.button === 0 && e.altKey)) {
-            document.addEventListener("pointermove", this.onPointerMove, true);
-            document.addEventListener("pointerup", this.onPointerUp, true);
-            document.addEventListener("keydown", this.marqueeCommand, true);
+            this.setPreviewCursor(e.clientX, e.clientY, true);
             if (e.altKey) {
                 //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
@@ -182,6 +177,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 e.stopPropagation();
                 e.preventDefault();
             }
+        } else {
+            this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
         if (e.altKey) {
             e.preventDefault();
@@ -191,16 +188,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @action
     onPointerUp = (e: PointerEvent): void => {
         if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
-        // console.log("pointer up!");
         if (this._visible) {
-            // console.log("visible");
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
-        //console.log("invisible");
         this.cleanupInteractions(true);
 
         if (e.altKey) {
@@ -208,17 +202,28 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
     }
 
-    setPreviewCursor = (x: number, y: number) => {
-        this._downX = x;
-        this._downY = y;
-        PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
+    setPreviewCursor = (x: number, y: number, drag: boolean) => {
+        if (drag) {
+            this._downX = this._lastX = x;
+            this._downY = this._lastY = y;
+            this._commandExecuted = false;
+            PreviewCursor.Visible = false;
+            this.cleanupInteractions(true);
+            document.addEventListener("pointermove", this.onPointerMove, true);
+            document.addEventListener("pointerup", this.onPointerUp, true);
+            document.addEventListener("keydown", this.marqueeCommand, true);
+        } else {
+            this._downX = x;
+            this._downY = y;
+            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
+        }
     }
 
     @action
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            this.setPreviewCursor(e.clientX, e.clientY);
+            this.setPreviewCursor(e.clientX, e.clientY, false);
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.

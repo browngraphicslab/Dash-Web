@@ -85,7 +85,15 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
     @action
     onPointerDown = async (e: React.PointerEvent) => {
-        if (e.button === 0) {
+        if (e.button === 2 || e.ctrlKey) {
+            PDFMenu.Instance.Status = "annotation";
+            PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
+            PDFMenu.Instance.Pinned = false;
+            PDFMenu.Instance.AddTag = this.addTag.bind(this);
+            PDFMenu.Instance.PinToPres = this.pinToPres;
+            PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
+        }
+        else if (e.button === 0) {
             let targetDoc = await Cast(this.props.document.target, Doc);
             if (targetDoc) {
                 let context = await Cast(targetDoc.targetContext, Doc);
@@ -95,14 +103,6 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                         undefined, undefined);
                 }
             }
-        }
-        if (e.button === 2) {
-            PDFMenu.Instance.Status = "annotation";
-            PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
-            PDFMenu.Instance.Pinned = false;
-            PDFMenu.Instance.AddTag = this.addTag.bind(this);
-            PDFMenu.Instance.PinToPres = this.pinToPres;
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
         }
     }
 

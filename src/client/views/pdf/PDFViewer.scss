@@ -1,11 +1,12 @@
-.pdfViewer-viewer {
+ 
+.pdfViewer-viewer, .pdfViewer-viewer-zoomed {
     pointer-events: inherit;
     width: 100%;
     height: 100%;
     position: absolute;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden;
-
+    
     // .canvasWrapper {
     //     transform: scale(0.75);
     //     transform-origin: top left;
@@ -28,6 +29,15 @@
         opacity: 0.1;
     }
 
+    .pdfViewer-overlay {
+        transform: scale(2.14359);
+        transform-origin: left top;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        display: inline-block;
+        width:100%;
+    }
     .pdfViewer-annotationLayer {
         position: absolute;
         top: 0;
@@ -40,4 +50,17 @@
             opacity: 0.1;
         }
     }
+    .pdfViewer-waiting {
+        width: 70%;
+        height: 70%;
+        margin : 15%;
+        transition: 0.4s opacity ease;
+        opacity: 0.7; 
+        position: absolute;
+        z-index: 10;
+    }
 }
+.pdfViewer-viewer-zoomed {
+    overflow-x: scroll;
+}
+   

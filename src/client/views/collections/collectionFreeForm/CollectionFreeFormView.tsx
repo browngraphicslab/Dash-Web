@@ -74,10 +74,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private easing = () => this.props.Document.panTransformType === "Ease";
     private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document.panX || 0;
     private panY = () => this.fitToContent ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document.panY || 0;
-    private zoomScaling = () => (this.fitToContent ?
+    private zoomScaling = () => (1 / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
-        this.Document.scale || 1)
-        / this.parentScaling;
+        this.Document.scale || 1);
     private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -356,7 +355,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
             this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
-            e.preventDefault();
         }
     }
 
@@ -403,27 +401,34 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
         }
         SelectionManager.DeselectAll();
-        const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
-        const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
-        const newState = HistoryUtil.getState();
-        newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
-        HistoryUtil.pushState(newState);
+        if (this.props.Document.scrollHeight) {
+            let annotOn = Cast(doc.annotationOn, Doc) as Doc;
+            let offset = annotOn && (NumCast(annotOn.height) / 2);
+            this.props.Document.scrollY = NumCast(doc.y) - offset;
+        } else {
+            const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
+            const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+            const newState = HistoryUtil.getState();
+            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+            HistoryUtil.pushState(newState);
 
-        let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
+            let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
 
-        this.setPan(newPanX, newPanY);
-        this.Document.panTransformType = "Ease";
-        this.props.focus(this.props.Document);
-        willZoom && this.setScaleToZoom(doc, scale);
+            this.setPan(newPanX, newPanY);
+            this.Document.panTransformType = "Ease";
+            this.props.focus(this.props.Document);
+            willZoom && this.setScaleToZoom(doc, scale);
 
-        afterFocus && setTimeout(() => {
-            if (afterFocus && afterFocus()) {
-                this.Document.panX = savedState.px;
-                this.Document.panY = savedState.py;
-                this.Document.scale = savedState.s;
-                this.Document.panTransformType = savedState.pt;
-            }
-        }, 1000);
+            afterFocus && setTimeout(() => {
+                if (afterFocus && afterFocus()) {
+                    this.Document.panX = savedState.px;
+                    this.Document.panY = savedState.py;
+                    this.Document.scale = savedState.s;
+                    this.Document.panTransformType = savedState.pt;
+                }
+            }, 1000);
+        }
+
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
@@ -451,7 +456,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
+            ContainingCollectionDoc: this.props.Document,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             parentActive: this.props.active,
@@ -699,7 +704,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         return (
-            <div className={"collectionfreeformview-container"} style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: !this.isAnnotationOverlay ? "100%" : this.props.PanelHeight() }} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+            <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+                style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (NumCast(this.props.Document.scrollHeight) ? NumCast(this.props.Document.scrollHeight) : "100%") : this.props.PanelHeight() }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox} setPreviewCursor={this.props.setPreviewCursor}
