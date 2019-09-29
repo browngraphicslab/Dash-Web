@@ -4,9 +4,9 @@ import { faColumns, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSig
 import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { StrCast } from '../../../new_fields/Types';
+import { StrCast, Cast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -18,6 +18,7 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { ImageField } from '../../../new_fields/URLField';
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 export const COLLECTION_BORDER_WIDTH = 2;
 
@@ -113,6 +114,14 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
+            subItems.push({
+                description: "Pivot", icon: "copy", event: async () => {
+                    const doc = this.props.Document;
+                    doc.viewType = CollectionViewType.Freeform;
+                    (await DocListCastAsync(doc.data))!.filter(doc => Cast(doc.data, ImageField)).forEach(doc => doc.ignoreAspect = true);
+                    doc.usePivotLayout = true;
+                }
+            });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             let existing = ContextMenu.Instance.findByDescription("Layout...");

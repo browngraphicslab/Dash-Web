@@ -3,13 +3,13 @@ import { faFile } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, Lambda, observable, reaction } from "mobx";
+import { action, Lambda, observable, reaction, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { FieldId } from "../../../new_fields/RefField";
@@ -36,7 +36,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
-    public static Instance: CollectionDockingView;
+    @observable public static Instance: CollectionDockingView;
     public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
         return {
             type: 'react-component',
@@ -51,7 +51,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         };
     }
 
-    private _goldenLayout: any = null;
+    @computed public get initialized() {
+        return this._goldenLayout !== null;
+    }
+
+    @observable private _goldenLayout: any = null;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _flush: boolean = false;
     private _ignoreStateChange = "";
@@ -60,7 +64,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        !CollectionDockingView.Instance && (CollectionDockingView.Instance = this);
+        !CollectionDockingView.Instance && runInAction(() => CollectionDockingView.Instance = this);
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
@@ -251,7 +255,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         var config = StrCast(this.props.Document.dockingConfig);
         if (config) {
             if (!this._goldenLayout) {
-                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
             else {
                 if (config === JSON.stringify(this._goldenLayout.toConfig())) {
@@ -264,7 +268,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     this._goldenLayout.unbind('stackCreated', this.stackCreated);
                 } catch (e) { }
                 this._goldenLayout.destroy();
-                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
             this._goldenLayout.on('itemDropped', this.itemDropped);
             this._goldenLayout.on('tabCreated', this.tabCreated);
@@ -292,7 +296,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
-                        DocListCast((CurrentUserUtils.UserDocument.workspaces as Doc).data).map(d => d.workspaceBrush = false);
+                        let userDoc = CurrentUserUtils.UserDocument;
+                        userDoc && DocListCast((userDoc.workspaces as Doc).data).map(d => d.workspaceBrush = false);
                         this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
@@ -312,7 +317,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         }
         if (this._goldenLayout) this._goldenLayout.destroy();
-        this._goldenLayout = null;
+        runInAction(() => this._goldenLayout = null);
         window.removeEventListener('resize', this.onResize);
 
         if (this.reactionDisposer) {
@@ -453,8 +458,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
 
-                    const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
-                    if (recent) {
+                    let userDoc = CurrentUserUtils.UserDocument;
+                    let recent: Doc | undefined;
+                    if (userDoc && (recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))) {
                         Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
                     SelectionManager.DeselectAll();
@@ -486,12 +492,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             .off('click') //unbind the current click handler
             .click(action(async function () {
                 //if (confirm('really close this?')) {
-                const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+
                 stack.remove();
                 stack.contentItems.forEach(async (contentItem: any) => {
                     let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
-                        if (recent) {
+                        let recent: Doc | undefined;
+                        if (CurrentUserUtils.UserDocument && (recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))) {
                             Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                         }
                         let theDoc = doc;

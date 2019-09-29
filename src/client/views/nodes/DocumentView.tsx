@@ -4,18 +4,14 @@ import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Copy, Id } from '../../../new_fields/FieldSymbols';
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
+import { Id } from '../../../new_fields/FieldSymbols';
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { RouteStore } from '../../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
-import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DictationManager } from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
@@ -40,8 +36,11 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { DocumentType } from '../../documents/DocumentTypes';
+import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
+import { ImageField } from '../../../new_fields/URLField';
+import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
-const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
@@ -181,7 +180,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
-            e.preventDefault();
+            let preventDefault = true;
             if (this._doubleTap && this.props.renderDepth) {
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
@@ -196,7 +195,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
-            } else SelectionManager.SelectDoc(this, e.ctrlKey);
+            } else {
+                SelectionManager.SelectDoc(this, e.ctrlKey);
+                preventDefault = false;
+            }
+            preventDefault && e.preventDefault();
         }
     }
 
@@ -290,31 +293,46 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    makeNativeViewClicked = (): void => { swapViews(this.props.Document, "layoutNative", "layoutCustom"); }
+    static makeNativeViewClicked = async (doc: Doc): Promise<void> => swapViews(doc, "layoutNative", "layoutCustom")
 
-    @undoBatch
-    makeCustomViewClicked = async () => {
-        if (this.props.Document.layoutCustom === undefined) {
-            Doc.GetProto(this.props.DataDoc || this.props.Document).layoutNative = Doc.MakeTitled("layoutNative");
-            await swapViews(this.props.Document, "", "layoutNative");
+    static makeCustomViewClicked = async (doc: Doc, dataDoc: Opt<Doc>) => {
+        const batch = UndoManager.StartBatch("CustomViewClicked");
+        if (doc.layoutCustom === undefined) {
+            Doc.GetProto(dataDoc || doc).layoutNative = Doc.MakeTitled("layoutNative");
+            await swapViews(doc, "", "layoutNative");
 
-            let options = { title: "data", width: (this.Document.width || 0), x: -(this.Document.width || 0) / 2, y: - (this.Document.height || 0) / 2, };
-            let fieldTemplate = this.Document.type === DocumentType.TEXT ? Docs.Create.TextDocument(options) : this.Document.type === DocumentType.PDF ? Docs.Create.PdfDocument("http://www.msn.com", options) :
-                this.Document.type === DocumentType.VID ? Docs.Create.VideoDocument("http://www.cs.brown.edu", options) :
-                    Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+            const width = NumCast(doc.width);
+            const height = NumCast(doc.height);
+            const options = { title: "data", width, x: -width / 2, y: - height / 2, };
 
-            fieldTemplate.backgroundColor = this.Document.backgroundColor;
+            let fieldTemplate: Doc;
+            switch (doc.type) {
+                case DocumentType.TEXT:
+                    fieldTemplate = Docs.Create.TextDocument(options);
+                    break;
+                case DocumentType.PDF:
+                    fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+                    break;
+                case DocumentType.VID:
+                    fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+                    break;
+                default:
+                    fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+            }
+
+            fieldTemplate.backgroundColor = doc.backgroundColor;
             fieldTemplate.heading = 1;
             fieldTemplate.autoHeight = true;
 
-            let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: this.Document.title + "_layout", width: (this.Document.width || 0) + 20, height: Math.max(100, (this.Document.height || 0) + 45) });
+            let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: doc.title + "_layout", width: width + 20, height: Math.max(100, height + 45) });
 
             Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate), true);
-            Doc.ApplyTemplateTo(docTemplate, this.props.Document, undefined);
-            Doc.GetProto(this.props.DataDoc || this.props.Document).layoutCustom = Doc.MakeTitled("layoutCustom");
+            Doc.ApplyTemplateTo(docTemplate, doc, undefined);
+            Doc.GetProto(dataDoc || doc).layoutCustom = Doc.MakeTitled("layoutCustom");
         } else {
-            swapViews(this.props.Document, "layoutCustom", "layoutNative");
+            await swapViews(doc, "layoutCustom", "layoutNative");
         }
+        batch.end();
     }
 
     @undoBatch
@@ -401,7 +419,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.DataDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.DataDoc);
         } else { // bcz: not robust -- for now documents with string layout are native documents, and those with Doc layouts are customized
-            custom ? this.makeCustomViewClicked() : this.makeNativeViewClicked();
+            custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc) : DocumentView.makeNativeViewClicked(this.props.Document);
         }
     }
 
@@ -451,6 +469,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
 
+        if (Cast(this.props.Document.data, ImageField)) {
+            cm.addItem({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
+        }
+        if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+            cm.addItem({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+            cm.addItem({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+            cm.addItem({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+        }
+
         let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
@@ -479,16 +506,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
-            layoutItems.push({ description: "Use Custom Layout", event: this.makeCustomViewClicked, icon: "concierge-bell" });
+            layoutItems.push({ description: "Use Custom Layout", event: () => DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         } else if (this.props.Document.layoutNative) {
-            layoutItems.push({ description: "Use Native Layout", event: this.makeNativeViewClicked, icon: "concierge-bell" });
+            layoutItems.push({ description: "Use Native Layout", event: () => DocumentView.makeNativeViewClicked(this.props.Document), icon: "concierge-bell" });
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         if (!ClientUtils.RELEASE) {
-            let copies: ContextMenuProps[] = [];
-            copies.push({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-            copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
-            cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
+            // let copies: ContextMenuProps[] = [];
+            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
         let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
         let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -510,32 +536,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         cm.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        try {
-            type User = { email: string, userDocumentId: string };
-            const users: User[] = JSON.parse(await rp.get(Utils.prepend(RouteStore.getUsers)));
-            let usersMenu = users.filter(({ email }) => email !== Doc.CurrentUserEmail).map(({ email, userDocumentId }) => ({
-                description: email,
-                event: async () => {
-                    const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
-                    if (userDocument) {
-                        const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-                        if (notifDoc) {
-                            const data = await Cast(notifDoc.data, listSpec(Doc));
-                            const sharedDoc = Doc.MakeAlias(this.props.Document);
-                            if (data) {
-                                data.push(sharedDoc);
-                            } else {
-                                notifDoc.data = new List([sharedDoc]);
-                            }
-                        }
-                    }
-                },
-                icon: "male"
-            } as ContextMenuProps));
-            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
-        } catch {
-
-        }
         runInAction(() => {
             if (!ClientUtils.RELEASE) {
                 let setWriteMode = (mode: DocServer.WriteMode) => {
@@ -560,6 +560,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 cm.addItem({ description: "Collaboration ACLs...", subitems: aclsMenu, icon: "share" });
                 cm.addItem({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
             }
+        });
+        runInAction(() => {
+            cm.addItem({
+                description: "Share",
+                event: () => SharingManager.Instance.open(this),
+                icon: "external-link-alt"
+            });
 
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event

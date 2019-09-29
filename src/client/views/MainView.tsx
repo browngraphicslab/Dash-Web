@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -7,8 +7,8 @@ import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
 import { List } from '../../new_fields/List';
+import { Doc, DocListCast, Opt, HeightSym, FieldResult, Field } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { listSpec } from '../../new_fields/Schema';
@@ -17,14 +17,14 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
-import { Docs } from '../documents/Documents';
 import { ClientUtils } from '../util/ClientUtils';
 import { DictationManager } from '../util/DictationManager';
 import { SetupDrag } from '../util/DragManager';
-import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager, undoBatch } from '../util/UndoManager';
-import { CollectionBaseView } from './collections/CollectionBaseView';
+import { Docs, DocumentOptions } from '../documents/Documents';
+import { HistoryUtil } from '../util/History';
+import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ContextMenu } from './ContextMenu';
@@ -40,8 +40,13 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
+import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
+import { ImageField } from '../../new_fields/URLField';
 import { LinkFollowBox } from './linking/LinkFollowBox';
 import { DocumentManager } from '../util/DocumentManager';
+import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+import MainViewModal from './MainViewModal';
+import SharingManager from '../util/SharingManager';
 
 @observer
 export class MainView extends React.Component {
@@ -55,6 +60,8 @@ export class MainView extends React.Component {
     @observable private dictationDisplayState = false;
     @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
 
+    public hasActiveModal = false;
+
     public overlayTimeout: NodeJS.Timeout | undefined;
 
     public initiateDictationFade = () => {
@@ -62,8 +69,15 @@ export class MainView extends React.Component {
         this.overlayTimeout = setTimeout(() => {
             this.dictationOverlayVisible = false;
             this.dictationSuccess = undefined;
+            this.hasActiveModal = false;
             setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
         }, duration);
+    }
+
+    private urlState: HistoryUtil.DocUrl;
+
+    @computed private get userDoc() {
+        return CurrentUserUtils.UserDocument;
     }
 
     public cancelDictationFade = () => {
@@ -74,7 +88,7 @@ export class MainView extends React.Component {
     }
 
     @computed private get mainContainer(): Opt<Doc> {
-        return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
+        return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace;
     }
     @computed get mainFreeform(): Opt<Doc> {
         let docs = DocListCast(this.mainContainer!.data);
@@ -83,7 +97,10 @@ export class MainView extends React.Component {
     public isPointerDown = false;
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
-            CurrentUserUtils.UserDocument.activeWorkspace = doc;
+            if (!("presentationView" in doc)) {
+                doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
+            }
+            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
         }
     }
 
@@ -128,21 +145,33 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        reaction(() => {
-            let workspaces = CurrentUserUtils.UserDocument.workspaces;
-            let recent = CurrentUserUtils.UserDocument.recentlyClosed;
-            if (!(recent instanceof Doc)) return 0;
-            if (!(workspaces instanceof Doc)) return 0;
-            let workspacesDoc = workspaces;
-            let recentDoc = recent;
-            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
-            return libraryHeight;
-        }, (libraryHeight: number) => {
-            if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
-                CurrentUserUtils.UserDocument.height = libraryHeight;
-            }
-            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
-        }, { fireImmediately: true });
+        if (this.userDoc) {
+            reaction(() => {
+                let workspaces = this.userDoc.workspaces;
+                let recent = this.userDoc.recentlyClosed;
+                if (!(recent instanceof Doc)) return 0;
+                if (!(workspaces instanceof Doc)) return 0;
+                let workspacesDoc = workspaces;
+                let recentDoc = recent;
+                let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + this.userDoc[HeightSym]() * 0.00001;
+                return libraryHeight;
+            }, (libraryHeight: number) => {
+                if (libraryHeight && Math.abs(this.userDoc[HeightSym]() - libraryHeight) > 5) {
+                    this.userDoc.height = libraryHeight;
+                }
+                (Cast(this.userDoc.recentlyClosed, Doc) as Doc).allowClear = true;
+            }, { fireImmediately: true });
+        }
+    }
+
+    executeGooglePhotosRoutine = async () => {
+        // let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+        // let doc = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
+        // doc.caption = "Well isn't this a nice cat image!";
+        // let photos = await GooglePhotos.endpoint();
+        // let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
+        // console.log(await GooglePhotos.UploadImages([doc], { id: albumId }));
+        GooglePhotos.Query.ContentSearch({ included: [GooglePhotos.ContentCategories.ANIMALS] }).then(console.log);
     }
 
     componentWillUnMount() {
@@ -155,7 +184,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
-
+        this.urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
@@ -164,6 +193,12 @@ export class MainView extends React.Component {
                 let type = pathname[0];
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
+                    if (!this.userDoc) {
+                        runInAction(() => this.flyoutWidth = 0);
+                        DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action(field => {
+                            field instanceof Doc && (CurrentUserUtils.GuestTarget = field);
+                        }));
+                    }
                 }
             }
         }
@@ -220,69 +255,106 @@ export class MainView extends React.Component {
 
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        if (!CurrentUserUtils.MainDocId) {
-            const doc = await Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc);
-            if (doc) {
+        let received = CurrentUserUtils.MainDocId;
+        if (received && !this.userDoc) {
+            reaction(
+                () => CurrentUserUtils.GuestTarget,
+                target => target && this.createNewWorkspace(),
+                { fireImmediately: true }
+            );
+        } else {
+            if (received && this.urlState.sharing) {
+                reaction(
+                    () => {
+                        let docking = CollectionDockingView.Instance;
+                        return docking && docking.initialized;
+                    },
+                    initialized => {
+                        if (initialized && received) {
+                            DocServer.GetRefField(received).then(field => {
+                                if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
+                                    CollectionDockingView.AddRightSplit(field, undefined);
+                                }
+                            });
+                        }
+                    },
+                );
+            }
+            let doc: Opt<Doc>;
+            if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
                 this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
             }
-        } else {
-            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field => {
-                field instanceof Doc ? this.openWorkspace(field) :
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
-            });
         }
     }
 
-
     @action
     createNewWorkspace = async (id?: string) => {
-        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, Doc);
-        if (!(workspaces instanceof Doc)) return;
-        const list = Cast((CurrentUserUtils.UserDocument.workspaces as Doc).data, listSpec(Doc));
-        if (list) {
-            let freeformDoc = Docs.Create.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-            let mainDoc = Docs.Create.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
-            if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
-                let linkManagerDoc = new Doc();
-                linkManagerDoc.allLinks = new List<Doc>([]);
-                CurrentUserUtils.UserDocument.linkManagerDoc = linkManagerDoc;
+        let freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            width: this.pwidth * .7,
+            height: this.pheight,
+            title: "My Blank Collection"
+        };
+        let workspaces: FieldResult<Doc>;
+        let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), {}, id);
+        if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
+            const list = Cast((workspaces).data, listSpec(Doc));
+            if (list) {
+                if (!this.userDoc.linkManagerDoc) {
+                    let linkManagerDoc = new Doc();
+                    linkManagerDoc.allLinks = new List<Doc>([]);
+                    this.userDoc.linkManagerDoc = linkManagerDoc;
+                }
+                list.push(mainDoc);
+                mainDoc.title = `Workspace ${list.length}`;
             }
-            list.push(mainDoc);
-            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-            setTimeout(() => {
-                this.openWorkspace(mainDoc);
-                // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
-                // mainDoc.optionalRightCollection = pendingDocument;
-            }, 0);
         }
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => {
+            this.openWorkspace(mainDoc);
+            // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
+            // mainDoc.optionalRightCollection = pendingDocument;
+        }, 0);
     }
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        const state = HistoryUtil.parseUrl(window.location) || {} as any;
-        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], readonly: state.readonly, nro: state.nro });
-        if (state.readonly === true || state.readonly === null) {
-            DocServer.Control.makeReadOnly();
-        } else if (state.safe) {
-            if (!state.nro) {
-                DocServer.Control.makeReadOnly();
-            }
-            CollectionBaseView.SetSafeMode(true);
-        } else if (state.nro || state.nro === null || state.readonly === false) {
-        } else if (BoolCast(doc.readOnly)) {
+        let state = this.urlState;
+        if (state.sharing === true && !this.userDoc) {
             DocServer.Control.makeReadOnly();
         } else {
-            DocServer.Control.makeEditable();
+            fromHistory || HistoryUtil.pushState({
+                type: "doc",
+                docId: doc[Id],
+                readonly: state.readonly,
+                nro: state.nro,
+                sharing: false,
+            });
+            if (state.readonly === true || state.readonly === null) {
+                DocServer.Control.makeReadOnly();
+            } else if (state.safe) {
+                if (!state.nro) {
+                    DocServer.Control.makeReadOnly();
+                }
+                CollectionBaseView.SetSafeMode(true);
+            } else if (state.nro || state.nro === null || state.readonly === false) {
+            } else if (BoolCast(doc.readOnly)) {
+                DocServer.Control.makeReadOnly();
+            } else {
+                DocServer.Control.makeEditable();
+            }
         }
-        const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
+        let col: Opt<Doc>;
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            if (col) {
+            if (this.userDoc && (col = await Cast(this.userDoc.optionalRightCollection, Doc))) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
                     runInAction(() => CollectionTreeView.NotifsCol = col);
@@ -383,11 +455,12 @@ export class MainView extends React.Component {
     }
     @computed
     get flyout() {
-        let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        if (!(sidebar instanceof Doc)) return (null);
-        let sidebarDoc = sidebar;
+        let sidebar: FieldResult<Field>;
+        if (!this.userDoc || !((sidebar = this.userDoc.sidebar) instanceof Doc)) {
+            return (null);
+        }
         return <DocumentView
-            Document={sidebarDoc}
+            Document={sidebar}
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
@@ -413,9 +486,14 @@ export class MainView extends React.Component {
     }
     @computed
     get mainContent() {
-        let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        if (!(sidebar instanceof Doc)) return (null);
-        return <div className="mainContent" style={{ width: "100%", height: "100%", position: "absolute" }}>
+        if (!this.userDoc) {
+            return <div>{this.dockingContent}</div>;
+        }
+        let sidebar = this.userDoc.sidebar;
+        if (!(sidebar instanceof Doc)) {
+            return (null);
+        }
+        return <div>
             <div className="mainView-libraryHandle"
                 style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                 onPointerDown={this.onPointerDown}>
@@ -444,13 +522,21 @@ export class MainView extends React.Component {
         }
     }
 
-    toggleLinkFollowBox = (shouldClose: boolean) => {
-        if (LinkFollowBox.Instance) {
-            let dvs = DocumentManager.Instance.getDocumentViews(LinkFollowBox.Instance.props.Document);
-            // if it already exisits, close it
-            LinkFollowBox.Instance.props.Document.isMinimized = (dvs.length > 0 && shouldClose);
-        }
+    setWriteMode = (mode: DocServer.WriteMode) => {
+        console.log(DocServer.WriteMode[mode]);
+        const mode1 = mode;
+        const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+        DocServer.setFieldWriteMode("x", mode1);
+        DocServer.setFieldWriteMode("y", mode1);
+        DocServer.setFieldWriteMode("width", mode1);
+        DocServer.setFieldWriteMode("height", mode1);
+
+        DocServer.setFieldWriteMode("panX", mode2);
+        DocServer.setFieldWriteMode("panY", mode2);
+        DocServer.setFieldWriteMode("scale", mode2);
+        DocServer.setFieldWriteMode("viewType", mode2);
     }
+
 
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
@@ -467,12 +553,15 @@ export class MainView extends React.Component {
         // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
         // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
-        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
+        // let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
+
+        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc | Promise<Doc>][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
+            // [React.createRef<HTMLDivElement>(), "object-group", "Test Google Photos Search", googlePhotosSearch],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];
@@ -494,7 +583,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="linkFollow"><button className="add-button round-button" title="Open Link Follower" onClick={() => this.toggleLinkFollowBox(true)}><FontAwesomeIcon icon="link" size="sm" /></button></li>
+                    <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -505,7 +594,7 @@ export class MainView extends React.Component {
                     <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button></li>
                     <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button></li>
                     <li key="inkControls"><InkingControl /></li>
-                    <li key="logout"><button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></li>
+                    <li key="logout"><button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>{CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}</button></li>
                 </ul>
             </div>
         </div >;
@@ -533,28 +622,25 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
-    private get dictationOverlay() {
-        let display = this.dictationOverlayVisible;
+    @computed private get dictationOverlay() {
         let success = this.dictationSuccess;
         let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        let dialogueBoxStyle = {
+            background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
+            borderColor: this.isListening ? "red" : "black",
+            fontStyle: "italic"
+        };
+        let overlayStyle = {
+            backgroundColor: this.isListening ? "red" : "darkslategrey"
+        };
         return (
-            <div>
-                <div
-                    className={"dictation-prompt"}
-                    style={{
-                        opacity: display ? 1 : 0,
-                        background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
-                        borderColor: this.isListening ? "red" : "black",
-                    }}
-                >{result}</div>
-                <div
-                    className={"dictation-prompt-overlay"}
-                    style={{
-                        opacity: display ? 0.4 : 0,
-                        backgroundColor: this.isListening ? "red" : "darkslategrey"
-                    }}
-                />
-            </div>
+            <MainViewModal
+                contents={result}
+                isDisplayed={this.dictationOverlayVisible}
+                interactive={false}
+                dialogueBoxStyle={dialogueBoxStyle}
+                overlayStyle={overlayStyle}
+            />
         );
     }
 
@@ -570,6 +656,7 @@ export class MainView extends React.Component {
         return (
             <div id="main-div">
                 {this.dictationOverlay}
+                <SharingManager />
                 <DocumentDecorations />
                 {this.mainContent}
                 {this.miniPresentation}

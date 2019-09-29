@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faFileUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
@@ -39,7 +39,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 
-library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
+library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -76,7 +76,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private panY = () => this.fitToContent ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document.panY || 0;
     private zoomScaling = () => (1 / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
-        this.Document.scale || 1);
+        this.Document.scale || 1)
     private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -116,9 +116,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    onDrop = (e: React.DragEvent): void => {
+    onDrop = (e: React.DragEvent): Promise<void> => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        super.onDrop(e, { x: pt[0], y: pt[1] });
+        return super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
     @undoBatch
@@ -700,7 +700,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.props.Document.fitY = this.contentBounds && this.contentBounds.y;
         this.props.Document.fitW = this.contentBounds && (this.contentBounds.r - this.contentBounds.x);
         this.props.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
-        // if fieldExt is set, then children will be stored in the extension document for the fieldKey. 
+        // if fieldExt is set, then children will be stored in the extension document for the fieldKey.
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         return (
