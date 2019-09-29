@@ -257,16 +257,18 @@ export class MainView extends React.Component {
         // Load the user's active workspace, or create a new one if initial session after signup
         let received = CurrentUserUtils.MainDocId;
         let doc: Opt<Doc>;
-        if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
-            this.openWorkspace(doc);
-        } else if (received) {
+        if (received) {
             if (!this.userDoc) {
+                // if no one's logged in...
+                console.log("NO One's LOGGED IN!");
                 reaction(
                     () => CurrentUserUtils.GuestTarget,
                     target => target && this.createNewWorkspace(),
                     { fireImmediately: true }
                 );
             } else if (this.urlState.sharing) {
+                // if a logged in user is opening a shared link
+                console.log("SHARING, opening right split after docking view initialized");
                 if (received && this.urlState.sharing) {
                     reaction(
                         () => {
@@ -279,6 +281,14 @@ export class MainView extends React.Component {
                                     if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
                                         CollectionDockingView.AddRightSplit(field, undefined);
                                         DocumentManager.Instance.jumpToDocument(field, true, undefined, undefined, undefined, undefined);
+                                        const { nro, readonly } = this.urlState;
+                                        HistoryUtil.pushState({
+                                            type: "doc",
+                                            docId: CurrentUserUtils.MainDocId!,
+                                            readonly,
+                                            nro,
+                                            sharing: false,
+                                        });
                                     }
                                 });
                             }
@@ -286,13 +296,22 @@ export class MainView extends React.Component {
                     );
                 }
             } else {
+                // a logged in user is just opening a document, likely their own workspace
+                console.log("DEFAULT");
                 DocServer.GetRefField(received).then(field => {
+                    console.log(field instanceof Doc ? "Opening" : "Creating");
                     field instanceof Doc ? this.openWorkspace(field) :
                         this.createNewWorkspace(received);
                 });
             }
         } else {
-            this.createNewWorkspace();
+            if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
+                console.log("Opening existing workspace for existing user!");
+                this.openWorkspace(doc);
+            } else {
+                console.log("Creating a new workspace for existing user!");
+                this.createNewWorkspace();
+            }
         }
     }
 
