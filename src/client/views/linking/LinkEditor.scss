@@ -22,6 +22,20 @@
     }
 }
 
+.linkEditor-changeLinkBehavior {
+    display: flex;
+    justify-content: space-evenly;
+
+    button {
+        border-radius: 10px;
+        color: black;
+        background-color: $light-color-secondary;
+        margin: 2px;
+        font-size: 70%;
+        padding: 8px;
+    }
+}
+
 .linkEditor-button {
     width: 20px;
     height: 20px;

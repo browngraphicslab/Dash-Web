@@ -122,31 +122,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this.shouldUseOnlyParentContext = false;
     }
 
-    @action
-    setDefault() {
-        let notOpenInContext: boolean = this.selectedContextString === "self" || this.selectedContextString === LinkFollowBox.destinationDoc![Id];
-
-        if (this.selectedMode === FollowModes.INPLACE) {
-            this.defaultLinkBehavior = this.openLinkInPlace;
-        }
-        else if (this.selectedMode === FollowModes.OPENFULL) {
-            if (notOpenInContext) this.defaultLinkBehavior = this.openFullScreen;
-            else this.selectedContext && this.openColFullScreen({ context: this.selectedContext });
-        }
-        else if (this.selectedMode === FollowModes.OPENRIGHT) {
-            if (notOpenInContext) this.defaultLinkBehavior = this.openLinkRight;
-            else this.selectedContext && this.openLinkColRight({ context: this.selectedContext, shouldZoom: shouldZoom });
-        }
-        else if (this.selectedMode === FollowModes.OPENTAB) {
-            if (notOpenInContext) this.defaultLinkBehavior = this.openLinkTab;
-            else this.selectedContext && this.openLinkColTab({ context: this.selectedContext, shouldZoom: shouldZoom });
-        }
-        else if (this.selectedMode === FollowModes.PAN) {
-            this.defaultLinkBehavior = this.jumpToLink;
-        }
-        else return;
-    }
-
     async fetchDocuments() {
         if (LinkFollowBox.destinationDoc) {
             let dest: Doc = LinkFollowBox.destinationDoc;
@@ -706,10 +681,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     </button>
                     <button
                         onClick={() => this.setDefaultFollowBehavior(this.selectedMode, this.selectedContextString, this.shouldZoom)}>
-                        Set As Default
-                    </button>
-                    <button
-                        onClick={this.setDefault}>
                         Set As Default
                     </button>
                     <div style={{ width: 20 }}></div>

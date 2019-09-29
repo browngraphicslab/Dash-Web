@@ -439,7 +439,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     {FollowModes.INPLACE}</label>
                             </div>
                             {this._linkConfirm ?
-                                <div>
+                                <div className="linkEditor-changeLinkBehavior">
                                     <button value="confirm" onClick={this.changeLinkBehavior}>confirm</button>
                                     <button value="cancel" onClick={this.changeLinkBehavior}>cancel</button>
                                 </div> : null}
