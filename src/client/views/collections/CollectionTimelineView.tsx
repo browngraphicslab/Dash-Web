@@ -25,6 +25,8 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { Thumbnail, NodeProps } from "./CollectionTimeLineViewNode";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { thisExpression } from "babel-types";
+import { SetupDrag, DragManager } from "../../util/DragManager";
+
 
 
 type DocTuple = {
@@ -60,6 +62,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable private types: boolean[] = [];
     @observable pendingThumbnailRefCount = 0;
     private marqueeref = React.createRef<HTMLDivElement>();
+    private previewflag = true;
+
+
+    @action
+    onDrop = (e: React.DragEvent): void => {
+        var pt = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
+        const mutator = (input: Opt<Doc | Doc[]>) => {
+            let x = (((e.pageX / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+            let fieldval = this._values[0] + x * this.barref.current!.getBoundingClientRect().width / this._range;
+            //input[this.sortstate] = fieldval;
+        };
+
+        super.onDrop(e, { x: pt[0], y: pt[1] }, undefined);
+
+    }
 
 
     @computed
@@ -491,7 +508,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let newNode = {
                 mapleft: ((values[i] - values[0] + (this._range * 0.05)) * this.barwidth / (this._range * 1.1)), leftval: parseFloat(leftval), doc: docs[i], top: 20, row: Math.round(this.rows.length / 2) - 1,
             } as Node;
-            console.log(newNode.select);
             this.thumbnails.push(newNode);
         }
         this.thumbnails = this.filterDocs(this.thumbnails);
@@ -682,7 +698,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private get barwidth() {
         let doc = this.props.Document;
-        doc.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
+        doc.barwidth = (this.barref.current ? this.barref.current.getBoundingClientRect().width : (952));
         return NumCast(doc.barwidth);
     }
 
@@ -776,7 +792,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     updateWidth() {
-        this.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
+        this.barwidth = (this.barref.current ? this.barref.current.getBoundingClientRect().width : (952));
     }
 
     @action
@@ -809,8 +825,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.persist();
         this._downX = e.pageX;
         this._downY = e.pageY;
-        this.downbool = false;
-        let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
+        let leftval = 0;
+        if (this.screenref.current) {
+
+            leftval = (e.pageX - this.screenref.current.getBoundingClientRect().x);
+        }
         let mintick: React.RefObject<HTMLDivElement>;
 
         let minticknum = Infinity;
@@ -834,7 +853,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
             d.initialX = this.leftbound;
             d.initialWidth = 10;
-            d.initialMapLeft = (((leftval / this.barref.current!.clientWidth)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+            d.initialMapLeft = (((leftval / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
             d.initialMapWidth = 10;
             d.annotation = "hi";
             d.color = this.selectedColor;
@@ -1015,6 +1034,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.markerrender();
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove_LeftBound);
         document.removeEventListener("pointermove", this.onPointerMove_RightBound);
@@ -1105,71 +1125,73 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createdownbool();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
-            <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
-                    {<div style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                        {this._visible ? this.marqueeDiv : null}
+            <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
+                <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+                    <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
+                        {<div style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+                            {this._visible ? this.marqueeDiv : null}
+                        </div>}
+                    </div>
+                    <Flyout
+                        anchorPoint={anchorPoints.RIGHT_TOP}
+                        content={<div>
+                            <h5><b>Filter</b></h5>
+                            {this.filterbuttons}
+                        </div>
+                        }>
+                        <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+                    </Flyout>
+                    {this.previewflag && <div ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, height: "50px", top: this.rowval[this.rowval.length - 1], width: "100%", bottom: "90%", position: "fixed", }}>
+                        {this.thumbnails.map(item => <div
+                            style={{
+                                position: "absolute",
+                                background: "black",
+                                zIndex: 90,
+                                top: "25%", left: item.mapleft + "px", width: "5px", border: "3px solid"
+                            }}>
+                        </div>)}
+                        {/*this.markermap*/}
+                        <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.leftbound, height: "100%" }}></div>
+                        <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", right: this.rightbound, height: "100%", zIndex: 100 }}></div>
+                        <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.leftbound, width: this.barwidth - this.rightbound - this.leftbound, height: "100%", position: "absolute" }}>
+                        </div>
                     </div>}
-                </div>
-                <Flyout
-                    anchorPoint={anchorPoints.RIGHT_TOP}
-                    content={<div>
-                        <h5><b>Filter</b></h5>
-                        {this.filterbuttons}
-                    </div>
-                    }>
-                    <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-                </Flyout>
-                <div ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, height: "50px", top: this.rowval[this.rowval.length - 1], width: "100%", bottom: "90%", position: "fixed", }}>
-                    {this.thumbnails.map(item => <div
-                        style={{
-                            position: "absolute",
-                            background: "black",
-                            zIndex: 90,
-                            top: "25%", left: item.mapleft + "px", width: "5px", border: "3px solid"
+                    <Measure onResize={() => this.updateWidth()}>
+                        {({ measureRef }) => <div ref={measureRef}> </div>}
+                    </Measure>
+                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", position: "absolute", height: "100%", width: "100%", }}>
+                        {this.rows}
+                        {this.thumbnails.map(doc =>
+                            <Thumbnail
+                                scale={this.rowscale}
+                                scrollTop={document.body.scrollTop}
+                                CollectionView={this.props.CollectionView}
+                                active={this.props.active}
+                                whenActiveChanged={this.props.whenActiveChanged}
+                                addDocTab={this.props.addDocTab}
+                                pinToPres={this.props.pinToPres}
+                                createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
+                                transition={BoolCast(this.transtate)}
+                                toggleopac={BoolCast(this.opac)}
+                                tog={this.opacset}
+                                pointerDown={this.downbool ? this.downbool : false}
+                                timelineTop={this.rowval[Math.round(this.rowval.length / 2)]}
+                                select={doc.select ? doc.select : false}
+                                update={this.update}
+                                range={this._range}
+                            >
+                            </Thumbnail>
+                        )}
+                        {this.markerDocs.map(d => this.createmarker(d))}
+                        <div onPointerDown={this.onPointerDown_Timeline} style={{
+                            position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
                         }}>
-                    </div>)}
-                    {/*this.markermap*/}
-                    <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.leftbound, height: "100%" }}></div>
-                    <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", right: this.rightbound, height: "100%", zIndex: 100 }}></div>
-                    <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.leftbound, width: this.barwidth - this.rightbound - this.leftbound, height: "100%", position: "absolute" }}>
-                    </div>
-                </div>
-                <Measure onResize={() => this.updateWidth()}>
-                    {({ measureRef }) => <div ref={measureRef}> </div>}
-                </Measure>
-                <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", position: "absolute", height: "100%", width: "100%", }}>
-                    {this.rows}
-                    {this.thumbnails.map(doc =>
-                        <Thumbnail
-                            scale={this.rowscale}
-                            scrollTop={document.body.scrollTop}
-                            CollectionView={this.props.CollectionView}
-                            active={this.props.active}
-                            whenActiveChanged={this.props.whenActiveChanged}
-                            addDocTab={this.props.addDocTab}
-                            pinToPres={this.props.pinToPres}
-                            createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
-                            transition={BoolCast(this.transtate)}
-                            toggleopac={BoolCast(this.opac)}
-                            tog={this.opacset}
-                            pointerDown={this.downbool ? this.downbool : false}
-                            timelineTop={this.rowval[Math.round(this.rowval.length / 2)]}
-                            select={doc.select ? doc.select : false}
-                            update={this.update}
-                            range={this._range}
-                        >
-                        </Thumbnail>
-                    )}
-                    {this.markerDocs.map(d => this.createmarker(d))}
-                    <div onPointerDown={this.onPointerDown_Timeline} style={{
-                        position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
-                    }}>
-                        {this.ticks}
-                    </div>
+                            {this.ticks}
+                        </div>
 
-                </div>
-            </div >
+                    </div>
+                </div >
+            </div>
         );
     }
 }

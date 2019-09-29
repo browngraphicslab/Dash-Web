@@ -145,7 +145,6 @@ export class Thumbnail extends React.Component<NodeProps> {
         this.maketransition();
         this.getCaption();
         this.tog();
-        console.log(this.selectclass);
         return (
             <div>
                 <div onPointerDown={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
@@ -198,6 +197,6 @@ export interface NodeProps {
     pointerDown: boolean;
     timelineTop: number;
     select: boolean;
-    update: true;
+    update: boolean;
     range: number;
 }

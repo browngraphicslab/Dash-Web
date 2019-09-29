@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -143,7 +143,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
+        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Opt<Doc[] | Doc>) => void) {
+            let newlyCreated: Opt<Doc[] | Doc>;
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -169,7 +170,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
+                        newlyCreated = Docs.Create.WebDocument(href, options);
+                        this.props.addDocument && this.props.addDocument(newlyCreated);
                     }
                 } else if (text) {
                     this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
@@ -222,6 +224,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let promises: Promise<void>[] = [];
             // tslint:disable-next-line:prefer-for-of
             for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                newlyCreated = [];
                 const upload = window.location.origin + RouteStore.upload;
                 let item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
@@ -254,7 +257,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
                             let path = Utils.prepend(file);
-                            Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
+                            Docs.Get.DocumentFromType(type, path, full).then(doc => {
+                                if (doc) {
+                                    (newlyCreated as Doc[]).push(doc);
+                                    this.props.addDocument(doc);
+                                }
+                            });
                         }));
                     });
                     promises.push(prom);
@@ -266,6 +274,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             } else {
                 batch.end();
             }
+            mutateDoc && mutateDoc(newlyCreated);
         }
     }
     return CollectionSubView;
