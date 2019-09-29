@@ -188,16 +188,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @action
     onPointerUp = (e: PointerEvent): void => {
         if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
-        // console.log("pointer up!");
         if (this._visible) {
-            // console.log("visible");
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
-        //console.log("invisible");
         this.cleanupInteractions(true);
 
         if (e.altKey) {
