@@ -23,6 +23,7 @@ import React = require("react");
 import { DocumentView } from './nodes/DocumentView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import { DocumentDecorations } from './DocumentDecorations';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -225,7 +226,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         return (
             <div className={"linkButtonWrapper"}>
                 <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
-                    DocumentDecorations.hasPushedHack = false;
+                    DocumentButtonBar.hasPushedHack = false;
                     this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
                 }}>
                     <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
@@ -259,7 +260,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
                             window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
                         } else {
                             this.clearPullColor();
-                            DocumentDecorations.hasPulledHack = false;
+                            DocumentButtonBar.hasPulledHack = false;
                             this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
                             dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
                         }

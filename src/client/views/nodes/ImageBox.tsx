@@ -38,6 +38,7 @@ library.add(faFileAudio, faAsterisk);
 
 export const pageSchema = createSchema({
     curPage: "number",
+    fitWidth: "boolean"
 });
 
 interface Window {

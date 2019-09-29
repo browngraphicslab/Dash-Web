@@ -235,6 +235,21 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
+export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[]) {
+    return boundsList.reduce((bounds, b) => {
+        var [sptX, sptY] = [b.x, b.y];
+        let [bptX, bptY] = [sptX + b.width, sptY + b.height];
+        return {
+            x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+            r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+        };
+    }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+}
+export function intersectRect(r1: { left: number, top: number, width: number, height: number },
+    r2: { left: number, top: number, width: number, height: number }) {
+    return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+}
+
 export function percent2frac(percent: string) {
     return Number(percent.substr(0, percent.length - 1)) / 100;
 }
@@ -292,4 +307,34 @@ export function PostToServer(relativeRoute: string, body: any) {
         body: body
     };
     return requestPromise.post(options);
+}
+
+const easeInOutQuad = (currentTime: number, start: number, change: number, duration: number) => {
+    let newCurrentTime = currentTime / (duration / 2);
+
+    if (newCurrentTime < 1) {
+        return (change / 2) * newCurrentTime * newCurrentTime + start;
+    }
+
+    newCurrentTime -= 1;
+    return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
+};
+
+export default function smoothScroll(duration: number, element: HTMLElement, to: number) {
+    const start = element.scrollTop;
+    const change = to - start;
+    const startDate = new Date().getTime();
+
+    const animateScroll = () => {
+        const currentDate = new Date().getTime();
+        const currentTime = currentDate - startDate;
+        element.scrollTop = easeInOutQuad(currentTime, start, change, duration);
+
+        if (currentTime < duration) {
+            requestAnimationFrame(animateScroll);
+        } else {
+            element.scrollTop = to;
+        }
+    };
+    animateScroll();
 }

@@ -384,10 +384,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     changeLinkBehavior = (e: React.MouseEvent<HTMLButtonElement>): void => {
         e.preventDefault();
         console.log(e);
-        if (e.target.value === "confirm") { // TODO this says there's an error but there isnt i promis :(
-            // reset linkfollowbox link behavior to chosen behavior
-            console.log('change behavior');
-        }
+        // if (e.target.value === "confirm") { // TODO this says there's an error but there isnt i promis :(
+        //     // reset linkfollowbox link behavior to chosen behavior
+        //     console.log('change behavior');
+        // }
         this._linkConfirm = false;
     }
 

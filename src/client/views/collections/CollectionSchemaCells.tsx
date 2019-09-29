@@ -34,7 +34,7 @@ export interface CellProps {
     row: number;
     col: number;
     rowProps: CellInfo;
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     ContainingCollection: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     fieldKey: string;
@@ -151,7 +151,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             fieldExt: "",
             ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.CollectionView.props.Document,
+            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: this.props.renderDepth + 1,
@@ -301,7 +301,7 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     render() {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView.props.isSelected() ? undefined :
+            (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
                 SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         return (

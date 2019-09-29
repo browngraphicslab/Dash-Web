@@ -18,6 +18,7 @@ import { DocServer } from "../../DocServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { docs_v1 } from "googleapis";
+import { Utils } from "../../../Utils";
 // TODODO import scss from linkeditor
 
 export enum FollowModes {
@@ -268,6 +269,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let proto = Doc.GetProto(LinkFollowBox.linkDoc);
             let targetContext = await Cast(proto.targetContext, Doc);
             let sourceContext = await Cast(proto.sourceContext, Doc);
+            let guid = StrCast(LinkFollowBox.linkDoc[Id]);
             const shouldZoom = options ? options.shouldZoom : false;
 
             let dockingFunc = (document: Doc) => { (this._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
@@ -277,6 +279,14 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             }
             else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
+                if (LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc) {
+                    if (guid) {
+                        let views = DocumentManager.Instance.getDocumentViews(jumpToDoc);
+                        views.length && (views[0].props.Document.scrollToLinkID = guid);
+                    } else {
+                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
+                    }
+                }
             }
             else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, undefined, undefined,
