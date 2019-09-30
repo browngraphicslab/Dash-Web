@@ -46,8 +46,6 @@ import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -176,7 +174,7 @@ export namespace Docs {
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
-            }]
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -459,7 +457,6 @@ export namespace Docs {
         export function LinkFollowBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
         }
-
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }

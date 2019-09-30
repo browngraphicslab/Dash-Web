@@ -337,11 +337,25 @@ export namespace Doc {
     export function IndexOf(toFind: Doc, list: Doc[]) {
         return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
-    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
-        if (target[key] === undefined) {
-            Doc.GetProto(target)[key] = new List<Doc>();
+    export function RemoveDocFromList(listDoc: Doc, key: string, doc: Doc) {
+        if (listDoc[key] === undefined) {
+            Doc.GetProto(listDoc)[key] = new List<Doc>();
         }
-        let list = Cast(target[key], listSpec(Doc));
+        let list = Cast(listDoc[key], listSpec(Doc));
+        if (list) {
+            let ind = list.indexOf(doc);
+            if (ind !== -1) {
+                list.splice(ind, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+    export function AddDocToList(listDoc: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
+        if (listDoc[key] === undefined) {
+            Doc.GetProto(listDoc)[key] = new List<Doc>();
+        }
+        let list = Cast(listDoc[key], listSpec(Doc));
         if (list) {
             if (allowDuplicates !== true) {
                 let pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);

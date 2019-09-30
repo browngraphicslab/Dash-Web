@@ -2,20 +2,19 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction, computed } from "mobx";
+import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { ContextMenu } from "../ContextMenu";
-import PresentationElement from "../presentationview/PresentationElement";
 import PresentationViewList from "../presentationview/PresentationList";
 import "../presentationview/PresentationView.scss";
 import { FieldView, FieldViewProps } from './FieldView';
-import PresModeMenu from "../presentationview/PresentationModeMenu";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -31,30 +30,12 @@ export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(PresBox, fieldKey); }
 
     public static Instance: PresBox;
-    //mapping from docs to their rendered component
-    @observable _presElementsMappings: Map<Doc, PresentationElement> = new Map();
     //variable that holds all the docs in the presentation
     @observable _childrenDocs: Doc[] = [];
 
-    @observable _opacity = 1;
-    @observable _persistOpacity = true;
-    @observable _labelOpacity = 0;
     // whether presentation view has been minimized
     @observable _presMode = false;
     @observable public static CurrentPresentation: PresBox;
-
-    @computed static get miniPresentation() {
-        let next = () => PresBox.CurrentPresentation.next();
-        let back = () => PresBox.CurrentPresentation.back();
-        let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => {
-            PresBox.CurrentPresentation._presMode = false;
-            CollectionDockingView.AddRightSplit(PresBox.CurrentPresentation.props.Document, undefined);
-        });
-        return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation._presMode ? (null) :
-            <PresModeMenu next={next} back={back} presStatus={BoolCast(PresBox.CurrentPresentation.props.Document.presStatus)}
-                startOrResetPres={startOrResetPres} closePresMode={closePresMode} />;
-    }
 
     //initilize class variables
     constructor(props: FieldViewProps) {
@@ -71,7 +52,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             let nextSelected = current + 1;
 
             for (; nextSelected < presDocs.length - 1; nextSelected++) {
-                if (!this._presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton) {
+                if (!presDocs[nextSelected + 1].groupButton) {
                     break;
                 }
             }
@@ -89,18 +70,16 @@ export class PresBox extends React.Component<FieldViewProps> {
             let prevSelected = current;
             let zoomOut: boolean = false;
 
-            //checking if this presentation id is mapped to a group, if so chosing the first element in group
-            let presDocs = DocListCast(this.props.Document.data);
+            let presDocs = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
             let currentsArray: Doc[] = [];
-            for (; prevSelected > 0 && presDocs[prevSelected].groupButton; prevSelected--) {
+            for (; presDocs && prevSelected > 0 && presDocs[prevSelected].groupButton; prevSelected--) {
                 currentsArray.push(presDocs[prevSelected]);
             }
             prevSelected = Math.max(0, prevSelected - 1);
 
             //checking if any of the group members had used zooming in
             currentsArray.forEach((doc: Doc) => {
-                //let presElem: PresentationElement | undefined = this.presElementsMappings.get(doc);
-                if (this._presElementsMappings.get(doc)!.props.document.showButton) {
+                if (doc.showButton) {
                     zoomOut = true;
                     return;
                 }
@@ -109,7 +88,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             // if a group set that flag to zero or a single element
             //If so making sure to zoom out, which goes back to state before zooming action
             if (current > 0) {
-                if (zoomOut || this._presElementsMappings.get(docAtCurrent)!.showButton) {
+                if (zoomOut || docAtCurrent.showButton) {
                     let prevScale = NumCast(this._childrenDocs[prevSelected].viewScale, null);
                     let curScale = DocumentManager.Instance.getScaleOfDocView(this._childrenDocs[current]);
                     if (prevScale !== undefined && prevScale !== curScale) {
@@ -127,20 +106,20 @@ export class PresBox extends React.Component<FieldViewProps> {
      * Hide Until Presented, Hide After Presented, Fade After Presented
      */
     showAfterPresented = (index: number) => {
-        this._presElementsMappings.forEach((presElem, doc) => {
+        this._childrenDocs.forEach((doc, ind) => {
             //the order of cases is aligned based on priority
-            if (presElem.props.document.hideTillShownButton) {
-                if (this._childrenDocs.indexOf(doc) <= index) {
+            if (doc.hideTillShownButton) {
+                if (ind <= index) {
                     doc.opacity = 1;
                 }
             }
-            if (presElem.props.document.hideAfterButton) {
-                if (this._childrenDocs.indexOf(doc) < index) {
+            if (doc.hideAfterButton) {
+                if (ind < index) {
                     doc.opacity = 0;
                 }
             }
-            if (presElem.props.document.fadeButton) {
-                if (this._childrenDocs.indexOf(doc) < index) {
+            if (doc.fadeButton) {
+                if (ind < index) {
                     doc.opacity = 0.5;
                 }
             }
@@ -153,21 +132,21 @@ export class PresBox extends React.Component<FieldViewProps> {
      * Hide Until Presented, Hide After Presented, Fade After Presented
      */
     hideIfNotPresented = (index: number) => {
-        this._presElementsMappings.forEach((presElem, key) => {
+        this._childrenDocs.forEach((key, ind) => {
             //the order of cases is aligned based on priority
 
-            if (presElem.props.document.hideAfterButton) {
-                if (this._childrenDocs.indexOf(key) >= index) {
+            if (key.hideAfterButton) {
+                if (ind >= index) {
                     key.opacity = 1;
                 }
             }
-            if (presElem.props.document.fadeButton) {
-                if (this._childrenDocs.indexOf(key) >= index) {
+            if (key.fadeButton) {
+                if (ind >= index) {
                     key.opacity = 1;
                 }
             }
-            if (presElem.props.document.hideTillShownButton) {
-                if (this._childrenDocs.indexOf(key) > index) {
+            if (key.hideTillShownButton) {
+                if (ind > index) {
                     key.opacity = 0;
                 }
             }
@@ -187,18 +166,18 @@ export class PresBox extends React.Component<FieldViewProps> {
         let nextSelected = presDocs.indexOf(curDoc);
         let currentDocGroups: Doc[] = [];
         for (; nextSelected < presDocs.length - 1; nextSelected++) {
-            if (!this._presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton) {
+            if (!presDocs[nextSelected + 1].groupButton) {
                 break;
             }
             currentDocGroups.push(presDocs[nextSelected]);
         }
 
         currentDocGroups.forEach((doc: Doc, index: number) => {
-            if (this._presElementsMappings.get(doc)!.navButton) {
+            if (doc.navButton) {
                 docToJump = doc;
                 willZoom = false;
             }
-            if (this._presElementsMappings.get(doc)!.showButton) {
+            if (doc.showButton) {
                 docToJump = doc;
                 willZoom = true;
             }
@@ -207,9 +186,9 @@ export class PresBox extends React.Component<FieldViewProps> {
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            if (this._presElementsMappings.get(curDoc)!.navButton) {
+            if (curDoc.navButton) {
                 DocumentManager.Instance.jumpToDocument(curDoc, false);
-            } else if (this._presElementsMappings.get(curDoc)!.showButton) {
+            } else if (curDoc.showButton) {
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this._childrenDocs[fromDoc]);
                 //awaiting jump so that new scale can be found, since jumping is async
                 await DocumentManager.Instance.jumpToDocument(curDoc, true);
@@ -250,15 +229,13 @@ export class PresBox extends React.Component<FieldViewProps> {
     }
 
     /**
-     * The function that removes a doc from a presentation. It also makes sure to
-     * do necessary updates to backUps and mappings stored locally.
+     * The function that removes a doc from a presentation. 
      */
     @action
     public RemoveDoc = async (index: number) => {
         const value = FieldValue(Cast(this.props.Document.data, listSpec(Doc))); // don't replace with DocListCast -- we need to modify the document's actual stored list
         if (value) {
-            //removing the Presentation Element from the document and update mappings
-            this._presElementsMappings.delete(await value.splice(index, 1)[0]);
+            value.splice(index, 1);
         }
     }
 
@@ -302,14 +279,6 @@ export class PresBox extends React.Component<FieldViewProps> {
         this._childrenDocs = docList;
     }
 
-    //The function that is called to render the play or pause button depending on
-    //if presentation is running or not.
-    renderPlayPauseButton = () => {
-        return <button title={"Reset Presentation" + this.props.Document.presStatus ? "" : " From Start"} className="presentation-button" onClick={this.startOrResetPres}>
-            <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
-        </button>;
-    }
-
     //The function that starts or resets presentaton functionally, depending on status flag.
     @action
     startOrResetPres = () => {
@@ -340,18 +309,18 @@ export class PresBox extends React.Component<FieldViewProps> {
     //The function that starts the presentation, also checking if actions should be applied
     //directly at start.
     startPresentation = (startIndex: number) => {
-        this._presElementsMappings.forEach((component, doc) => {
-            if (component.props.document.hideTillShownButton) {
+        this._childrenDocs.map(doc => {
+            if (doc.hideTillShownButton) {
                 if (this._childrenDocs.indexOf(doc) > startIndex) {
                     doc.opacity = 0;
                 }
             }
-            if (component.props.document.hideAfterButton) {
+            if (doc.hideAfterButton) {
                 if (this._childrenDocs.indexOf(doc) < startIndex) {
                     doc.opacity = 0;
                 }
             }
-            if (component.props.document.fadeButton) {
+            if (doc.fadeButton) {
                 if (this._childrenDocs.indexOf(doc) < startIndex) {
                     doc.opacity = 0.5;
                 }
@@ -359,13 +328,18 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
-    addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
-        this._presElementsMappings.set(keyDoc, elem);
-    }
-
-    minimize = undoBatch(action(() => {
-        this._presMode = true;
-        this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+    toggleMinimize = undoBatch(action((e: React.PointerEvent) => {
+        if (this.props.Document.minimizedView) {
+            this.props.Document.minimizedView = false;
+            Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), "data", this.props.Document);
+            CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
+        } else {
+            this.props.Document.minimizedView = true;
+            this.props.Document.x = e.clientX + 25;
+            this.props.Document.y = e.clientY - 25;
+            this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+            Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), "data", this.props.Document);
+        }
     }));
 
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -374,37 +348,24 @@ export class PresBox extends React.Component<FieldViewProps> {
 
     render() {
         return (
-            <div className="presentationView-cont" onPointerEnter={action(() => !this._persistOpacity && (this._opacity = 1))} onContextMenu={this.specificContextMenu}
-                onPointerLeave={action(() => !this._persistOpacity && (this._opacity = 0.4))}
-                style={{ width: "100%", opacity: this._opacity, }}>
-                <div className="presentation-buttons">
-                    <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
-                    {this.renderPlayPauseButton()}
-                    <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
-                    <button title="Minimize" className="presentation-button" onClick={this.minimize}><FontAwesomeIcon icon={"eye"} /></button>
+            <div className="presentationView-cont" onContextMenu={this.specificContextMenu} style={{ width: "100%", minWidth: "200px", height: "100%", minHeight: "50px" }}>
+                <div className="presentation-buttons" style={{ width: "100%" }}>
+                    <button className="presentation-button" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                    <button className="presentation-button" title={"Reset Presentation" + this.props.Document.presStatus ? "" : " From Start"} onClick={this.startOrResetPres}>
+                        <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
+                    </button>
+                    <button className="presentation-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                    <button className="presentation-button" title={this.props.Document.minimizedView ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
                 </div>
-                <input
-                    type="checkbox"
-                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => {
-                        this._persistOpacity = e.target.checked;
-                        this._opacity = this._persistOpacity ? 1 : 0.4;
-                    })}
-                    checked={this._persistOpacity}
-                    style={{ position: "absolute", bottom: 5, left: 5 }}
-                    onPointerEnter={action(() => this._labelOpacity = 1)}
-                    onPointerLeave={action(() => this._labelOpacity = 0)}
-                />
-                <p style={{ position: "absolute", bottom: 1, left: 22, opacity: this._labelOpacity, transition: "0.7s opacity ease" }}>opacity {this._persistOpacity ? "persistent" : "on focus"}</p>
-                <PresentationViewList
-                    mainDocument={this.props.Document}
-                    deleteDocument={this.RemoveDoc}
-                    gotoDocument={this.gotoDocument}
-                    PresElementsMappings={this._presElementsMappings}
-                    setChildrenDocs={this.setChildrenDocs}
-                    presStatus={BoolCast(this.props.Document.presStatus)}
-                    removeDocByRef={this.removeDocByRef}
-                    clearElemMap={() => this._presElementsMappings.clear()}
-                />
+                {this.props.Document.minimizedView ? (null) :
+                    <PresentationViewList
+                        mainDocument={this.props.Document}
+                        deleteDocument={this.RemoveDoc}
+                        gotoDocument={this.gotoDocument}
+                        setChildrenDocs={this.setChildrenDocs}
+                        presStatus={BoolCast(this.props.Document.presStatus)}
+                        removeDocByRef={this.removeDocByRef}
+                    />}
             </div>
         );
     }

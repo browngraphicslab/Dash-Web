@@ -12,11 +12,9 @@ interface PresListProps {
     mainDocument: Doc;
     deleteDocument(index: number): void;
     gotoDocument(index: number, fromDoc: number): Promise<void>;
-    PresElementsMappings: Map<Doc, PresentationElement>;
     setChildrenDocs: (docList: Doc[]) => void;
     presStatus: boolean;
     removeDocByRef(doc: Doc): boolean;
-    clearElemMap(): void;
 }
 
 
@@ -45,16 +43,10 @@ export default class PresentationViewList extends React.Component<PresListProps>
         const children = DocListCast(this.props.mainDocument.data);
         this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
-        this.props.clearElemMap();
         return (
             <div className="presentationView-listCont" >
                 {children.map((doc: Doc, index: number) =>
                     <PresentationElement
-                        ref={(e) => {
-                            if (e && e !== null) {
-                                this.props.PresElementsMappings.set(doc, e);
-                            }
-                        }}
                         key={doc[Id]}
                         mainDocument={this.props.mainDocument}
                         document={doc}
@@ -64,7 +56,6 @@ export default class PresentationViewList extends React.Component<PresListProps>
                         allListElements={children}
                         presStatus={this.props.presStatus}
                         removeDocByRef={this.props.removeDocByRef}
-                        PresElementsMappings={this.props.PresElementsMappings}
                     />
                 )}
             </div>

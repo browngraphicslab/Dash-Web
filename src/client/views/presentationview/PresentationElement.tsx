@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
-import { faArrowRight, faArrowUp, faFile as fileSolid, faFileDownload, faLocationArrow, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faFile as fileSolid, faFileDownload, faLocationArrow, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
@@ -22,7 +22,7 @@ library.add(fileSolid);
 library.add(faLocationArrow);
 library.add(fileRegular as any);
 library.add(faSearch);
-library.add(faArrowRight);
+library.add(faArrowDown);
 
 interface PresentationElementProps {
     mainDocument: Doc;
@@ -33,7 +33,6 @@ interface PresentationElementProps {
     allListElements: Doc[];
     presStatus: boolean;
     removeDocByRef(doc: Doc): boolean;
-    PresElementsMappings: Map<Doc, PresentationElement>;
 }
 
 /**
@@ -59,14 +58,14 @@ export default class PresentationElement extends React.Component<PresentationEle
     @computed get fadeButton() { return BoolCast(this.props.document.fadeButton); }
     @computed get hideAfterButton() { return BoolCast(this.props.document.hideAfterButton); }
     @computed get groupButton() { return BoolCast(this.props.document.groupButton); }
-    @computed get openRightButton() { return BoolCast(this.props.document.openRightButton); }
+    @computed get expandInlineButton() { return BoolCast(this.props.document.expandInlineButton); }
     set showButton(val: boolean) { this.props.document.showButton = val; }
     set navButton(val: boolean) { this.props.document.navButton = val; }
     set hideTillShownButton(val: boolean) { this.props.document.hideTillShownButton = val; }
     set fadeButton(val: boolean) { this.props.document.fadeButton = val; }
     set hideAfterButton(val: boolean) { this.props.document.hideAfterButton = val; }
     set groupButton(val: boolean) { this.props.document.groupButton = val; }
-    set openRightButton(val: boolean) { this.props.document.openRightButton = val; }
+    set expandInlineButton(val: boolean) { this.props.document.expandInlineButton = val; }
 
     //Lifecycle function that makes sure that button BackUp is received when mounted.
     async componentDidMount() {
@@ -190,14 +189,12 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     /**
-     * Function that opens up the option to open a element on right when navigated,
-     * instead of openening it as tab as default.
+     * Function that expands the target inline
      */
     @action
-    onRightTabClick = (e: React.MouseEvent) => {
+    onExpandTabClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-
-        this.openRightButton = !this.openRightButton;
+        this.embedInline = !this.embedInline
     }
 
     /**
@@ -416,7 +413,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button title="Fade Document After Presented" className={this.fadeButton ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
                 <button title="Hide Document After Presented" className={this.hideAfterButton ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
                 <button title="Group With Up" className={this.groupButton ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onGroupClick}> <FontAwesomeIcon icon={"arrow-up"} /> </button>
-                <button title="Open Right" className={this.openRightButton ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onRightTabClick}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                <button title="Expand Inline" className={this.expandInlineButton ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onExpandTabClick}><FontAwesomeIcon icon={"arrow-down"} /></button>
 
                 <br />
                 {this.renderEmbeddedInline()}

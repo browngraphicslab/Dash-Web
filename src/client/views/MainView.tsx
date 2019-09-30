@@ -634,7 +634,6 @@ export class MainView extends React.Component {
                 <SharingManager />
                 <DocumentDecorations />
                 {this.mainContent}
-                {PresBox.miniPresentation}
                 <PreviewCursor />
                 <ContextMenu />
                 {this.nodesMenu()}
