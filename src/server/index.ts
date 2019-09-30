@@ -51,6 +51,8 @@ import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
 import { DashUploadUtils } from './DashUploadUtils';
 import { BatchedArray, TimeUnit } from 'array-batcher';
+import { ParsedPDF } from "./PdfTypes";
+import { reject } from 'bluebird';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -585,11 +587,15 @@ class NodeCanvasFactory {
 const pngTypes = [".png", ".PNG"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDirectory = __dirname + "/public/files/";
+const pdfDirectory = uploadDirectory + "text";
+DashUploadUtils.createIfNotExists(pdfDirectory);
+
 interface FileResponse {
     name: string;
     path: string;
     type: string;
 }
+
 // SETTERS
 app.post(
     RouteStore.upload,
@@ -603,19 +609,11 @@ app.post(
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
                 if (filename.endsWith(".pdf")) {
-
-                    var filePath = uploadDirectory + filename;
-
-                    let dataBuffer = fs.readFileSync(filePath);
-
-                    pdf(dataBuffer).then(async function (data: any) {
-                        // // number of pages - data.numpages
-                        // // number of rendered pages - data.numrender
-                        // // PDF info - data.info
-                        // // PDF metadata - data.metadata
-                        // // PDF.js version - data.version // check https://mozilla.github.io/pdf.js/getting_started/
-                        // // PDF text - data.text
-                        fs.createWriteStream(uploadDirectory + "text/" + filename.substring(0, filename.length - ".pdf".length) + ".txt").write(data.text);
+                    let dataBuffer = fs.readFileSync(uploadDirectory + filename);
+                    const result: ParsedPDF = await pdf(dataBuffer);
+                    await new Promise<void>(resolve => {
+                        const path = pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
+                        fs.createWriteStream(path).write(result.text, error => error === null ? resolve() : reject(error));
                     });
                 } else {
                     await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
