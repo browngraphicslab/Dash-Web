@@ -4,7 +4,7 @@ import { faArrowDown, faArrowUp, faFile as fileSolid, faFileDownload, faLocation
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { BoolCast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne } from "../../../Utils";
@@ -16,6 +16,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import React = require("react");
 import "./PresElementBox.scss";
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
+import { PresBox } from '../nodes/PresBox';
 
 
 library.add(faArrowUp);
@@ -26,9 +27,7 @@ library.add(faSearch);
 library.add(faArrowDown);
 
 interface PresElementProps {
-    presentationDoc: Doc;
-    index: number;
-    gotoDocument(index: number, fromDoc: number): Promise<void>;
+    presBox: PresBox;
 }
 
 /**
@@ -43,7 +42,10 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
     private listdropDisposer?: DragManager.DragDropDisposer;
     private presElRef: React.RefObject<HTMLDivElement> = React.createRef();
 
-    @computed get currentIndex() { return NumCast(this.props.presentationDoc.selectedDoc); }
+    @computed get myIndex() { return DocListCast(this.props.presBox.props.Document[this.props.presBox.props.fieldKey]).indexOf(this.props.Document) }
+    @computed get presentationDoc() { return this.props.presBox.props.Document; }
+    @computed get presentationFieldKey() { return this.props.presBox.props.fieldKey; }
+    @computed get currentIndex() { return NumCast(this.presentationDoc.selectedDoc); }
     @computed get showButton() { return BoolCast(this.props.Document.showButton); }
     @computed get navButton() { return BoolCast(this.props.Document.navButton); }
     @computed get hideTillShownButton() { return BoolCast(this.props.Document.hideTillShownButton); }
@@ -80,12 +82,12 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
         e.stopPropagation();
         this.hideTillShownButton = !this.hideTillShownButton;
         if (!this.hideTillShownButton) {
-            if (this.props.index >= this.currentIndex) {
+            if (this.myIndex >= this.currentIndex) {
                 (this.props.Document.target as Doc).opacity = 1;
             }
         } else {
-            if (this.props.presentationDoc.presStatus) {
-                if (this.props.index > this.currentIndex) {
+            if (this.presentationDoc.presStatus) {
+                if (this.myIndex > this.currentIndex) {
                     (this.props.Document.target as Doc).opacity = 0;
                 }
             }
@@ -102,13 +104,13 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
         e.stopPropagation();
         this.hideAfterButton = !this.hideAfterButton;
         if (!this.hideAfterButton) {
-            if (this.props.index <= this.currentIndex) {
+            if (this.myIndex <= this.currentIndex) {
                 (this.props.Document.target as Doc).opacity = 1;
             }
         } else {
             if (this.fadeButton) this.fadeButton = false;
-            if (this.props.presentationDoc.presStatus) {
-                if (this.props.index < this.currentIndex) {
+            if (this.presentationDoc.presStatus) {
+                if (this.myIndex < this.currentIndex) {
                     (this.props.Document.target as Doc).opacity = 0;
                 }
             }
@@ -125,13 +127,13 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
         e.stopPropagation();
         this.fadeButton = !this.fadeButton;
         if (!this.fadeButton) {
-            if (this.props.index <= this.currentIndex) {
+            if (this.myIndex <= this.currentIndex) {
                 (this.props.Document.target as Doc).opacity = 1;
             }
         } else {
             this.hideAfterButton = false;
-            if (this.props.presentationDoc.presStatus) {
-                if (this.props.index < this.currentIndex) {
+            if (this.presentationDoc.presStatus) {
+                if (this.myIndex < this.currentIndex) {
                     (this.props.Document.target as Doc).opacity = 0.5;
                 }
             }
@@ -147,8 +149,8 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
         this.navButton = !this.navButton;
         if (this.navButton) {
             this.showButton = false;
-            if (this.currentIndex === this.props.index) {
-                this.props.gotoDocument(this.props.index, this.props.index);
+            if (this.currentIndex === this.myIndex) {
+                this.props.focus(this.props.Document);
             }
         }
     }
@@ -165,8 +167,8 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
             this.props.Document.viewScale = 1;
         } else {
             this.navButton = false;
-            if (this.currentIndex === this.props.index) {
-                this.props.gotoDocument(this.props.index, this.props.index);
+            if (this.currentIndex === this.myIndex) {
+                this.props.focus(this.props.Document);
             }
         }
     }
@@ -195,17 +197,17 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
         let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
         if (de.data instanceof DragManager.DocumentDragData) {
-            let addDoc = (doc: Doc) => Doc.AddDocToList(this.props.presentationDoc, "data", doc, this.props.Document, before);
+            let addDoc = (doc: Doc) => Doc.AddDocToList(this.presentationDoc, this.presentationFieldKey, doc, this.props.Document, before);
             e.stopPropagation();
             //where does treeViewId come from
-            let movedDocs = (de.data.options === this.props.presentationDoc[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
+            let movedDocs = (de.data.options === this.presentationDoc[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
             //console.log("How is this causing an issue");
             document.removeEventListener("pointermove", this.onDragMove, true);
             return (de.data.dropAction || de.data.userDropAction) ?
-                de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.presentationDoc, "data", d, this.props.Document, before) || added, false)
+                de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.presentationDoc, this.presentationFieldKey, d, this.props.Document, before) || added, false)
                 : (de.data.moveDocument) ?
                     movedDocs.reduce((added: boolean, d: Doc) => de.data.moveDocument(d, this.props.Document, addDoc) || added, false)
-                    : de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.presentationDoc, "data", d, this.props.Document, before), false);
+                    : de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.presentationDoc, this.presentationFieldKey, d, this.props.Document, before), false);
         }
         document.removeEventListener("pointermove", this.onDragMove, true);
 
@@ -215,7 +217,7 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
     //This is used to add dragging as an event.
     onPointerEnter = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
-            this.header!.className = "presElementBox-item" + (this.currentIndex === this.props.index ? "presElementBox-selected" : "");
+            this.header!.className = "presElementBox-item" + (this.currentIndex === this.myIndex ? "presElementBox-selected" : "");
 
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -223,7 +225,7 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
 
     //This is used to remove the dragging when dropped.
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.header!.className = "presElementBox-item" + (this.currentIndex === this.props.index ? " presElementBox-selected" : "");
+        this.header!.className = "presElementBox-item" + (this.currentIndex === this.myIndex ? " presElementBox-selected" : "");
 
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
@@ -298,18 +300,18 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
     render() {
         let p = this.props;
 
-        let className = "presElementBox-item" + (this.currentIndex === p.index ? " presElementBox-selected" : "");
+        let className = "presElementBox-item" + (this.currentIndex === this.myIndex ? " presElementBox-selected" : "");
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
-        let onItemDown = SetupDrag(this.presElRef, () => p.Document, this.move, dropAction, this.props.presentationDoc[Id], true);
+        let onItemDown = SetupDrag(this.presElRef, () => p.Document, this.move, dropAction, this.presentationDoc[Id], true);
         return (
-            <div className={className} key={p.Document[Id] + p.index}
+            <div className={className} key={p.Document[Id] + this.myIndex}
                 ref={this.presElRef}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
                 onPointerDown={onItemDown}
                 style={{ outlineWidth: Doc.IsBrushed(p.Document) ? `1px` : "0px", }}
-                onClick={e => p.gotoDocument(p.index, this.currentIndex)}>
+                onClick={e => p.focus(p.Document)}>
                 <strong className="presElementBox-name">
-                    {`${p.index + 1}. ${p.Document.title}`}
+                    {`${this.myIndex + 1}. ${p.Document.title}`}
                 </strong>
                 <button className="presElementBox-icon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument && this.props.removeDocument(p.Document)}>X</button>
                 <br />

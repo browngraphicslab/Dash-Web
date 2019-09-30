@@ -37,7 +37,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         //asking to get document at current index
         let docAtCurrentNext = await this.getDocAtIndex(current + 1);
         if (docAtCurrentNext !== undefined) {
-            let presDocs = DocListCast(this.props.Document.data);
+            let presDocs = DocListCast(this.props.Document[this.props.fieldKey]);
             let nextSelected = current + 1;
 
             for (; nextSelected < presDocs.length - 1; nextSelected++) {
@@ -210,7 +210,7 @@ export class PresBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     public removeDocument = (doc: Doc) => {
-        const value = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
         if (value) {
             let indexOfDoc = value.indexOf(doc);
             if (indexOfDoc !== - 1) {
@@ -296,14 +296,14 @@ export class PresBox extends React.Component<FieldViewProps> {
     toggleMinimize = undoBatch(action((e: React.PointerEvent) => {
         if (this.props.Document.minimizedView) {
             this.props.Document.minimizedView = false;
-            Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), "data", this.props.Document);
+            Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
             CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
         } else {
             this.props.Document.minimizedView = true;
             this.props.Document.x = e.clientX + 25;
             this.props.Document.y = e.clientY - 25;
             this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
-            Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), "data", this.props.Document);
+            Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
         }
     }));
 
@@ -325,6 +325,11 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
+    selectElement = (doc: Doc) => {
+        let index = DocListCast(this.props.Document[this.props.fieldKey]).indexOf(doc);
+        index !== -1 && this.gotoDocument(index, NumCast(this.props.Document.selectedDoc));
+    }
+
     render() {
         this.initializeScaleViews(this.childDocs);
         return (
@@ -339,15 +344,11 @@ export class PresBox extends React.Component<FieldViewProps> {
                 </div>
                 {this.props.Document.minimizedView ? (null) :
                     <div className="presBox-listCont" >
-                        {this.childDocs.map((doc, index) =>
-                            <PresElementBox
-                                {... this.props}
-                                key={doc[Id]}
-                                index={index}
-                                presentationDoc={this.props.Document}
-                                Document={doc}
-                                gotoDocument={this.gotoDocument}
+                        {this.childDocs.map(doc =>
+                            <PresElementBox key={doc[Id]}  {... this.props} Document={doc}
                                 removeDocument={this.removeDocument}
+                                focus={this.selectElement}
+                                presBox={this}
                             />
                         )}
                     </div>}
