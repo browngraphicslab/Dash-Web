@@ -227,7 +227,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @undoBatch
     @action
-    onDrop = (e: React.DragEvent): void => {
+    onDrop = async (e: React.DragEvent): Promise<void> => {
         let where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {
