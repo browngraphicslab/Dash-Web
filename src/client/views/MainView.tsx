@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -7,23 +7,24 @@ import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import { List } from '../../new_fields/List';
-import { Doc, DocListCast, Opt, HeightSym, FieldResult, Field } from '../../new_fields/Doc';
+import { Doc, DocListCast, Field, FieldResult, HeightSym, Opt } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
+import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
 import { DocServer } from '../DocServer';
+import { Docs, DocumentOptions } from '../documents/Documents';
 import { ClientUtils } from '../util/ClientUtils';
 import { DictationManager } from '../util/DictationManager';
 import { SetupDrag } from '../util/DragManager';
-import { Transform } from '../util/Transform';
-import { UndoManager, undoBatch } from '../util/UndoManager';
-import { Docs, DocumentOptions } from '../documents/Documents';
 import { HistoryUtil } from '../util/History';
+import SharingManager from '../util/SharingManager';
+import { Transform } from '../util/Transform';
+import { UndoManager } from '../util/UndoManager';
 import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { CollectionTreeView } from './collections/CollectionTreeView';
@@ -33,20 +34,13 @@ import KeyManager from './GlobalKeyHandler';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
+import MainViewModal from './MainViewModal';
 import { DocumentView } from './nodes/DocumentView';
+import { PresBox } from './nodes/PresBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
-import PresModeMenu from './presentationview/PresentationModeMenu';
-import { PresBox } from './nodes/PresBox';
-import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
-import { ImageField } from '../../new_fields/URLField';
-import { LinkFollowBox } from './linking/LinkFollowBox';
-import { DocumentManager } from '../util/DocumentManager';
-import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
-import MainViewModal from './MainViewModal';
-import SharingManager from '../util/SharingManager';
 
 @observer
 export class MainView extends React.Component {
@@ -185,9 +179,8 @@ export class MainView extends React.Component {
                     CurrentUserUtils.MainDocId = pathname[1];
                     if (!this.userDoc) {
                         runInAction(() => this.flyoutWidth = 0);
-                        DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action(field => {
-                            field instanceof Doc && (CurrentUserUtils.GuestTarget = field);
-                        }));
+                        DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action((field: Opt<Field>) =>
+                            field instanceof Doc && (CurrentUserUtils.GuestTarget = field)));
                     }
                 }
             }
@@ -634,14 +627,6 @@ export class MainView extends React.Component {
         );
     }
 
-    @computed get miniPresentation() {
-        let next = () => PresBox.CurrentPresentation.next();
-        let back = () => PresBox.CurrentPresentation.back();
-        let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document, undefined, "onRight"); });
-        return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>;
-    }
-
     render() {
         return (
             <div id="main-div">
@@ -649,7 +634,7 @@ export class MainView extends React.Component {
                 <SharingManager />
                 <DocumentDecorations />
                 {this.mainContent}
-                {this.miniPresentation}
+                {PresBox.miniPresentation}
                 <PreviewCursor />
                 <ContextMenu />
                 {this.nodesMenu()}

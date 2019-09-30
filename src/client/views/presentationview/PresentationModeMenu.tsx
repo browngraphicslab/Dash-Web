@@ -98,8 +98,4 @@ export default class PresModeMenu extends React.Component<PresModeMenuProps> {
             </div >
         );
     }
-
-
-
-
 }

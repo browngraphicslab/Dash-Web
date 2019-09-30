@@ -884,7 +884,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                     }
                                 }
                                 if (targetContext && (!jumpToDoc || targetContext !== await jumpToDoc.annotationOn)) {
-                                    DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc || targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), undefined, targetContext);
                                 } else if (jumpToDoc) {
                                     DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
                                 } else {
