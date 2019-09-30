@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { docs_v1 } from "googleapis";
 import { Utils } from "../../../Utils";
+import { Link } from "@react-pdf/renderer";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -196,10 +197,10 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     }
 
-    _addDocTab: (undefined | ((doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean));
+    static _addDocTab: (undefined | ((doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean));
 
-    setAddDocTab = (addFunc: (doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean) => {
-        this._addDocTab = addFunc;
+    static setAddDocTab = (addFunc: (doc: Doc, dataDoc: Opt<Doc>, where: string) => boolean) => {
+        LinkFollowBox._addDocTab = addFunc;
     }
 
     @undoBatch
@@ -212,7 +213,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
-            (this._addDocTab || this.props.addDocTab)(options.context, undefined, "onRight");
+            (LinkFollowBox._addDocTab || this.props.addDocTab)(options.context, undefined, "onRight");
 
             if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
@@ -225,7 +226,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openLinkRight = () => {
         if (LinkFollowBox.destinationDoc) {
             let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
-            (this._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
+            (LinkFollowBox._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
             this.highlightDoc();
             SelectionManager.DeselectAll();
         }
@@ -246,7 +247,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let guid = StrCast(LinkFollowBox.linkDoc[Id]);
             const shouldZoom = options ? options.shouldZoom : false;
 
-            let dockingFunc = (document: Doc) => { (this._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+            let dockingFunc = (document: Doc) => { (LinkFollowBox._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
             if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
                 DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
@@ -281,7 +282,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (LinkFollowBox.destinationDoc) {
             let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
             // this.prosp.addDocTab is empty -- use the link source's addDocTab 
-            (this._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
+            (LinkFollowBox._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -298,7 +299,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 options.context.panX = newPanX;
                 options.context.panY = newPanY;
             }
-            (this._addDocTab || this.props.addDocTab)(options.context, undefined, "inTab");
+            (LinkFollowBox._addDocTab || this.props.addDocTab)(options.context, undefined, "inTab");
             if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
