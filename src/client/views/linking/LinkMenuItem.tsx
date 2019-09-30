@@ -104,7 +104,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     async openLinkFollower() {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.Instance.props.Document.isMinimized = false;
-            MainView.Instance.toggleLinkFollowBox(false);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         }
     }
