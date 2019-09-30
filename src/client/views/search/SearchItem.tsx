@@ -30,6 +30,7 @@ export interface SearchItemProps {
     doc: Doc;
     query: string;
     highlighting: string[];
+    lines: string[];
 }
 
 library.add(faCaretUp);
@@ -288,7 +289,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                         <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" /> </div>
                         <div className="search-title-container">
                             <div className="search-title">{StrCast(this.props.doc.title)}</div>
-                            <div className="search-highlighting">Matched fields: {this.props.highlighting.join(", ")}</div>
+                            <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? "Text:" + this.props.lines[0] : ""}</div>
                         </div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>

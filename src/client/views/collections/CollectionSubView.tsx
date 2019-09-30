@@ -22,6 +22,7 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
@@ -271,8 +272,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let path = Utils.prepend(file.path);
-                            Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
+                            let pathname = Utils.prepend(file.path);
+                            Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
+                                doc && (doc.fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
+                                doc && this.props.addDocument(doc);
+                            });
                         }));
                     });
                     promises.push(prom);

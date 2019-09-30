@@ -41,10 +41,12 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+const pdf = require('pdf-parse');
+var findInFiles = require('find-in-files');
+import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 import * as qs from 'query-string';
 import { Opt } from '../new_fields/Doc';
 import { DashUploadUtils } from './DashUploadUtils';
@@ -118,7 +120,7 @@ function addSecureRoute(method: Method,
         let sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
         sharing = sharing && req.originalUrl.startsWith("/doc/");
         if (req.user || sharing) {
-            handler(req.user, res, req);
+            handler(req.user as any, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -204,6 +206,23 @@ app.get("/version", (req, res) => {
 const solrURL = "http://localhost:8983/solr/#/dash";
 
 // GETTERS
+
+app.get("/textsearch", async (req, res) => {
+    let q = req.query.q;
+    console.log("TEXTSEARCH " + q);
+    if (q === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDirectory + "text", ".txt$");
+    let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
+    for (var result in results) {
+        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+        resObj.lines.push(results[result].line);
+        resObj.numFound++;
+    }
+    res.send(resObj);
+});
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
@@ -583,8 +602,26 @@ app.post(
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
-                await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
+                if (filename.endsWith(".pdf")) {
+
+                    var filePath = uploadDirectory + filename;
+
+                    let dataBuffer = fs.readFileSync(filePath);
+
+                    pdf(dataBuffer).then(async function (data: any) {
+                        // // number of pages - data.numpages
+                        // // number of rendered pages - data.numrender
+                        // // PDF info - data.info
+                        // // PDF metadata - data.metadata
+                        // // PDF.js version - data.version // check https://mozilla.github.io/pdf.js/getting_started/
+                        // // PDF text - data.text
+                        fs.createWriteStream(uploadDirectory + "text/" + filename.substring(0, filename.length - ".pdf".length) + ".txt").write(data.text);
+                    });
+                } else {
+                    await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
+                }
                 results.push({ name, type, path: `/files/${filename}` });
+
             }
             _success(res, results);
         });
