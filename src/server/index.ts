@@ -42,13 +42,11 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GaxiosResponse } from 'gaxios';
-import { Opt } from '../new_fields/Doc';
-import { docs_v1 } from 'googleapis';
-import { Endpoint } from 'googleapis-common';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+const pdf = require('pdf-parse');
+var findInFiles = require('find-in-files');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -195,6 +193,23 @@ app.get("/version", (req, res) => {
 const solrURL = "http://localhost:8983/solr/#/dash";
 
 // GETTERS
+
+app.get("/textsearch", async (req, res) => {
+    let q = req.query.q;
+    console.log("TEXTSEARCH " + q);
+    if (q === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDir + "text", ".txt$");
+    let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
+    for (var result in results) {
+        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+        resObj.lines.push(results[result].line);
+        resObj.numFound++;
+    }
+    res.send(resObj);
+});
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
@@ -596,6 +611,30 @@ app.post(
                     resizers.forEach(resizer => {
                         fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
                     });
+                }
+                if (ext.endsWith("pdf")) {
+                    var filePath = uploadDir + file;
+
+                    let dataBuffer = fs.readFileSync(filePath);
+
+                    pdf(dataBuffer).then(async function (data: any) {
+
+                        // number of pages
+                        // console.log(data.numpages);
+                        // // number of rendered pages
+                        // console.log(data.numrender);
+                        // // PDF info
+                        // console.log(data.info);
+                        // // PDF metadata
+                        // console.log(data.metadata);
+                        // // PDF.js version
+                        // // check https://mozilla.github.io/pdf.js/getting_started/
+                        // console.log(data.version);
+                        // // PDF text
+                        // console.log(data.text);
+                        fs.createWriteStream(uploadDir + "text/" + file.substring(0, file.length - ext.length) + ".txt").write(data.text);
+                    });
+
                 }
                 names.push(`/files/` + file);
             }
