@@ -31,6 +31,8 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { compileFunction } from 'vm';
+import { ComputedField } from '../../../new_fields/ScriptField';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -571,11 +573,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         //add this new doc to props.Document
         let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
+            let pinDoc = Docs.Create.PresElementBoxDocument();
+            Doc.GetProto(pinDoc).target = doc;
+            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
             const data = Cast(curPres.data, listSpec(Doc));
             if (data) {
-                data.push(doc);
+                data.push(pinDoc);
             } else {
-                curPres.data = new List([doc]);
+                curPres.data = new List([pinDoc]);
             }
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 this.addDocTab(curPres, undefined, "onRight");

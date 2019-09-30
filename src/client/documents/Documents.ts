@@ -1,7 +1,6 @@
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
-import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
@@ -46,6 +45,7 @@ import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
+import { PresElementBox } from "../views/presentationview/PresElementBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -174,6 +174,9 @@ export namespace Docs {
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
+            }],
+            [DocumentType.PRESELEMENT, {
+                layout: { view: PresElementBox }
             }],
         ]);
 
@@ -457,6 +460,11 @@ export namespace Docs {
         export function LinkFollowBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
         }
+
+        export function PresElementBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
+        }
+
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
