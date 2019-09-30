@@ -68,6 +68,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public isAnimatingFetch = false;
+    @observable public isAnimatingPulse = false;
     @observable public openHover = false;
 
     constructor(props: Readonly<{}>) {
@@ -580,8 +581,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         return "-unset-";
     }
-
-
 
     render() {
         var bounds = this.Bounds;

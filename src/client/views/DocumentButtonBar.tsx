@@ -23,7 +23,6 @@ import React = require("react");
 import { DocumentView } from './nodes/DocumentView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { DocumentDecorations } from './DocumentDecorations';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;

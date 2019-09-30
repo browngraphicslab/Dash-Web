@@ -1,7 +1,7 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
@@ -12,6 +12,7 @@ import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
+import { ImageField } from '../../../new_fields/URLField';
 
 export enum CollectionViewType {
     Invalid,
@@ -154,6 +155,21 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
+    showIsTagged = () => {
+        const children = DocListCast(this.props.Document.data);
+        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        if (allTagged) {
+            return (
+                <img
+                    id={"google-tags"}
+                    src={"/assets/google_tags.png"}
+                />
+            );
+        }
+        return (null);
+    }
+
     render() {
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
@@ -171,6 +187,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+                {this.showIsTagged()}
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

@@ -23,6 +23,7 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 var path = require('path');
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -152,7 +153,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
+        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -220,12 +221,21 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
                 let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
                 let proto = newBox.proto!;
-                proto.autoHeight = true;
-                proto[GoogleRef] = matches[2];
+                const documentId = matches[2];
+                proto[GoogleRef] = documentId;
                 proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
                 this.props.addDocument(newBox);
+                // const parent = Docs.Create.StackingDocument([newBox], { title: `Google Doc Import (${documentId})` });
+                // CollectionDockingView.Instance.AddRightSplit(parent, undefined);
+                // proto.height = parent[HeightSym]();
                 return;
+            }
+            if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                const albums = await GooglePhotos.Transactions.ListAlbums();
+                const albumId = matches[3];
+                const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                console.log(mediaItems);
             }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
@@ -262,7 +272,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let pathname = Utils.prepend(file);
+                            let pathname = Utils.prepend(file.path);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 doc && (doc.fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
                                 doc && this.props.addDocument(doc);

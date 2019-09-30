@@ -20,8 +20,8 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
+import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -159,7 +159,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
@@ -334,7 +333,13 @@ export namespace Docs {
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             let imgField = new ImageField(new URL(url));
             let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
-            requestImageSize(imgField.url.href)
+            let target = imgField.url.href;
+            if (new RegExp(window.location.origin).test(target)) {
+                let extension = path.extname(target);
+                target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
+            }
+            // if (target !== "http://www.cs.brown.edu/") {
+            requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {
@@ -344,6 +349,7 @@ export namespace Docs {
                     inst.proto!.height = NumCast(inst.proto!.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
+            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
@@ -508,10 +514,13 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
         export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
-            if (input === null || ![...primitives, "object"].includes(typeof input)) {
+            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
+            let parsed = input;
+            if (typeof input === "string") {
+                parsed = JSONUtils.tryParse(input);
+            }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
                 converted = convertObject(parsed, title);
@@ -664,7 +673,6 @@ export namespace DocUtils {
 
             Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
             Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
-
         }, "make link");
         return linkDocProto;
     }

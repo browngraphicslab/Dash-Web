@@ -1,7 +1,6 @@
 import * as passport from 'passport';
 import * as passportLocal from 'passport-local';
-import * as mongodb from 'mongodb';
-import * as _ from "lodash";
+import _ from "lodash";
 import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
 import { RouteStore } from '../../RouteStore';

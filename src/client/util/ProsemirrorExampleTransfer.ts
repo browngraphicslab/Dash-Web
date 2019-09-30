@@ -107,8 +107,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Mod-s", TooltipTextMenu.insertStar);
 
-
-
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
         var range = ref.$from.blockRange(ref.$to);
