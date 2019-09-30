@@ -52,6 +52,7 @@ import { Opt } from '../new_fields/Doc';
 import { DashUploadUtils } from './DashUploadUtils';
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { ParsedPDF } from "./PdfTypes";
+import { reject } from 'bluebird';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -608,10 +609,11 @@ app.post(
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
                 if (filename.endsWith(".pdf")) {
-                    var filePath = uploadDirectory + filename;
-                    let dataBuffer = fs.readFileSync(filePath);
-                    pdf(dataBuffer).then(async function (data: ParsedPDF) {
-                        fs.createWriteStream(pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt").write(data.text);
+                    let dataBuffer = fs.readFileSync(uploadDirectory + filename);
+                    const result: ParsedPDF = await pdf(dataBuffer);
+                    await new Promise<void>(resolve => {
+                        const path = pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
+                        fs.createWriteStream(path).write(result.text, error => error === null ? resolve() : reject(error));
                     });
                 } else {
                     await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
