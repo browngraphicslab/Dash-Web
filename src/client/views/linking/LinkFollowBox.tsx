@@ -88,7 +88,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this._contextDisposer && this._contextDisposer();
     }
 
-    @action
+    @action.bound
     public minimize() {
         this.props.Document.isMinimized = true;
     }
@@ -417,11 +417,15 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @action
     public saveLinkFollowBehavior = (followMode: string, context: string, shouldZoom: boolean) => {
 
+        let fullBehavior: string = followMode + "," + context + "," + shouldZoom.toString() + "," + LinkFollowBox.behaviorName;
         if (LinkFollowBox.linkDoc && LinkFollowBox.linkDoc.savedLinkFollows) {
-            Cast(LinkFollowBox.linkDoc.savedLinkFollows, listSpec("string"))!.push(followMode + "," + context + "," + shouldZoom.toString() + LinkFollowBox.behaviorName);
+            Cast(LinkFollowBox.linkDoc.savedLinkFollows, listSpec("string"))!.push(fullBehavior);
         }
 
+        console.log(LinkFollowBox.linkDoc!.savedLinkFollows);
+
         LinkFollowBox.isSaving = false;
+        LinkFollowBox.behaviorName = "";
     }
 
     get shouldZoom() {
@@ -624,6 +628,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     escapeSaveLoad() {
         LinkFollowBox.isSaving = false;
         LinkFollowBox.isLoading = false;
+        LinkFollowBox.behaviorName = "";
     }
 
     @action
@@ -649,7 +654,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 <div className="linkFollowBox-footer">
                     <div style={{ pointerEvents: "all" }}>
                         <>Behavior Name: </>
-                        <input value={LinkFollowBox.behaviorName} onChange={this.onBehaviorTitleChange} onClick={() => console.log("clicking")} type="text"></input>
+                        <input value={LinkFollowBox.behaviorName} onChange={this.onBehaviorTitleChange} onClick={() => console.log("clicking")} type="text" autoFocus={true}></input>
                     </div>
                     <button
                         onClick={this.escapeSaveLoad}>
