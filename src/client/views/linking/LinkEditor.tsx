@@ -14,6 +14,7 @@ import { SetupDrag } from "../../util/DragManager";
 import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 import { FollowModes, LinkFollowBox } from './LinkFollowBox';
 import { ChangeEvent } from "react-autosuggest";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -348,9 +349,8 @@ interface LinkEditorProps {
 }
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
-    @observable private _linkOption: string = FollowModes.PAN;
-    @observable private _linkOldOption: string = FollowModes.PAN;
-    @observable private _linkConfirm: boolean = false;
+    @observable private _linkOption: string = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0]; // changes visible selected pan TODODO how to ensure linkoption is changed if both screens for links are open?
+    @observable private _linkOldOption: string = "";
 
     @action
     deleteLink = (): void => {
@@ -377,22 +377,26 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
     @action
     linkChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this._linkOldOption = this._linkOption;
+        console.log(StrCast(this.props.linkDoc.defaultLinkFollow));
+        if (!this._linkOldOption) {
+            this._linkOldOption = this._linkOption;
+        }
         this._linkOption = e.target.value;
-        this._linkConfirm = (e.target.value !== this._linkOldOption ? true : false);
     }
 
     @action
     changeLinkBehavior = (e: React.MouseEvent<HTMLButtonElement>): void => {
+        let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         e.preventDefault();
         if (e.currentTarget.value === "confirm") {
-            // set linkfollowbox to selected behavior = this._linkOption
+            this.props.linkDoc.defaultLinkFollow = this._linkOption + "," + destination![Id] + ',false';
+
             console.log('changed behavior');
         } else {
             console.log('reverted behavior');
             this._linkOption = this._linkOldOption;
         }
-        this._linkConfirm = false;
+        this._linkOldOption = "";
     }
 
     render() {
@@ -402,7 +406,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
 
-        // TODODO properly set linkoption based on default from linkfollowbox
         if (destination) {
             return (
                 <div className="linkEditor">
@@ -413,19 +416,40 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     </div>
                     <div className="linkEditor-linkType">
                         Change Link Type Here:
-                        {/* TODODO radio buttons here 
-                        pan and in place dont work unless freeform
-                        DONE: confirm button (no accidental overwrites of complicated link follows)
-                        EVENTUALLY: should b able to clean this up once we know
-                        1) how to determine if follow type is valid
-                        2) mapping over all the FollowType enums */}
                         <div className="linkEditor-linkForm">
                             <div className="linkEditor-linkOption">
                                 <label>
                                     <input
                                         type="radio"
+                                        value={FollowModes.OPENTAB}
+                                        checked={this._linkOption === FollowModes.OPENTAB}
+                                        onChange={this.linkChange} />
+                                    {FollowModes.OPENTAB}</label>
+                            </div>
+                            <div className="linkEditor-linkOption">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        value={FollowModes.OPENRIGHT}
+                                        checked={this._linkOption === FollowModes.OPENRIGHT}
+                                        onChange={this.linkChange} />
+                                    {FollowModes.OPENRIGHT}</label>
+                            </div>
+                            <div className="linkEditor-linkOption">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        value={FollowModes.OPENFULL}
+                                        checked={this._linkOption === FollowModes.OPENFULL}
+                                        onChange={this.linkChange} />
+                                    {FollowModes.OPENFULL}</label>
+                            </div>
+                            <div className="linkEditor-linkOption">
+                                <label>
+                                    <input
+                                        type="radio"
                                         value={FollowModes.PAN}
-                                        checked={this._linkOption === FollowModes.PAN} // in future: check with linkfollowbox
+                                        checked={this._linkOption === FollowModes.PAN}
                                         onChange={this.linkChange} />
                                     {FollowModes.PAN}</label>
                             </div>
@@ -438,7 +462,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                         onChange={this.linkChange} />
                                     {FollowModes.INPLACE}</label>
                             </div>
-                            {this._linkConfirm ?
+                            {this._linkOldOption ?
                                 <div className="linkEditor-changeLinkBehavior">
                                     <button value="confirm" onClick={this.changeLinkBehavior}>confirm</button>
                                     <button value="cancel" onClick={this.changeLinkBehavior}>cancel</button>
