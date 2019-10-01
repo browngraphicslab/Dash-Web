@@ -6,6 +6,8 @@ import { observable } from "mobx";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
+import adapter from 'webrtc-adapter';
+
 
 
 
@@ -63,7 +65,11 @@ export class DashWebRTC extends React.Component<CollectionFreeFormDocumentViewPr
     render() {
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
-                <video autoPlay playsInline ref={(e) => this.videoEl = e!}></video>
+                <video id="localVideo" autoPlay playsInline ref={(e) => this.videoEl = e!}></video>
+                <video id="remoteVideo" autoPlay playsInline></video>
+                <button id="startButton">Start</button>
+                <button id="callButton">Call</button>
+                <button id="hangupButton">Hang Up</button>
             </div>;
 
         let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
@@ -77,7 +83,6 @@ export class DashWebRTC extends React.Component<CollectionFreeFormDocumentViewPr
                 </div>
                 {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
             </>);
-        );
     }
 
 

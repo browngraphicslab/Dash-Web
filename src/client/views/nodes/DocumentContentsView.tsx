@@ -33,6 +33,7 @@ import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { fromPromise } from "mobx-utils";
 import { DashWebCam } from "../../views/webcam/DashWebCam";
+import { DashWebRTC } from "../webcam/DashWebRTC";
 
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -112,7 +113,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, DashWebCam }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, DashWebCam, DashWebRTC }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

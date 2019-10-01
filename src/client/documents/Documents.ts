@@ -47,6 +47,7 @@ import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { DashWebCam } from "../views/webcam/DashWebCam";
+import { DashWebRTC } from "../views/webcam/DashWebRTC";
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
@@ -179,7 +180,7 @@ export namespace Docs {
                 layout: { view: LinkFollowBox }
             }],
             [DocumentType.WEBCAM, {
-                layout: { view: DashWebCam }
+                layout: { view: DashWebRTC }
             }]
         ]);
 
