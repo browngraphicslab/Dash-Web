@@ -13,6 +13,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
+import { LinkFollowBox } from "../../../client/views/linking/LinkFollowBox";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -108,7 +109,6 @@ export class CurrentUserUtils {
 
         if (doc.linkFollowBox === undefined) {
             PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
-
             // doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" });
         }
 

@@ -390,11 +390,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         e.preventDefault();
         if (e.currentTarget.value === "confirm") {
             this.props.linkDoc.defaultLinkFollow = this._linkOption + "," + destination![Id] + ',false';
-
             console.log('changed behavior');
         } else {
-            console.log('reverted behavior');
             this._linkOption = this._linkOldOption;
+            console.log('reverted behavior');
         }
         this._linkOldOption = "";
     }
@@ -405,6 +404,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
+        console.log(StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0]);
 
         if (destination) {
             return (
