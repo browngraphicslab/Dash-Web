@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction, computed } from "mobx";
+import { action, computed, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
@@ -10,12 +10,15 @@ import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
+import { CollectionViewType } from "../collections/CollectionBaseView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import "./PresBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
-import { PresElementBox } from "../presentationview/PresElementBox";
-import { Id } from "../../../new_fields/FieldSymbols";
+import "./PresBox.scss";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Docs } from "../../documents/Documents";
+import { ComputedField } from "../../../new_fields/ScriptField";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -29,6 +32,29 @@ library.add(faEdit);
 @observer
 export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    _docListChangedReaction: IReactionDisposer | undefined;
+    componentDidMount() {
+        this._docListChangedReaction = reaction(() => {
+            const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
+            return value ? value.slice() : value;
+        }, () => {
+            const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
+            if (value) {
+                value.forEach((item, i) => {
+                    if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
+                        let pinDoc = Docs.Create.PresElementBoxDocument();
+                        Doc.GetProto(pinDoc).target = item;
+                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
+                        value.splice(i, 1, pinDoc);
+                    }
+                })
+            }
+        });
+    }
+
+    componentWillUnmount() {
+        this._docListChangedReaction && this._docListChangedReaction();
+    }
 
     @computed get childDocs() { return DocListCast(this.props.Document[this.props.fieldKey]); }
 
@@ -275,20 +301,14 @@ export class PresBox extends React.Component<FieldViewProps> {
     //directly at start.
     startPresentation = (startIndex: number) => {
         this.childDocs.map(doc => {
-            if (doc.hideTillShownButton) {
-                if (this.childDocs.indexOf(doc) > startIndex) {
-                    doc.opacity = 0;
-                }
+            if (doc.hideTillShownButton && this.childDocs.indexOf(doc) > startIndex) {
+                doc.opacity = 0;
             }
-            if (doc.hideAfterButton) {
-                if (this.childDocs.indexOf(doc) < startIndex) {
-                    doc.opacity = 0;
-                }
+            if (doc.hideAfterButton && this.childDocs.indexOf(doc) < startIndex) {
+                doc.opacity = 0;
             }
-            if (doc.fadeButton) {
-                if (this.childDocs.indexOf(doc) < startIndex) {
-                    doc.opacity = 0.5;
-                }
+            if (doc.fadeButton && this.childDocs.indexOf(doc) < startIndex) {
+                doc.opacity = 0.5;
             }
         });
     }
@@ -316,8 +336,13 @@ export class PresBox extends React.Component<FieldViewProps> {
      * that they will be displayed in a canvas with scale 1.
      */
     @action
-    initializeScaleViews = (docList: Doc[]) => {
+    initializeScaleViews = (docList: Doc[], viewtype: number) => {
+        this.props.Document.chromeStatus = "disabled";
+        let hgt = (viewtype === CollectionViewType.Tree) ? 50 : 72;
         docList.forEach((doc: Doc) => {
+            doc.presBox = this.props.Document;
+            doc.presBoxKey = this.props.fieldKey;
+            doc.height = hgt;
             let curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
@@ -325,13 +350,14 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
+
     selectElement = (doc: Doc) => {
         let index = DocListCast(this.props.Document[this.props.fieldKey]).indexOf(doc);
         index !== -1 && this.gotoDocument(index, NumCast(this.props.Document.selectedDoc));
     }
 
     render() {
-        this.initializeScaleViews(this.childDocs);
+        this.initializeScaleViews(this.childDocs, NumCast(this.props.Document.viewType));
         return (
             <div className="presBox-cont" onContextMenu={this.specificContextMenu}>
                 <div className="presBox-buttons">
@@ -344,14 +370,9 @@ export class PresBox extends React.Component<FieldViewProps> {
                 </div>
                 {this.props.Document.minimizedView ? (null) :
                     <div className="presBox-listCont" >
-                        {this.childDocs.map(doc =>
-                            <PresElementBox key={doc[Id]}  {... this.props} Document={doc}
-                                removeDocument={this.removeDocument}
-                                focus={this.selectElement}
-                                presBox={this}
-                            />
-                        )}
-                    </div>}
+                        <CollectionView {...this.props} focus={this.selectElement} />
+                    </div>
+                }
             </div>
         );
     }

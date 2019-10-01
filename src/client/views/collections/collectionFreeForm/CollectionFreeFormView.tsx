@@ -443,11 +443,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
+            ...this.props,
             DataDoc: childData,
             Document: childLayout,
-            addDocument: this.props.addDocument,
-            removeDocument: this.props.removeDocument,
-            moveDocument: this.props.moveDocument,
             ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
@@ -460,37 +458,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             parentActive: this.props.active,
-            whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };
     }
     getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
         return {
-            DataDoc: this.props.DataDoc,
-            Document: this.props.Document,
-            addDocument: this.props.addDocument,
-            removeDocument: this.props.removeDocument,
-            moveDocument: this.props.moveDocument,
-            ruleProvider: this.props.ruleProvider,
-            onClick: this.props.onClick,
+            ...this.props,
             ScreenToLocalTransform: this.getTransform,
-            renderDepth: this.props.renderDepth,
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
             focus: this.focusDocument,
             backgroundColor: returnEmptyString,
             parentActive: this.props.active,
-            whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };

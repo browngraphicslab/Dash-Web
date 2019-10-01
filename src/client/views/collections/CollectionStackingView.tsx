@@ -133,7 +133,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     getDisplayDoc(layoutDoc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
-        return <CollectionSchemaPreview
+        return <CollectionSchemaPreview {...this.props}
             Document={layoutDoc}
             DataDocument={dataDoc}
             showOverlays={this.overlays}
@@ -144,6 +144,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             width={width}
             height={height}
             getTransform={finalDxf}
+            focus={this.props.focus}
+            CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
             CollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}

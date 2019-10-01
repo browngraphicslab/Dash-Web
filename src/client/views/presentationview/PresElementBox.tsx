@@ -12,11 +12,11 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { CollectionViewType } from '../collections/CollectionBaseView';
 import { DocumentView } from "../nodes/DocumentView";
-import React = require("react");
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
-import { FieldViewProps, FieldView } from '../nodes/FieldView';
-import { PresBox } from '../nodes/PresBox';
+import React = require("react");
 
 
 library.add(faArrowUp);
@@ -25,26 +25,22 @@ library.add(faLocationArrow);
 library.add(fileRegular as any);
 library.add(faSearch);
 library.add(faArrowDown);
-
-interface PresElementProps {
-    presBox: PresBox;
-}
-
 /**
  * This class models the view a document added to presentation will have in the presentation.
  * It involves some functionality for its buttons and options.
  */
 @observer
-export class PresElementBox extends React.Component<PresElementProps & FieldViewProps> {
+export class PresElementBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(PresElementBox); }
     private header?: HTMLDivElement | undefined;
     private listdropDisposer?: DragManager.DragDropDisposer;
     private presElRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _embedHeight = 100;
 
-    @computed get myIndex() { return DocListCast(this.props.presBox.props.Document[this.props.presBox.props.fieldKey]).indexOf(this.props.Document) }
-    @computed get presentationDoc() { return this.props.presBox.props.Document; }
-    @computed get presentationFieldKey() { return this.props.presBox.props.fieldKey; }
+    @computed get myIndex() { return DocListCast(this.presentationDoc[this.presentationFieldKey]).indexOf(this.props.Document); }
+    @computed get presentationDoc() { return this.props.Document.presBox as Doc; }
+    @computed get presentationFieldKey() { return StrCast(this.props.Document.presBoxKey); }
     @computed get currentIndex() { return NumCast(this.presentationDoc.selectedDoc); }
     @computed get showButton() { return BoolCast(this.props.Document.showButton); }
     @computed get navButton() { return BoolCast(this.props.Document.navButton); }
@@ -266,12 +262,12 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
         let scale = () => 175 / NumCast(this.props.Document.nativeWidth, 175);
         return (
             <div className="presElementBox-embedded" style={{
-                height: propDocHeight === 0 ? 100 : propDocHeight * scale(),
+                height: propDocHeight === 0 ? this._embedHeight : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <DocumentView
                     fitToBox={StrCast(this.props.Document.type).indexOf(DocumentType.COL) !== -1}
-                    Document={this.props.Document.target as Doc}
+                    Document={this.props.Document.target}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
@@ -300,6 +296,7 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
     render() {
         let p = this.props;
 
+        let treecontainer = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.viewType === CollectionViewType.Tree;
         let className = "presElementBox-item" + (this.currentIndex === this.myIndex ? " presElementBox-selected" : "");
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         let onItemDown = SetupDrag(this.presElRef, () => p.Document, this.move, dropAction, this.presentationDoc[Id], true);
@@ -310,18 +307,25 @@ export class PresElementBox extends React.Component<PresElementProps & FieldView
                 onPointerDown={onItemDown}
                 style={{ outlineWidth: Doc.IsBrushed(p.Document) ? `1px` : "0px", }}
                 onClick={e => p.focus(p.Document)}>
-                <strong className="presElementBox-name">
-                    {`${this.myIndex + 1}. ${p.Document.title}`}
-                </strong>
-                <button className="presElementBox-icon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument && this.props.removeDocument(p.Document)}>X</button>
-                <br />
+                {treecontainer ? (null) : <>
+                    <strong className="presElementBox-name">
+                        {`${this.myIndex + 1}. ${p.Document.title}`}
+                    </strong>
+                    <button className="presElementBox-icon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument && this.props.removeDocument(p.Document)}>X</button>
+                    <br />
+                </>
+                }
                 <button title="Zoom" className={"presElementBox-interaction" + (this.showButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
                 <button title="Navigate" className={"presElementBox-interaction" + (this.navButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
                 <button title="Hide Til Presented" className={"presElementBox-interaction" + (this.hideTillShownButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
                 <button title="Fade After Presented" className={"presElementBox-interaction" + (this.fadeButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
                 <button title="Hide After Presented" className={"presElementBox-interaction" + (this.hideAfterButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
-                <button title="Group With Up" className={"presElementBox-interaction" + (this.groupButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={action(() => this.groupButton = !this.groupButton)}> <FontAwesomeIcon icon={"arrow-up"} /> </button>
-                <button title="Expand Inline" className={"presElementBox-interaction" + (this.embedInline ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={action(() => this.embedInline = !this.embedInline)}><FontAwesomeIcon icon={"arrow-down"} /></button>
+                <button title="Group With Up" className={"presElementBox-interaction" + (this.groupButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={action((e: any) => { e.stopPropagation(); this.groupButton = !this.groupButton; })}> <FontAwesomeIcon icon={"arrow-up"} /> </button>
+                <button title="Expand Inline" className={"presElementBox-interaction" + (this.embedInline ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={action((e: any) => {
+                    this.embedInline = !this.embedInline;
+                    this.props.Document.height = NumCast(this.props.Document.height) + (this.embedInline ? 1 : -1) * this._embedHeight;
+                    e.stopPropagation();
+                })}><FontAwesomeIcon icon={"arrow-down"} /></button>
 
                 <br />
                 {this.renderEmbeddedInline()}

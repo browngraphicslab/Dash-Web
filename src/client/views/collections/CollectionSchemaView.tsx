@@ -166,6 +166,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 width={this.previewWidth}
                 height={this.previewHeight}
                 getTransform={this.getPreviewTransform}
+                CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
                 CollectionView={this.props.CollectionView}
                 moveDocument={this.props.moveDocument}
                 addDocument={this.props.addDocument}
@@ -906,8 +907,10 @@ interface CollectionSchemaPreviewProps {
     width: () => number;
     height: () => number;
     ruleProvider: Doc | undefined;
+    focus?: (doc: Doc) => void;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionDoc?: Doc;
     onClick?: ScriptField;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -994,7 +997,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         height: this.props.height(),
                         width: this.props.width()
                     }}>
-                    <DocumentView
+                    <DocumentView {...this.props}
                         DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
@@ -1006,7 +1009,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         moveDocument={this.props.moveDocument}
                         whenActiveChanged={this.props.whenActiveChanged}
                         ContainingCollectionView={this.props.CollectionView}
-                        ContainingCollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
+                        ContainingCollectionDoc={this.props.CollectionDoc}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}
@@ -1015,7 +1018,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
-                        focus={emptyFunction}
+                        focus={this.props.focus || emptyFunction}
                         backgroundColor={returnEmptyString}
                         bringToFront={emptyFunction}
                         zoomToScale={emptyFunction}
