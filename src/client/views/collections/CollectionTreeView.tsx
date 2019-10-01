@@ -81,7 +81,7 @@ class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
-    get defaultExpandedView() { return this.childDocs ? this.fieldKey : "fields"; }
+    get defaultExpandedView() { return this.childDocs ? this.fieldKey : this.props.document.defaultExpandedView ? StrCast(this.props.document.defaultExpandedView) : ""; }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     @computed get treeViewOpen() { return (BoolCast(this.props.document.treeViewOpen) && !this.props.preventTreeViewOpen) || this._overrideTreeViewOpen; }
     set treeViewOpen(c: boolean) { if (this.props.preventTreeViewOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = c; }

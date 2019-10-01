@@ -203,9 +203,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        // bcz: this is here for now to account for the presentation stacking view being offset from the document top in PresBox's.  Should generalize this somehow.
-        let offsethack = Number(this._masonryGridRef && this._masonryGridRef.parentElement!.parentElement!.offsetTop);
-        let where = [de.x, de.y - offsethack];
+        let where = [de.x, de.y];
         let targInd = -1;
         let plusOne = false;
         if (de.data instanceof DragManager.DocumentDragData) {
@@ -285,7 +283,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1]).
+            translate(offset[0], offset[1] + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0)).
             scale(NumCast(doc.width, 1) / this.columnWidth);
     }
     masonryChildren(docs: Doc[]) {

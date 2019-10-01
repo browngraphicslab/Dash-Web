@@ -50,20 +50,25 @@ export class CollectionView extends React.Component<FieldViewProps> {
         this._reactionDisposer && this._reactionDisposer();
     }
 
+    // bcz: Argh?  What's the height of the collection chomes??  
+    chromeHeight = () => {
+        return (this.props.ChromeHeight ? this.props.ChromeHeight() : 0) + (this.props.Document.chromeStatus === "enabled" ? -60 : 0);
+    }
+
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} CollectionView={this} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
-            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
-            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
-            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
+            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
+            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
+            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
             case CollectionViewType.Freeform:
             default:
                 this.props.Document.freeformLayoutEngine = undefined;
-                return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+                return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
         }
         return (null);
     }

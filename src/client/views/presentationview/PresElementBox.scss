@@ -1,10 +1,12 @@
 .presElementBox-item {
     padding: 10px;
     display: inline-block;
+    background-color: #eeeeee;
     pointer-events: all;
     width: 100%;
     outline-color: maroon;
     outline-style: dashed;
+    border-radius: 12px;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -40,9 +42,10 @@
     box-shadow: black 2px 2px 5px;
 }
 
-
-.presElementBox-icon {
+.presElementBox-closeIcon {
     float: right;
+    border-radius: 20px;
+    transform:scale(0.7);
 }
 
 .presElementBox-interaction {
@@ -57,12 +60,17 @@
 
 .presElementBox-name {
     font-size: 15px;
+    position: absolute;
     display: inline-block;
+    width: calc(100% - 45px);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: pre;
 }
 
 .presElementBox-embedded {
     position: relative;
-    margin-top: 15;
+    margin-top: 30;
 }
 
 .presElementBox-embeddedMask {

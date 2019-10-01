@@ -42,7 +42,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             if (value) {
                 value.forEach((item, i) => {
                     if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
-                        let pinDoc = Docs.Create.PresElementBoxDocument();
+                        let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
                         Doc.GetProto(pinDoc).target = item;
                         Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
                         value.splice(i, 1, pinDoc);
@@ -342,7 +342,8 @@ export class PresBox extends React.Component<FieldViewProps> {
         docList.forEach((doc: Doc) => {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
-            doc.height = hgt;
+            doc.collapsedHeight = hgt;
+            doc.height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)")
             let curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
@@ -356,6 +357,9 @@ export class PresBox extends React.Component<FieldViewProps> {
         index !== -1 && this.gotoDocument(index, NumCast(this.props.Document.selectedDoc));
     }
 
+    getTransform = () => {
+        return this.props.ScreenToLocalTransform().translate(-10, -50);// listBox padding-left and pres-box-cont minHeight
+    }
     render() {
         this.initializeScaleViews(this.childDocs, NumCast(this.props.Document.viewType));
         return (
@@ -370,7 +374,7 @@ export class PresBox extends React.Component<FieldViewProps> {
                 </div>
                 {this.props.Document.minimizedView ? (null) :
                     <div className="presBox-listCont" >
-                        <CollectionView {...this.props} focus={this.selectElement} />
+                        <CollectionView {...this.props} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
                     </div>
                 }
             </div>

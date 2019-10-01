@@ -573,7 +573,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         //add this new doc to props.Document
         let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
-            let pinDoc = Docs.Create.PresElementBoxDocument();
+            let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
             Doc.GetProto(pinDoc).target = doc;
             Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
             const data = Cast(curPres.data, listSpec(Doc));
