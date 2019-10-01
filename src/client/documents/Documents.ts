@@ -83,6 +83,7 @@ export interface DocumentOptions {
     autoHeight?: boolean;
     dbDoc?: Doc;
     defaultLinkFollow?: string;
+    savedLinkFollows?: List<string>;
     // [key: string]: Opt<Field>;
 }
 
@@ -160,7 +161,7 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {defaultLinkFollow: "Pan to Document,none,false"}
+                options: { defaultLinkFollow: "Pan to Document,none,false", savedLinkFollows: new List<string>([]) }
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
@@ -652,6 +653,8 @@ export namespace DocUtils {
             linkDocProto.sourceContext = sourceContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
+            linkDocProto.defaultLinkFollow = "Pan to Document,none,false";
+            linkDocProto.savedLinkFollows = new List<string>();
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;

@@ -1,4 +1,4 @@
-import { observable, computed, action, trace } from "mobx";
+import { observable, computed, action, trace, runInAction } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
