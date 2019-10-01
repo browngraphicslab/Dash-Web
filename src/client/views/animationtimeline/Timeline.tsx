@@ -29,6 +29,8 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _titleContainer = React.createRef<HTMLDivElement>();
     @observable private _timelineContainer = React.createRef<HTMLDivElement>();
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
+    @observable private _roundToggleRef = React.createRef<HTMLDivElement>();  
+    @observable private _roundToggleContainerRef = React.createRef<HTMLDivElement>(); 
 
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
@@ -331,23 +333,45 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     private timelineToolBox = (scale:number) => {
         let size = 50 * scale; //50 is default
-        return (
+        return (   
+      
         <div key="timeline_toolbox" className="timeline-toolbox" style={{height:`${size}px`}}>
-                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{height:`${size}px`, width: `${size}px`}} /> </div>
-                <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{height:`${size}px`, width: `${size}px`}}  /> </div>
-                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{height:`${size}px`, width: `${size}px`}}  /> </div>
-                <TimelineOverview scale={scale} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/> 
+            <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{height:`${size}px`, width: `${size}px`}} /> </div>
+            <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{height:`${size}px`, width: `${size}px`}}  /> </div>
+            <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{height:`${size}px`, width: `${size}px`}}  /> </div>
+            <TimelineOverview scale={scale} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/>            
+            <div ref={this._roundToggleContainerRef}key="round-toggle" className="round-toggle">
+                <div ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown = {this.toggleChecked}> </div>                    
+            </div>
         </div>
         );
     }
 
+    @action
+    private toggleChecked = (e:React.PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let roundToggle = this._roundToggleRef.current!; 
+        let roundToggleContainer = this._roundToggleContainerRef.current!; 
+        if (BoolCast(this.props.Document.isAnimating)){
+            roundToggle.style.transform = "translate(0px, 0px)";
+            roundToggle.style.animationName = "turnoff"; 
+            roundToggleContainer.style.animationName = "turnoff"; 
+ 
+            this.props.Document.isAnimating = false;
+        } else {
+            roundToggle.style.transform = "translate(45px, 0px)"; 
+            roundToggle.style.animationName = "turnon"; 
+            roundToggleContainer.style.animationName = "turnon"; 
+            this.props.Document.isAnimating = true; 
+        }
+    }
     render() {
         return (
             <div>
                 <div style={{visibility: this._timelineVisible ? "visible" : "hidden"}}>
                     <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating && this._timelineVisible) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}}>
                         <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }}>
-                            {this.timelineToolBox(0.5)}
                             <div key ="timeline_info"className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
                                 <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} style={{width: `${this._totalLength}px`}} onClick={this.onScrubberClick}>
                                     {this._ticks.map(element => {
@@ -365,16 +389,13 @@ export class Timeline extends React.Component<FieldViewProps> {
                                 {DocListCast(this.children).map(doc => <div className="datapane" onPointerOver={() => {Doc.BrushDoc(doc);}} onPointerOut={() => {Doc.UnBrushDoc(doc);}}><p>{doc.title}</p></div>)}
                             </div>
                             <div key="timeline_resize" onPointerDown={this.onResizeDown}>
-                                <FontAwesomeIcon className="resize" icon={faGripLines} />
+                                <FontAwesomeIcon className="resize" icon={faGripLines}/>
                             </div>
                         </div>
                     </div>
-                    {BoolCast(this.props.Document.isAnimating) ? <div></div>: this.timelineToolBox(1) }
+                    { this.timelineToolBox(1) }
                 </div>
-                <label key="round-toggle" className="round-toggle">
-                    <input type="checkbox"/>
-                    <span className="round-toggle-slider"> </span>                    
-                </label>
+      
 
             </div>
         );

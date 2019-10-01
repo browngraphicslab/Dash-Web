@@ -78,8 +78,6 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     }
 
     render(){
-        console.log("rendered"); 
-        console.log(this.props.visibleStart); 
         return(
             <div key="timeline-overview-container" className="timeline-overview-container" style={{height: `${this.DEFAULT_HEIGHT * this.props.scale * 0.8}px` ,width:`${this.DEFAULT_WIDTH * this.props.scale}`}}>
                 <div ref={this._visibleRef} key="timeline-overview-visible" className="timeline-overview-visible" style={{marginLeft:`${(this.props.visibleStart / this.props.totalLength)* this.DEFAULT_WIDTH * this.props.scale}px`, width:`${(this.props.visibleLength / this.props.totalLength) * this.DEFAULT_WIDTH * this.props.scale}px`}} onPointerDown={this.onPointerDown}></div>
