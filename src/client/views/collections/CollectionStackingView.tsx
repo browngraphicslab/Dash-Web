@@ -203,14 +203,18 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        let where = [de.x, de.y];
+        // bcz: this is here for now to account for the presentation stacking view being offset from the document top in PresBox's.  Should generalize this somehow.
+        let offsethack = Number(this._masonryGridRef && this._masonryGridRef.parentElement!.parentElement!.offsetTop);
+        let where = [de.x, de.y - offsethack];
         let targInd = -1;
+        let plusOne = false;
         if (de.data instanceof DragManager.DocumentDragData) {
             this._docXfs.map((cd, i) => {
                 let pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 let pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                     targInd = i;
+                    plusOne = (where[1] > (pos[1] + pos1[1]) / 2 ? 1 : 0) ? true : false;
                 }
             });
         }
@@ -222,7 +226,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 else targInd = docs.indexOf(this.filteredChildren[targInd]);
                 let srcInd = docs.indexOf(newDoc);
                 docs.splice(srcInd, 1);
-                docs.splice(targInd > srcInd ? targInd - 1 : targInd, 0, newDoc);
+                docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (plusOne ? 1 : 0), 0, newDoc);
             }
         }
         return false;
