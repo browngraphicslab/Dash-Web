@@ -15,6 +15,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
+import { CollectionSchemaPreview } from '../collections/CollectionSchemaView';
 
 
 library.add(faArrowUp);
@@ -173,28 +174,23 @@ export class PresElementBox extends React.Component<FieldViewProps> {
                 height: propDocHeight === 0 ? NumCast(this.props.Document.height) - NumCast(this.props.Document.collapsedHeight) : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
-                <DocumentView
-                    fitToBox={StrCast(this.props.Document.type).indexOf(DocumentType.COL) !== -1}
+                <CollectionSchemaPreview
+                    fitToBox={StrCast(this.props.Document.target.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.props.Document.target}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
+                    PanelWidth={() => this.props.PanelWidth() - 20}
+                    PanelHeight={() => 100}
+                    setPreviewScript={emptyFunction}
+                    getTransform={Transform.Identity}
+                    active={this.props.active}
+                    moveDocument={this.props.moveDocument!}
                     renderDepth={1}
-                    PanelWidth={() => 350}
-                    PanelHeight={() => 90}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
-                    parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
-                    bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    ContentScaling={scale}
                 />
                 <div className="presElementBox-embeddedMask" />
             </div>

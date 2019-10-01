@@ -327,8 +327,8 @@ class TreeView extends React.Component<TreeViewProps> {
                     showOverlays={this.noOverlays}
                     ruleProvider={this.props.document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.document : this.props.ruleProvider}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
-                    width={this.docWidth}
-                    height={this.docHeight}
+                    PanelWidth={this.docWidth}
+                    PanelHeight={this.docHeight}
                     getTransform={this.docTransform}
                     CollectionDoc={this.props.containingCollection}
                     CollectionView={undefined}

@@ -47,7 +47,7 @@ export class PresBox extends React.Component<FieldViewProps> {
                         Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
                         value.splice(i, 1, pinDoc);
                     }
-                })
+                });
             }
         });
     }
@@ -343,7 +343,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
             doc.collapsedHeight = hgt;
-            doc.height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)")
+            doc.height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)");
             let curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;

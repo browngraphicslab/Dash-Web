@@ -141,8 +141,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
             fitToBox={this.props.fitToBox}
             onClick={layoutDoc.isTemplate ? this.onClickHandler : this.onChildClickHandler}
-            width={width}
-            height={height}
+            PanelWidth={width}
+            PanelHeight={height}
             getTransform={finalDxf}
             focus={this.props.focus}
             CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
