@@ -21,7 +21,7 @@ import { docs_v1 } from "googleapis";
 import { Utils } from "../../../Utils";
 import { List } from "../../../new_fields/List";
 
-enum FollowModes {
+export enum FollowModes {
     OPENTAB = "Open in Tab",
     OPENRIGHT = "Open in Right Split",
     OPENFULL = "Open Full Screen",
@@ -247,6 +247,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     private openLinkSelfRight = () => {
+        console.log("opening self")
         let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
         (this._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
         this.highlightDoc();
@@ -380,11 +381,13 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     // set this is the default link behavior. it parses the string that "contains" the behavior
+
     // and then calls the correct function
     public async defaultLinkBehavior(followString: string) {
         let params: string[] = followString.split(",");
         let mode = params[0];
         let contextString = params[1];
+        runInAction(() => this.selectedContextString = contextString);
         let shouldZoomString = params[2];
         let context: Doc | undefined = undefined;
         let shouldZoom: boolean = shouldZoomString === "true" ? true : false;
@@ -404,6 +407,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             this.openFullScreen();
         }
         else if (mode === FollowModes.OPENRIGHT) {
+            this.openLinkRight();
         }
         else if (mode === FollowModes.OPENTAB) {
             this.openLinkTab();
@@ -506,8 +510,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @computed
     get availableModes() {
         return (
-            <div>
-                <label><input
+            <div className="linkEditor-linkForm">
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.OPENRIGHT}
@@ -516,7 +520,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={false} />
                     {FollowModes.OPENRIGHT}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.OPENTAB}
@@ -525,7 +529,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={false} />
                     {FollowModes.OPENTAB}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.OPENFULL}
@@ -534,7 +538,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={false} />
                     {FollowModes.OPENFULL}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.PAN}
@@ -543,7 +547,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     disabled={!this.canPan} />
                     {FollowModes.PAN}
                 </label><br />
-                <label><input
+                <label className="linkEditor-linkOption"><input
                     type="radio"
                     name="mode"
                     value={FollowModes.INPLACE}

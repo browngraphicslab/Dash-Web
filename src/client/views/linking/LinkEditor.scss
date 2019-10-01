@@ -11,7 +11,7 @@
 }
 
 .linkEditor-info {
-    border-bottom: 0.5px solid $light-color-secondary; 
+    border-bottom: 0.5px solid $light-color-secondary;
     padding-bottom: 6px;
     margin-bottom: 6px;
     display: flex;
@@ -19,6 +19,20 @@
 
     .linkEditor-linkedTo {
         width: calc(100% - 26px);
+    }
+}
+
+.linkEditor-changeLinkBehavior {
+    display: flex;
+    justify-content: space-evenly;
+
+    button {
+        border-radius: 10px;
+        color: black;
+        background-color: $light-color-secondary;
+        margin: 2px;
+        font-size: 70%;
+        padding: 8px;
     }
 }
 
@@ -35,13 +49,38 @@
     }
 }
 
+.linkEditor-linkType {
+    border-bottom: 0.5px solid $light-color-secondary;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+
+    input {
+        margin-top: 0px;
+        margin-right: 4px;
+        vertical-align: sub;
+    }
+
+    label {
+        font-weight: 400;
+        margin-bottom: 0;
+    }
+}
+
+.linkEditor-linkOption {
+    margin-bottom: 0;
+}
+
+.linkEditor-linkForm {
+    display: inline-block;
+}
+
 .linkEditor-groupsLabel {
     display: flex;
     justify-content: space-between;
 }
 
 .linkEditor-group {
-    background-color: $light-color-secondary; 
+    background-color: $light-color-secondary;
     padding: 6px;
     margin: 3px 0;
     border-radius: 3px;

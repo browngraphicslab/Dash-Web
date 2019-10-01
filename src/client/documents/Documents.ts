@@ -653,6 +653,8 @@ export namespace DocUtils {
             linkDocProto.sourceContext = sourceContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
+            linkDocProto.defaultLinkFollow = "Pan to Document,none,false";
+            linkDocProto.savedLinkFollows = new List<string>();
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
