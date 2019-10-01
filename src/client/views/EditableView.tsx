@@ -73,14 +73,6 @@ export class EditableView extends React.Component<EditableProps> {
         }
     }
 
-    collapseSection() {
-        if (this.props.HeadingObject) {
-            this._headingsHack++;
-            this.props.HeadingObject.setCollapsed(!this.props.HeadingObject.collapsed);
-            this.props.toggle && this.props.toggle();
-        }
-    }
-
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Tab") {
@@ -109,11 +101,6 @@ export class EditableView extends React.Component<EditableProps> {
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
             this.props.isEditingCallback && this.props.isEditingCallback(true);
-        }
-        if (e.ctrlKey) {
-            this._editing = false;
-            this.props.isEditingCallback && this.props.isEditingCallback(false);
-            this.collapseSection();
         }
         e.stopPropagation();
     }

@@ -39,9 +39,7 @@ interface CSVFieldColumnProps {
 @observer
 export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldColumnProps> {
     @observable private _background = "inherit";
-    @observable private _selected: boolean = false;
-    @observable private _mouseX: number = 0;
-    @observable private _mouseY: number = 0;
+    @observable private _createAliasSelected: boolean = false;
 
     private _dropRef: HTMLDivElement | null = null;
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -177,6 +175,15 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         }
     }
 
+    @action
+    collapseSection = () => {
+        if (this.props.headingObject) {
+            this._headingsHack++;
+            this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
+            this.toggleVisibility();
+        }
+    }
+
     startDrag = (e: PointerEvent) => {
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
         if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
@@ -214,12 +221,13 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
 
-        if (e.altKey) { //release alt key before dropping alias; also, things must have existed outside of the collection first in order to be in the alias...
+        if (this._createAliasSelected) {
             document.removeEventListener("pointermove", this.startDrag);
             document.addEventListener("pointermove", this.startDrag);
             document.removeEventListener("pointerup", this.pointerUp);
             document.addEventListener("pointerup", this.pointerUp);
         }
+        this._createAliasSelected = false;
     }
 
     renderColorPicker = () => {
@@ -252,14 +260,19 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         );
     }
 
+    @action
+    toggleAlias = () => {
+        this._createAliasSelected = true;
+    }
+
     renderMenu = () => {
         let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         return (
             <div className="collectionStackingView-optionPicker">
                 <div className="optionOptions">
-                    <div className="optionPicker">Create Alias</div>
+                    <div className={"optionPicker" + (selected === " active")} onClick={this.toggleAlias}>Create Alias</div>
                 </div>
-            </div>
+            </div >
         );
     }
 
@@ -307,6 +320,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         ((uniqueHeadings.length +
                             ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
                 }}>
+                <div className="collectionStackingView-collapseBar" onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
@@ -334,7 +348,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionOptions">
-                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderMenu()}>
+                            <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
                                 <button className="collectionStackingView-sectionOptionButton">
                                     <FontAwesomeIcon icon="ellipsis-v" size="lg"></FontAwesomeIcon>
                                 </button>

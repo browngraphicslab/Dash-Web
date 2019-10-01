@@ -40,6 +40,7 @@ interface CMVFieldRowProps {
 @observer
 export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowProps> {
     @observable private _background = "inherit";
+    @observable private _createAliasSelected: boolean = false;
 
     private _dropRef: HTMLDivElement | null = null;
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -186,6 +187,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         }
     }
 
+    @action
+    collapseSection = () => {
+        if (this.props.headingObject) {
+            this._headingsHack++;
+            this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
+            this.toggleVisibility();
+        }
+    }
+
     startDrag = (e: PointerEvent) => {
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
         if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
@@ -223,12 +233,13 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
 
-        if (e.altKey) { //release alt key before dropping alias; also, things must have existed outside of the collection first in order to be in the alias...
+        if (this._createAliasSelected) {
             document.removeEventListener("pointermove", this.startDrag);
             document.addEventListener("pointermove", this.startDrag);
             document.removeEventListener("pointerup", this.pointerUp);
             document.addEventListener("pointerup", this.pointerUp);
         }
+        this._createAliasSelected = false;
     }
 
     renderColorPicker = () => {
@@ -261,12 +272,17 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         );
     }
 
+    @action
+    toggleAlias = () => {
+        this._createAliasSelected = true;
+    }
+
     renderMenu = () => {
         let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         return (
             <div className="collectionStackingView-optionPicker">
                 <div className="optionOptions">
-                    <div className="optionPicker">Create Alias</div>
+                    <div className="optionPicker" onClick={this.toggleAlias}>Create Alias</div>
                 </div>
             </div>
         );
@@ -320,6 +336,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         };
         let headingView = this.props.headingObject ?
             <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
+                <div className="collectionStackingView-collapseBar" onClick={this.collapseSection}></div>
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
@@ -333,7 +350,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         <div className="collectionStackingView-sectionColor">
                             <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
                                 <button className="collectionStackingView-sectionColorButton">
-                                    <FontAwesomeIcon icon="palette" size="sm" />
+                                    <FontAwesomeIcon icon="palette" size="lg" />
                                 </button>
                             </ Flyout >
                         </div>
@@ -345,7 +362,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionOptions">
-                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderMenu()}>
+                            <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
                                 <button className="collectionStackingView-sectionOptionButton">
                                     <FontAwesomeIcon icon="ellipsis-v" size="lg"></FontAwesomeIcon>
                                 </button>
