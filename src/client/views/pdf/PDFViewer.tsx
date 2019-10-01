@@ -628,7 +628,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
         let nativeWidth = NumCast(this.props.Document.nativeWidth);
         let nativeHeight = NumCast(this.props.Document.nativeHeight);
-        return <img key={this._coverPath.path} src={this._coverPath.path} onLoad={action(() => this._showWaiting = false)}
+        return <img key={this._coverPath.path} src={this._coverPath.path} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
 

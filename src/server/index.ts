@@ -613,7 +613,13 @@ app.post(
                     const result: ParsedPDF = await pdf(dataBuffer);
                     await new Promise<void>(resolve => {
                         const path = pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
-                        fs.createWriteStream(path).write(result.text, error => error === null ? resolve() : reject(error));
+                        fs.createWriteStream(path).write(result.text, error => {
+                            if (!error) {
+                                resolve();
+                            } else {
+                                reject(error);
+                            }
+                        });
                     });
                 } else {
                     await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));

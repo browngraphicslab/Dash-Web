@@ -303,21 +303,17 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.props.Document.textwrappedSchemaRows = new List<string>(textWrappedRows);
     }
 
-    @computed get resized(): { "id": string, "value": number }[] {
+    @computed get resized(): { id: string, value: number }[] {
         return this.columns.reduce((resized, shf) => {
-            if (shf.width > -1) {
-                resized.push({ "id": shf.heading, "value": shf.width });
-            }
+            (shf.width > -1) && resized.push({ id: shf.heading, value: shf.width });
             return resized;
-        }, [] as { "id": string, "value": number }[]);
+        }, [] as { id: string, value: number }[]);
     }
-    @computed get sorted(): { id: string, desc: boolean }[] {
+    @computed get sorted(): { id: string, desc?: true }[] {
         return this.columns.reduce((sorted, shf) => {
-            if (shf.desc) {
-                sorted.push({ "id": shf.heading, "desc": shf.desc });
-            }
+            shf.desc && sorted.push({ id: shf.heading, desc: shf.desc });
             return sorted;
-        }, [] as { id: string, desc: boolean }[]);
+        }, [] as { id: string, desc?: true }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }

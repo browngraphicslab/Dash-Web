@@ -180,8 +180,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
-        return (!(pdfUrl instanceof PdfField) || !this._pdf ?
-            <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
+        return (!(pdfUrl instanceof PdfField) || !this._pdf || this.props.ScreenToLocalTransform().Scale > 6 ?
+            <div className="pdfBox-title-outer"><div className="pdfBox-title-cont" >
+                <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong> </div></div> :
             <div className={classname} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
                 let hit = document.elementFromPoint(e.clientX, e.clientY);
                 if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
