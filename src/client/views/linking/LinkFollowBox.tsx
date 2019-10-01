@@ -247,6 +247,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     private openLinkSelfRight = () => {
+        console.log("opening self")
         let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
         (this._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
         this.highlightDoc();
@@ -322,10 +323,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else {
             this.selectedContext && this.openLinkColTab({ shouldZoom: this.shouldZoom, context: this.selectedContext });
         }
-        // }
-        // else {
-        //     this.openLinkColTab({ context: this.selectedContext!, shouldZoom: shouldZoom });
-        // }
     }
 
     @undoBatch
@@ -384,11 +381,13 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     // set this is the default link behavior. it parses the string that "contains" the behavior
+
     // and then calls the correct function
     public async defaultLinkBehavior(followString: string) {
         let params: string[] = followString.split(",");
         let mode = params[0];
         let contextString = params[1];
+        runInAction(() => this.selectedContextString = contextString);
         let shouldZoomString = params[2];
         let context: Doc | undefined = undefined;
         let shouldZoom: boolean = shouldZoomString === "true" ? true : false;
@@ -408,6 +407,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             this.openFullScreen();
         }
         else if (mode === FollowModes.OPENRIGHT) {
+            this.openLinkRight();
         }
         else if (mode === FollowModes.OPENTAB) {
             this.openLinkTab();

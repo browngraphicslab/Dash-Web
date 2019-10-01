@@ -101,6 +101,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             //if its open
             // this.openLinkFollower();
+            console.log("following default")
             LinkFollowBox.Instance.defaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow));
         }
     }
