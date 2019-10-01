@@ -3,7 +3,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import * as interpreter from "words-to-numbers";
 import { DocumentType } from "../documents/DocumentTypes";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
@@ -40,12 +40,26 @@ export namespace DictationManager {
             webkitSpeechRecognition: any;
         }
     }
-    const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
+    const { webkitSpeechRecognition }: CORE.IWindow = window as any as CORE.IWindow;
     export const placeholder = "Listening...";
 
     export namespace Controls {
 
         export const Infringed = "unable to process: dictation manager still involved in previous session";
+        const browser = (() => {
+            let identifier = navigator.userAgent.toLowerCase();
+            if (identifier.indexOf("safari") >= 0) {
+                return "Safari";
+            }
+            if (identifier.indexOf("chrome") >= 0) {
+                return "Chrome";
+            }
+            if (identifier.indexOf("firefox") >= 0) {
+                return "Firefox";
+            }
+            return "Unidentified Browser";
+        })();
+        const unsupported = `listening is not supported in ${browser}`;
         const intraSession = ". ";
         const interSession = " ... ";
 
@@ -55,8 +69,7 @@ export namespace DictationManager {
         let current: string | undefined = undefined;
         let sessionResults: string[] = [];
 
-        const recognizer: SpeechRecognition = new webkitSpeechRecognition() || new SpeechRecognition();
-        recognizer.onstart = () => console.log("initiating speech recognition session...");
+        const recognizer: Opt<SpeechRecognition> = webkitSpeechRecognition ? new webkitSpeechRecognition() : undefined;
 
         export type InterimResultHandler = (results: string) => any;
         export type ContinuityArgs = { indefinite: boolean } | false;
@@ -109,6 +122,10 @@ export namespace DictationManager {
         };
 
         const listenImpl = (options?: Partial<ListeningOptions>) => {
+            if (!recognizer) {
+                console.log(unsupported);
+                return unsupported;
+            }
             if (isListening) {
                 return Infringed;
             }
@@ -121,6 +138,7 @@ export namespace DictationManager {
             let intra = options && options.delimiters ? options.delimiters.intra : undefined;
             let inter = options && options.delimiters ? options.delimiters.inter : undefined;
 
+            recognizer.onstart = () => console.log("initiating speech recognition session...");
             recognizer.interimResults = handler !== undefined;
             recognizer.continuous = continuous === undefined ? false : continuous !== false;
             recognizer.lang = language === undefined ? "en-US" : language;
@@ -167,14 +185,20 @@ export namespace DictationManager {
                     } else {
                         resolve(current);
                     }
-                    reset();
+                    current = undefined;
+                    sessionResults = [];
+                    isListening = false;
+                    isManuallyStopped = false;
+                    recognizer.onresult = null;
+                    recognizer.onerror = null;
+                    recognizer.onend = null;
                 };
 
             });
         };
 
         export const stop = (salvageSession = true) => {
-            if (!isListening) {
+            if (!isListening || !recognizer) {
                 return;
             }
             isManuallyStopped = true;
@@ -195,16 +219,6 @@ export namespace DictationManager {
                 transcripts.push(results.item(i).item(0).transcript.trim());
             }
             return transcripts.join(delimiter || intraSession);
-        };
-
-        const reset = () => {
-            current = undefined;
-            sessionResults = [];
-            isListening = false;
-            isManuallyStopped = false;
-            recognizer.onresult = null;
-            recognizer.onerror = null;
-            recognizer.onend = null;
         };
 
     }
@@ -313,7 +327,7 @@ export namespace DictationManager {
             ["open fields", {
                 action: (target: DocumentView) => {
                     let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
-                    target.props.addDocTab(kvp, target.dataDoc, "onRight");
+                    target.props.addDocTab(kvp, target.props.DataDoc, "onRight");
                 }
             }],
 

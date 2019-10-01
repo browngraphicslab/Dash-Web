@@ -18,6 +18,7 @@ import { FilterBox } from './FilterBox';
 import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
+import { string } from 'prop-types';
 
 library.add(faTimes);
 
@@ -27,7 +28,7 @@ export class SearchBox extends React.Component {
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
-    @observable private _results: [Doc, string[]][] = [];
+    @observable private _results: [Doc, string[], string[]][] = [];
     private _resultsSet = new Map<Doc, number>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
@@ -159,6 +160,8 @@ export class SearchBox extends React.Component {
 
                     const highlighting = res.highlighting || {};
                     const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
+                    const lines = new Map<string, string[]>();
+                    res.docs.map((doc, i) => lines.set(doc[Id], res.lines[i]));
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
@@ -168,12 +171,14 @@ export class SearchBox extends React.Component {
                         filteredDocs.forEach(doc => {
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
+                            const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
                             if (index === undefined) {
                                 this._resultsSet.set(doc, this._results.length);
-                                this._results.push([doc, hlights]);
+                                this._results.push([doc, hlights, line]);
                             } else {
                                 this._results[index][1].push(...hlights);
+                                this._results[index][2].push(...line);
                             }
                         });
                     });
@@ -296,13 +301,13 @@ export class SearchBox extends React.Component {
             }
             else {
                 if (this._isSearch[i] !== "search") {
-                    let result: [Doc, string[]] | undefined = undefined;
+                    let result: [Doc, string[], string[]] | undefined = undefined;
                     if (i >= this._results.length) {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
                             let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
-                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} highlighting={highlights} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
                     }
@@ -310,7 +315,7 @@ export class SearchBox extends React.Component {
                         result = this._results[i];
                         if (result) {
                             let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
-                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} highlighting={highlights} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
                     }

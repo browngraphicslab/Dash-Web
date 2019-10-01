@@ -10,6 +10,7 @@ import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { undoBatch, UndoManager } from './UndoManager';
 import { Scripting } from './Scripting';
+import { List } from '../../new_fields/List';
 
 
 export class DocumentManager {
@@ -131,9 +132,7 @@ export class DocumentManager {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
-            const page = NumCast(doc.page, linkPage || 0);
-            const curPage = NumCast(contextDoc.curPage, page);
-            if (page !== curPage) contextDoc.curPage = page;
+            contextDoc.scrollY = NumCast(doc.y) - NumCast(contextDoc.height) / 2;
         }
 
         let docView: DocumentView | null;
@@ -146,6 +145,7 @@ export class DocumentManager {
             if (!contextDoc) {
                 let docs = docContext ? await DocListCastAsync(docContext.data) : undefined;
                 let found = false;
+                // bcz: this just searches within the context for the target -- perhaps it should recursively search through all children?
                 docs && docs.map(d => found = found || Doc.AreProtosEqual(d, docDelegate));
                 if (docContext && found) {
                     let targetContextView: DocumentView | null;
@@ -154,16 +154,19 @@ export class DocumentManager {
                         docContext.panTransformType = "Ease";
                         targetContextView.props.focus(docDelegate, willZoom);
                     } else {
-                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, undefined);
+                        (dockFunc || CollectionDockingView.AddRightSplit)(docContext, undefined);
                         setTimeout(() => {
-                            this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
-                        }, 10);
+                            let dv = DocumentManager.Instance.getDocumentView(docContext);
+                            dv && this.jumpToDocument(docDelegate, willZoom, forceDockFunc,
+                                doc => dv!.props.focus(dv!.props.Document, true, 1, () => dv!.props.addDocTab(doc, undefined, "inPlace")),
+                                linkPage);
+                        }, 1050);
                     }
                 } else {
                     const actualDoc = Doc.MakeAlias(docDelegate);
                     Doc.BrushDoc(actualDoc);
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, undefined);
+                    (dockFunc || CollectionDockingView.AddRightSplit)(actualDoc, undefined);
                 }
             } else {
                 let contextView: DocumentView | null;
@@ -172,10 +175,10 @@ export class DocumentManager {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(docDelegate, willZoom);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, undefined);
+                    (dockFunc || CollectionDockingView.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
                         this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
-                    }, 10);
+                    }, 1000);
                 }
             }
         }
@@ -183,13 +186,8 @@ export class DocumentManager {
 
     @action
     zoomIntoScale = (docDelegate: Doc, scale: number) => {
-        let doc = Doc.GetProto(docDelegate);
-
-        let docView: DocumentView | null;
-        docView = DocumentManager.Instance.getDocumentView(doc);
-        if (docView) {
-            docView.props.zoomToScale(scale);
-        }
+        let docView = DocumentManager.Instance.getDocumentView(Doc.GetProto(docDelegate));
+        docView && docView.props.zoomToScale(scale);
     }
 
     getScaleOfDocView = (docDelegate: Doc) => {
@@ -202,6 +200,35 @@ export class DocumentManager {
         } else {
             return 1;
         }
+    }
+
+    @action
+    animateBetweenPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
+        expandedDocs && expandedDocs.map(expDoc => {
+            if (expDoc.isMinimized || expDoc.isAnimating === "min") { // MAXIMIZE DOC
+                if (expDoc.isMinimized) {  // docs are never actaully at the minimized location.  so when we unminimize one, we have to set our overrides to make it look like it was at the minimize location
+                    expDoc.isMinimized = false;
+                    expDoc.animateToPos = new List<number>([...scrpt, 0]);
+                    expDoc.animateToDimensions = new List<number>([0, 0]);
+                }
+                setTimeout(() => {
+                    expDoc.isAnimating = "max";
+                    expDoc.animateToPos = new List<number>([0, 0, 1]);
+                    expDoc.animateToDimensions = new List<number>([NumCast(expDoc.width), NumCast(expDoc.height)]);
+                    setTimeout(() => expDoc.isAnimating === "max" && (expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined), 600);
+                }, 0);
+            } else {  // MINIMIZE DOC
+                expDoc.isAnimating = "min";
+                expDoc.animateToPos = new List<number>([...scrpt, 0]);
+                expDoc.animateToDimensions = new List<number>([0, 0]);
+                setTimeout(() => {
+                    if (expDoc.isAnimating === "min") {
+                        expDoc.isMinimized = true;
+                        expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined;
+                    }
+                }, 600);
+            }
+        });
     }
 }
 Scripting.addGlobal(function focus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });

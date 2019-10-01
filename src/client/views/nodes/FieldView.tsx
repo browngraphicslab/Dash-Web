@@ -30,6 +30,8 @@ export interface FieldViewProps {
     leaveNativeSize?: boolean;
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionDoc: Opt<Doc>;
+    ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;
     onClick?: ScriptField;
@@ -37,7 +39,7 @@ export interface FieldViewProps {
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
@@ -48,7 +50,6 @@ export interface FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     setVideoBox?: (player: VideoBox) => void;
-    setPdfBox?: (player: PDFBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;
 }
@@ -94,7 +95,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title}</b></p>;
+            return <p><b>{field.title && field.title.toString()}</b></p>;
             //return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (

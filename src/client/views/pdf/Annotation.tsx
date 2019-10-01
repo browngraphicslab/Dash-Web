@@ -1,20 +1,18 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, WidthSym, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
-import { scale } from "./PDFViewer";
-import { PresBox } from "../nodes/PresBox";
 
 interface IAnnotationProps {
     anno: Doc;
     fieldExtensionDoc: Doc;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
     pinToPres: (document: Doc) => void;
 }
 
@@ -31,7 +29,7 @@ interface IRegionAnnotationProps {
     width: number;
     height: number;
     fieldExtensionDoc: Doc;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
 }
@@ -58,7 +56,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                     runInAction(() => this._brushed = brushed);
                 }
             }
-        )
+        );
     }
 
     componentWillUnmount() {
@@ -87,7 +85,15 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
     @action
     onPointerDown = async (e: React.PointerEvent) => {
-        if (e.button === 0) {
+        if (e.button === 2 || e.ctrlKey) {
+            PDFMenu.Instance.Status = "annotation";
+            PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
+            PDFMenu.Instance.Pinned = false;
+            PDFMenu.Instance.AddTag = this.addTag.bind(this);
+            PDFMenu.Instance.PinToPres = this.pinToPres;
+            PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
+        }
+        else if (e.button === 0) {
             let targetDoc = await Cast(this.props.document.target, Doc);
             if (targetDoc) {
                 let context = await Cast(targetDoc.targetContext, Doc);
@@ -97,14 +103,6 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                         undefined, undefined);
                 }
             }
-        }
-        if (e.button === 2) {
-            PDFMenu.Instance.Status = "annotation";
-            PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
-            PDFMenu.Instance.Pinned = false;
-            PDFMenu.Instance.AddTag = this.addTag.bind(this);
-            PDFMenu.Instance.PinToPres = this.pinToPres;
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
         }
     }
 

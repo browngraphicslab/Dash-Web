@@ -3,18 +3,22 @@ import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { Utils } from '../../Utils';
+import { ResultParameters } from '../northstar/model/idea/idea';
+import { DocumentType } from '../documents/DocumentTypes';
 
 export namespace SearchUtil {
     export type HighlightingResult = { [id: string]: { [key: string]: string[] } };
 
     export interface IdSearchResult {
         ids: string[];
+        lines: string[][];
         numFound: number;
         highlighting: HighlightingResult | undefined;
     }
 
     export interface DocSearchResult {
         docs: Doc[];
+        lines: string[][];
         numFound: number;
         highlighting: HighlightingResult | undefined;
     }
@@ -30,16 +34,31 @@ export namespace SearchUtil {
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
-        const result: IdSearchResult = JSON.parse(await rp.get(Utils.prepend("/search"), {
+        let result: IdSearchResult = JSON.parse(await rp.get(Utils.prepend("/search"), {
             qs: { ...options, q: query },
         }));
         if (!returnDocs) {
             return result;
         }
-        const { ids, numFound, highlighting } = result;
+
+        let { ids, numFound, highlighting } = result;
+        let lines: string[][] = ids.map(i => []);
+
+        let txtresult = query !== "*" && JSON.parse(await rp.get(Utils.prepend("/textsearch"), {
+            qs: { ...options, q: query },
+        }));
+        let fileids = txtresult ? txtresult.ids : [];
+        await Promise.all(fileids.map(async (tr: string, i: number) => {
+            let docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
+            let docResult = JSON.parse(await rp.get(Utils.prepend("/search"), { qs: { ...options, q: docQuery } }));
+            ids.push(...docResult.ids);
+            lines.push(...docResult.ids.map((dr: any) => txtresult.lines[i]));
+            numFound += docResult.numFound;
+        }));
+
         const docMap = await DocServer.GetRefFields(ids);
-        const docs = ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc);
-        return { docs, numFound, highlighting };
+        const docs = ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc && doc.type !== DocumentType.KVP);
+        return { docs, numFound, highlighting, lines };
     }
 
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;

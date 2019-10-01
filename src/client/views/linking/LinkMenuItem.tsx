@@ -21,16 +21,14 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
 }
 
 @observer
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
-    @action toggleShowMore() {
-        this._showMore = !this._showMore;
-    }
+    @action toggleShowMore() { this._showMore = !this._showMore; }
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -72,7 +70,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.Instance.props.Document.isMinimized = false;
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-            LinkFollowBox.Instance.setAddDocTab(this.props.addDocTab);
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
         }
         e.stopPropagation();
     }
@@ -97,6 +95,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action.bound
     async followDefault() {
         if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             LinkFollowBox.Instance.defaultLinkBehavior();
         }
@@ -106,7 +105,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     async openLinkFollower() {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.Instance.props.Document.isMinimized = false;
-            MainView.Instance.toggleLinkFollowBox(false);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         }
     }

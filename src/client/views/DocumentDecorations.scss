@@ -154,7 +154,7 @@ $linkGap : 3px;
 .link-button-container {
     margin-top: $linkGap;
     grid-column: 1/4;
-    width: auto;
+    width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;
@@ -257,7 +257,7 @@ $linkGap : 3px;
     padding: 2px 12px;
     list-style: none;
 
-    .templateToggle {
+    .templateToggle, .chromeToggle {
         text-align: left;
     }
 
@@ -266,6 +266,31 @@ $linkGap : 3px;
     }
 }
 
-@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
-@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
-@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+@-moz-keyframes spin {
+    100% {
+        -moz-transform: rotate(360deg);
+    }
+}
+
+@-webkit-keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shadow-pulse {
+    0% {
+        box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+    }
+}

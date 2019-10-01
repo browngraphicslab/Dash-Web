@@ -24,6 +24,10 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.push(docView);
                 // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
+            } else if (!ctrlPressed && manager.SelectedDocuments.length > 1) {
+                manager.SelectedDocuments.map(dv => dv !== docView && dv.props.whenActiveChanged(false));
+                manager.SelectedDocuments = [docView];
+                FormattedTextBox.InputBoxOverlay = undefined;
             }
         }
         @action
@@ -83,21 +87,5 @@ export namespace SelectionManager {
 
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments.slice();
-    }
-    export function ViewsSortedHorizontally(): DocumentView[] {
-        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
-            if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
-            if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-            return 0;
-        });
-        return sorted;
-    }
-    export function ViewsSortedVertically(): DocumentView[] {
-        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
-            if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
-            if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;
-            return 0;
-        });
-        return sorted;
     }
 }

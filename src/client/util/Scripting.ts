@@ -19,6 +19,7 @@ export interface ScriptSucccess {
 export interface ScriptError {
     success: false;
     error: any;
+    result: any;
 }
 
 export type ScriptResult = ScriptSucccess | ScriptError;
@@ -27,7 +28,7 @@ export interface CompiledScript {
     readonly compiled: true;
     readonly originalScript: string;
     readonly options: Readonly<ScriptOptions>;
-    run(args?: { [name: string]: any }): ScriptResult;
+    run(args?: { [name: string]: any }, onError?: (res: any) => void, errorVal?: any): ScriptResult;
 }
 
 export interface CompileError {
@@ -100,7 +101,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
     // let params: any[] = [Docs, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);
     let { capturedVariables = {} } = options;
-    let run = (args: { [name: string]: any } = {}): ScriptResult => {
+    let run = (args: { [name: string]: any } = {}, onError?: (e: any) => void, errorVal?: any): ScriptResult => {
         let argsArray: any[] = [];
         for (let name of customParams) {
             if (name === "this") {
@@ -127,7 +128,8 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             if (batch) {
                 batch.end();
             }
-            return { success: false, error };
+            onError && onError(error);
+            return { success: false, error, result: errorVal };
         }
     };
     return { compiled: true, run, originalScript, options };

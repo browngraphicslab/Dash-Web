@@ -1,93 +1,66 @@
-
-.pdfViewer-viewer {
-    pointer-events:inherit;
+ 
+.pdfViewer-viewer, .pdfViewer-viewer-zoomed {
+    pointer-events: inherit;
     width: 100%;
-    .pdfViewer-visibleElements {
-        .pdfPage-cont {
-            .pdfPage-textLayer {
-                div {
-                    user-select: text;
-                }
-                span {
-                    color: transparent;
-                    position: absolute;
-                    white-space: pre;
-                    cursor: text;
-                    -webkit-transform-origin: 0% 0%;
-                    transform-origin: 0% 0%;
-                }
-            }
-        }
+    height: 100%;
+    position: absolute;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    // .canvasWrapper {
+    //     transform: scale(0.75);
+    //     transform-origin: top left;
+    // }
+    // .textLayer {
+    //     transform: scale(0.75);
+    //     transform-origin: top left;
+    // }
+
+    .page {
+        position: relative;
     }
-    .pdfViewer-text {
-        transform: scale(1.5);
-        transform-origin: top left;
+    .collectionfreeformview-container {
+        pointer-events: none;
     }
 
+    .pdfViewer-dragAnnotationBox {
+        position:absolute;
+        background-color: transparent;
+        opacity: 0.1;
+    }
+
+    .pdfViewer-overlay {
+        transform: scale(2.14359);
+        transform-origin: left top;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        display: inline-block;
+        width:100%;
+    }
     .pdfViewer-annotationLayer {
         position: absolute;
         top: 0;
         width: 100%;
         pointer-events: none;
+
         .pdfPage-annotationBox {
             position: absolute;
             background-color: red;
             opacity: 0.1;
         }
     }
-
-    .pdfViewer-overlayCont {
+    .pdfViewer-waiting {
+        width: 70%;
+        height: 70%;
+        margin : 15%;
+        transition: 0.4s opacity ease;
+        opacity: 0.7; 
         position: absolute;
-        width: 100%;
-        height: 100px;
-        background: #121721;
-        bottom: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-        overflow: hidden;
-        transition: left .5s;
-        .pdfViewer-overlaySearchBar {
-            width: 20%;
-            height: 100%;
-            font-size: 30px;
-            padding: 5px;
-        }
-    }
-
-    .pdfViewer-overlayButton {
-        border-bottom-left-radius: 50%;
-        display: flex;
-        justify-content: space-evenly;
-        align-items: center;
-        height: 70px;
-        background: none;
-        padding: 0;
-        position: absolute;
-
-        .pdfViewer-overlayButton-arrow {
-            width: 0;
-            height: 0;
-            border-top: 25px solid transparent;
-            border-bottom: 25px solid transparent;
-            border-right: 25px solid #121721;
-            transition: all 0.5s;
-        }
-
-        .pdfViewer-overlayButton-iconCont {
-            background: #121721;
-            height: 50px;
-            width: 70px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-left: -2px;
-            border-radius: 3px;
-        }
-    }
-
-    .pdfViewer-overlayButton:hover {
-        background: none;
+        z-index: 10;
     }
 }
+.pdfViewer-viewer-zoomed {
+    overflow-x: scroll;
+}
+   

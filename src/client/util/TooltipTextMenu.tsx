@@ -19,6 +19,7 @@ import { LinkManager } from "./LinkManager";
 import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
 import { Cast, NumCast } from '../../new_fields/Types';
+import { updateBullets } from './ProsemirrorExampleTransfer';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -58,10 +59,6 @@ export class TooltipTextMenu {
 
     private _collapsed: boolean = false;
 
-    @observable
-    private _storedMarks: Mark<any>[] | null | undefined;
-
-
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.editorProps = editorProps;
@@ -83,8 +80,6 @@ export class TooltipTextMenu {
         this.extras.appendChild(dragger);
 
         this.dragElement(dragger);
-
-        this._storedMarks = this.view.state.storedMarks;
 
         // this.createCollapse();
         // if (this._collapseBtn) {
@@ -280,7 +275,7 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
-                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f, undefined);
+                                else this.editorProps.addDocTab(f, undefined, "onRight");
                             }
                         }));
                     }
@@ -308,12 +303,17 @@ export class TooltipTextMenu {
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let linkDoc = dragData.linkDocument;
-                                let proto = Doc.GetProto(linkDoc);
-                                if (proto && docView && docView.props.ContainingCollectionView) {
-                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                if (dragData.linkDocument) {
+                                    let linkDoc = dragData.linkDocument;
+                                    let proto = Doc.GetProto(linkDoc);
+                                    if (proto && docView) {
+                                        proto.sourceContext = docView.props.ContainingCollectionDoc;
+                                    }
+                                    let text = this.makeLink(linkDoc, ctrlKey ? "onRight" : "inTab");
+                                    if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
+                                        proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
+                                    }
                                 }
-                                linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
                         },
                         hideSource: false
@@ -395,17 +395,24 @@ export class TooltipTextMenu {
         }
     }
 
-    makeLinkWithState = (state: EditorState, target: string, location: string) => {
-        let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
-    }
+    // makeLinkWithState = (state: EditorState, target: string, location: string) => {
+    //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
+    // }
 
-    makeLink = (target: string, location: string) => {
+    makeLink = (targetDoc: Doc, location: string): string => {
+        let target = Utils.prepend("/doc/" + targetDoc[Id]);
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: targetDoc[Id] });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
         link = node && node.marks.find(m => m.type.name === "link");
+        if (node) {
+            if (node.text) {
+                return node.text;
+            }
+        }
+        return "";
     }
 
     deleteLink = () => {
@@ -496,7 +503,7 @@ export class TooltipTextMenu {
             if (markType.name[0] === 'p') {
                 let size = this.fontSizeToNum.get(markType);
                 if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-                let ruleProvider = Cast(this.editorProps.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = this.editorProps.ruleProvider;
                 let heading = NumCast(this.editorProps.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleSize_" + heading] = size;
@@ -505,17 +512,18 @@ export class TooltipTextMenu {
             else {
                 let fontName = this.fontStylesToName.get(markType);
                 if (fontName) { this.updateFontStyleDropdown(fontName); }
-                let ruleProvider = Cast(this.editorProps.Document.ruleProvider, Doc) as Doc;
+                let ruleProvider = this.editorProps.ruleProvider;
                 let heading = NumCast(this.editorProps.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleFont_" + heading] = fontName;
                 }
             }
             //actually apply font
-            return toggleMark(markType)(view.state, view.dispatch, view);
-        }
-        else {
-            return;
+            if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
+                view.dispatch(updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                    { ...(view.state.selection as NodeSelection).node.attrs, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema));
+            }
+            else toggleMark(markType)(view.state, view.dispatch, view);
         }
     }
 
@@ -523,12 +531,12 @@ export class TooltipTextMenu {
         tx2.doc.descendants((node: any, offset: any, index: any) => {
             if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
                 let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
+                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
                 if (node.type === schema.nodes.ordered_list) depth++;
                 tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
             }
         });
-    };
+    }
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
         //remove oldif (nodeType) { //add new

@@ -32,7 +32,7 @@ export function SetupDrag(
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         let doc = await docFunc();
-        var dragData = new DragManager.DocumentDragData([doc], [undefined]);
+        var dragData = new DragManager.DocumentDragData([doc]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         dragData.options = options;
@@ -66,7 +66,7 @@ export function SetupDrag(
 
 function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
     const document = SelectionManager.SelectedDocuments()[0];
-    document.props.removeDocument && document.props.removeDocument(doc);
+    document && document.props.removeDocument && document.props.removeDocument(doc);
     addDocument(doc);
     return true;
 }
@@ -76,7 +76,7 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     if (draggeddoc) {
         let moddrag = await Cast(draggeddoc.annotationOn, Doc);
         let dragdocs = moddrag ? [moddrag] : [draggeddoc];
-        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        let dragData = new DragManager.DocumentDragData(dragdocs);
         dragData.moveDocument = moveLinkedDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
@@ -107,7 +107,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             if (doc) moddrag.push(doc);
         }
         let dragdocs = moddrag.length ? moddrag : draggedDocs;
-        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        let dragData = new DragManager.DocumentDragData(dragdocs);
         dragData.moveDocument = moveLinkedDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
@@ -201,18 +201,14 @@ export namespace DragManager {
 
     export type MoveFunction = (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     export class DocumentDragData {
-        constructor(dragDoc: Doc[], dragDataDocs: (Doc | undefined)[]) {
+        constructor(dragDoc: Doc[]) {
             this.draggedDocuments = dragDoc;
-            this.draggedDataDocs = dragDataDocs;
             this.droppedDocuments = dragDoc;
-            this.xOffset = 0;
-            this.yOffset = 0;
+            this.offset = [0, 0];
         }
         draggedDocuments: Doc[];
-        draggedDataDocs: (Doc | undefined)[];
         droppedDocuments: Doc[];
-        xOffset: number;
-        yOffset: number;
+        offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
@@ -225,14 +221,13 @@ export namespace DragManager {
             this.dragDocument = dragDoc;
             this.dropDocument = dropDoc;
             this.annotationDocument = annotationDoc;
-            this.xOffset = this.yOffset = 0;
+            this.offset = [0, 0];
         }
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
         dropDocument: Doc;
-        xOffset: number;
-        yOffset: number;
+        offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
     }
@@ -252,21 +247,13 @@ export namespace DragManager {
             });
     }
 
-    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize?: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
-        let dragData = new DragManager.DocumentDragData([], [undefined]);
+    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
+        let dragData = new DragManager.DocumentDragData([]);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
-                let compiled = CompileScript(script, {
-                    params: { doc: Doc.name },
-                    typecheck: false,
-                    editable: true
-                });
-                if (compiled.compiled) {
-                    let scriptField = new ScriptField(compiled);
-                    bd.onClick = scriptField;
-                }
+                bd.onClick = ScriptField.MakeScript(script);
                 params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
                 initialize && initialize(bd);
                 bd.buttonParams = new List<string>(params);
@@ -283,7 +270,8 @@ export namespace DragManager {
                 let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
                     let dvs = DocumentManager.Instance.getDocumentViews(d);
                     if (dvs.length) {
-                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+                        let containingView = SelectionManager.SelectedDocuments()[0] ? SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView : undefined;
+                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === containingView);
                         if (inContext.length) {
                             inContext.forEach(dv => droppedDocs.push(dv.props.Document));
                         } else {
@@ -361,10 +349,8 @@ export namespace DragManager {
         let xs: number[] = [];
         let ys: number[] = [];
 
-        const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
-        const datadocs: (Doc | undefined)[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDataDocs : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
+        const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments :
+            dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -393,22 +379,20 @@ export namespace DragManager {
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
-            // bcz: if PDFs are rendered with svg's, then this code isn't needed
-            // bcz: PDFs don't show up if you clone them when rendered using a canvas. 
-            //      however, PDF's have a thumbnail field that contains an image of their canvas.
-            //      So we replace the pdf's canvas with the image thumbnail
-            // if (docs.length) {
-            //     var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
-            //     let thumbnail = docs[0].GetT(KeyStore.Thumbnail, ImageField);
-            //     if (pdfBox && pdfBox.childElementCount && thumbnail) {
-            //         let img = new Image();
-            //         img.src = thumbnail.toString();
-            //         img.style.position = "absolute";
-            //         img.style.width = `${rect.width / scaleX}px`;
-            //         img.style.height = `${rect.height / scaleY}px`;
-            //         pdfBox.replaceChild(img, pdfBox.children[0])
-            //     }
-            // }
+            if (docs.length) {
+                var pdfBox = dragElement.getElementsByTagName("canvas");
+                var pdfBoxSrc = ele.getElementsByTagName("canvas");
+                Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
+                var pdfView = dragElement.getElementsByClassName("pdfViewer-viewer");
+                var pdfViewSrc = ele.getElementsByClassName("pdfViewer-viewer");
+                let tops = Array.from(pdfViewSrc).map(p => p.scrollTop);
+                let oldopacity = dragElement.style.opacity;
+                dragElement.style.opacity = "0";
+                setTimeout(() => {
+                    dragElement.style.opacity = oldopacity;
+                    Array.from(pdfView).map((v, i) => v.scrollTo({ top: tops[i] }));
+                }, 0);
+            }
             let set = dragElement.getElementsByTagName('*');
             if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
             // tslint:disable-next-line: prefer-for-of
@@ -432,8 +416,8 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        eles.map(ele => (ele.hidden = hideSource) &&
-            (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource)));
+
+        eles.map(ele => ele.hidden = hideSource);
 
         let lastX = downX;
         let lastY = downY;
@@ -449,7 +433,7 @@ export namespace DragManager {
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                }, docs, datadocs);
+                }, docs);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
             let moveX = e.pageX - lastX;
@@ -461,12 +445,9 @@ export namespace DragManager {
             );
         };
 
-        let hideDragElements = () => {
+        let hideDragShowOriginalElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => {
-                ele.hidden = false;
-                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = false));
-            });
+            eles.map(ele => ele.hidden = false);
         };
         let endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
@@ -477,12 +458,12 @@ export namespace DragManager {
         };
 
         AbortDrag = () => {
-            hideDragElements();
+            hideDragShowOriginalElements();
             SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
-            hideDragElements();
+            hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
             SelectionManager.SetIsDragging(false);
             endDrag();

@@ -195,11 +195,9 @@ export class FilterBox extends React.Component {
                     collections.push(element.props.Document);
                 }
             }
-            //gets the selected doc's containing view
-            let containingView = element.props.ContainingCollectionView;
             //makes sure collections aren't added more than once
-            if (containingView && !collections.includes(containingView.props.Document)) {
-                collections.push(containingView.props.Document);
+            if (element.props.ContainingCollectionDoc && !collections.includes(element.props.ContainingCollectionDoc)) {
+                collections.push(element.props.ContainingCollectionDoc);
             }
         });
 

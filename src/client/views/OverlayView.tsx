@@ -141,6 +141,9 @@ export class OverlayView extends React.Component {
     }
 
     @computed get overlayDocs() {
+        if (!CurrentUserUtils.UserDocument) {
+            return (null);
+        }
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
             let offsetx = 0, offsety = 0;
             let onPointerMove = action((e: PointerEvent) => {
@@ -172,6 +175,7 @@ export class OverlayView extends React.Component {
                     ChromeHeight={returnZero}
                     isSelected={returnFalse}
                     select={emptyFunction}
+                    ruleProvider={undefined}
                     layoutKey={"layout"}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
@@ -185,9 +189,10 @@ export class OverlayView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
-                    addDocTab={emptyFunction}
+                    addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     zoomToScale={emptyFunction}
                     getScale={returnOne} />
             </div>;

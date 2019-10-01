@@ -1,7 +1,7 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
@@ -12,7 +12,7 @@ import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
-import { DocumentType } from '../../documents/DocumentTypes';
+import { ImageField } from '../../../new_fields/URLField';
 
 export enum CollectionViewType {
     Invalid,
@@ -21,7 +21,8 @@ export enum CollectionViewType {
     Docking,
     Tree,
     Stacking,
-    Masonry
+    Masonry,
+    Pivot,
 }
 
 export namespace CollectionViewType {
@@ -33,7 +34,8 @@ export namespace CollectionViewType {
         ["docking", CollectionViewType.Docking],
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
-        ["masonry", CollectionViewType.Masonry]
+        ["masonry", CollectionViewType.Masonry],
+        ["pivot", CollectionViewType.Pivot]
     ]);
 
     export const valueOf = (value: string) => {
@@ -80,12 +82,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc ? this.props.DataDoc : this.props.Document : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get dataDoc() { return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
     @computed get dataField() { return this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey; }
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
+        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
     }
 
     //TODO should this be observable?
@@ -95,7 +97,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
@@ -104,7 +106,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
-        allowDuplicates = true;
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         const value = Cast(targetDataDoc[targetField], listSpec(Doc));
@@ -127,7 +128,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
+        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
 
@@ -141,17 +143,31 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return false;
     }
 
+    // this is called with the document that was dragged and the collection to move it into.
+    // if the target collection is the same as this collection, then the move will be allowed.
+    // otherwise, the document being moved must be able to be removed from its container before
+    // moving it into the target.  
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        let self = this;
-        let targetDataDoc = this.props.Document;
-        if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
+        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
-        if (this.removeDocument(doc)) {
-            return addDocument(doc);
+        return this.removeDocument(doc) ? addDocument(doc) : false;
+    }
+
+    showIsTagged = () => {
+        const children = DocListCast(this.props.Document.data);
+        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        if (allTagged) {
+            return (
+                <img
+                    id={"google-tags"}
+                    src={"/assets/google_tags.png"}
+                />
+            );
         }
-        return false;
+        return (null);
     }
 
     render() {
@@ -171,6 +187,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+                {this.showIsTagged()}
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

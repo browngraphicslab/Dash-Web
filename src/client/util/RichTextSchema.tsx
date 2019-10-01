@@ -135,6 +135,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             alt: { default: null },
             title: { default: null },
             float: { default: "left" },
+            location: { default: "onRight" },
             docid: { default: "" }
         },
         group: "inline",
@@ -198,6 +199,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
+            setFontSize: { default: undefined },
+            inheritedFontSize: { default: undefined },
             visibility: { default: true }
         },
         toDOM(node: Node<any>) {
@@ -205,8 +208,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
-            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
-                ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
+            let fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
+            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;font-size: ${fsize}` }, 0] :
+                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}` }];
         }
     },
 
@@ -253,7 +257,7 @@ export const marks: { [index: string]: MarkSpec } = {
             href: {},
             location: { default: null },
             title: { default: null },
-            docref: { default: false }
+            docref: { default: false } // flags whether the linked text comes from a document within Dash.  If so, an attribution label is appended after the text
         },
         inclusive: false,
         parseDOM: [{
@@ -349,8 +353,9 @@ export const marks: { [index: string]: MarkSpec } = {
                         let style = getComputedStyle(p);
                         if (style.textDecoration === "underline") return null;
                         if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
-                            p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1)
+                            p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1) {
                             return null;
+                        }
                     }
                     return false;
                 }
@@ -371,10 +376,9 @@ export const marks: { [index: string]: MarkSpec } = {
                 getAttrs: (p: any) => {
                     if (typeof (p) !== "string") {
                         let style = getComputedStyle(p);
-                        if (style.textDecoration === "underline")
+                        if (style.textDecoration === "underline" || p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1) {
                             return null;
-                        if (p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1)
-                            return null;
+                        }
                     }
                     return false;
                 }
@@ -616,6 +620,7 @@ export class ImageResizeView {
                 e.preventDefault();
                 e.stopPropagation();
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc => {
+                    const location = node.attrs.location;
                     if (linkDoc instanceof Doc) {
                         let proto = Doc.GetProto(linkDoc);
                         let targetContext = await Cast(proto.targetContext, Doc);
@@ -633,11 +638,11 @@ export class ImageResizeView {
                             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
                         } else {
                             DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
-                        } e.ctrlKey
+                        }
                     }
                 });
             }
-        }
+        };
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
@@ -776,11 +781,11 @@ export class FootnoteView {
         this.innerView.updateState(state);
 
         if (!tr.getMeta("fromOutside")) {
-            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1)
-            for (let i = 0; i < transactions.length; i++) {
-                let steps = transactions[i].steps;
-                for (let j = 0; j < steps.length; j++) {
-                    outerTr.step(steps[j].map(offsetMap));
+            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
+            for (let transaction of transactions) {
+                let steps = transaction.steps;
+                for (let step of steps) {
+                    outerTr.step(step.map(offsetMap));
                 }
             }
             if (outerTr.docChanged) this.outerView.dispatch(outerTr);

@@ -51,8 +51,17 @@ export class InkingControl extends React.Component {
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
-                if (view.props.ContainingCollectionView && view.props.ContainingCollectionView.props.Document.colorPalette) {
-                    let cp = Cast(view.props.ContainingCollectionView.props.Document.colorPalette, listSpec("string")) as string[];
+                let matchedColor = this._selectedColor;
+                const cvd = view.props.ContainingCollectionDoc;
+                let ruleProvider = view.props.ruleProvider;
+                if (cvd) {
+                    if (!cvd.colorPalette) {
+                        let defaultPalette = ["rg(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                            "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+                        let colorPalette = Cast(cvd.colorPalette, listSpec("string"));
+                        if (!colorPalette) cvd.colorPalette = new List<string>(defaultPalette);
+                    }
+                    let cp = Cast(cvd.colorPalette, listSpec("string")) as string[];
                     let closest = 0;
                     let dist = 10000000;
                     let ccol = Utils.fromRGBAstr(StrCast(targetDoc.backgroundColor));
@@ -65,21 +74,13 @@ export class InkingControl extends React.Component {
                         }
                     }
                     cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
-                    view.props.ContainingCollectionView.props.Document.colorPalette = new List(cp);
-                    targetDoc.backgroundColor = cp[closest];
-                } else
-                    targetDoc.backgroundColor = this._selectedColor;
-                if (view.props.Document.heading) {
-                    let cv = view.props.ContainingCollectionView;
-                    let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
-                    let parback = cv && StrCast(cv.props.Document.backgroundColor);
-                    cv && parback && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb));
-                    // if (parback && cv && parback.indexOf("rgb") !== -1) {
-                    //     let parcol = Utils.fromRGBAstr(parback);
-                    //     let hsl = Utils.RGBToHSL(parcol.r, parcol.g, parcol.b);
-                    //     cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = color.hsl.s - hsl.s);
-                    // }
+                    cvd.colorPalette = new List(cp);
+                    matchedColor = cp[closest];
+                    ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
+                    ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
+                !ruleProvider && (targetDoc.backgroundColor = matchedColor);
+
                 return {
                     target: targetDoc,
                     previous: oldColor
