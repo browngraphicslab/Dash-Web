@@ -3,7 +3,7 @@ import { faFile } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, Lambda, observable, reaction, computed, runInAction } from "mobx";
+import { action, Lambda, observable, reaction, computed, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -659,7 +659,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }
-    docView(document: Doc) {
+
+    @computed get docView() {
+        if (!this._document) return (null);
+        const document = this._document;
         let resolvedDataDoc = document.layout instanceof Doc ? document : this._dataDoc;
         return <DocumentView key={document[Id]}
             Document={document}
@@ -692,7 +695,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
                     height: this._document && this._document.fitWidth ? undefined : "100%"
                 }}>
-                {this.docView(this._document)}
+                {this.docView}
             </div >);
     }
 }

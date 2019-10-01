@@ -41,6 +41,7 @@ interface IViewerProps {
     PanelHeight: () => number;
     ContentScaling: () => number;
     select: (isCtrlPressed: boolean) => void;
+    startupLive: boolean;
     renderDepth: number;
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
@@ -75,6 +76,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _zoomed = 1;
 
     public pdfViewer: any;
+    private _retries = 0; // number of times tried to create the PDF viewer 
     private _isChildActive = false;
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
@@ -84,7 +86,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _filterReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
     private _startX: number = 0;
     private _startY: number = 0;
@@ -106,7 +107,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         // file address of the pdf
         this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
         runInAction(() => this._showWaiting = this._showCover = true);
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => this.setupPdfJsViewer());
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => this.setupPdfJsViewer(), { fireImmediately: this.props.startupLive });
         this._reactionDisposer = reaction(
             () => this.props.Document.scrollY,
             (scrollY) => {
@@ -199,6 +200,17 @@ export class PDFViewer extends React.Component<IViewerProps> {
             this.gotoPage(NumCast(this.props.Document.curPage, 1));
         }));
         document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
+        this.createPdfViewer();
+    }
+
+    createPdfViewer() {
+        if (!this._mainCont.current) {
+            if (this._retries < 5) {
+                this._retries++;
+                setTimeout(() => this.createPdfViewer(), 1000);
+            }
+            return;
+        }
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
@@ -664,7 +676,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
     render() {
-        trace();
         return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
             {this.pdfViewerDiv}
             <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />

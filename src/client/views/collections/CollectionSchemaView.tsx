@@ -958,10 +958,10 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         }
         return true;
     }
-    private PanelWidth = () => this.nativeWidth ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth();
-    private PanelHeight = () => this.nativeHeight ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight();
+    private PanelWidth = () => this.nativeWidth && (!this.props.Document || !this.props.Document.fitWidth) ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth();
+    private PanelHeight = () => this.nativeHeight && (!this.props.Document || !this.props.Document.fitWidth) ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight();
     private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling());
-    get centeringOffset() { return this.nativeWidth ? (this.props.PanelWidth() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
+    get centeringOffset() { return this.nativeWidth && (!this.props.Document || !this.props.Document.fitWidth) ? (this.props.PanelWidth() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
     @action
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);

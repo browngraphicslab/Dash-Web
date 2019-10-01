@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction } from "mobx";
+import { action, computed, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -601,6 +601,39 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (showTitle ? 25 : 0) + 1;
     }
 
+    childScaling = () => (this.props.Document.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
+    @computed get contents() {
+        return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
+            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            Document={this.props.Document}
+            fitToBox={this.props.fitToBox}
+            addDocument={this.props.addDocument}
+            removeDocument={this.props.removeDocument}
+            moveDocument={this.props.moveDocument}
+            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            renderDepth={this.props.renderDepth}
+            showOverlays={this.props.showOverlays}
+            ContentScaling={this.childScaling}
+            ruleProvider={this.props.ruleProvider}
+            PanelWidth={this.props.PanelWidth}
+            PanelHeight={this.props.PanelHeight}
+            focus={this.props.focus}
+            parentActive={this.props.parentActive}
+            whenActiveChanged={this.props.whenActiveChanged}
+            bringToFront={this.props.bringToFront}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            zoomToScale={this.props.zoomToScale}
+            backgroundColor={this.props.backgroundColor}
+            animateBetweenIcon={this.props.animateBetweenIcon}
+            getScale={this.props.getScale}
+            ChromeHeight={this.chromeHeight}
+            isSelected={this.isSelected}
+            select={this.select}
+            onClick={this.onClickHandler}
+            layoutKey="layout"
+            DataDoc={this.props.DataDoc} />);
+    }
     render() {
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
@@ -610,8 +643,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
-        const nativeWidth = this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.Document.ignoreAspect || this.props.Document.fitWidth ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
+        const nativeWidth = this.props.Document.fitWidth ? this.props.PanelWidth() : this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
+        const nativeHeight = this.props.Document.fitWidth ? this.props.PanelHeight() : this.Document.ignoreAspect || this.props.Document.fitWidth ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
@@ -645,13 +678,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     SetValue={(value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true}
                 />
             </div>);
-        const contents = (<DocumentContentsView {...this.props}
-            ChromeHeight={this.chromeHeight}
-            isSelected={this.isSelected}
-            select={this.select}
-            onClick={this.onClickHandler}
-            layoutKey={"layout"}
-            DataDoc={this.props.DataDoc} />);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -666,7 +692,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     background: backgroundColor,
                     width: nativeWidth,
                     height: nativeHeight,
-                    transform: `scale(${this.props.ContentScaling()})`,
+                    transform: `scale(${this.props.Document.fitWidth ? 1 : this.props.ContentScaling()})`,
                     opacity: this.Document.opacity
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
@@ -675,15 +701,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">
-                            {contents}
+                            {this.contents}
                             {searchHighlight}
                         </div>)
                         :
-                        contents
+                        this.contents
                     :
                     <div className="documentView-styleWrapper" >
                         <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 29px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
-                            {contents}
+                            {this.contents}
                         </div>
                         {titleView}
                         {captionView}

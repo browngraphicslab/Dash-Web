@@ -35,6 +35,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private _scriptValue: string = "";
     private _searchString: string = "";
     private _isChildActive = false;
+    private _everActive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
     private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _valueRef: React.RefObject<HTMLInputElement> = React.createRef();
@@ -176,20 +177,25 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
-
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
-        return (!(pdfUrl instanceof PdfField) || !this._pdf || this.props.ScreenToLocalTransform().Scale > 6 ?
+        let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
+        if (!noPdf && (this.props.isSelected() || this.props.ScreenToLocalTransform().Scale < 2.5)) this._everActive = true;
+        return (!this._everActive ?
             <div className="pdfBox-title-outer"><div className="pdfBox-title-cont" >
                 <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong> </div></div> :
-            <div className={classname} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
+            <div className={classname} style={{
+                transformOrigin: "top left", width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
+            }} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
                 let hit = document.elementFromPoint(e.clientX, e.clientY);
                 if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
                     e.button === 0 && e.stopPropagation();
                 }
             }}>
-                <PDFViewer {...this.props} pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} loaded={this.loaded}
+                <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                     setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
@@ -197,7 +203,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
+                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} startupLive={this.props.ScreenToLocalTransform().Scale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }

@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
@@ -133,7 +133,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     getDisplayDoc(layoutDoc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
-        return <CollectionSchemaPreview {...this.props}
+        return <CollectionSchemaPreview
             Document={layoutDoc}
             DataDocument={dataDoc}
             showOverlays={this.overlays}
@@ -168,7 +168,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
             return wid * aspect;
         }
-        return d.fitWidth ? Math.min(this.props.PanelHeight() - 2 * this.yMargin, d[HeightSym]()) : d[HeightSym]();
+        return d.fitWidth ? this.props.PanelHeight() - 2 * this.yMargin : d[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
