@@ -20,12 +20,8 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { OmitKeys, JSONUtils } from "../../Utils";
-<<<<<<< HEAD
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField, WebCamField } from "../../new_fields/URLField";
-=======
 import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
->>>>>>> 69e4a936c4eb0cc2e35e4e7f3258aed1f72b8da7
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField, WebCamField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast } from "../../new_fields/Types";
@@ -49,14 +45,9 @@ import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
-<<<<<<< HEAD
 import { DashWebCam } from "../views/webcam/DashWebCam";
 import { DashWebRTC } from "../views/webcam/DashWebRTC";
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
-=======
 import { PresElementBox } from "../views/presentationview/PresElementBox";
->>>>>>> 69e4a936c4eb0cc2e35e4e7f3258aed1f72b8da7
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -186,15 +177,12 @@ export namespace Docs {
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
             }],
-<<<<<<< HEAD
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTC }
-            }]
-=======
+            }],
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox }
             }],
->>>>>>> 69e4a936c4eb0cc2e35e4e7f3258aed1f72b8da7
         ]);
 
         // All document prototypes are initialized with at least these values

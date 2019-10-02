@@ -30,20 +30,12 @@ import { PresElementBox } from "../presentationview/PresElementBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import React = require("react");
-<<<<<<< HEAD
-import { FieldViewProps } from "./FieldView";
-import { Without, OmitKeys } from "../../../Utils";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
-import { Doc } from "../../../new_fields/Doc";
-import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
-import { ScriptField } from "../../../new_fields/ScriptField";
 import { fromPromise } from "mobx-utils";
 import { DashWebCam } from "../../views/webcam/DashWebCam";
 import { DashWebRTC } from "../webcam/DashWebRTC";
 
-=======
->>>>>>> 69e4a936c4eb0cc2e35e4e7f3258aed1f72b8da7
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -115,11 +107,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-<<<<<<< HEAD
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, DashWebCam, DashWebRTC }}
-=======
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
->>>>>>> 69e4a936c4eb0cc2e35e4e7f3258aed1f72b8da7
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, DashWebCam, DashWebRTC }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

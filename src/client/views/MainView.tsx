@@ -1,9 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-<<<<<<< HEAD
 import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv, faVideo } from '@fortawesome/free-solid-svg-icons';
-=======
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
->>>>>>> 69e4a936c4eb0cc2e35e4e7f3258aed1f72b8da7
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
