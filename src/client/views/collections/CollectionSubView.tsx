@@ -31,6 +31,7 @@ export interface CollectionViewProps extends FieldViewProps {
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    VisibleHeight?: () => number;
     chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }

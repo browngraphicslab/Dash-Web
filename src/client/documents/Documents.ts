@@ -653,32 +653,30 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionDoc === target) return;
-        if (target === CurrentUserUtils.UserDocument) return undefined;
+    export function MakeLink(source: {doc:Doc,ctx?:Doc}, target: {doc:Doc,ctx?:Doc}, title: string = "", description: string = "", id?: string, anchored1?: boolean) {
+        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
         let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = targetContext;
-            linkDocProto.sourceContext = sourceContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.targetContext = target.ctx;
+            linkDocProto.sourceContext = source.ctx;
+            linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
 
-            linkDocProto.anchor1 = source;
-            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor1anchored = anchored1;
-            linkDocProto.anchor2 = target;
-            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2 = target.doc;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

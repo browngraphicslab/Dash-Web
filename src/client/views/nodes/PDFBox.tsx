@@ -57,11 +57,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
-        if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
-            let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
-            this.Document.nativeWidth = nw * 96 / 72;
-            this.Document.nativeHeight = this.Document.nativeHeight ? nw * 96 / 72 * oldaspect : nh * 96 / 72;
-        }
+        this.Document.nativeWidth = nw * 96 / 72;
+        this.Document.nativeHeight = nh * 96 / 72;
         !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
@@ -177,12 +174,14 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
+    _initialScale: number | undefined;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
-        if (!noPdf && (this.props.isSelected() || this.props.ScreenToLocalTransform().Scale < 2.5)) this._everActive = true;
-        return (!this._everActive ?
+        if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
+        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
             <div className="pdfBox-title-outer" >
                 <div className={classname} >
                     <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
@@ -203,11 +202,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
-                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage}
+                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} startupLive={this.props.ScreenToLocalTransform().Scale < 2.5 ? true : false} />
+                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }

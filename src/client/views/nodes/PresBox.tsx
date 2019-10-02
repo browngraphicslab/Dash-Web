@@ -43,8 +43,8 @@ export class PresBox extends React.Component<FieldViewProps> {
                 value.forEach((item, i) => {
                     if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
                         let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
-                        Doc.GetProto(pinDoc).target = item;
-                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
+                        Doc.GetProto(pinDoc).presentationTargetDoc = item;
+                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
                         value.splice(i, 1, pinDoc);
                     }
                 });
@@ -124,13 +124,13 @@ export class PresBox extends React.Component<FieldViewProps> {
         this.childDocs.forEach((doc, ind) => {
             //the order of cases is aligned based on priority
             if (doc.hideTillShownButton && ind <= index) {
-                (doc.target as Doc).opacity = 1;
+                (doc.presentationTargetDoc as Doc).opacity = 1;
             }
             if (doc.hideAfterButton && ind < index) {
-                (doc.target as Doc).opacity = 0;
+                (doc.presentationTargetDoc as Doc).opacity = 0;
             }
             if (doc.fadeButton && ind < index) {
-                (doc.target as Doc).opacity = 0.5;
+                (doc.presentationTargetDoc as Doc).opacity = 0.5;
             }
         });
     }
@@ -145,13 +145,13 @@ export class PresBox extends React.Component<FieldViewProps> {
             //the order of cases is aligned based on priority
 
             if (key.hideAfterButton && ind >= index) {
-                (key.target as Doc).opacity = 1;
+                (key.presentationTargetDoc as Doc).opacity = 1;
             }
             if (key.fadeButton && ind >= index) {
-                (key.target as Doc).opacity = 1;
+                (key.presentationTargetDoc as Doc).opacity = 1;
             }
             if (key.hideTillShownButton && ind > index) {
-                (key.target as Doc).opacity = 0;
+                (key.presentationTargetDoc as Doc).opacity = 0;
             }
         });
     }
@@ -162,7 +162,7 @@ export class PresBox extends React.Component<FieldViewProps> {
      * te option open, navigates to that element.
      */
     navigateToElement = async (curDoc: Doc, fromDocIndex: number) => {
-        let fromDoc = this.childDocs[fromDocIndex].target as Doc;
+        let fromDoc = this.childDocs[fromDocIndex].presentationTargetDoc as Doc;
         let docToJump = curDoc;
         let willZoom = false;
 
@@ -190,7 +190,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            let target = await curDoc.target as Doc;
+            let target = await curDoc.presentationTargetDoc as Doc;
             if (curDoc.navButton) {
                 DocumentManager.Instance.jumpToDocument(target, false);
             } else if (curDoc.showButton) {
@@ -210,8 +210,8 @@ export class PresBox extends React.Component<FieldViewProps> {
         let curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
 
         //awaiting jump so that new scale can be found, since jumping is async
-        await DocumentManager.Instance.jumpToDocument(await docToJump.target as Doc, willZoom);
-        let newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.target as Doc);
+        await DocumentManager.Instance.jumpToDocument(await docToJump.presentationTargetDoc as Doc, willZoom);
+        let newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on
         if (curScale !== 1) {

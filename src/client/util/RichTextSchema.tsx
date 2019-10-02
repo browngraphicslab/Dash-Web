@@ -627,17 +627,16 @@ export class ImageResizeView {
                         let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
                         if (jumpToDoc) {
                             if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-
-                                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
                                 return;
                             }
                         }
                         if (targetContext) {
-                            DocumentManager.Instance.jumpToDocument(targetContext, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                            DocumentManager.Instance.jumpToDocument(targetContext, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
                         } else if (jumpToDoc) {
-                            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
                         } else {
-                            DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                            DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
                         }
                     }
                 });

@@ -9,7 +9,7 @@ import { Fragment, Node, Node as ProsNode, NodeType, Slice, Mark, ResolvedPos } 
 import { EditorState, Plugin, Transaction, TextSelection, NodeSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -230,7 +230,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
                     if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id, true);
+                    else DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: this.dataDoc[key] as Doc }, "Ref:" + value, "link to named target", id, true);
                 });
             });
         });
@@ -342,7 +342,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
             this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url, docid: target[Id] })));
-            DocUtils.MakeLink(this.dataDoc, target, undefined, "ImgRef:" + target.title, undefined, undefined, target[Id]);
+            DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
             this.tryUpdateHeight();
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
@@ -667,55 +667,42 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
         let cbe = event as ClipboardEvent;
-        let docId: string;
-        let regionId: string;
-        if (!cbe.clipboardData) {
-            return false;
-        }
-        let linkId: string;
-        docId = cbe.clipboardData.getData("dash/pdfOrigin");
-        regionId = cbe.clipboardData.getData("dash/pdfRegion");
-        if (!docId || !regionId) {
-            return false;
-        }
+        const pdfDocId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfOrigin");
+        const pdfRegionId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfRegion");
+        if (pdfDocId && pdfRegionId) {
+            DocServer.GetRefField(pdfDocId).then(pdfDoc => {
+                DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
+                    if ((pdfDoc instanceof Doc) && (pdfRegion instanceof Doc)) {
+                        setTimeout(async () => {
+                            let targetAnnotations = await DocListCastAsync(Doc.fieldExtensionDoc(pdfDoc, "data").annotations);// bcz: NO... this assumes the pdf is using its 'data' field.  need to have the PDF's view handle updating its own annotations
+                            targetAnnotations && targetAnnotations.push(pdfRegion);
+                        });
 
-        DocServer.GetRefField(docId).then(doc => {
-            DocServer.GetRefField(regionId).then(region => {
-                if (!(doc instanceof Doc) || !(region instanceof Doc)) {
-                    return;
-                }
-
-                let annotations = DocListCast(region.annotations);
-                annotations.forEach(anno => anno.target = this.props.Document);
-                let fieldExtDoc = Doc.fieldExtensionDoc(doc, "data");
-                let targetAnnotations = DocListCast(fieldExtDoc.annotations);
-                if (targetAnnotations) {
-                    targetAnnotations.push(region);
-                    fieldExtDoc.annotations = new List<Doc>(targetAnnotations);
-                }
-
-                let link = DocUtils.MakeLink(this.props.Document, region, doc);
-                if (link) {
-                    cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
-                    linkId = link[Id];
-                    let frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(doc.title)));
-                    slice = new Slice(frag, slice.openStart, slice.openEnd);
-                    var tr = view.state.tr.replaceSelection(slice);
-                    view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
-                }
+                        let link = DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: pdfRegion, ctx: pdfDoc }, "note on " + pdfDoc.title, "pasted PDF link");
+                        if (link) {
+                            cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
+                            let linkId = link[Id];
+                            let frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
+                            slice = new Slice(frag, slice.openStart, slice.openEnd);
+                            var tr = view.state.tr.replaceSelection(slice);
+                            view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                        }
+                    }
+                });
             });
-        });
+            return true;
+        }
+        return false;
 
-        return true;
 
         function addMarkToFrag(frag: Fragment, marker: (node: Node) => Node) {
             const nodes: Node[] = [];
             frag.forEach(node => nodes.push(marker(node)));
             return Fragment.fromArray(nodes);
         }
-        function addLinkMark(node: Node, title: string) {
+        function addLinkMark(node: Node, title: string, linkId: string) {
             if (!node.isText) {
-                const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title));
+                const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title, linkId));
                 return node.copy(content);
             }
             const marks = [...node.marks];
@@ -879,16 +866,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                                 if (jumpToDoc) {
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
                                         return;
                                     }
                                 }
                                 if (targetContext && (!jumpToDoc || targetContext !== await jumpToDoc.annotationOn)) {
-                                    DocumentManager.Instance.jumpToDocument(jumpToDoc || targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), undefined, targetContext);
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc || targetContext, ctrlKey, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), targetContext);
                                 } else if (jumpToDoc) {
-                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
                                 } else {
-                                    DocumentManager.Instance.jumpToDocument(linkDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                    DocumentManager.Instance.jumpToDocument(linkDoc, ctrlKey, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
                                 }
                             }
                         });

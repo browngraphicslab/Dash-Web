@@ -192,7 +192,7 @@ export default class SharingManager extends React.Component<{}> {
                 onClick={() => {
                     let context: Opt<CollectionVideoView | CollectionPDFView | CollectionView>;
                     if (this.targetDoc && this.targetDocView && (context = this.targetDocView.props.ContainingCollectionView)) {
-                        DocumentManager.Instance.jumpToDocument(this.targetDoc, true, undefined, undefined, undefined, context.props.Document);
+                        DocumentManager.Instance.jumpToDocument(this.targetDoc, true, undefined, context.props.Document);
                     }
                 }}
                 onPointerEnter={action(() => {

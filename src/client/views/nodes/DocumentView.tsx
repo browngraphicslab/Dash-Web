@@ -206,7 +206,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
         let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-        let linkedDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
+        let linkDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
         let expandedDocs: Doc[] = [];
         expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
         expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
@@ -223,28 +223,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 expandedDocs.forEach(maxDoc => (!this.props.addDocTab(maxDoc, undefined, "close") && this.props.addDocTab(maxDoc, undefined, maxLocation)));
             }
         }
-        else if (linkedDocs.length) {
-            SelectionManager.DeselectAll();
-            let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document) && !d.anchor1anchored);
-            let second = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor2 as Doc, this.props.Document) && !d.anchor2anchored);
-            let firstUnshown = first.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
-            let secondUnshown = second.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
-            if (firstUnshown.length) first = [firstUnshown[0]];
-            if (secondUnshown.length) second = [secondUnshown[0]];
-            let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : second.length ? [second[0].anchor1 as Doc, second[0].anchor1 as Doc] : undefined;
-
-            // @TODO: shouldn't always follow target context
-            let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
-            let linkedFwdPage = [first.length ? NumCast(first[0].anchor2Page, undefined) : undefined, undefined];
-
-            if (linkedFwdDocs && !linkedFwdDocs.some(l => l instanceof Promise)) {
-                let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
-                let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionDoc) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
-                    // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                    doc => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
-                    linkedFwdPage[altKey ? 1 : 0], targetContext);
-            }
+        else if (linkDocs.length) {
+            DocumentManager.Instance.FollowLink(this.props.Document,
+                (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
+                ctrlKey, altKey, this.props.ContainingCollectionDoc);
         }
     }
 
@@ -352,15 +334,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (de.data instanceof DragManager.AnnotationDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            let sourceDoc = de.data.annotationDocument;
-            let targetDoc = this.props.Document;
-            let annotations = await DocListCastAsync(sourceDoc.annotations);
-            sourceDoc.linkedToDoc = true;
-            de.data.targetContext = this.props.ContainingCollectionDoc;
-            targetDoc.targetContext = de.data.targetContext;
-            annotations && annotations.forEach(anno => anno.target = targetDoc);
+            (de.data as any).linkedToDoc = true;
 
-            DocUtils.MakeLink(sourceDoc, targetDoc, this.props.ContainingCollectionDoc, `Link from ${StrCast(sourceDoc.title)}`);
+            DocUtils.MakeLink({ doc: de.data.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `Link from ${StrCast(de.data.annotationDocument.title)}`);
         }
         if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
             Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document);
@@ -371,7 +347,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.data.linkSourceDocument !== this.props.Document &&
-                (de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc, undefined, "in-text link being created")); // TODODO this is where in text links get passed
+                (de.data.linkDocument = DocUtils.MakeLink({ doc: de.data.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
         }
     }
 
@@ -407,7 +383,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
                 let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.Document.width || 0) + 10, height: this.Document.height || 0, title: portalID });
-                DocUtils.MakeLink(this.props.Document, portal, undefined, portalID);
+                DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, portalID, "portal link");
                 this.Document.isButton = true;
             });
         }

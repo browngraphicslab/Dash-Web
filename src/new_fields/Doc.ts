@@ -665,10 +665,12 @@ export namespace Doc {
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        return doc;
     }
     export function UnBrushDoc(doc: Doc) {
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        return doc;
     }
 
     export class HighlightBrush {

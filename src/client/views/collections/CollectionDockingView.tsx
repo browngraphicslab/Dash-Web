@@ -574,8 +574,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
             let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
-            Doc.GetProto(pinDoc).target = doc;
-            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
+            Doc.GetProto(pinDoc).presentationTargetDoc = doc;
+            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
             const data = Cast(curPres.data, listSpec(Doc));
             if (data) {
                 data.push(pinDoc);
@@ -614,8 +614,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    panelWidth = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), this.nativeHeight()));
+    panelWidth = () => this._document && this._document.maxWidth ? Math.min(Math.max(NumCast(this._document.width), NumCast(this._document.nativeWidth)), this._panelWidth) : this._panelWidth;
+    panelHeight = () => this._panelHeight;
 
     nativeWidth = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
     nativeHeight = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
@@ -644,7 +644,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() / this.ScreenToLocalTransform().Scale) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth() && !this._document!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
         SelectionManager.DeselectAll();

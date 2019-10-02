@@ -5,7 +5,7 @@ import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from '../../../new_fields/Types';
 import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
@@ -130,8 +130,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
-            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
+            if (Doc.AreProtosEqual(annotationOn, FieldValue(Cast(this.dataDoc.extendsDoc, Doc)))) {
+                Doc.GetProto(doc).annotationOn = undefined;
+            }
+        });
 
         if (index !== -1) {
             value.splice(index, 1);

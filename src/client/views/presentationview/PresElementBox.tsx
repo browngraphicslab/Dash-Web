@@ -63,13 +63,11 @@ export class PresElementBox extends React.Component<FieldViewProps> {
         this.hideTillShownButton = !this.hideTillShownButton;
         if (!this.hideTillShownButton) {
             if (this.myIndex >= this.currentIndex) {
-                (this.props.Document.target as Doc).opacity = 1;
+                (this.props.Document.presentationTargetDoc as Doc).opacity = 1;
             }
         } else {
-            if (this.presentationDoc.presStatus) {
-                if (this.myIndex > this.currentIndex) {
-                    (this.props.Document.target as Doc).opacity = 0;
-                }
+            if (this.presentationDoc.presStatus && this.myIndex > this.currentIndex) {
+                (this.props.Document.presentationTargetDoc as Doc).opacity = 0;
             }
         }
     }
@@ -85,14 +83,12 @@ export class PresElementBox extends React.Component<FieldViewProps> {
         this.hideAfterButton = !this.hideAfterButton;
         if (!this.hideAfterButton) {
             if (this.myIndex <= this.currentIndex) {
-                (this.props.Document.target as Doc).opacity = 1;
+                (this.props.Document.presentationTargetDoc as Doc).opacity = 1;
             }
         } else {
             if (this.fadeButton) this.fadeButton = false;
-            if (this.presentationDoc.presStatus) {
-                if (this.myIndex < this.currentIndex) {
-                    (this.props.Document.target as Doc).opacity = 0;
-                }
+            if (this.presentationDoc.presStatus && this.myIndex < this.currentIndex) {
+                (this.props.Document.presentationTargetDoc as Doc).opacity = 0;
             }
         }
     }
@@ -108,14 +104,12 @@ export class PresElementBox extends React.Component<FieldViewProps> {
         this.fadeButton = !this.fadeButton;
         if (!this.fadeButton) {
             if (this.myIndex <= this.currentIndex) {
-                (this.props.Document.target as Doc).opacity = 1;
+                (this.props.Document.presentationTargetDoc as Doc).opacity = 1;
             }
         } else {
             this.hideAfterButton = false;
-            if (this.presentationDoc.presStatus) {
-                if (this.myIndex < this.currentIndex) {
-                    (this.props.Document.target as Doc).opacity = 0.5;
-                }
+            if (this.presentationDoc.presStatus && (this.myIndex < this.currentIndex)) {
+                (this.props.Document.presentationTargetDoc as Doc).opacity = 0.5;
             }
         }
     }
@@ -162,7 +156,7 @@ export class PresElementBox extends React.Component<FieldViewProps> {
      * presentation element.
      */
     renderEmbeddedInline = () => {
-        if (!this.embedOpen || !(this.props.Document.target instanceof Doc)) {
+        if (!this.embedOpen || !(this.props.Document.presentationTargetDoc instanceof Doc)) {
             return (null);
         }
 
@@ -175,8 +169,8 @@ export class PresElementBox extends React.Component<FieldViewProps> {
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <CollectionSchemaPreview
-                    fitToBox={StrCast(this.props.Document.target.type).indexOf(DocumentType.COL) !== -1}
-                    Document={this.props.Document.target}
+                    fitToBox={StrCast(this.props.Document.presentationTargetDoc.type).indexOf(DocumentType.COL) !== -1}
+                    Document={this.props.Document.presentationTargetDoc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
@@ -205,7 +199,7 @@ export class PresElementBox extends React.Component<FieldViewProps> {
         let pbi = "presElementBox-interaction";
         return (
             <div className={className} key={p.Document[Id] + this.myIndex}
-                style={{ outlineWidth: Doc.IsBrushed(p.Document.target as Doc) ? `1px` : "0px", }}
+                style={{ outlineWidth: Doc.IsBrushed(p.Document.presentationTargetDoc as Doc) ? `1px` : "0px", }}
                 onClick={e => { p.focus(p.Document); e.stopPropagation(); }}>
                 {treecontainer ? (null) : <>
                     <strong className="presElementBox-name">

@@ -31,7 +31,7 @@ export default class PDFMenu extends React.Component {
     @observable public Pinned: boolean = false;
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = emptyFunction;
-    public Highlight: (d: Doc | undefined, color: string) => void = emptyFunction;
+    public Highlight: (color: string) => void = emptyFunction;
     public Delete: () => void = emptyFunction;
     public Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
@@ -156,11 +156,11 @@ export default class PDFMenu extends React.Component {
     @action
     highlightClicked = (e: React.MouseEvent) => {
         if (!this.Pinned) {
-            this.Highlight(undefined, "#f4f442");
+            this.Highlight("#f4f442");
         }
         else {
             this.Highlighting = !this.Highlighting;
-            this.Highlight(undefined, "#f4f442");
+            this.Highlight("#f4f442");
         }
     }
 

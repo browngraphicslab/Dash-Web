@@ -129,7 +129,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                         width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
                     });
                     this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(imageSummary, false);
-                    DocUtils.MakeLink(imageSummary, this.props.Document);
+                    DocUtils.MakeLink({doc:imageSummary}, {doc: this.props.Document}, "snapshot from " + this.props.Document.title, "video frame snapshot");
                 }
             });
         }
