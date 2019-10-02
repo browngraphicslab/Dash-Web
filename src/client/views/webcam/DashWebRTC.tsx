@@ -38,7 +38,7 @@ export class DashWebRTC extends React.Component<CollectionFreeFormDocumentViewPr
     componentDidMount() {
         this.callButton!.disabled = true;
         this.hangupButton!.disabled = true;
-        navigator.mediaDevices.getUserMedia(mediaStreamConstraints).then(this.gotLocalMediaStream).catch(this.handleLocalMediaStreamError);
+        // navigator.mediaDevices.getUserMedia(mediaStreamConstraints).then(this.gotLocalMediaStream).catch(this.handleLocalMediaStreamError);
         this.localVideoEl!.addEventListener('loadedmetadata', this.logVideoLoaded);
         this.peerVideoEl!.addEventListener('loadedmetadata', this.logVideoLoaded);
         this.peerVideoEl!.addEventListener('onresize', this.logResizedVideo);
