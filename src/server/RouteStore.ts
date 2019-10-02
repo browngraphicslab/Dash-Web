@@ -13,6 +13,7 @@ export enum RouteStore {
     upload = "/upload",
     dataUriToImage = "/uploadURI",
     images = "/images",
+    inspectImage = "/inspectImage",
 
     // USER AND WORKSPACES
     getCurrUser = "/getCurrentUser",

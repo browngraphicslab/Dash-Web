@@ -3,6 +3,8 @@ import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
 import request = require('request-promise');
+import { ExifData, ExifImage } from 'exif';
+import { Opt } from '../new_fields/Doc';
 
 const uploadDirectory = path.join(__dirname, './public/files/');
 
@@ -31,12 +33,19 @@ export namespace DashUploadUtils {
     export interface UploadInformation {
         mediaPaths: string[];
         fileNames: { [key: string]: string };
+        exifData: EnrichedExifData;
         contentSize?: number;
         contentType?: string;
     }
 
-    const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
+    const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${sanitizeExtension(url)}`;
     const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
+    const sanitizeExtension = (source: string) => {
+        let extension = path.extname(source);
+        extension = extension.toLowerCase();
+        extension = extension.split("?")[0];
+        return extension;
+    };
 
     /**
      * Uploads an image specified by the @param source to Dash's /public/files/
@@ -64,8 +73,14 @@ export namespace DashUploadUtils {
         isLocal: boolean;
         stream: any;
         normalizedUrl: string;
+        exifData: EnrichedExifData;
         contentSize?: number;
         contentType?: string;
+    }
+
+    export interface EnrichedExifData {
+        data: ExifData;
+        error?: string;
     }
 
     /**
@@ -76,7 +91,9 @@ export namespace DashUploadUtils {
      */
     export const InspectImage = async (source: string): Promise<InspectionResults> => {
         const { isLocal, stream, normalized: normalizedUrl } = classify(source);
+        const exifData = await parseExifData(source);
         const results = {
+            exifData,
             isLocal,
             stream,
             normalizedUrl
@@ -101,13 +118,13 @@ export namespace DashUploadUtils {
     };
 
     export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<UploadInformation> => {
-        const { isLocal, stream, normalizedUrl, contentSize, contentType } = metadata;
+        const { isLocal, stream, normalizedUrl, contentSize, contentType, exifData } = metadata;
         const resolved = filename ? sanitize(filename) : generate(prefix, normalizedUrl);
-        let extension = path.extname(normalizedUrl) || path.extname(resolved);
-        extension && (extension = extension.toLowerCase());
+        const extension = sanitizeExtension(normalizedUrl || resolved);
         let information: UploadInformation = {
             mediaPaths: [],
             fileNames: { clean: resolved },
+            exifData,
             contentSize,
             contentType,
         };
@@ -157,6 +174,18 @@ export namespace DashUploadUtils {
             stream: isLocal ? fs.createReadStream : request,
             normalized: isLocal ? path.normalize(url) : url
         };
+    };
+
+    const parseExifData = async (source: string): Promise<EnrichedExifData> => {
+        return new Promise<EnrichedExifData>(resolve => {
+            new ExifImage(source, (error, data) => {
+                let reason: Opt<string> = undefined;
+                if (error) {
+                    reason = (error as any).code;
+                }
+                resolve({ data, error: reason });
+            });
+        });
     };
 
     export const createIfNotExists = async (path: string) => {

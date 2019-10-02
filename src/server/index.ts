@@ -53,6 +53,7 @@ import { DashUploadUtils } from './DashUploadUtils';
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { ParsedPDF } from "./PdfTypes";
 import { reject } from 'bluebird';
+import { ExifData } from 'exif';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -590,10 +591,11 @@ const uploadDirectory = __dirname + "/public/files/";
 const pdfDirectory = uploadDirectory + "text";
 DashUploadUtils.createIfNotExists(pdfDirectory);
 
-interface FileResponse {
+interface ImageFileResponse {
     name: string;
     path: string;
     type: string;
+    exif: Opt<DashUploadUtils.EnrichedExifData>;
 }
 
 // SETTERS
@@ -604,10 +606,11 @@ app.post(
         form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
         form.parse(req, async (_err, _fields, files) => {
-            let results: FileResponse[] = [];
+            let results: ImageFileResponse[] = [];
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
+                let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
                 if (filename.endsWith(".pdf")) {
                     let dataBuffer = fs.readFileSync(uploadDirectory + filename);
                     const result: ParsedPDF = await pdf(dataBuffer);
@@ -622,15 +625,25 @@ app.post(
                         });
                     });
                 } else {
-                    await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
+                    uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
                 }
-                results.push({ name, type, path: `/files/${filename}` });
+                const exif = uploadInformation ? uploadInformation.exifData : undefined;
+                results.push({ name, type, path: `/files/${filename}`, exif });
 
             }
             _success(res, results);
         });
     }
 );
+
+app.post(RouteStore.inspectImage, async (req, res) => {
+    const { source } = req.body;
+    if (typeof source === "string") {
+        const uploadInformation = await DashUploadUtils.UploadImage(source);
+        return res.send(await DashUploadUtils.InspectImage(uploadInformation.mediaPaths[0]));
+    }
+    res.send({});
+});
 
 addSecureRoute(
     Method.POST,
