@@ -161,10 +161,8 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
             if (zoomOut || this.presElementsMappings.get(docAtCurrent)!.showButton) {
                 let prevScale = NumCast(this.childrenDocs[prevSelected].viewScale, null);
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[current]);
-                if (prevScale !== undefined) {
-                    if (prevScale !== curScale) {
-                        DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
-                    }
+                if (prevScale !== undefined && prevScale !== curScale) {
+                    DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
                 }
             }
         }

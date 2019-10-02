@@ -234,7 +234,7 @@ export class MainView extends React.Component {
         } else {
             DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field => {
                 field instanceof Doc ? this.openWorkspace(field) :
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId)
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
             });
         }
     }
@@ -375,8 +375,9 @@ export class MainView extends React.Component {
     }
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string) => {
-        if (where === "close")
+        if (where === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
+        }
         if (doc.dockingConfig) {
             this.openWorkspace(doc);
             return true;
@@ -508,6 +509,7 @@ export class MainView extends React.Component {
                     <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button></li>
                     <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button></li>
                     <li key="inkControls"><InkingControl /></li>
+                    <li key="logout"><button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></li>
                 </ul>
             </div>
         </div >;
@@ -523,12 +525,8 @@ export class MainView extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
-        let logoutRef = React.createRef<HTMLDivElement>();
-
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
-            <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
     }
@@ -568,7 +566,7 @@ export class MainView extends React.Component {
         let next = () => PresBox.CurrentPresentation.next();
         let back = () => PresBox.CurrentPresentation.back();
         let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document); });
+        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document, undefined, "onRight"); });
         return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>;
     }
 
