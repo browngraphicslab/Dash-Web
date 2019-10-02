@@ -350,7 +350,6 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
             PanelWidth,
             PanelHeight,
             setVideoBox,
-            setPdfBox,
             ContentScaling,
             ChromeHeight,
             jitterRotation,
