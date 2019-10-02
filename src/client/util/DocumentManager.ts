@@ -11,6 +11,7 @@ import { LinkManager } from './LinkManager';
 import { undoBatch, UndoManager } from './UndoManager';
 import { Scripting } from './Scripting';
 import { List } from '../../new_fields/List';
+import { SelectionManager } from './SelectionManager';
 
 
 export class DocumentManager {
@@ -132,7 +133,7 @@ export class DocumentManager {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
-            contextDoc.scrollY = NumCast(doc.y) - NumCast(contextDoc.height) / 2;
+            contextDoc.scrollY = NumCast(doc.y) - NumCast(contextDoc.height) / 2 * 72 / 96;
         }
 
         let docView: DocumentView | null;
@@ -171,9 +172,17 @@ export class DocumentManager {
             } else {
                 let contextView: DocumentView | null;
                 Doc.BrushDoc(docDelegate);
-                if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
+                let contextViews = DocumentManager.Instance.getDocumentViews(contextDoc);
+                if (!forceDockFunc && contextViews.length) {
+                    contextView = contextViews[0];
+                    SelectionManager.SelectDoc(contextView, false); // force unrendered annotations to be created
                     contextDoc.panTransformType = "Ease";
-                    contextView.props.focus(docDelegate, willZoom);
+                    setTimeout(() => {
+                        SelectionManager.DeselectDoc(contextView!);
+                        docView = DocumentManager.Instance.getDocumentView(docDelegate);
+                        docView && contextView!.props.focus(contextView!.props.Document, willZoom);
+                        docView && UndoManager.RunInBatch(() => docView!.props.focus(docView!.props.Document, willZoom), "focus");
+                    }, 0);
                 } else {
                     (dockFunc || CollectionDockingView.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
