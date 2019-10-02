@@ -403,7 +403,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
             let annotOn = Cast(doc.annotationOn, Doc) as Doc;
-            let offset = annotOn && (NumCast(annotOn.height) / 2);
+            let offset = annotOn && (NumCast(annotOn.height) / 2 * 72 / 96);
             this.props.Document.scrollY = NumCast(doc.y) - offset;
         } else {
             const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
