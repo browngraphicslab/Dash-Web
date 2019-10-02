@@ -183,15 +183,15 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
         if (!noPdf && (this.props.isSelected() || this.props.ScreenToLocalTransform().Scale < 2.5)) this._everActive = true;
         return (!this._everActive ?
-            <div className="pdfBox-title-outer" style={{ height: this.props.Document.nativeHeight ? undefined : NumCast(this.props.Document.nativeWidth) }} >
-                <div className={classname} style={{ zIndex: 0 }}>
+            <div className="pdfBox-title-outer" >
+                <div className={classname} >
                     <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
                 </div>
             </div> :
             <div className={classname} style={{
                 transformOrigin: "top left",
                 width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-                height: !this.props.Document.nativeHeight ? NumCast(this.props.Document.nativeWidth) : this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
                 transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
             }} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
                 let hit = document.elementFromPoint(e.clientX, e.clientY);

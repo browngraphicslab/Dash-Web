@@ -24,6 +24,7 @@ import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import Annotation from "./Annotation";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { SelectionManager } from "../../util/SelectionManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -107,7 +108,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         // file address of the pdf
         this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
         runInAction(() => this._showWaiting = this._showCover = true);
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => this.setupPdfJsViewer(), { fireImmediately: this.props.startupLive });
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => this.props.isSelected() && SelectionManager.SelectedDocuments().length === 1 && this.setupPdfJsViewer(), { fireImmediately: this.props.startupLive });
         this._reactionDisposer = reaction(
             () => this.props.Document.scrollY,
             (scrollY) => {
@@ -632,7 +633,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     getCoverImage = () => {
-        if (!this.props.Document[HeightSym]()) {
+        if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
             setTimeout(() => {
                 this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
                 this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;

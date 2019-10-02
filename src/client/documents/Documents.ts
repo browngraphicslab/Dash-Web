@@ -591,6 +591,7 @@ export namespace Docs {
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
                 options.nativeWidth = 1200;
+                options.nativeHeight = 1200;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
