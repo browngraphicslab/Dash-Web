@@ -122,7 +122,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 left: this.props.x,
                 width: this.props.width,
                 height: this.props.height,
-                transition: "background-color 0.5s, opacity 0.5s",
+                transition: "opacity 0.5s",
                 opacity: this._brushed ? 0.5 : undefined,
                 backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.color)
             }} />);

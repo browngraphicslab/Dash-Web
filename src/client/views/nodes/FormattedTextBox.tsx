@@ -474,11 +474,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._searchReactionDisposer = reaction(() => {
             return StrCast(this.props.Document.search_string);
         }, searchString => {
-            const fieldkey = 'preview';
-            let preview = false;
-            // if (!this._editorView && Object.keys(this.props.Document).indexOf(fieldkey) !== -1) {
-            //     preview = true;
-            // }
             if (searchString) {
                 this.highlightSearchTerms([searchString]);
             }

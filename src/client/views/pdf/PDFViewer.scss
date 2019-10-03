@@ -11,10 +11,17 @@
     //     transform: scale(0.75);
     //     transform-origin: top left;
     // }
-    // .textLayer {
-    //     transform: scale(0.75);
-    //     transform-origin: top left;
-    // }
+    .textLayer {
+        
+        mix-blend-mode: multiply;
+        opacity: 0.9;
+    }
+    .textLayer .highlight {
+        background-color: yellow;
+    }
+    .textLayer .highlight.selected {
+        background-color: orange;
+    }
 
     .page {
         position: relative;
@@ -30,7 +37,6 @@
     }
 
     .pdfViewer-overlay {
-        transform: scale(2.14359);
         transform-origin: left top;
         position: absolute;
         top: 0px;
@@ -43,6 +49,7 @@
         top: 0;
         width: 100%;
         pointer-events: none;
+        mix-blend-mode: multiply;
 
         .pdfPage-annotationBox {
             position: absolute;

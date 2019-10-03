@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import smoothScroll, { Utils, emptyFunction, returnOne } from "../../../Utils";
+import smoothScroll, { Utils, emptyFunction, returnOne, intersectRect } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
@@ -85,6 +85,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _selectionReactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
+    private _searchReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
@@ -103,12 +104,24 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
+    _lastSearch: string = "";
     componentDidMount = async () => {
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
         this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
+        this._searchReactionDisposer = reaction(() => StrCast(this.props.Document.search_string), searchString => {
+            if (searchString) {
+                this.search(searchString, true);
+                this._lastSearch = searchString;
+            }
+            else {
+                setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
+                this._lastSearch && (this._lastSearch = "mxytzlaf");
+            }
+        }, { fireImmediately: true });
+
         this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => (this.props.isSelected() && SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(), { fireImmediately: true });
         this._reactionDisposer = reaction(
             () => this.props.Document.scrollY,
@@ -130,6 +143,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
         this._selectionReactionDisposer && this._selectionReactionDisposer();
+        this._searchReactionDisposer && this._searchReactionDisposer();
         document.removeEventListener("copy", this.copy);
     }
 
@@ -298,12 +312,9 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
-        this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
-        let windowHgt = this.props.PanelHeight() / this.props.ContentScaling();
-        let scrollRange = this._mainCont.current!.scrollHeight - windowHgt;
-        let pgScroll = scrollRange / this._pageSizes.length;
-        this._mainCont.current!.scrollTo(0, NumCast(scrollToAnnotation.y) - pgScroll / 2);
-        Doc.BrushDoc(scrollToAnnotation);
+        let offset = this.visibleHeight() / 2 * 96 / 72;
+        this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
+        Doc.linkFollowHighlight(scrollToAnnotation);
     }
 
     sendAnnotations = (page: number) => {
@@ -454,7 +465,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 if (rect/* && rect.width !== this._mainCont.current.getBoundingClientRect().width && rect.height !== this._mainCont.current.getBoundingClientRect().height / this.props.pdf.numPages*/) {
                     let scaleY = this._mainCont.current.offsetHeight / boundingRect.height;
                     let scaleX = this._mainCont.current.offsetWidth / boundingRect.width;
-                    if (rect.width !== this._mainCont.current.clientWidth) {
+                    if (rect.width !== this._mainCont.current.clientWidth &&
+                        (i == 0 || !intersectRect(clientRects[i], clientRects[i - 1]))) {
                         let annoBox = document.createElement("div");
                         annoBox.className = "pdfPage-annotationBox";
                         // transforms the positions from screen onto the pdf div
@@ -659,17 +671,18 @@ export class PDFViewer extends React.Component<IViewerProps> {
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
+    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     render() {
         return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
             {this.pdfViewerDiv}
             <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
+            {this.annotationLayer}
             <div className="pdfViewer-overlay" style={{ transform: `scale(${this._zoomed})` }}>
-                {this.annotationLayer}
                 <CollectionFreeFormView {...this.props}
                     setPreviewCursor={this.setPreviewCursor}
                     PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
                     PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
-                    VisibleHeight={() => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96}
+                    VisibleHeight={this.visibleHeight}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
                     select={emptyFunction}
