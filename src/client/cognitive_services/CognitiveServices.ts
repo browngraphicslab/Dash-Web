@@ -269,12 +269,12 @@ export namespace CognitiveServices {
                 //keyterms = ["father", "king"];
                 let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
                 await requestPromise.post(args).then(async (wordvecs) => {
-                    if (wordvecs.shape[0] > 0) {
+                    if (wordvecs.length > 0) {
                         console.log("successful vectorization!");
                         var vectorValues = new Set<number[]>();
                         wordvecs.forEach((wordvec: any) => {
                             //console.log(wordvec.word);
-                            vectorValues.add(wordvec.values as number[]);
+                            vectorValues.add(wordvec as number[]);
                         });
                         ClientRecommender.Instance.mean(vectorValues, dataDoc, mainDoc);
                     } // adds document to internal doc set

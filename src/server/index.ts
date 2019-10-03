@@ -692,9 +692,9 @@ recommender.testModel();
 app.post("/recommender", async (req, res) => {
     let keyphrases = req.body.keyphrases;
     let wordvecs = await recommender.vectorize(keyphrases);
-    let embedding: number[][] = [];
-    if (wordvecs && wordvecs.array()) {
-        wordvecs.array().then(array => embedding = array as number[][]);
+    let embedding: Float32Array = new Float32Array();
+    if (wordvecs && wordvecs.dataSync()) {
+        embedding = wordvecs.dataSync() as Float32Array;
     }
     res.send(embedding);
 });
