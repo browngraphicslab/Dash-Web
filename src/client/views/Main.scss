@@ -238,6 +238,13 @@ ul#add-options-list {
     flex-direction: column;
 }
 
+.expandFlyoutButton {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    cursor: pointer;
+}
+
 .mainView-libraryHandle {
     width: 20px;
     height: 40px;

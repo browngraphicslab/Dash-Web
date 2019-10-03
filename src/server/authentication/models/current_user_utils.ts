@@ -46,15 +46,19 @@ export class CurrentUserUtils {
 
         // setup workspaces library item
         if (doc.workspaces === undefined) {
-            const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces", height: 100 });
+            const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces".toUpperCase(), height: 100 });
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
         PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => {
             if (workspaces) {
+                workspaces.backgroundColor = "#eeeeee";
                 workspaces.preventTreeViewOpen = true;
                 workspaces.forceActive = true;
                 workspaces.lockedPosition = true;
+                if (StrCast(workspaces.title) === "Workspaces") {
+                    workspaces.title = "WORKSPACES";
+                }
             }
         });
 
@@ -71,15 +75,19 @@ export class CurrentUserUtils {
 
         // setup Recently Closed library item
         if (doc.recentlyClosed === undefined) {
-            const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
+            const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed".toUpperCase(), height: 75 });
             recentlyClosed.boxShadow = "0 0";
             doc.recentlyClosed = recentlyClosed;
         }
         PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => {
             if (recent) {
+                recent.backgroundColor = "#eeeeee";
                 recent.preventTreeViewOpen = true;
                 recent.forceActive = true;
                 recent.lockedPosition = true;
+                if (StrCast(recent.title) === "Recently Closed") {
+                    recent.title = "RECENTLY CLOSED";
+                }
             }
         });
 
@@ -97,10 +105,14 @@ export class CurrentUserUtils {
             sidebar.gridGap = 5;
             sidebar.xMargin = 5;
             sidebar.yMargin = 5;
-            Doc.GetProto(sidebar).backgroundColor = "#aca3a6";
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
+        PromiseValue(Cast(doc.sidebar, Doc)).then(sidebar => {
+            if (sidebar) {
+                sidebar.backgroundColor = "lightgrey";
+            }
+        })
 
         if (doc.overlays === undefined) {
             const overlays = Docs.Create.FreeformDocument([], { title: "Overlays" });
@@ -112,7 +124,9 @@ export class CurrentUserUtils {
             PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
         }
 
-        StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
+        StrCast(doc.title).indexOf("@") !== -1 && (doc.title = (StrCast(doc.title).split("@")[0] + "'s Library").toUpperCase());
+        StrCast(doc.title).indexOf("'s Library") !== -1 && (doc.title = StrCast(doc.title).toUpperCase());
+        doc.backgroundColor = "#eeeeee";
         doc.width = 100;
         doc.preventTreeViewOpen = true;
         doc.forceActive = true;
