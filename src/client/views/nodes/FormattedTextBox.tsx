@@ -1,47 +1,46 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
+import _ from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
+import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Node, Node as ProsNode, NodeType, Slice, Mark, ResolvedPos } from "prosemirror-model";
-import { EditorState, Plugin, Transaction, TextSelection, NodeSelection } from "prosemirror-state";
+import { Fragment, Mark, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
+import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
+import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Opt, WidthSym } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
-import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
-import { BoolCast, Cast, NumCast, StrCast, DateCast, PromiseValue } from "../../../new_fields/Types";
+import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Utils, numberRange, timenow } from '../../../Utils';
+import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
+import { numberRange, timenow, Utils } from '../../../Utils';
+import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { DictationManager } from '../../util/DictationManager';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema, SummarizedView, OrderedListView, FootnoteView } from "../../util/RichTextSchema";
+import { FootnoteView, ImageResizeView, OrderedListView, schema, SummarizedView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
+import { DocumentButtonBar } from '../DocumentButtonBar';
+import { DocumentDecorations } from '../DocumentDecorations';
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
+import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
-import { DocumentDecorations } from '../DocumentDecorations';
-import { DictationManager } from '../../util/DictationManager';
-import { ReplaceStep } from 'prosemirror-transform';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { RichTextUtils } from '../../../new_fields/RichTextUtils';
-import _ from "lodash";
-import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
-import { inputRules } from 'prosemirror-inputrules';
-import { DocumentButtonBar } from '../DocumentButtonBar';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -142,51 +141,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
         FormattedTextBox.Instance = this;
-        this._scrollToRegionReactionDisposer = reaction(
-            () => StrCast(this.props.Document.scrollToLinkID),
-            async (scrollToLinkID) => {
-                let findLinkFrag = (frag: Fragment, editor: EditorView) => {
-                    const nodes: Node[] = [];
-                    frag.forEach((node, index) => {
-                        let examinedNode = findLinkNode(node, editor);
-                        if (examinedNode && examinedNode.textContent) {
-                            nodes.push(examinedNode);
-                            start += index;
-                        }
-                    });
-                    return { frag: Fragment.fromArray(nodes), start: start };
-                };
-                let findLinkNode = (node: Node, editor: EditorView) => {
-                    if (!node.isText) {
-                        const content = findLinkFrag(node.content, editor);
-                        return node.copy(content.frag);
-                    }
-                    const marks = [...node.marks];
-                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
-                    return linkIndex !== -1 && scrollToLinkID === marks[linkIndex].attrs.href.replace(/.*\/doc\//, "") ? node : undefined;
-                };
-
-                let start = -1;
-                if (this._editorView && scrollToLinkID) {
-                    let editor = this._editorView;
-                    let ret = findLinkFrag(editor.state.doc.content, editor);
-
-                    if (ret.frag.size > 2 && ((!this.props.isOverlay && !this.props.isSelected()) || (this.props.isSelected() && this.props.isOverlay))) {
-                        let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
-                        if (ret.frag.firstChild) {
-                            selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
-                        }
-                        editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
-                        const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
-                        setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
-                        setTimeout(() => this.unhighlightSearchTerms(), 2000);
-                    }
-                    this.props.Document.scrollToLinkID = undefined;
-                }
-
-            },
-            { fireImmediately: true }
-        );
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -341,8 +295,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let url = de.data.urlField.url.href;
             let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
-            this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url, docid: target[Id] })));
-            DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
+            let link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
+            link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url, docid: link[Id] })));
             this.tryUpdateHeight();
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
@@ -424,6 +378,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     _keymap: any = undefined;
     @computed get config() {
         this._keymap = buildKeymap(schema);
+        (schema as any).Document = this.props.Document;
         return {
             schema,
             plugins: this.props.isOverlay ? [
@@ -562,6 +517,51 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     }
                 }, 0);
             }), { fireImmediately: true }
+        );
+        this._scrollToRegionReactionDisposer = reaction(
+            () => StrCast(this.props.Document.scrollToLinkID),
+            async (scrollToLinkID) => {
+                let findLinkFrag = (frag: Fragment, editor: EditorView) => {
+                    const nodes: Node[] = [];
+                    frag.forEach((node, index) => {
+                        let examinedNode = findLinkNode(node, editor);
+                        if (examinedNode && examinedNode.textContent) {
+                            nodes.push(examinedNode);
+                            start += index;
+                        }
+                    });
+                    return { frag: Fragment.fromArray(nodes), start: start };
+                };
+                let findLinkNode = (node: Node, editor: EditorView) => {
+                    if (!node.isText) {
+                        const content = findLinkFrag(node.content, editor);
+                        return node.copy(content.frag);
+                    }
+                    const marks = [...node.marks];
+                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
+                    return linkIndex !== -1 && scrollToLinkID === marks[linkIndex].attrs.href.replace(/.*\/doc\//, "") ? node : undefined;
+                };
+
+                let start = -1;
+                if (this._editorView && scrollToLinkID) {
+                    let editor = this._editorView;
+                    let ret = findLinkFrag(editor.state.doc.content, editor);
+
+                    if (ret.frag.size > 2 && ((!this.props.isOverlay && !this.props.isSelected()) || (this.props.isSelected() && this.props.isOverlay))) {
+                        let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
+                        if (ret.frag.firstChild) {
+                            selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
+                        }
+                        editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
+                        const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
+                        setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
+                        setTimeout(() => this.unhighlightSearchTerms(), 2000);
+                    }
+                    this.props.Document.scrollToLinkID = undefined;
+                }
+
+            },
+            { fireImmediately: true }
         );
 
         setTimeout(() => this.tryUpdateHeight(), 0);
@@ -858,27 +858,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
-                        DocServer.GetRefField(this._linkClicked).then(async linkDoc => {
-                            if (linkDoc instanceof Doc) {
-                                let proto = Doc.GetProto(linkDoc);
-                                let targetContext = await Cast(proto.targetContext, Doc);
-                                let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
-
-                                if (jumpToDoc) {
-                                    if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
-                                        return;
-                                    }
-                                }
-                                if (targetContext && (!jumpToDoc || targetContext !== await jumpToDoc.annotationOn)) {
-                                    DocumentManager.Instance.jumpToDocument(jumpToDoc || targetContext, ctrlKey, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), targetContext);
-                                } else if (jumpToDoc) {
-                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
-                                } else {
-                                    DocumentManager.Instance.jumpToDocument(linkDoc, ctrlKey, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
-                                }
-                            }
-                        });
+                        DocServer.GetRefField(this._linkClicked).then(async linkDoc =>
+                            (linkDoc instanceof Doc) &&
+                            DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false));
                         e.stopPropagation();
                         e.preventDefault();
                     }

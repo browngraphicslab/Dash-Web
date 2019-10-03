@@ -637,7 +637,7 @@ export namespace Doc {
 
     export function isBrushedHighlightedDegree(doc: Doc) {
         if (Doc.IsHighlighted(doc)) {
-            return 3;
+            return 6;
         }
         else {
             return Doc.IsBrushedDegree(doc);
@@ -671,6 +671,21 @@ export namespace Doc {
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
         return doc;
+    }
+
+    export function linkFollowUnhighlight() {
+        Doc.UnhighlightAll();
+        document.removeEventListener("pointerdown", linkFollowUnhighlight);
+    }
+
+    let dt = 0;
+    export function linkFollowHighlight(destDoc: Doc) {
+        linkFollowUnhighlight();
+        Doc.HighlightDoc(destDoc);
+        document.removeEventListener("pointerdown", linkFollowUnhighlight);
+        document.addEventListener("pointerdown", linkFollowUnhighlight);
+        let x = dt = Date.now();
+        window.setTimeout(() => dt == x && linkFollowUnhighlight(), 5000);
     }
 
     export class HighlightBrush {

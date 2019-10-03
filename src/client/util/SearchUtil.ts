@@ -3,7 +3,6 @@ import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { Utils } from '../../Utils';
-import { ResultParameters } from '../northstar/model/idea/idea';
 import { DocumentType } from '../documents/DocumentTypes';
 
 export namespace SearchUtil {

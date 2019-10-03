@@ -224,7 +224,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         }
         else if (linkDocs.length) {
-            DocumentManager.Instance.FollowLink(this.props.Document,
+            DocumentManager.Instance.FollowLink(undefined, this.props.Document,
                 (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
                 ctrlKey, altKey, this.props.ContainingCollectionDoc);
         }
@@ -658,6 +658,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let animheight = animDims ? animDims[1] : nativeHeight;
         let animwidth = animDims ? animDims[0] : nativeWidth;
 
+        const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
+        const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -665,10 +667,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
                     pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.Document.color),
-                    outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
-                    outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
-                    outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
-                    border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
+                    outline: fullDegree && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
+                    border: fullDegree && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                     background: backgroundColor,
                     width: animwidth,
                     height: animheight,

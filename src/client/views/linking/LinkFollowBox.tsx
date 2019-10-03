@@ -152,21 +152,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this.resetPan();
     }
 
-    unhighlight = () => {
-        Doc.UnhighlightAll();
-        document.removeEventListener("pointerdown", this.unhighlight);
-    }
-
-    @action
-    highlightDoc = () => {
-        if (LinkFollowBox.destinationDoc) {
-            document.removeEventListener("pointerdown", this.unhighlight);
-            Doc.HighlightDoc(LinkFollowBox.destinationDoc);
-            window.setTimeout(() => {
-                document.addEventListener("pointerdown", this.unhighlight);
-            }, 10000);
-        }
-    }
+    highlightDoc = () => LinkFollowBox.destinationDoc && Doc.linkFollowHighlight(LinkFollowBox.destinationDoc);
 
     @undoBatch
     openFullScreen = () => {
@@ -235,44 +221,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     jumpToLink = async (options: { shouldZoom: boolean }) => {
-        if (LinkFollowBox.destinationDoc && LinkFollowBox.linkDoc) {
-            let jumpToDoc: Doc = LinkFollowBox.destinationDoc;
-            let pdfDoc = FieldValue(Cast(LinkFollowBox.destinationDoc, Doc));
-            if (pdfDoc) {
-                jumpToDoc = pdfDoc;
-            }
-            let proto = Doc.GetProto(LinkFollowBox.linkDoc);
-            let targetContext = await Cast(proto.targetContext, Doc);
-            let sourceContext = await Cast(proto.sourceContext, Doc);
-            let guid = StrCast(LinkFollowBox.linkDoc[Id]);
-            const shouldZoom = options ? options.shouldZoom : false;
+        if (LinkFollowBox.sourceDoc && LinkFollowBox.linkDoc) {
+            let focus = (document: Doc) => { (LinkFollowBox._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+            //let focus = (doc: Doc, maxLocation: string) => this.props.focus(docthis.props.focus(LinkFollowBox.destinationDoc, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation));
 
-            let dockingFunc = (document: Doc) => { (LinkFollowBox._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-
-            if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, async document => dockingFunc(document), targetContext);
-            }
-            else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, document => dockingFunc(sourceContext!));
-                if (LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc) {
-                    if (guid) {
-                        let views = DocumentManager.Instance.getDocumentViews(jumpToDoc);
-                        views.length && (views[0].props.Document.scrollToLinkID = guid);
-                    } else {
-                        jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(LinkFollowBox.linkDoc[Id]));
-                    }
-                }
-            }
-            else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom);
-
-            }
-            else {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, dockingFunc);
-            }
-
-            this.highlightDoc();
-            SelectionManager.DeselectAll();
+            DocumentManager.Instance.FollowLink(LinkFollowBox.linkDoc, LinkFollowBox.sourceDoc, focus, options && options.shouldZoom, false, undefined);
         }
     }
 
@@ -310,20 +263,23 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openLinkInPlace = (options: { shouldZoom: boolean }) => {
 
         if (LinkFollowBox.destinationDoc && LinkFollowBox.sourceDoc) {
-            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
-            let y = NumCast(LinkFollowBox.sourceDoc.y);
-            let x = NumCast(LinkFollowBox.sourceDoc.x);
-
-            let width = NumCast(LinkFollowBox.sourceDoc.width);
-            let height = NumCast(LinkFollowBox.sourceDoc.height);
-
-            alias.x = x + width + 30;
-            alias.y = y;
-            alias.width = width;
-            alias.height = height;
-
             if (this.sourceView && this.sourceView.props.addDocument) {
-                this.sourceView.props.addDocument(alias, false);
+                let destViews = DocumentManager.Instance.getDocumentViews(LinkFollowBox.destinationDoc);
+                if (!destViews.find(dv => dv.props.ContainingCollectionView === this.sourceView!.props.ContainingCollectionView)) {
+                    let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+                    let y = NumCast(LinkFollowBox.sourceDoc.y);
+                    let x = NumCast(LinkFollowBox.sourceDoc.x);
+
+                    let width = NumCast(LinkFollowBox.sourceDoc.width);
+                    let height = NumCast(LinkFollowBox.sourceDoc.height);
+
+                    alias.x = x + width + 30;
+                    alias.y = y;
+                    alias.width = width;
+                    alias.height = height;
+
+                    this.sourceView.props.addDocument(alias, false);
+                }
             }
 
             this.jumpToLink({ shouldZoom: options.shouldZoom });

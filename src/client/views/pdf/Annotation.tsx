@@ -98,7 +98,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         else if (e.button === 0) {
             let annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
-                DocumentManager.Instance.FollowLink(annoGroup,
+                DocumentManager.Instance.FollowLink(undefined, annoGroup,
                     (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "onRight" : "inTab"),
                     false, false, undefined);
             }

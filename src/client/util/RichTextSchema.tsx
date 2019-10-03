@@ -13,6 +13,7 @@ import { Cast, NumCast } from "../../new_fields/Types";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { times } from "async";
+import { LinkManager } from "./LinkManager";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -619,27 +620,10 @@ export class ImageResizeView {
             if (!view.isOverlay || e.ctrlKey) {
                 e.preventDefault();
                 e.stopPropagation();
-                DocServer.GetRefField(node.attrs.docid).then(async linkDoc => {
-                    const location = node.attrs.location;
-                    if (linkDoc instanceof Doc) {
-                        let proto = Doc.GetProto(linkDoc);
-                        let targetContext = await Cast(proto.targetContext, Doc);
-                        let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
-                        if (jumpToDoc) {
-                            if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
-                                return;
-                            }
-                        }
-                        if (targetContext) {
-                            DocumentManager.Instance.jumpToDocument(targetContext, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
-                        } else if (jumpToDoc) {
-                            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
-                        } else {
-                            DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
-                        }
-                    }
-                });
+                DocServer.GetRefField(node.attrs.docid).then(async linkDoc =>
+                    (linkDoc instanceof Doc) &&
+                    DocumentManager.Instance.FollowLink(linkDoc, (view.state.schema as any).Document,
+                        document => addDocTab(document, undefined, node.attrs.location ? node.attrs.location : "inTab"), false));
             }
         };
         this._handle.onpointerdown = function (e: any) {
