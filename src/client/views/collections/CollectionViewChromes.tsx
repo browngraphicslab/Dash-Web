@@ -10,7 +10,6 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils, emptyFunction } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
-import { CompileScript } from "../../util/Scripting";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
@@ -375,7 +374,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
-            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0 }}>
+            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
                 <div className="collectionViewChrome">
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"

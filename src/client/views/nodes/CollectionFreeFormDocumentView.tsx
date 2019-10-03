@@ -77,7 +77,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     borderRounding = () => {
         let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
-        let ld = this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout as Doc : undefined;
+        let ld = this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout : undefined;
         let br = StrCast((ld || this.props.Document).borderRounding);
         br = !br && ruleRounding ? ruleRounding : br;
         if (br.endsWith("%")) {
@@ -100,7 +100,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @observable _animPos: number[] | undefined = undefined;
 
-    finalPanelWidh = () => this.dataProvider ? this.dataProvider.width : this.panelWidth();
+    finalPanelWidth = () => this.dataProvider ? this.dataProvider.width : this.panelWidth();
     finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
 
     render() {
@@ -124,7 +124,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     ContentScaling={this.contentScaling}
                     ScreenToLocalTransform={this.getTransform}
                     backgroundColor={this.clusterColorFunc}
-                    PanelWidth={this.finalPanelWidh}
+                    PanelWidth={this.finalPanelWidth}
                     PanelHeight={this.finalPanelHeight}
                 />
             </div>

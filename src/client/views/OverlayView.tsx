@@ -141,6 +141,9 @@ export class OverlayView extends React.Component {
     }
 
     @computed get overlayDocs() {
+        if (!CurrentUserUtils.UserDocument) {
+            return (null);
+        }
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
             let offsetx = 0, offsety = 0;
             let onPointerMove = action((e: PointerEvent) => {

@@ -1,5 +1,4 @@
 import { Utils } from "../Utils";
-import { google, docs_v1 } from "googleapis";
 
 export class Message<T> {
     private _name: string;

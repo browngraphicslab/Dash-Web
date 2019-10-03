@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
@@ -141,9 +141,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
             fitToBox={this.props.fitToBox}
             onClick={layoutDoc.isTemplate ? this.onClickHandler : this.onChildClickHandler}
-            width={width}
-            height={height}
+            PanelWidth={width}
+            PanelHeight={height}
             getTransform={finalDxf}
+            focus={this.props.focus}
+            CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
             CollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
@@ -160,13 +162,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
-        if (!d.ignoreAspect && nw && nh) {
+        if (!d.ignoreAspect && !d.fitWidth && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
             let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
             if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
             return wid * aspect;
         }
-        return d[HeightSym]();
+        return d.fitWidth ? this.props.PanelHeight() - 2 * this.yMargin : d[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
@@ -203,12 +205,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     drop = (e: Event, de: DragManager.DropEvent) => {
         let where = [de.x, de.y];
         let targInd = -1;
+        let plusOne = false;
         if (de.data instanceof DragManager.DocumentDragData) {
             this._docXfs.map((cd, i) => {
                 let pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 let pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                     targInd = i;
+                    plusOne = (where[1] > (pos[1] + pos1[1]) / 2 ? 1 : 0) ? true : false;
                 }
             });
         }
@@ -220,14 +224,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 else targInd = docs.indexOf(this.filteredChildren[targInd]);
                 let srcInd = docs.indexOf(newDoc);
                 docs.splice(srcInd, 1);
-                docs.splice(targInd > srcInd ? targInd - 1 : targInd, 0, newDoc);
+                docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (plusOne ? 1 : 0), 0, newDoc);
             }
         }
         return false;
     }
     @undoBatch
     @action
-    onDrop = (e: React.DragEvent): void => {
+    onDrop = async (e: React.DragEvent): Promise<void> => {
         let where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {
@@ -279,7 +283,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1]).
+            translate(offset[0], offset[1] + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0)).
             scale(NumCast(doc.width, 1) / this.columnWidth);
     }
     masonryChildren(docs: Doc[]) {

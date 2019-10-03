@@ -135,6 +135,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             alt: { default: null },
             title: { default: null },
             float: { default: "left" },
+            location: { default: "onRight" },
             docid: { default: "" }
         },
         group: "inline",
@@ -619,23 +620,23 @@ export class ImageResizeView {
                 e.preventDefault();
                 e.stopPropagation();
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc => {
+                    const location = node.attrs.location;
                     if (linkDoc instanceof Doc) {
                         let proto = Doc.GetProto(linkDoc);
                         let targetContext = await Cast(proto.targetContext, Doc);
                         let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
                         if (jumpToDoc) {
                             if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-
-                                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
                                 return;
                             }
                         }
                         if (targetContext) {
-                            DocumentManager.Instance.jumpToDocument(targetContext, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                            DocumentManager.Instance.jumpToDocument(targetContext, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
                         } else if (jumpToDoc) {
-                            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
                         } else {
-                            DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                            DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, document => addDocTab(document, undefined, location ? location : "inTab"));
                         }
                     }
                 });
@@ -780,10 +781,10 @@ export class FootnoteView {
 
         if (!tr.getMeta("fromOutside")) {
             let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
-            for (let i = 0; i < transactions.length; i++) {
-                let steps = transactions[i].steps;
-                for (let j = 0; j < steps.length; j++) {
-                    outerTr.step(steps[j].map(offsetMap));
+            for (let transaction of transactions) {
+                let steps = transaction.steps;
+                for (let step of steps) {
+                    outerTr.step(step.map(offsetMap));
                 }
             }
             if (outerTr.docChanged) this.outerView.dispatch(outerTr);

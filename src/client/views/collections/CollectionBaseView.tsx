@@ -1,17 +1,18 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from '../../../new_fields/Types';
 import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
+import { ImageField } from '../../../new_fields/URLField';
 
 export enum CollectionViewType {
     Invalid,
@@ -129,8 +130,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
-            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
+            if (Doc.AreProtosEqual(annotationOn, FieldValue(Cast(this.dataDoc.extendsDoc, Doc)))) {
+                Doc.GetProto(doc).annotationOn = undefined;
+            }
+        });
 
         if (index !== -1) {
             value.splice(index, 1);
@@ -154,6 +158,21 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
+    showIsTagged = () => {
+        const children = DocListCast(this.props.Document.data);
+        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        if (allTagged) {
+            return (
+                <img
+                    id={"google-tags"}
+                    src={"/assets/google_tags.png"}
+                />
+            );
+        }
+        return (null);
+    }
+
     render() {
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
@@ -171,6 +190,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+                {this.showIsTagged()}
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

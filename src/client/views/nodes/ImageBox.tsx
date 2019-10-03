@@ -38,6 +38,7 @@ library.add(faFileAudio, faAsterisk);
 
 export const pageSchema = createSchema({
     curPage: "number",
+    fitWidth: "boolean"
 });
 
 interface Window {
@@ -62,6 +63,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private _lastTap: number = 0;
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
+    @observable private hoverActive = false;
 
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
@@ -297,7 +299,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
                 let aspect = realsize.height / realsize.width;
-                if (layoutdoc.nativeHeight !== 0 && layoutdoc.nativeWidth !== 0 && (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1)) {
+                if (layoutdoc.nativeHeight !== 0 && layoutdoc.nativeWidth !== 0 && (Math.abs(1 - NumCast(layoutdoc.nativeHeight) / NumCast(layoutdoc.nativeWidth) / (realsize.height / realsize.width)) > 0.1)) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = realsize.height;
@@ -351,6 +353,33 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         this.recordAudioAnnotation();
     }
 
+    considerGooglePhotosLink = () => {
+        const remoteUrl = StrCast(this.props.Document.googlePhotosUrl);
+        if (remoteUrl) {
+            return (
+                <img
+                    id={"google-photos"}
+                    src={"/assets/google_photos.png"}
+                    style={{ opacity: this.hoverActive ? 1 : 0 }}
+                    onClick={() => window.open(remoteUrl)}
+                />
+            );
+        }
+        return (null);
+    }
+
+    considerGooglePhotosTags = () => {
+        const tags = StrCast(this.props.Document.googlePhotosTags);
+        if (tags) {
+            return (
+                <img
+                    id={"google-tags"}
+                    src={"/assets/google_tags.png"}
+                />
+            );
+        }
+        return (null);
+    }
 
     render() {
         // let transform = this.props.ScreenToLocalTransform().inverse();
@@ -386,6 +415,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         return (
             <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
+                onPointerEnter={action(() => this.hoverActive = true)}
+                onPointerLeave={action(() => this.hoverActive = false)}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
                     <img
@@ -412,6 +443,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     <FontAwesomeIcon className="imageBox-audioFont"
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
+                {this.considerGooglePhotosLink()}
                 {/* {this.lightbox(paths)} */}
                 <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);

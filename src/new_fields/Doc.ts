@@ -144,14 +144,8 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => {
-        let animDims = this[SelfProxy].animateToDimensions ? Array.from(Cast(this[SelfProxy].animateToDimensions, listSpec("number"))!) : undefined;
-        return animDims ? animDims[0] : NumCast(this[SelfProxy].width);
-    }
-    public [HeightSym] = () => {
-        let animDims = this[SelfProxy].animateToDimensions ? Array.from(Cast(this[SelfProxy].animateToDimensions, listSpec("number"))!) : undefined;
-        return animDims ? animDims[1] : NumCast(this[SelfProxy].height);
-    }
+    public [WidthSym] = () => NumCast(this[SelfProxy].width);
+    public [HeightSym] = () => NumCast(this[SelfProxy].height);
 
     [ToScriptString]() {
         return "invalid";
@@ -337,14 +331,28 @@ export namespace Doc {
     export function IndexOf(toFind: Doc, list: Doc[]) {
         return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
-    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
-        if (target[key] === undefined) {
-            Doc.GetProto(target)[key] = new List<Doc>();
+    export function RemoveDocFromList(listDoc: Doc, key: string, doc: Doc) {
+        if (listDoc[key] === undefined) {
+            Doc.GetProto(listDoc)[key] = new List<Doc>();
         }
-        let list = Cast(target[key], listSpec(Doc));
+        let list = Cast(listDoc[key], listSpec(Doc));
+        if (list) {
+            let ind = list.indexOf(doc);
+            if (ind !== -1) {
+                list.splice(ind, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+    export function AddDocToList(listDoc: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
+        if (listDoc[key] === undefined) {
+            Doc.GetProto(listDoc)[key] = new List<Doc>();
+        }
+        let list = Cast(listDoc[key], listSpec(Doc));
         if (list) {
             if (allowDuplicates !== true) {
-                let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
+                let pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
                 if (pind !== -1) {
                     list.splice(pind, 1);
                 }
@@ -657,10 +665,12 @@ export namespace Doc {
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        return doc;
     }
     export function UnBrushDoc(doc: Doc) {
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        return doc;
     }
 
     export class HighlightBrush {
@@ -698,6 +708,7 @@ export namespace Doc {
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
+Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });

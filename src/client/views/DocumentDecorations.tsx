@@ -68,6 +68,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public isAnimatingFetch = false;
+    @observable public isAnimatingPulse = false;
     @observable public openHover = false;
 
     constructor(props: Readonly<{}>) {
@@ -515,8 +516,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
-                let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
-                if (fixedAspect && e.ctrlKey && BoolCast(doc.ignoreAspect)) {
+                let fixedAspect = e.ctrlKey || (!doc.ignoreAspect && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && doc.ignoreAspect) {
                     doc.ignoreAspect = false;
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
@@ -531,7 +532,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
                         }
                         doc.width = actualdW;
-                        if (fixedAspect) doc.height = nheight / nwidth * doc.width;
+                        if (fixedAspect && !doc.fitWidth) doc.height = nheight / nwidth * doc.width;
                         else doc.height = actualdH;
                     }
                     else {
@@ -539,7 +540,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             Doc.SetInPlace(element.props.Document, "nativeHeight", actualdH / (doc.height || 1) * (doc.nativeHeight || 0), true);
                         }
                         doc.height = actualdH;
-                        if (fixedAspect) doc.width = nwidth / nheight * doc.height;
+                        if (fixedAspect && !doc.fitWidth) doc.width = nwidth / nheight * doc.height;
                         else doc.width = actualdW;
                     }
                 } else {
@@ -580,8 +581,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         return "-unset-";
     }
-
-
 
     render() {
         var bounds = this.Bounds;

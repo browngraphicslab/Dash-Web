@@ -1,7 +1,6 @@
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
-import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
@@ -20,8 +19,8 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
+import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -46,8 +45,7 @@ import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
+import { PresElementBox } from "../views/presentationview/PresElementBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -159,7 +157,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
@@ -177,7 +174,10 @@ export namespace Docs {
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
-            }]
+            }],
+            [DocumentType.PRESELEMENT, {
+                layout: { view: PresElementBox }
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -334,7 +334,13 @@ export namespace Docs {
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             let imgField = new ImageField(new URL(url));
             let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
-            requestImageSize(imgField.url.href)
+            let target = imgField.url.href;
+            if (new RegExp(window.location.origin).test(target)) {
+                let extension = path.extname(target);
+                target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
+            }
+            // if (target !== "http://www.cs.brown.edu/") {
+            requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {
@@ -344,6 +350,7 @@ export namespace Docs {
                     inst.proto!.height = NumCast(inst.proto!.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
+            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
@@ -454,6 +461,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
         }
 
+        export function PresElementBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
+        }
+
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
@@ -508,10 +519,13 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
         export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
-            if (input === null || ![...primitives, "object"].includes(typeof input)) {
+            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
+            let parsed = input;
+            if (typeof input === "string") {
+                parsed = JSONUtils.tryParse(input);
+            }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
                 converted = convertObject(parsed, title);
@@ -577,6 +591,7 @@ export namespace Docs {
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
                 options.nativeWidth = 1200;
+                options.nativeHeight = 1200;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
@@ -638,33 +653,30 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionDoc === target) return;
-        if (target === CurrentUserUtils.UserDocument) return undefined;
+    export function MakeLink(source: {doc:Doc,ctx?:Doc}, target: {doc:Doc,ctx?:Doc}, title: string = "", description: string = "", id?: string, anchored1?: boolean) {
+        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
         let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = targetContext;
-            linkDocProto.sourceContext = sourceContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.targetContext = target.ctx;
+            linkDocProto.sourceContext = source.ctx;
+            linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
 
-            linkDocProto.anchor1 = source;
-            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor1anchored = anchored1;
-            linkDocProto.anchor2 = target;
-            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2 = target.doc;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
-
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

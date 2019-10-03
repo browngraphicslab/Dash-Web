@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faFileUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
@@ -39,7 +39,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 
-library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
+library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -76,7 +76,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private panY = () => this.fitToContent ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document.panY || 0;
     private zoomScaling = () => (1 / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
-        this.Document.scale || 1);
+        this.Document.scale || 1)
     private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -105,7 +105,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
     }
-    public isCurrent(doc: Doc) { return !this.props.Document.isMinimized && (Math.abs(NumCast(doc.page, -1) - NumCast(this.Document.curPage, -1)) < 1.5 || NumCast(doc.page, -1) === -1); }
+    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.page, -1) - NumCast(this.Document.curPage, -1)) < 1.5 || NumCast(doc.page, -1) === -1); }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
@@ -116,9 +116,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    onDrop = (e: React.DragEvent): void => {
+    onDrop = (e: React.DragEvent): Promise<void> => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        super.onDrop(e, { x: pt[0], y: pt[1] });
+        return super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
     @undoBatch
@@ -401,27 +401,40 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
         }
         SelectionManager.DeselectAll();
-        const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
-        const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
-        const newState = HistoryUtil.getState();
-        newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
-        HistoryUtil.pushState(newState);
-
-        let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
-
-        this.setPan(newPanX, newPanY);
-        this.Document.panTransformType = "Ease";
-        this.props.focus(this.props.Document);
-        willZoom && this.setScaleToZoom(doc, scale);
-
-        afterFocus && setTimeout(() => {
-            if (afterFocus && afterFocus()) {
-                this.Document.panX = savedState.px;
-                this.Document.panY = savedState.py;
-                this.Document.scale = savedState.s;
-                this.Document.panTransformType = savedState.pt;
+        if (this.props.Document.scrollHeight) {
+            let annotOn = Cast(doc.annotationOn, Doc) as Doc;
+            if (!annotOn) {
+                this.props.focus(doc);
+            } else {
+                let contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn.height);
+                let offset = annotOn && (contextHgt / 2 * 96 / 72);
+                this.props.Document.scrollY = NumCast(doc.y) - offset;
             }
-        }, 1000);
+        } else {
+            const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
+            const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+            const newState = HistoryUtil.getState();
+            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+            HistoryUtil.pushState(newState);
+
+            let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
+
+            this.setPan(newPanX, newPanY);
+            this.Document.panTransformType = "Ease";
+            Doc.BrushDoc(this.props.Document);
+            this.props.focus(this.props.Document);
+            willZoom && this.setScaleToZoom(doc, scale);
+
+            afterFocus && setTimeout(() => {
+                if (afterFocus && afterFocus()) {
+                    this.Document.panX = savedState.px;
+                    this.Document.panY = savedState.py;
+                    this.Document.scale = savedState.s;
+                    this.Document.panTransformType = savedState.pt;
+                }
+            }, 1000);
+        }
+
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
@@ -436,11 +449,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
+            ...this.props,
             DataDoc: childData,
             Document: childLayout,
-            addDocument: this.props.addDocument,
-            removeDocument: this.props.removeDocument,
-            moveDocument: this.props.moveDocument,
             ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
@@ -449,41 +460,27 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
+            ContainingCollectionDoc: this.props.Document,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             parentActive: this.props.active,
-            whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };
     }
     getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
         return {
-            DataDoc: this.props.DataDoc,
-            Document: this.props.Document,
-            addDocument: this.props.addDocument,
-            removeDocument: this.props.removeDocument,
-            moveDocument: this.props.moveDocument,
-            ruleProvider: this.props.ruleProvider,
-            onClick: this.props.onClick,
+            ...this.props,
             ScreenToLocalTransform: this.getTransform,
-            renderDepth: this.props.renderDepth,
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
             focus: this.focusDocument,
             backgroundColor: returnEmptyString,
             parentActive: this.props.active,
-            whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };
@@ -693,7 +690,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.props.Document.fitY = this.contentBounds && this.contentBounds.y;
         this.props.Document.fitW = this.contentBounds && (this.contentBounds.r - this.contentBounds.x);
         this.props.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
-        // if fieldExt is set, then children will be stored in the extension document for the fieldKey. 
+        // if fieldExt is set, then children will be stored in the extension document for the fieldKey.
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         return (
@@ -754,8 +751,8 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const ceny = this.props.centeringShiftY();
         const panx = -this.props.panX();
         const pany = -this.props.panY();
-        const zoom = this.props.zoomScaling();// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
-        return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+        const zoom = this.props.zoomScaling();
+        return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
         </div>;
     }

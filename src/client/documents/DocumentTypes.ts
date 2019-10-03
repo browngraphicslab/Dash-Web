@@ -20,4 +20,5 @@ export enum DocumentType {
     DRAGBOX = "dragbox",
     PRES = "presentation",
     LINKFOLLOW = "linkfollow",
+    PRESELEMENT = "preselement"
 }

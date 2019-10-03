@@ -20,6 +20,9 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 import { undoBatch } from '../../util/UndoManager';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { ContextMenu } from '../ContextMenu';
+import { Utils } from '../../../Utils';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -32,6 +35,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private _scriptValue: string = "";
     private _searchString: string = "";
     private _isChildActive = false;
+    private _everActive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
     private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _valueRef: React.RefObject<HTMLInputElement> = React.createRef();
@@ -53,12 +57,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
-        if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
-            let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
-            this.Document.nativeWidth = nw * 96 / 72;
-            this.Document.nativeHeight = this.Document.nativeHeight ? nw * 96 / 72 * oldaspect : nh * 96 / 72;
-        }
-        this.Document.height = this.Document[WidthSym]() * (nh / nw);
+        this.Document.nativeWidth = nw * 96 / 72;
+        this.Document.nativeHeight = nh * 96 / 72;
+        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
@@ -165,26 +166,47 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             </div>);
     }
 
+    specificContextMenu = (e: React.MouseEvent): void => {
+        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
+        let funcs: ContextMenuProps[] = [];
+        pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Fit Width " + (this.Document.fitWidth ? "Off" : "On"), event: () => this.Document.fitWidth = !this.Document.fitWidth, icon: "expand-arrows-alt" });
+
+        ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
+    }
+    _initialScale: number | undefined;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
-        return (!(pdfUrl instanceof PdfField) || !this._pdf ?
-            <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
-            <div className={classname} onPointerDown={(e: React.PointerEvent) => {
+        let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
+        if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
+        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+            <div className="pdfBox-title-outer" >
+                <div className={classname} >
+                    <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
+                </div>
+            </div> :
+            <div className={classname} style={{
+                transformOrigin: "top left",
+                width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
+            }} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
                 let hit = document.elementFromPoint(e.clientX, e.clientY);
-                if (hit && hit.localName === "span" && this.props.isSelected()) {
+                if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
                     e.button === 0 && e.stopPropagation();
                 }
             }}>
-                <PDFViewer {...this.props} pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} loaded={this.loaded}
+                <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                     setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
-                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage}
+                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
+                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }
