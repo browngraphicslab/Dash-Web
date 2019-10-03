@@ -225,6 +225,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         else if (linkDocs.length) {
             DocumentManager.Instance.FollowLink(undefined, this.props.Document,
+                // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
                 (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
                 ctrlKey, altKey, this.props.ContainingCollectionDoc);
         }

@@ -132,12 +132,20 @@ export class DocumentManager {
         return pairs;
     }
 
+
+
     public jumpToDocument = async (targetDoc: Doc, willZoom: boolean, dockFunc?: (doc: Doc) => void, docContext?: Doc, linkId?: string, closeContextIfNotFound: boolean = false): Promise<void> => {
+        let highlight = () => {
+            const finalDocView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
+            finalDocView && (finalDocView.Document.scrollToLinkID = linkId);
+            finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
+        }
         const docView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
         const annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
             annotatedDoc && docView.props.focus(annotatedDoc, false);
             docView.props.focus(docView.props.Document, willZoom);
+            highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
             const contextDoc = contextDocs && contextDocs.find(doc => Doc.AreProtosEqual(doc, targetDoc)) ? docContext : undefined;
@@ -145,11 +153,12 @@ export class DocumentManager {
 
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), undefined);
+                highlight();
             } else {
                 const targetDocContextView = DocumentManager.Instance.getFirstDocumentView(targetDocContext);
+                targetDocContext.scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we have a context view and aren't forced to create a new one ... focus on the context
                     targetDocContext.panTransformType = "Ease";
-                    targetDocContext.scrollY = 0;
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
@@ -161,32 +170,19 @@ export class DocumentManager {
                             if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
                             (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), undefined); // otherwise create a new view of the target
                         }
-                        const finalDocView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
-                        finalDocView && (finalDocView.Document.scrollToLinkID = linkId);
-                        finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
+                        highlight();
                     }, 0);
                 } else {  // there's no context view so we need to create one first and try again
-                    targetDocContext.scrollY = 0;
                     (dockFunc || CollectionDockingView.AddRightSplit)(targetDocContext, undefined);
                     setTimeout(() => {
-                        const foundTargetDocContextView = DocumentManager.Instance.getDocumentView(targetDocContext);
-                        if (foundTargetDocContextView) { // we might be lucky and the context loads right away
-                            this.jumpToDocument(targetDoc, willZoom, dockFunc, undefined, linkId, true); // so call jump to doc again and if the doc isn't found, it will be created.
-                        } else {
-                            setTimeout(() => { // if not, wait a bit to see if the context can be loaded (e.g., a PDF).
-                                const foundTargetDocContextView = DocumentManager.Instance.getDocumentView(targetDocContext);
-                                if (foundTargetDocContextView) { // now we should always find a target context here....
-                                    this.jumpToDocument(targetDoc, willZoom, dockFunc, undefined, linkId, true); // so call jump to doc again and if the doc isn't found, it will be created.
-                                }
-                            }, 2000)
-                        }
+                        const finalDocView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
+                        const finalDocContextView = DocumentManager.Instance.getFirstDocumentView(targetDocContext);
+                        setTimeout(() =>  // if not, wait a bit to see if the context can be loaded (e.g., a PDF). wait interval heurisitic tries to guess how we're animating based on what's just become visible
+                            this.jumpToDocument(targetDoc, willZoom, dockFunc, undefined, linkId, true), finalDocView ? 0 : finalDocContextView ? 250 : 2000); // so call jump to doc again and if the doc isn't found, it will be created.
                     }, 0);
                 }
             }
         }
-        const finalDocView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
-        finalDocView && (finalDocView.Document.scrollToLinkID = linkId);
-        finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
     }
 
     public async FollowLink(link: Doc | undefined, doc: Doc, focus: (doc: Doc, maxLocation: string) => void, zoom: boolean = false, reverse: boolean = false, currentContext?: Doc) {
@@ -204,9 +200,7 @@ export class DocumentManager {
         if (linkFollowDocs && linkDoc) {
             const maxLocation = StrCast(linkFollowDocs[0].maximizeLocation, "inTab");
             const targetContext = !Doc.AreProtosEqual(linkFollowDocContexts[reverse ? 1 : 0], currentContext) ? linkFollowDocContexts[reverse ? 1 : 0] : undefined;
-            DocumentManager.Instance.jumpToDocument(linkFollowDocs[reverse ? 1 : 0], zoom,
-                // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                (doc: Doc) => focus(doc, maxLocation), targetContext, linkDoc[Id]);
+            DocumentManager.Instance.jumpToDocument(linkFollowDocs[reverse ? 1 : 0], zoom, (doc: Doc) => focus(doc, maxLocation), targetContext, linkDoc[Id]);
         }
     }
 
