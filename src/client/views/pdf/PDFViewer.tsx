@@ -331,8 +331,10 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
     }
 
+    @observable scrollTop = 0;
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
+        this.scrollTop = this._mainCont.current!.scrollTop;
         this.pdfViewer && (this.props.Document.curPage = this.pdfViewer.currentPageNumber);
     }
 
@@ -607,7 +609,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         return true;
     }
     scrollXf = () => {
-        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._mainCont.current.scrollTop) : this.props.ScreenToLocalTransform();
+        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this.scrollTop) : this.props.ScreenToLocalTransform();
     }
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => {
         this._setPreviewCursor = func;
