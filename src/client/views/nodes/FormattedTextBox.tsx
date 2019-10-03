@@ -12,7 +12,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCastAsync, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
@@ -28,7 +28,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { FootnoteView, ImageResizeView, OrderedListView, schema, SummarizedView } from "../../util/RichTextSchema";
+import { FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummarizedView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -289,14 +289,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         // We're dealing with a link to a document
-        if (de.data instanceof DragManager.EmbedDragData && de.data.urlField) {
+        if (de.data instanceof DragManager.EmbedDragData) {
             let target = de.data.embeddableSourceDoc;
             // We're dealing with an internal document drop
-            let url = de.data.urlField.url.href;
-            let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
+            const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
+            let node: Node<any>;
+            if (de.data.urlField && link) {
+                let url: string = de.data.urlField.url.href;
+                let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
+                node = model.create({ src: url, docid: link[Id] })
+            } else {
+                node = schema.nodes.dashDoc.create({
+                    width: this.props.Document[WidthSym](), height: this.props.Document[HeightSym](),
+                    title: "dashDoc", docid: target[Id]
+                });
+            }
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
-            let link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
-            link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url, docid: link[Id] })));
+            link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, node));
             this.tryUpdateHeight();
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
@@ -736,6 +745,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
+                    dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self.props.addDocTab); },
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },

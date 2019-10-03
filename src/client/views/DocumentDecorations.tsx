@@ -48,7 +48,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
-    private _embedButton = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
@@ -413,41 +412,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
-
-    onEmbedButtonDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-        document.addEventListener("pointermove", this.onEmbedButtonMoved);
-        document.removeEventListener("pointerup", this.onEmbedButtonUp);
-        document.addEventListener("pointerup", this.onEmbedButtonUp);
-    }
-
-
-
-    onEmbedButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-        document.removeEventListener("pointerup", this.onEmbedButtonUp);
-        e.stopPropagation();
-    }
-
-    @action
-    onEmbedButtonMoved = (e: PointerEvent): void => {
-        if (this._embedButton.current !== null) {
-            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-            document.removeEventListener("pointerup", this.onEmbedButtonUp);
-
-            let dragDocView = SelectionManager.SelectedDocuments()[0];
-            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
-
-            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
-                hideSource: false
-            });
-        }
-        e.stopPropagation();
-    }
 
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();

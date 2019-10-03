@@ -203,7 +203,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
     considerEmbed = () => {
         let thisDoc = this.props.views[0].props.Document;
         let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
-        if (!canEmbed) return (null);
+        // if (!canEmbed) return (null);
         return (
             <div className="linkButtonWrapper">
                 <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>

@@ -31,7 +31,6 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { compileFunction } from 'vm';
 import { ComputedField } from '../../../new_fields/ScriptField';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;

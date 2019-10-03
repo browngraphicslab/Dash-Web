@@ -9,11 +9,16 @@ import { EditorView } from "prosemirror-view";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { DocServer } from "../DocServer";
-import { Cast, NumCast } from "../../new_fields/Types";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
-import { times } from "async";
-import { LinkManager } from "./LinkManager";
+import React = require("react");
+import { action, Lambda, observable, reaction, computed, runInAction, trace } from "mobx";
+import { observer } from "mobx-react";
+import * as ReactDOM from 'react-dom';
+import { DocumentView } from "../views/nodes/DocumentView";
+import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../Utils";
+import { Transform } from "./Transform";
+import { NumCast } from "../../new_fields/Types";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -155,6 +160,35 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM(node) {
             const attrs = { style: `width: ${node.attrs.width}` };
             return ["img", { ...node.attrs, ...attrs }];
+        }
+    },
+
+    dashDoc: {
+        inline: true,
+        attrs: {
+            width: { default: 200 },
+            height: { default: 100 },
+            title: { default: null },
+            float: { default: "left" },
+            location: { default: "onRight" },
+            docid: { default: "" }
+        },
+        group: "inline",
+        draggable: true,
+        // parseDOM: [{
+        //     tag: "img[src]", getAttrs(dom: any) {
+        //         return {
+        //             src: dom.getAttribute("src"),
+        //             title: dom.getAttribute("title"),
+        //             alt: dom.getAttribute("alt"),
+        //             width: Math.min(100, Number(dom.getAttribute("width"))),
+        //         };
+        //     }
+        // }],
+        // TODO if we don't define toDom, dragging the image crashes. Why?
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
+            return ["div", { ...node.attrs, ...attrs }];
         }
     },
 
@@ -666,6 +700,109 @@ export class ImageResizeView {
 
     deselectNode() {
         this._img.classList.remove("ProseMirror-selectednode");
+
+        this._handle.style.display = "none";
+    }
+}
+
+export class DashDocView {
+    _handle: HTMLElement;
+    _dashSpan: HTMLDivElement;
+    _outer: HTMLElement;
+    constructor(node: any, view: any, getPos: any, addDocTab: any) {
+        this._handle = document.createElement("span");
+        this._dashSpan = document.createElement("div");
+        this._outer = document.createElement("span");
+        this._outer.style.position = "relative";
+        this._outer.style.width = node.attrs.width;
+        this._outer.style.height = node.attrs.height;
+        this._outer.style.display = "inline-block";
+        this._outer.style.overflow = "hidden";
+        (this._outer.style as any).float = node.attrs.float;
+
+        this._dashSpan.style.width = "100%";
+        this._dashSpan.style.height = "100%";
+        this._dashSpan.style.position = "absolute";
+        this._dashSpan.style.display = "inline-block"
+        this._handle.style.position = "absolute";
+        this._handle.style.width = "20px";
+        this._handle.style.height = "20px";
+        this._handle.style.backgroundColor = "blue";
+        this._handle.style.borderRadius = "15px";
+        this._handle.style.display = "none";
+        this._handle.style.bottom = "-10px";
+        this._handle.style.right = "-10px";
+        DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
+            if (dashDoc instanceof Doc) {
+                let scale = () => 100 / NumCast(dashDoc.nativeWidth, 100);
+                ReactDOM.render(<DocumentView
+                    fitToBox={true}
+                    Document={dashDoc}
+                    addDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    ruleProvider={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    addDocTab={returnFalse}
+                    pinToPres={returnFalse}
+                    renderDepth={1}
+                    PanelWidth={() => 100}
+                    PanelHeight={() => 100}
+                    focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    ContentScaling={scale}
+                ></DocumentView>, this._dashSpan);
+            }
+        });
+        let self = this;
+        this._dashSpan.onpointerdown = function (e: any) {
+        };
+        this._handle.onpointerdown = function (e: any) {
+            e.preventDefault();
+            e.stopPropagation();
+            const startX = e.pageX;
+            const startWidth = parseFloat(node.attrs.width);
+            const onpointermove = (e: any) => {
+                const currentX = e.pageX;
+                const diffInPx = currentX - startX;
+                self._outer.style.width = `${startWidth + diffInPx}`;
+                //Array.from(FormattedTextBox.InputBoxOverlay!.CurrentDiv.getElementsByTagName("img")).map((img: any) => img.opacity = "0.1");
+                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "0";
+            };
+
+            const onpointerup = () => {
+                document.removeEventListener("pointermove", onpointermove);
+                document.removeEventListener("pointerup", onpointerup);
+                view.dispatch(
+                    view.state.tr.setSelection(view.state.selection).setNodeMarkup(getPos(), null,
+                        { ...node.attrs, width: self._outer.style.width })
+                );
+                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "1";
+            };
+
+            document.addEventListener("pointermove", onpointermove);
+            document.addEventListener("pointerup", onpointerup);
+        };
+
+        this._outer.appendChild(this._handle);
+        this._outer.appendChild(this._dashSpan);
+        (this as any).dom = this._outer;
+    }
+
+    selectNode() {
+        this._dashSpan.classList.add("ProseMirror-selectednode");
+
+        this._handle.style.display = "";
+    }
+
+    deselectNode() {
+        this._dashSpan.classList.remove("ProseMirror-selectednode");
 
         this._handle.style.display = "none";
     }
