@@ -51,10 +51,10 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         );
 
         this._brushDisposer = reaction(
-            () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.IsBrushed(FieldValue(Cast(this.props.document.group, Doc))!),
+            () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.isBrushedHighlightedDegree(FieldValue(Cast(this.props.document.group, Doc))!),
             (brushed) => {
                 if (brushed !== undefined) {
-                    runInAction(() => this._brushed = brushed);
+                    runInAction(() => this._brushed = brushed !== 0);
                 }
             }
         );
@@ -122,7 +122,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 left: this.props.x,
                 width: this.props.width,
                 height: this.props.height,
-                backgroundColor: this._brushed ? "green" : StrCast(this.props.document.color)
+                transition: "background-color 0.5s, opacity 0.5s",
+                opacity: this._brushed ? 0.5 : undefined,
+                backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.color)
             }} />);
     }
 }
