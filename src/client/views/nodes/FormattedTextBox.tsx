@@ -184,7 +184,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
                     if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: this.dataDoc[key] as Doc }, "Ref:" + value, "link to named target", id, true);
+                    else DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: this.dataDoc[key] as Doc }, "Ref:" + value, "link to named target", id);
                 });
             });
         });
@@ -307,7 +307,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
                         e.stopPropagation();
                     }
-                } else {
+                } else if (de.mods === "CtrlKey") {
                     draggedDoc.isTemplate = true;
                     if (typeof (draggedDoc.layout) === "string") {
                         let layoutDelegateToOverrideFieldKey = Doc.MakeDelegate(draggedDoc);

@@ -653,7 +653,7 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: {doc:Doc,ctx?:Doc}, target: {doc:Doc,ctx?:Doc}, title: string = "", description: string = "", id?: string, anchored1?: boolean) {
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         let sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
@@ -669,7 +669,6 @@ export namespace DocUtils {
 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor1Groups = new List<Doc>([]);
-            linkDocProto.anchor1anchored = anchored1;
             linkDocProto.anchor2 = target.doc;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
