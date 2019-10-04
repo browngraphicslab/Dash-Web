@@ -3,7 +3,7 @@ import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { EditorState, TextSelection } from "prosemirror-state";
+import { EditorState, TextSelection, NodeSelection } from "prosemirror-state";
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import { Doc } from "../../new_fields/Doc";
@@ -635,6 +635,7 @@ export class ImageResizeView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.width = node.attrs.width;
+        this._outer.style.height = node.attrs.height;
         this._outer.style.display = "inline-block";
         this._outer.style.overflow = "hidden";
         (this._outer.style as any).float = node.attrs.float;
@@ -650,8 +651,15 @@ export class ImageResizeView {
         this._handle.style.bottom = "-10px";
         this._handle.style.right = "-10px";
         let self = this;
+        this._img.onclick = function (e: any) {
+            e.stopPropagation();
+            e.preventDefault();
+            if (view.state.selection.node && view.state.selection.node.type !== view.state.schema.nodes.image)
+                view.dispatch(
+                    view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(view.state.selection.from - 2))));
+        }
         this._img.onpointerdown = function (e: any) {
-            if (!view.isOverlay || e.ctrlKey) {
+            if (e.ctrlKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc =>
@@ -663,32 +671,31 @@ export class ImageResizeView {
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
+            let wid = Number(getComputedStyle(self._img).width!.replace(/px/, ""));
+            let hgt = Number(getComputedStyle(self._img).height!.replace(/px/, ""));
             const startX = e.pageX;
             const startWidth = parseFloat(node.attrs.width);
             const onpointermove = (e: any) => {
                 const currentX = e.pageX;
                 const diffInPx = currentX - startX;
                 self._outer.style.width = `${startWidth + diffInPx}`;
-                //Array.from(FormattedTextBox.InputBoxOverlay!.CurrentDiv.getElementsByTagName("img")).map((img: any) => img.opacity = "0.1");
-                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "0";
+                self._outer.style.height = `${(startWidth + diffInPx) * hgt / wid}`;
             };
 
             const onpointerup = () => {
                 document.removeEventListener("pointermove", onpointermove);
                 document.removeEventListener("pointerup", onpointerup);
-                view.dispatch(
-                    view.state.tr.setSelection(view.state.selection).setNodeMarkup(getPos(), null,
-                        { ...node.attrs, width: self._outer.style.width })
-                );
-                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "1";
+                let pos = view.state.selection.from;
+                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: self._outer.style.width, height: self._outer.style.height }));
+                view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(pos))));
             };
 
             document.addEventListener("pointermove", onpointermove);
             document.addEventListener("pointerup", onpointerup);
         };
 
-        this._outer.appendChild(this._handle);
         this._outer.appendChild(this._img);
+        this._outer.appendChild(this._handle);
         (this as any).dom = this._outer;
     }
 
@@ -761,37 +768,46 @@ export class DashDocView {
             }
         });
         let self = this;
-        this._dashSpan.onpointerdown = function (e: any) {
-        };
+        this._dashSpan.onclick = function (e: any) {
+            FormattedTextBox.firstTarget && FormattedTextBox.firstTarget();
+        }
+        this._dashSpan.onkeydown = function (e: any) {
+            e.stopPropagation();
+        }
+        this._dashSpan.onkeypress = function (e: any) {
+            e.stopPropagation();
+        }
+        this._dashSpan.onkeyup = function (e: any) {
+            e.stopPropagation();
+        }
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
             const startX = e.pageX;
+            const startY = e.pageY;
             const startWidth = parseFloat(node.attrs.width);
+            const startHeight = parseFloat(node.attrs.height);
             const onpointermove = (e: any) => {
-                const currentX = e.pageX;
-                const diffInPx = currentX - startX;
+                const diffInPx = e.pageX - startX;
+                const diffInPy = e.pageY - startY;
                 self._outer.style.width = `${startWidth + diffInPx}`;
-                //Array.from(FormattedTextBox.InputBoxOverlay!.CurrentDiv.getElementsByTagName("img")).map((img: any) => img.opacity = "0.1");
-                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "0";
+                self._outer.style.height = `${startHeight + diffInPy}`;
             };
 
             const onpointerup = () => {
                 document.removeEventListener("pointermove", onpointermove);
                 document.removeEventListener("pointerup", onpointerup);
-                view.dispatch(
-                    view.state.tr.setSelection(view.state.selection).setNodeMarkup(getPos(), null,
-                        { ...node.attrs, width: self._outer.style.width })
-                );
-                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "1";
+                let pos = view.state.selection.from;
+                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: self._outer.style.width, height: self._outer.style.height }));
+                view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(pos))));
             };
 
             document.addEventListener("pointermove", onpointermove);
             document.addEventListener("pointerup", onpointerup);
         };
 
-        this._outer.appendChild(this._handle);
         this._outer.appendChild(this._dashSpan);
+        this._outer.appendChild(this._handle);
         (this as any).dom = this._outer;
     }
 

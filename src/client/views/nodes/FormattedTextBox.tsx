@@ -774,9 +774,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._searchReactionDisposer && this._searchReactionDisposer();
         this._editorView && this._editorView.destroy();
     }
-
-
+    public static firstTarget: () => void;
     onPointerDown = (e: React.PointerEvent): void => {
+        if ((e.nativeEvent as any).formattedHandled) return;
+        (e.nativeEvent as any).formattedHandled = true;
         let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
         pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
         if (this.props.onClick && e.button === 0) {
@@ -785,9 +786,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
-        let ctrlKey = e.ctrlKey;
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             e.preventDefault();
+        }
+        FormattedTextBox.firstTarget = () => {  // this is here to support nested text boxes.  when that happens, the click event will propagate through prosemirror to the outer editor.  In RichTextSchema, the outer editor calls this function to revert the focus/selection
+            if (pos && pos.pos > 0) {
+                let node = this._editorView!.state.doc.nodeAt(pos.pos);
+                if (!node || (node.type !== this._editorView!.state.schema.nodes.dashDoc && node.type !== this._editorView!.state.schema.nodes.image &&
+                    pos.pos !== this._editorView!.state.selection.from)) {
+                    this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new TextSelection(this._editorView!.state.doc.resolve(pos!.pos))));
+                    this._editorView!.focus();
+                }
+            }
         }
     }
 
@@ -872,10 +882,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     }
                 }
             }
-        }
-        let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-        if (pos && pos.pos > 0) {
-            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new TextSelection(this._editorView!.state.doc.resolve(pos.pos))));
         }
         this._editorView!.focus();
         if (this._linkClicked) {
