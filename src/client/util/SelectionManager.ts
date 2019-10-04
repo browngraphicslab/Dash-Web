@@ -27,7 +27,6 @@ export namespace SelectionManager {
             } else if (!ctrlPressed && manager.SelectedDocuments.length > 1) {
                 manager.SelectedDocuments.map(dv => dv !== docView && dv.props.whenActiveChanged(false));
                 manager.SelectedDocuments = [docView];
-                FormattedTextBox.InputBoxOverlay = undefined;
             }
         }
         @action
@@ -42,7 +41,6 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
-            FormattedTextBox.InputBoxOverlay = undefined;
         }
     }
 

@@ -116,8 +116,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return "";
     }
 
-    public static getToolTip() {
-        return this._toolTipTextMenu;
+    public static getToolTip(ev: EditorView) {
+        return this._toolTipTextMenu ? this._toolTipTextMenu : this._toolTipTextMenu = new TooltipTextMenu(ev, undefined);
     }
 
     @undoBatch
@@ -142,29 +142,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
     @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
-    // this should be internal to prosemirror, but is needed
-    // here to make sure that footnote view nodes in the overlay editor
-    // get removed when they're not selected.
-
-    syncNodeSelection(view: any, sel: any) {
-        if (sel instanceof NodeSelection) {
-            var desc = view.docView.descAt(sel.from);
-            if (desc !== view.lastSelectedViewDesc) {
-                if (view.lastSelectedViewDesc) {
-                    view.lastSelectedViewDesc.deselectNode();
-                    view.lastSelectedViewDesc = null;
-                }
-                if (desc) { desc.selectNode(); }
-                view.lastSelectedViewDesc = desc;
-            }
-        } else {
-            if (view.lastSelectedViewDesc) {
-                view.lastSelectedViewDesc.deselectNode();
-                view.lastSelectedViewDesc = null;
-            }
-        }
-    }
 
     linkOnDeselect: Map<string, string> = new Map();
 
@@ -211,7 +188,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            this.syncNodeSelection(this._editorView, this._editorView.state.selection); // bcz: ugh -- shouldn't be needed but without this the overlay view's footnote popup doesn't get deselected
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
@@ -808,8 +784,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    static InputBoxOverlay: FormattedTextBox | undefined;
     @action
     onFocused = (e: React.FocusEvent): void => {
+        FormattedTextBox.InputBoxOverlay = this;
         document.removeEventListener("keypress", this.recordKeyHandler);
         document.addEventListener("keypress", this.recordKeyHandler);
         this.tryUpdateHeight();
@@ -901,7 +879,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let self = FormattedTextBox;
         return new Plugin({
             view(_editorView) {
-                return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
+                return self._toolTipTextMenu = FormattedTextBox.getToolTip(_editorView);
             }
         });
     }
@@ -955,6 +933,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
+        if (this.props.isSelected()) {
+            FormattedTextBox._toolTipTextMenu!.update(this._editorView!, undefined, this.props);
+        }
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{

@@ -92,8 +92,10 @@ export const inpRules = {
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "left";
+                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }
-                return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+                return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
             }),
         new InputRule(
             new RegExp(/^\]\]\s$/),
@@ -104,8 +106,10 @@ export const inpRules = {
                 let heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "right";
+                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }
-                return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+                return node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
             }),
         new InputRule(
             new RegExp(/\^f\s$/),

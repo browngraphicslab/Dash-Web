@@ -24,6 +24,7 @@ import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
+import { TooltipTextMenu } from '../util/TooltipTextMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -466,7 +467,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        if (!this._resizing) runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
@@ -578,7 +578,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div className="documentDecorations-container" style={{
+            <div className="documentDecorations-container" ref={(r) => r && TooltipTextMenu.Toolbar && Array.from(r.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && r.appendChild(TooltipTextMenu.Toolbar)} style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight + 3) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,

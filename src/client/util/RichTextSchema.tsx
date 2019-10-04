@@ -864,7 +864,6 @@ export class FootnoteView {
         if (this.innerView) this.close();
     }
     open() {
-        if (!this.outerView.isOverlay) return;
         // Append a tooltip to the outer node
         let tooltip = this.dom.appendChild(document.createElement("div"));
         tooltip.className = "footnote-tooltip";
