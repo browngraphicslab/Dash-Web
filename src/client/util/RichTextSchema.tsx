@@ -770,6 +770,7 @@ export class DashDocView {
         let self = this;
         this._dashSpan.onclick = function (e: any) {
             FormattedTextBox.firstTarget && FormattedTextBox.firstTarget();
+            e.stopPropagation();
         }
         this._dashSpan.onkeydown = function (e: any) {
             e.stopPropagation();
