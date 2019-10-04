@@ -28,7 +28,7 @@
 }
 
 .formattedTextBox-cont-hidden {
-    pointer-events: none;
+   // pointer-events: none;
 }
 
 .formattedTextBox-inner-rounded {
@@ -40,9 +40,10 @@
     left: 10%;
 }
 
-.formattedTextBox-inner-rounded div,
-.formattedTextBox-inner div {
+.formattedTextBox-inner-rounded ,
+.formattedTextBox-inner  {
     padding: 10px 10px;
+    height: 100%;
 }
 
 .menuicon {

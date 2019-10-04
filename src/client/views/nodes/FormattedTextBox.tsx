@@ -46,7 +46,6 @@ library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
 
 export interface FormattedTextBoxProps {
-    isOverlay?: boolean;
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
@@ -95,9 +94,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @observable private _fontFamily = "Arial";
     @observable private _fontAlign = "";
     @observable private _entered = false;
-    @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
     public static SelectOnLoad = "";
-    public static InputBoxOverlayScroll: number = 0;
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
     }
@@ -137,9 +134,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
-        if (this.props.isOverlay) {
-            DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
-        }
         FormattedTextBox.Instance = this;
     }
 
@@ -300,8 +294,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 node = model.create({ src: url, docid: link[Id] })
             } else {
                 node = schema.nodes.dashDoc.create({
-                    width: this.props.Document[WidthSym](), height: this.props.Document[HeightSym](),
-                    title: "dashDoc", docid: target[Id]
+                    width: target[WidthSym](), height: target[HeightSym](),
+                    title: "dashDoc", docid: target[Id],
+                    float: "none"
                 });
             }
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
@@ -390,7 +385,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         (schema as any).Document = this.props.Document;
         return {
             schema,
-            plugins: this.props.isOverlay ? [
+            plugins: [
                 inputRules(inpRules),
                 this.tooltipTextMenuPlugin(),
                 history(),
@@ -403,26 +398,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     }
                 }),
                 formattedTextBoxCommentPlugin
-            ] : [
-                    history(),
-                    keymap(this._keymap),
-                    keymap(baseKeymap),
-                ]
+            ]
         };
     }
 
     componentDidMount() {
-
-        if (!this.props.isOverlay) {
-            this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => {
-                    if (this.props.isSelected()) {
-                        FormattedTextBox.InputBoxOverlay = this;
-                        FormattedTextBox.InputBoxOverlayScroll = this._ref.current!.scrollTop;
-                    }
-                }, { fireImmediately: true });
-        }
-
         this.pullFromGoogleDoc(this.checkState);
         this.dataDoc[GoogleRef] && this.dataDoc.unchanged && runInAction(() => DocumentDecorations.Instance.isAnimatingFetch = true);
 
@@ -551,7 +531,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let editor = this._editorView;
                     let ret = findLinkFrag(editor.state.doc.content, editor);
 
-                    if (ret.frag.size > 2 && ((!this.props.isOverlay && !this.props.isSelected()) || (this.props.isSelected() && this.props.isOverlay))) {
+                    if (ret.frag.size > 2) {
                         let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                         if (ret.frag.firstChild) {
                             selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
@@ -754,7 +734,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            (this._editorView as any).isOverlay = this.props.isOverlay;
             if (startup) {
                 Doc.GetProto(doc).documentText = undefined;
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
@@ -766,7 +745,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
         }
-        else if (this.props.isOverlay) this._editorView!.focus();
+        this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
     }
@@ -824,13 +803,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         document.removeEventListener("keypress", this.recordKeyHandler);
         document.addEventListener("keypress", this.recordKeyHandler);
         this.tryUpdateHeight();
-        if (!this.props.isOverlay) {
-            FormattedTextBox.InputBoxOverlay = this;
-        } else {
-            if (this._ref.current) {
-                this._ref.current.scrollTop = FormattedTextBox.InputBoxOverlayScroll;
-            }
-        }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
@@ -901,7 +873,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 }
             }
         }
-        this._proseRef!.focus();
+        let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+        if (pos && pos.pos > 0) {
+            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new TextSelection(this._editorView!.state.doc.resolve(pos.pos))));
+        }
+        this._editorView!.focus();
         if (this._linkClicked) {
             this._linkClicked = "";
             e.preventDefault();
@@ -959,7 +935,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.isOverlay && !this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0) {
+        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0) {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
@@ -968,7 +944,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     render() {
-        let style = this.props.isOverlay ? "scroll" : "hidden";
+        let style = "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
             ? "none" : "all";

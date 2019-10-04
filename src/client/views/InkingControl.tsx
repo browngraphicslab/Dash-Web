@@ -10,7 +10,6 @@ import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { StrCast, NumCast, Cast } from "../../new_fields/Types";
-import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { Utils } from "../../Utils";
@@ -46,7 +45,7 @@ export class InkingControl extends React.Component {
     switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
         if (InkingControl.Instance.selectedTool === InkTool.None) {
-            if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
+            // if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);

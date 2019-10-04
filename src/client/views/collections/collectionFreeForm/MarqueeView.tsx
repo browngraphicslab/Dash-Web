@@ -442,8 +442,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     render() {
         let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} onScroll={(e) => e.currentTarget.scrollLeft = 0}  >
                 {this._visible ? this.marqueeDiv : null}
                 <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
                     {this.props.children}

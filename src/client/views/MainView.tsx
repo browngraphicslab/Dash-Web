@@ -34,14 +34,12 @@ import { DocumentDecorations } from './DocumentDecorations';
 import KeyManager from './GlobalKeyHandler';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
-import { MainOverlayTextBox } from './MainOverlayTextBox';
 import MainViewModal from './MainViewModal';
 import { DocumentView } from './nodes/DocumentView';
-import { PresBox } from './nodes/PresBox';
-import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
+import { OverlayView } from './OverlayView';
 
 @observer
 export class MainView extends React.Component {
@@ -687,7 +685,6 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
         );

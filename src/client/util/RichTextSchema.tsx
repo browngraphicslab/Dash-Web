@@ -720,8 +720,8 @@ export class DashDocView {
         this._outer.style.overflow = "hidden";
         (this._outer.style as any).float = node.attrs.float;
 
-        this._dashSpan.style.width = "100%";
-        this._dashSpan.style.height = "100%";
+        this._dashSpan.style.width = node.attrs.width;
+        this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block"
         this._handle.style.position = "absolute";
