@@ -34,7 +34,7 @@ enum FollowOptions {
     NOZOOM = "No Zoom",
 }
 
-type SelectorProps = { linkDoc: Doc };
+interface SelectorProps { linkDoc: Doc; }
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     // @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -90,6 +90,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 @observer
 export class SavedLinkFollowSelector extends React.Component<SelectorProps> {
     @observable hover = false;
+    @observable buttonText: string = "";
 
     @action
     onMouseLeave = () => {
@@ -102,6 +103,7 @@ export class SavedLinkFollowSelector extends React.Component<SelectorProps> {
     }
 
     render() {
+        runInAction(() => this.buttonText = "Hover to Select");
         let flyout;
         if (this.hover) {
             flyout = (
@@ -111,10 +113,10 @@ export class SavedLinkFollowSelector extends React.Component<SelectorProps> {
             );
         }
         return (
-            <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
+            <span className="savebehaviorButton" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
                 onMouseEnter={this.onMouseEnter}
                 onMouseLeave={this.onMouseLeave}>
-                <p>^</p>
+                <button> {this.buttonText} </button>
                 {flyout}
             </span>
         );
@@ -415,7 +417,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @undoBatch
     private openLinkSelfTab = () => {
         let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc!);
-        // this.prosp.addDocTab is empty -- use the link source's addDocTab 
+        // this.prosp.addDocTab is empty -- use the link source's addDocTab
         (this._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
 
         this.highlightDoc();
@@ -764,6 +766,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         onClick={this.escapeSaveLoad}>
                         Escape<br></br>Loading
                     </button>
+                    <SavedLinkFollowSelector linkDoc={LinkFollowBox.linkDoc!} />
                     <button
                         onClick={this.loadBehavior}>
                         Load Behavior
