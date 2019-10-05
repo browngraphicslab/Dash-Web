@@ -20,6 +20,7 @@
     position:absolute;
     background-color: $light-color-secondary;
     box-shadow: 0px 10px 20px; 
+    transition: transform 500ms ease; 
 
     .info-container{ 
         margin-top: 80px; 
