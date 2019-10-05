@@ -128,7 +128,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             runInAction(async () => {
                 this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: dest }));
                 this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
-                let tcontext = LinkFollowBox.linkDoc && (await Cast(LinkFollowBox.linkDoc.targetContext, Doc)) as Doc;
+                let tcontext = LinkFollowBox.linkDoc && (await Cast(LinkFollowBox.linkDoc.anchor2Context, Doc)) as Doc;
                 runInAction(() => tcontext && this._docs.splice(0, 0, { col: tcontext, target: dest }));
             });
         }

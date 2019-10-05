@@ -105,7 +105,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
     }
-    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.page, -1) - NumCast(this.Document.curPage, -1)) < 1.5 || NumCast(doc.page, -1) === -1); }
+    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);

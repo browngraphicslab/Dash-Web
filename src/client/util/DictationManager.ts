@@ -336,7 +336,6 @@ export namespace DictationManager {
                     let newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
                     newBox.autoHeight = true;
                     let proto = newBox.proto!;
-                    proto.page = -1;
                     let prompt = "Press alt + r to start dictating here...";
                     let head = 3;
                     let anchor = head + prompt.length;

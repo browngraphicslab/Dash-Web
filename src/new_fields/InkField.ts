@@ -16,7 +16,7 @@ export interface StrokeData {
     color: string;
     width: string;
     tool: InkTool;
-    page: number;
+    displayTimecode: number;
 }
 
 export type InkData = Map<string, StrokeData>;

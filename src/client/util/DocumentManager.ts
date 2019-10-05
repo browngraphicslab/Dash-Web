@@ -1,4 +1,4 @@
-import { action, computed, observable } from 'mobx';
+import { action, computed, observable, trace } from 'mobx';
 import { Doc, DocListCastAsync } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../new_fields/Types';
@@ -196,10 +196,13 @@ export class DocumentManager {
         const second = secondDocWithoutView ? [secondDocWithoutView] : secondDocs;
         const linkDoc = first.length ? first[0] : second.length ? second[0] : undefined;
         const linkFollowDocs = first.length ? [await first[0].anchor2 as Doc, await first[0].anchor1 as Doc] : second.length ? [await second[0].anchor1 as Doc, await second[0].anchor2 as Doc] : undefined;
-        const linkFollowDocContexts = first.length ? [await first[0].targetContext as Doc, await first[0].sourceContext as Doc] : second.length ? [await second[0].sourceContext as Doc, await second[0].targetContext as Doc] : [undefined, undefined];
+        const linkFollowDocContexts = first.length ? [await first[0].anchor2Context as Doc, await first[0].anchor1Context as Doc] : second.length ? [await second[0].anchor1Context as Doc, await second[0].anchor2Context as Doc] : [undefined, undefined];
+        const linkFollowTimecodes = first.length ? [NumCast(first[0].anchor2Timecode), NumCast(first[0].anchor1Timecode)] : second.length ? [NumCast(second[0].anchor1Timecode), NumCast(second[0].anchor2Timecode)] : [undefined, undefined];
         if (linkFollowDocs && linkDoc) {
             const maxLocation = StrCast(linkFollowDocs[0].maximizeLocation, "inTab");
             const targetContext = !Doc.AreProtosEqual(linkFollowDocContexts[reverse ? 1 : 0], currentContext) ? linkFollowDocContexts[reverse ? 1 : 0] : undefined;
+            const target = linkFollowDocs[reverse ? 1 : 0];
+            target.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
             DocumentManager.Instance.jumpToDocument(linkFollowDocs[reverse ? 1 : 0], zoom, (doc: Doc) => focus(doc, maxLocation), targetContext, linkDoc[Id]);
         }
     }

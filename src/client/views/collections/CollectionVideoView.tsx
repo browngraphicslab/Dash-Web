@@ -21,7 +21,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     }
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
-        let curTime = NumCast(this.props.Document.curPage);
+        let curTime = NumCast(this.props.Document.currentTimecode);
         return ([<div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling})` }}>
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
@@ -85,7 +85,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     onPointerMove = (e: PointerEvent) => {
         this._isclick += Math.abs(e.movementX) + Math.abs(e.movementY);
         if (this._videoBox) {
-            this._videoBox.Seek(Math.max(0, NumCast(this.props.Document.curPage, 0) + Math.sign(e.movementX) * 0.0333));
+            this._videoBox.Seek(Math.max(0, NumCast(this.props.Document.currentTimecode, 0) + Math.sign(e.movementX) * 0.0333));
         }
         e.stopImmediatePropagation();
     }
@@ -94,7 +94,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         document.removeEventListener("pointermove", this.onPointerMove, true);
         document.removeEventListener("pointerup", this.onPointerUp, true);
         InkingControl.Instance.switchTool(InkTool.None);
-        this._isclick < 10 && (this.props.Document.curPage = 0);
+        this._isclick < 10 && (this.props.Document.currentTimecode = 0);
     }
     setVideoBox = (videoBox: VideoBox) => { this._videoBox = videoBox; };
 

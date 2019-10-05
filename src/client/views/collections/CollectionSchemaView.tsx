@@ -51,7 +51,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["zIndex", ColumnType.Number]
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
