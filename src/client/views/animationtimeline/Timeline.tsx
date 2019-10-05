@@ -18,7 +18,7 @@ import { KeyframeFunc } from "./Keyframe";
 @observer
 export class Timeline extends React.Component<FieldViewProps> {
 
-    private readonly DEFAULT_CONTAINER_HEIGHT: number = 300;
+    private readonly DEFAULT_CONTAINER_HEIGHT: number = 330;
     private readonly DEFAULT_TICK_SPACING: number = 50;
     private readonly MIN_CONTAINER_HEIGHT: number = 205;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
@@ -353,16 +353,18 @@ export class Timeline extends React.Component<FieldViewProps> {
         e.stopPropagation(); 
         let roundToggle = this._roundToggleRef.current!; 
         let roundToggleContainer = this._roundToggleContainerRef.current!; 
+        let timelineContainer = this._timelineContainer.current!; 
         if (BoolCast(this.props.Document.isAnimating)){
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff"; 
             roundToggleContainer.style.animationName = "turnoff"; 
- 
+            timelineContainer.style.transform = `translate(0px, ${this._containerHeight}px)`; 
             this.props.Document.isAnimating = false;
         } else {
             roundToggle.style.transform = "translate(45px, 0px)"; 
             roundToggle.style.animationName = "turnon"; 
             roundToggleContainer.style.animationName = "turnon"; 
+            timelineContainer.style.transform = `translate(0px, ${-this._containerHeight}px)`; 
             this.props.Document.isAnimating = true; 
         }
     }
@@ -371,7 +373,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             <div>
                 <div style={{visibility: this._timelineVisible ? "visible" : "hidden"}}>
                     <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating && this._timelineVisible) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}}>
-                        <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }}>
+                        <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top:`${-this._containerHeight}`}}>
                             <div key ="timeline_info"className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
                                 <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} style={{width: `${this._totalLength}px`}} onClick={this.onScrubberClick}>
                                     {this._ticks.map(element => {
