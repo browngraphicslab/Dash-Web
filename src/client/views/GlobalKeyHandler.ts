@@ -7,6 +7,7 @@ import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
 import { RecommendationsBox } from "./Recommendations";
+import SharingManager from "../util/SharingManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -31,7 +32,7 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key.toLowerCase();
+        let keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
@@ -74,6 +75,7 @@ export default class KeyManager {
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 // RecommendationsBox.Instance.closeMenu();
+                SharingManager.Instance.close();
                 break;
             case "delete":
             case "backspace":
@@ -89,9 +91,6 @@ export default class KeyManager {
                         remove && remove(doc);
                     });
                 }, "delete");
-                break;
-            case "enter":
-                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
                 break;
         }
 
@@ -146,7 +145,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
                 if (document.activeElement) {
@@ -154,7 +153,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "backspace":
                 if (document.activeElement) {
@@ -168,7 +167,7 @@ export default class KeyManager {
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];
-                target && target.fullScreenClicked();
+                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
                 break;
             case "r":
                 preventDefault = false;

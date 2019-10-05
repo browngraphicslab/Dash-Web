@@ -34,6 +34,9 @@
 
         &.searchBox-filter {
             align-self: stretch;
+        }
+
+        &.searchBox-submit {
             margin-left: 2px;
             margin-right: 2px
         }
@@ -43,6 +46,12 @@
             max-height: 32px;
         }
     }
+}
+
+.searchBox-quickFilter {
+    width: 500px;
+    margin-left: 25px;
+    margin-top: 10px;
 }
 
 .searchBox-results {

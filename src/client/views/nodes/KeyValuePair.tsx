@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { Doc, Field } from '../../../new_fields/Doc';
+import { Doc, Field, Opt } from '../../../new_fields/Doc';
 import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
@@ -22,6 +22,7 @@ export interface KeyValuePairProps {
     keyName: string;
     doc: Doc;
     keyWidth: number;
+    addDocTab: (doc: Doc, data: Opt<Doc>, where: string) => boolean;
 }
 @observer
 export class KeyValuePair extends React.Component<KeyValuePairProps> {
@@ -45,7 +46,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         if (value instanceof Doc) {
             e.stopPropagation();
             e.preventDefault();
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(value, { width: 300, height: 300 }); CollectionDockingView.Instance.AddRightSplit(kvp, undefined); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
         }
     }
@@ -55,6 +56,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             Document: this.props.doc,
             DataDoc: this.props.doc,
             ContainingCollectionView: undefined,
+            ContainingCollectionDoc: undefined,
+            ruleProvider: undefined,
             fieldKey: this.props.keyName,
             fieldExt: "",
             isSelected: returnFalse,
@@ -66,7 +69,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
-            addDocTab: returnZero,
+            addDocTab: returnFalse,
             pinToPres: returnZero,
             ContentScaling: returnOne
         };
@@ -112,7 +115,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <div className="keyValuePair-td-value-container">
                         <EditableView
                             contents={contents}
-                            height={36}
+                            maxHeight={36}
+                            height={"auto"}
                             GetValue={() => {
                                 return Field.toKeyValueString(props.Document, props.fieldKey);
                             }}

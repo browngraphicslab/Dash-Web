@@ -10,7 +10,7 @@ library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
-    event: () => void;
+    event: (stuff?: any) => void;
     undoable?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
@@ -44,7 +44,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             if (this.props.undoable !== false) {
                 batch = UndoManager.StartBatch(`Context menu event: ${this.props.description}`);
             }
-            await this.props.event();
+            await this.props.event({ x: e.clientX, y: e.clientY });
             batch && batch.end();
         }
     }
@@ -89,17 +89,17 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             );
         } else if ("subitems" in this.props) {
             let submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px" }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onMouseEnter={this.onPointerEnter} onMouseLeave={this.onPointerLeave}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>
                     {this.props.icon ? (
-                        <span className="icon-background">
+                        <span className="icon-background" onMouseEnter={this.onPointerLeave}>
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
                         </span>
                     ) : null}
-                    <div className="contextMenu-description">
+                    <div className="contextMenu-description" onMouseEnter={this.onPointerEnter} >
                         {this.props.description}
                         <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>

@@ -19,5 +19,7 @@ export enum DocumentType {
     YOUTUBE = "youtube",
     DRAGBOX = "dragbox",
     PRES = "presentation",
-    RECOMMENDATION = "recommendation"
+    RECOMMENDATION = "recommendation",
+    LINKFOLLOW = "linkfollow",
+    PRESELEMENT = "preselement"
 }

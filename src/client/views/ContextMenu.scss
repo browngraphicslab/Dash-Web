@@ -124,7 +124,9 @@
 }
 
 .icon-background {
-    pointer-events: none;
+    pointer-events: all;
+    height:100%;
+    margin-top: 15px;
     background-color: transparent;
     width: 35px;
     text-align: center;

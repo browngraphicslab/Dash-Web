@@ -29,14 +29,13 @@ import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
 const config = require('../../webpack.config');
-import { createCanvas, loadImage, Canvas } from "canvas";
+import { createCanvas } from "canvas";
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import { Search } from './Search';
-import _ = require('lodash');
 import * as Archiver from 'archiver';
 var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
@@ -44,13 +43,18 @@ import { Response } from 'express-serve-static-core';
 import { DocComponent } from '../client/views/DocComponent';
 import { Recommender } from "./Recommender";
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GaxiosResponse } from 'gaxios';
-import { Opt } from '../new_fields/Doc';
-import { docs_v1 } from 'googleapis';
-import { Endpoint } from 'googleapis-common';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+const pdf = require('pdf-parse');
+var findInFiles = require('find-in-files');
+import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
+import * as qs from 'query-string';
+import { Opt } from '../new_fields/Doc';
+import { DashUploadUtils } from './DashUploadUtils';
+import { BatchedArray, TimeUnit } from 'array-batcher';
+import { ParsedPDF } from "./PdfTypes";
+import { reject } from 'bluebird';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -117,7 +121,9 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        if (req.user) {
+        let sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
+        sharing = sharing && req.originalUrl.startsWith("/doc/");
+        if (req.user || sharing) {
             handler(req.user as any, res, req);
         } else {
             req.session!.target = req.originalUrl;
@@ -159,6 +165,13 @@ app.get("/buxton", (req, res) => {
     command_line('python scraper.py', cwd).then(onResolved, tryPython3);
 });
 
+const STATUS = {
+    OK: 200,
+    BAD_REQUEST: 400,
+    EXECUTION_ERROR: 500,
+    PERMISSION_DENIED: 403
+};
+
 const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
         let options: ExecOptions = {};
@@ -197,6 +210,23 @@ app.get("/version", (req, res) => {
 const solrURL = "http://localhost:8983/solr/#/dash";
 
 // GETTERS
+
+app.get("/textsearch", async (req, res) => {
+    let q = req.query.q;
+    console.log("TEXTSEARCH " + q);
+    if (q === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDirectory + "text", ".txt$");
+    let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
+    for (var result in results) {
+        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+        resObj.lines.push(results[result].line);
+        resObj.numFound++;
+    }
+    res.send(resObj);
+});
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
@@ -422,10 +452,10 @@ app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
     let pagenumber = parseInt(noExt.split('-')[1]);
-    fs.exists(uploadDir + filename, (exists: boolean) => {
-        console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
+    fs.exists(uploadDirectory + filename, (exists: boolean) => {
+        console.log(`${uploadDirectory + filename} ${exists ? "exists" : "does not exist"}`);
         if (exists) {
-            let input = fs.createReadStream(uploadDir + filename);
+            let input = fs.createReadStream(uploadDirectory + filename);
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
@@ -436,7 +466,7 @@ app.get("/thumbnail/:filename", (req, res) => {
             });
         }
         else {
-            LoadPage(uploadDir + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
+            LoadPage(uploadDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
         }
     });
 });
@@ -449,7 +479,7 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
             console.log(pageNumber);
             pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
                 console.log("reading " + page);
-                let viewport = page.getViewport(1);
+                let viewport = page.getViewport(1 as any);
                 let canvasAndContext = factory.create(viewport.width, viewport.height);
                 let renderContext = {
                     canvasContext: canvasAndContext.context,
@@ -505,21 +535,20 @@ addSecureRoute(
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     },
     undefined,
-    RouteStore.home,
-    RouteStore.openDocumentWithId
+    RouteStore.home, RouteStore.openDocumentWithId
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(user.userDocumentId || ""),
-    undefined,
+    (user, res) => res.send(user.userDocumentId),
+    (res) => res.send(undefined),
     RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(JSON.stringify({ id: user.id, email: user.email })),
-    undefined,
+    (user, res) => { res.send(JSON.stringify({ id: user.id, email: user.email })); },
+    (res) => res.send(JSON.stringify({ id: "__guest__", email: "" })),
     RouteStore.getCurrUser
 );
 
@@ -559,50 +588,49 @@ class NodeCanvasFactory {
 }
 
 const pngTypes = [".png", ".PNG"];
-const pdfTypes = [".pdf", ".PDF"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-const uploadDir = __dirname + "/public/files/";
+const uploadDirectory = __dirname + "/public/files/";
+const pdfDirectory = uploadDirectory + "text";
+DashUploadUtils.createIfNotExists(pdfDirectory);
+
+interface FileResponse {
+    name: string;
+    path: string;
+    type: string;
+}
+
 // SETTERS
 app.post(
     RouteStore.upload,
     (req, res) => {
         let form = new formidable.IncomingForm();
-        form.uploadDir = uploadDir;
+        form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
-        // let path = req.body.path;
-        console.log("upload");
-        form.parse(req, (err, fields, files) => {
-            console.log("parsing");
-            let names: string[] = [];
-            for (const name in files) {
-                const file = path.basename(files[name].path);
-                const ext = path.extname(file);
-                let resizers = [
-                    { resizer: sharp().rotate(), suffix: "_o" },
-                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }).rotate(), suffix: "_s" },
-                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }).rotate(), suffix: "_m" },
-                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }).rotate(), suffix: "_l" },
-                ];
-                let isImage = false;
-                if (pngTypes.includes(ext)) {
-                    resizers.forEach(element => {
-                        element.resizer = element.resizer.png();
+        form.parse(req, async (_err, _fields, files) => {
+            let results: FileResponse[] = [];
+            for (const key in files) {
+                const { type, path: location, name } = files[key];
+                const filename = path.basename(location);
+                if (filename.endsWith(".pdf")) {
+                    let dataBuffer = fs.readFileSync(uploadDirectory + filename);
+                    const result: ParsedPDF = await pdf(dataBuffer);
+                    await new Promise<void>(resolve => {
+                        const path = pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
+                        fs.createWriteStream(path).write(result.text, error => {
+                            if (!error) {
+                                resolve();
+                            } else {
+                                reject(error);
+                            }
+                        });
                     });
-                    isImage = true;
-                } else if (jpgTypes.includes(ext)) {
-                    resizers.forEach(element => {
-                        element.resizer = element.resizer.jpeg();
-                    });
-                    isImage = true;
+                } else {
+                    await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
                 }
-                if (isImage) {
-                    resizers.forEach(resizer => {
-                        fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
-                    });
-                }
-                names.push(`/files/` + file);
+                results.push({ name, type, path: `/files/${filename}` });
+
             }
-            res.send(names);
+            _success(res, results);
         });
     }
 );
@@ -616,7 +644,7 @@ addSecureRoute(
             res.status(401).send("incorrect parameters specified");
             return;
         }
-        imageDataUri.outputFile(uri, uploadDir + filename).then((savedName: string) => {
+        imageDataUri.outputFile(uri, uploadDirectory + filename).then((savedName: string) => {
             const ext = path.extname(savedName);
             let resizers = [
                 { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
@@ -637,7 +665,7 @@ addSecureRoute(
             }
             if (isImage) {
                 resizers.forEach(resizer => {
-                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + filename + resizer.suffix + ext));
+                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDirectory + filename + resizer.suffix + ext));
                 });
             }
             res.send("/files/" + filename + ext);
@@ -709,14 +737,29 @@ app.get(RouteStore.delete, (req, res) => {
     }
     deleteFields().then(() => res.redirect(RouteStore.home));
 });
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            return _permission_denied(res, deletionPermissionError);
+        }
+        deleteFields().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.delete
+);
 
-app.get(RouteStore.deleteAll, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteAll().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (_user, res, _req) => {
+        if (release) {
+            return _permission_denied(res, deletionPermissionError);
+        }
+        deleteAll().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.deleteAll
+);
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
@@ -822,8 +865,7 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
     }
 }
 
-const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
-const token = path.join(__dirname, "./credentials/google_docs_token.json");
+const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
 
 const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
@@ -832,9 +874,9 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 ]);
 
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
-    let sector: any = req.params.sector;
-    let action: any = req.params.action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
+    let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
+    let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.headers.userId as string }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(
@@ -847,6 +889,134 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
         res.send(undefined);
     });
 });
+
+app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.header("userId")! }).then(token => res.send(token)));
+
+const tokenError = "Unable to successfully upload bytes for all images!";
+const mediaError = "Unable to convert all uploaded bytes to media items!";
+const userIdError = "Unable to parse the identification of the user!";
+
+export interface NewMediaItem {
+    description: string;
+    simpleMediaItem: {
+        uploadToken: string;
+    };
+}
+
+app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
+    const { media } = req.body;
+    const userId = req.header("userId");
+
+    if (!userId) {
+        return _error(res, userIdError);
+    }
+
+    await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
+
+    let failed = 0;
+
+    const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
+        { magnitude: 100, unit: TimeUnit.Milliseconds },
+        async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
+            const newMediaItems: NewMediaItem[] = [];
+            for (let element of batch) {
+                const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+                if (!uploadToken) {
+                    failed++;
+                } else {
+                    newMediaItems.push({
+                        description: element.description,
+                        simpleMediaItem: { uploadToken }
+                    });
+                }
+            }
+            return newMediaItems;
+        }
+    );
+
+    if (failed) {
+        return _error(res, tokenError);
+    }
+
+    GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
+        result => _success(res, result.newMediaItemResults),
+        error => _error(res, mediaError, error)
+    );
+});
+
+interface MediaItem {
+    baseUrl: string;
+    filename: string;
+}
+const prefix = "google_photos_";
+
+const downloadError = "Encountered an error while executing downloads.";
+const requestError = "Unable to execute download: the body's media items were malformed.";
+const deletionPermissionError = "Cannot perform specialized delete outside of the development environment!";
+
+app.get("/deleteWithAux", async (_req, res) => {
+    if (release) {
+        return _permission_denied(res, deletionPermissionError);
+    }
+    await Database.Auxiliary.DeleteAll();
+    res.redirect(RouteStore.delete);
+});
+
+app.get("/deleteWithGoogleCredentials", async (req, res) => {
+    if (release) {
+        return _permission_denied(res, deletionPermissionError);
+    }
+    await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
+    res.redirect(RouteStore.delete);
+});
+
+const UploadError = (count: number) => `Unable to upload ${count} images to Dash's server`;
+app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
+    const contents: { mediaItems: MediaItem[] } = req.body;
+    let failed = 0;
+    if (contents) {
+        const completed: Opt<DashUploadUtils.UploadInformation>[] = [];
+        for (let item of contents.mediaItems) {
+            const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
+            const found: Opt<DashUploadUtils.UploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
+            if (!found) {
+                const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
+                if (upload) {
+                    completed.push(upload);
+                    await Database.Auxiliary.LogUpload(upload);
+                } else {
+                    failed++;
+                }
+            } else {
+                completed.push(found);
+            }
+        }
+        if (failed) {
+            return _error(res, UploadError(failed));
+        }
+        return _success(res, completed);
+    }
+    _invalid(res, requestError);
+});
+
+const _error = (res: Response, message: string, error?: any) => {
+    res.statusMessage = message;
+    res.status(STATUS.EXECUTION_ERROR).send(error);
+};
+
+const _success = (res: Response, body: any) => {
+    res.status(STATUS.OK).send(body);
+};
+
+const _invalid = (res: Response, message: string) => {
+    res.statusMessage = message;
+    res.status(STATUS.BAD_REQUEST).send();
+};
+
+const _permission_denied = (res: Response, message: string) => {
+    res.statusMessage = message;
+    res.status(STATUS.BAD_REQUEST).send("Permission Denied!");
+};
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",

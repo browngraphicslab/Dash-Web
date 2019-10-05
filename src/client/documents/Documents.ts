@@ -1,7 +1,6 @@
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
-import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
@@ -20,8 +19,8 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
+import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -48,12 +47,15 @@ import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/Recommendations";
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
+import { LinkFollowBox } from "../views/linking/LinkFollowBox";
+import { PresElementBox } from "../views/presentationview/PresElementBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
+    z?: number;
     type?: string;
     width?: number;
     height?: number;
@@ -64,7 +66,8 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    layout?: string;
+    layout?: string | Doc;
+    isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
@@ -74,6 +77,7 @@ export interface DocumentOptions {
     backgroundLayout?: string;
     chromeStatus?: string;
     curPage?: number;
+    currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
     schemaColumns?: List<SchemaHeaderField>;
@@ -93,12 +97,13 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        type LayoutSource = { LayoutString: () => string };
+        type LayoutSource = { LayoutString: (ext?: string) => string };
         type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
         type CollectionViewType = [CollectionLayoutSource, string, string?];
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
+                ext?: string, // optional extension field for layout source
                 collectionView?: CollectionViewType
             },
             options?: Partial<DocumentOptions>
@@ -119,7 +124,7 @@ export namespace Docs {
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 }
+                options: {}
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
@@ -135,14 +140,14 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { nativeWidth: 600, curPage: 0 },
+                options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
                 options: { height: 32 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] as CollectionViewType },
+                layout: { view: PDFBox, ext: anno },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
@@ -156,7 +161,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
@@ -175,7 +179,13 @@ export namespace Docs {
             [DocumentType.RECOMMENDATION, {
                 layout: { view: RecommendationsBox },
                 options: { width: 200, height: 200 },
-            }]
+            }],
+            [DocumentType.LINKFOLLOW, {
+                layout: { view: LinkFollowBox }
+            }],
+            [DocumentType.PRESELEMENT, {
+                layout: { view: PresElementBox }
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -253,7 +263,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title: title, type: type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            let primary = layout.view.LayoutString();
+            let primary = layout.view.LayoutString(layout.ext);
             let collectionView = layout.collectionView;
             if (collectionView) {
                 options.layout = collectionView[0].LayoutString(collectionView[1], collectionView[2]);
@@ -332,7 +342,13 @@ export namespace Docs {
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             let imgField = new ImageField(new URL(url));
             let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
-            requestImageSize(imgField.url.href)
+            let target = imgField.url.href;
+            if (new RegExp(window.location.origin).test(target)) {
+                let extension = path.extname(target);
+                target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
+            }
+            // if (target !== "http://www.cs.brown.edu/") {
+            requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {
@@ -342,6 +358,7 @@ export namespace Docs {
                     inst.proto!.height = NumCast(inst.proto!.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
+            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
@@ -419,8 +436,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
-        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
+        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
@@ -446,6 +463,14 @@ export namespace Docs {
 
         export function DragboxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
+        }
+
+        export function LinkFollowBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
+        }
+
+        export function PresElementBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
@@ -506,10 +531,13 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
         export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
-            if (input === null || ![...primitives, "object"].includes(typeof input)) {
+            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
+            let parsed = input;
+            if (typeof input === "string") {
+                parsed = JSONUtils.tryParse(input);
+            }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
                 converted = convertObject(parsed, title);
@@ -575,6 +603,7 @@ export namespace Docs {
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
                 options.nativeWidth = 1200;
+                options.nativeHeight = 1200;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
@@ -606,35 +635,61 @@ export namespace Docs {
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
-        let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
-        if (target === CurrentUserUtils.UserDocument) return undefined;
+    export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
+        targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
+        DocServer.GetRefField(targetID).then(doc => {
+            if (promoteDoc !== doc) {
+                let copy = doc as Doc;
+                if (copy) {
+                    Doc.Overwrite(promoteDoc, copy, true);
+                } else {
+                    copy = Doc.MakeCopy(promoteDoc, true, targetID);
+                }
+                !doc && (copy.title = undefined) && (Doc.GetProto(copy).title = targetID);
+                addDoc && addDoc(copy);
+                remDoc && remDoc(promoteDoc);
+                if (!doc) {
+                    DocListCastAsync(promoteDoc.links).then(links => {
+                        links && links.map(async link => {
+                            if (link) {
+                                let a1 = await Cast(link.anchor1, Doc);
+                                if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
+                                let a2 = await Cast(link.anchor2, Doc);
+                                if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
+                                LinkManager.Instance.deleteLink(link);
+                                LinkManager.Instance.addLink(link);
+                            }
+                        });
+                    });
+                }
+            }
+        });
+    }
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
+        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDocProto = new Doc();
+        let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = targetContext;
-            linkDocProto.sourceContext = sourceContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
-            linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.anchor1 = source;
-            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1 = source.doc;
+            linkDocProto.anchor1Context = source.ctx;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor1Groups = new List<Doc>([]);
-            linkDocProto.anchor2 = target;
-            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            let script = `return links(this);`;
-            let computed = CompileScript(script, { params: { this: "Doc" }, typecheck: false });
-            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
-            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

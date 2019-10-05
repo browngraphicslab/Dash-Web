@@ -1,9 +1,8 @@
 import "fs";
 import React = require("react");
-import { Doc, Opt, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { DocServer } from "../../DocServer";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { RouteStore } from "../../../server/RouteStore";
-import { action, observable, autorun, runInAction, computed } from "mobx";
+import { action, observable, autorun, runInAction, computed, reaction, IReactionDisposer } from "mobx";
 import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -18,8 +17,19 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, BoolCast, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import "./DirectoryImportBox.scss";
+import { Identified } from "../../Network";
+import { BatchedArray } from "array-batcher";
 
 const unsupported = ["text/html", "text/plain"];
+
+interface FileResponse {
+    name: string;
+    path: string;
+    type: string;
+}
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -27,11 +37,13 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     @observable private top = 0;
     @observable private left = 0;
     private dimensions = 50;
+    @observable private phase = "";
+    private disposer: Opt<IReactionDisposer>;
 
     @observable private entries: ImportMetadataEntry[] = [];
 
     @observable private quota = 1;
-    @observable private remaining = 1;
+    @observable private completed = 0;
 
     @observable private uploading = false;
     @observable private removeHover = false;
@@ -66,15 +78,17 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     }
 
     handleSelection = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        runInAction(() => this.uploading = true);
+        runInAction(() => {
+            this.uploading = true;
+            this.phase = "Initializing download...";
+        });
 
-        let promises: Promise<void>[] = [];
         let docs: Doc[] = [];
 
         let files = e.target.files;
         if (!files || files.length === 0) return;
 
-        let directory = (files.item(0) as any).webkitRelativePath.split("/", 1);
+        let directory = (files.item(0) as any).webkitRelativePath.split("/", 1)[0];
 
         let validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
@@ -82,37 +96,41 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             file && !unsupported.includes(file.type) && validated.push(file);
         }
 
-        runInAction(() => this.quota = validated.length);
+        runInAction(() => {
+            this.quota = validated.length;
+            this.completed = 0;
+        });
 
-        let sizes = [];
-        let modifiedDates = [];
+        let sizes: number[] = [];
+        let modifiedDates: number[] = [];
 
-        for (let uploaded_file of validated) {
-            let formData = new FormData();
-            formData.append('file', uploaded_file);
-            let dropFileName = uploaded_file ? uploaded_file.name : "-empty-";
-            let type = uploaded_file.type;
+        runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-            sizes.push(uploaded_file.size);
-            modifiedDates.push(uploaded_file.lastModified);
+        const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync(async batch => {
+            const formData = new FormData();
 
-            runInAction(() => this.remaining++);
-
-            let prom = fetch(Utils.prepend(RouteStore.upload), {
-                method: 'POST',
-                body: formData
-            }).then(async (res: Response) => {
-                (await res.json()).map(action((file: any) => {
-                    let docPromise = Docs.Get.DocumentFromType(type, Utils.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
-                    docPromise.then(doc => {
-                        doc && docs.push(doc) && runInAction(() => this.remaining--);
-                    });
-                }));
+            batch.forEach(file => {
+                sizes.push(file.size);
+                modifiedDates.push(file.lastModified);
+                formData.append(Utils.GenerateGuid(), file);
             });
-            promises.push(prom);
-        }
 
-        await Promise.all(promises);
+            const responses = await Identified.PostFormDataToServer(RouteStore.upload, formData);
+            runInAction(() => this.completed += batch.length);
+            return responses as FileResponse[];
+        });
+
+        await Promise.all(uploads.map(async upload => {
+            const type = upload.type;
+            const path = Utils.prepend(upload.path);
+            const options = {
+                nativeWidth: 300,
+                width: 300,
+                title: upload.name
+            };
+            const document = await Docs.Get.DocumentFromType(type, path, options);
+            document && docs.push(document);
+        }));
 
         for (let i = 0; i < docs.length; i++) {
             let doc = docs[i];
@@ -136,24 +154,39 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
-            let importContainer = Docs.Create.StackingDocument(docs, options);
+            let importContainer: Doc;
+            if (docs.length < 50) {
+                importContainer = Docs.Create.MasonryDocument(docs, options);
+            } else {
+                const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("size")];
+                importContainer = Docs.Create.SchemaDocument(headers, docs, options);
+            }
+            runInAction(() => this.phase = 'External: uploading files to Google Photos...');
             importContainer.singleColumn = false;
+            await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
             DocumentManager.Instance.jumpToDocument(importContainer, true);
-
         }
 
         runInAction(() => {
             this.uploading = false;
             this.quota = 1;
-            this.remaining = 1;
+            this.completed = 0;
         });
     }
 
     componentDidMount() {
         this.selector.current!.setAttribute("directory", "");
         this.selector.current!.setAttribute("webkitdirectory", "");
+        this.disposer = reaction(
+            () => this.completed,
+            completed => runInAction(() => this.phase = `Internal: uploading ${this.quota - completed} files to Dash...`)
+        );
+    }
+
+    componentWillUnmount() {
+        this.disposer && this.disposer();
     }
 
     @action
@@ -188,7 +221,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                     metadata.splice(index, 1);
                 }
             }
-
         }
     }
 
@@ -196,19 +228,47 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let dimensions = 50;
         let entries = DocListCast(this.props.Document.data);
         let isEditing = this.editingMetadata;
-        let remaining = this.remaining;
+        let completed = this.completed;
         let quota = this.quota;
         let uploading = this.uploading;
         let showRemoveLabel = this.removeHover;
         let persistent = this.persistent;
-        let percent = `${100 - (remaining / quota * 100)}`;
+        let percent = `${completed / quota * 100}`;
         percent = percent.split(".")[0];
         percent = percent.startsWith("100") ? "99" : percent;
         let marginOffset = (percent.length === 1 ? 5 : 0) - 1.6;
+        const message = <span className={"phase"}>{this.phase}</span>;
+        const centerPiece = this.phase.includes("Google Photos") ?
+            <img src={"/assets/google_photos.png"} style={{
+                transition: "0.4s opacity ease",
+                width: 30,
+                height: 30,
+                opacity: uploading ? 1 : 0,
+                pointerEvents: "none",
+                position: "absolute",
+                left: 12,
+                top: this.top + 10,
+                fontSize: 18,
+                color: "white",
+                marginLeft: this.left + marginOffset
+            }} />
+            : <div
+                style={{
+                    transition: "0.4s opacity ease",
+                    opacity: uploading ? 1 : 0,
+                    pointerEvents: "none",
+                    position: "absolute",
+                    left: 10,
+                    top: this.top + 12.3,
+                    fontSize: 18,
+                    color: "white",
+                    marginLeft: this.left + marginOffset
+                }}>{percent}%</div>;
         return (
             <Measure offset onResize={this.preserveCentering}>
                 {({ measureRef }) =>
                     <div ref={measureRef} style={{ width: "100%", height: "100%", pointerEvents: "all" }} >
+                        {message}
                         <input
                             id={"selector"}
                             ref={this.selector}
@@ -281,18 +341,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 opacity: showRemoveLabel ? 1 : 0,
                                 transition: "0.4s opacity ease"
                             }}>Template will be <span style={{ textDecoration: "underline", textDecorationColor: persistent ? "green" : "red", color: persistent ? "green" : "red" }}>{persistent ? "kept" : "removed"}</span> after upload</p>
-                        <div
-                            style={{
-                                transition: "0.4s opacity ease",
-                                opacity: uploading ? 1 : 0,
-                                pointerEvents: "none",
-                                position: "absolute",
-                                left: 10,
-                                top: this.top + 12.3,
-                                fontSize: 18,
-                                color: "white",
-                                marginLeft: this.left + marginOffset
-                            }}>{percent}%</div>
+                        {centerPiece}
                         <div
                             style={{
                                 position: "absolute",
@@ -313,7 +362,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             style={{
                                 pointerEvents: "none",
                                 position: "absolute",
-                                right: isEditing ? 16.3 : 14.5,
+                                right: isEditing ? 14 : 15,
                                 top: isEditing ? 15.4 : 16,
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"

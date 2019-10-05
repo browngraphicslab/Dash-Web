@@ -1,7 +1,7 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, action } from "mobx";
-import { Utils, emptyFunction, returnOne, returnTrue, returnEmptyString } from "../../Utils";
+import { observable, action, trace, computed } from "mobx";
+import { Utils, emptyFunction, returnOne, returnTrue, returnEmptyString, returnZero, returnFalse } from "../../Utils";
 
 import './OverlayView.scss';
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
@@ -10,6 +10,8 @@ import { Id } from "../../new_fields/FieldSymbols";
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
+import { DocumentContentsView } from "./nodes/DocumentContentsView";
+import { NumCast } from "../../new_fields/Types";
 
 export type OverlayDisposer = () => void;
 
@@ -138,30 +140,73 @@ export class OverlayView extends React.Component {
         return remove;
     }
 
+    @computed get overlayDocs() {
+        if (!CurrentUserUtils.UserDocument) {
+            return (null);
+        }
+        return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
+            d.inOverlay = true;
+            let offsetx = 0, offsety = 0;
+            let onPointerMove = action((e: PointerEvent) => {
+                if (e.buttons === 1) {
+                    d.x = e.clientX + offsetx;
+                    d.y = e.clientY + offsety;
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            });
+            let onPointerUp = action((e: PointerEvent) => {
+                document.removeEventListener("pointermove", onPointerMove);
+                document.removeEventListener("pointerup", onPointerUp);
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
+            let onPointerDown = (e: React.PointerEvent) => {
+                offsetx = NumCast(d.x) - e.clientX;
+                offsety = NumCast(d.y) - e.clientY;
+                e.stopPropagation();
+                e.preventDefault();
+                document.addEventListener("pointermove", onPointerMove);
+                document.addEventListener("pointerup", onPointerUp);
+            };
+            return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)`, display: d.isMinimized ? "none" : "" }}>
+                <DocumentView
+                    Document={d}
+                    ChromeHeight={returnZero}
+                    // isSelected={returnFalse}
+                    // select={emptyFunction}
+                    // layoutKey={"layout"}
+                    bringToFront={emptyFunction}
+                    ruleProvider={undefined}
+                    addDocument={undefined}
+                    removeDocument={undefined}
+                    ContentScaling={returnOne}
+                    PanelWidth={returnOne}
+                    PanelHeight={returnOne}
+                    ScreenToLocalTransform={Transform.Identity}
+                    renderDepth={1}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
+                    addDocTab={returnFalse}
+                    pinToPres={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne} />
+            </div>;
+        });
+    }
+
     render() {
         return (
-            <div className="overlayView">
-                {this._elements}
-                {CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => (
-                    <CollectionFreeFormDocumentView key={d[Id]}
-                        Document={d}
-                        bringToFront={emptyFunction}
-                        addDocument={undefined}
-                        removeDocument={undefined}
-                        ContentScaling={returnOne}
-                        PanelWidth={returnOne}
-                        PanelHeight={returnOne}
-                        ScreenToLocalTransform={Transform.Identity}
-                        renderDepth={1}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        focus={emptyFunction}
-                        backgroundColor={returnEmptyString}
-                        addDocTab={emptyFunction}
-                        pinToPres={emptyFunction}
-                        ContainingCollectionView={undefined}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne} />))}
+            <div className="overlayView" id="overlayView">
+                <div>
+                    {this._elements}
+                </div>
+                {this.overlayDocs}
             </div>
         );
     }
