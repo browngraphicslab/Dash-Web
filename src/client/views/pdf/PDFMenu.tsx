@@ -4,7 +4,7 @@ import { observable, action, } from "mobx";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { emptyFunction, returnFalse } from "../../../Utils";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 
 @observer
 export default class PDFMenu extends React.Component {
@@ -31,7 +31,7 @@ export default class PDFMenu extends React.Component {
     @observable public Pinned: boolean = false;
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = emptyFunction;
-    public Highlight: (color: string) => void = emptyFunction;
+    public Highlight: (color: string) => Opt<Doc> = (color: string) => undefined;
     public Delete: () => void = emptyFunction;
     public Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
@@ -155,12 +155,8 @@ export default class PDFMenu extends React.Component {
 
     @action
     highlightClicked = (e: React.MouseEvent) => {
-        if (!this.Pinned) {
-            this.Highlight("#f4f442");
-        }
-        else {
+        if (!this.Highlight("rgba(245, 230, 95, 0.616)") && this.Pinned) {
             this.Highlighting = !this.Highlighting;
-            this.Highlight("#f4f442");
         }
     }
 

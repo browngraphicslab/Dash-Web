@@ -140,7 +140,6 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
             let selDoc = this.props.views[0];
             let container = selDoc.props.ContainingCollectionDoc ? selDoc.props.ContainingCollectionDoc.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
-            FormattedTextBox.InputBoxOverlay = undefined;
             this._linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {

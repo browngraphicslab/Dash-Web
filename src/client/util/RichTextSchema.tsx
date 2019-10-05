@@ -654,17 +654,17 @@ export class ImageResizeView {
         this._img.onclick = function (e: any) {
             e.stopPropagation();
             e.preventDefault();
-            if (view.state.selection.node && view.state.selection.node.type !== view.state.schema.nodes.image)
-                view.dispatch(
-                    view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(view.state.selection.from - 2))));
-        }
+            if (view.state.selection.node && view.state.selection.node.type !== view.state.schema.nodes.image) {
+                view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(view.state.selection.from - 2))));
+            }
+        };
         this._img.onpointerdown = function (e: any) {
             if (e.ctrlKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc =>
                     (linkDoc instanceof Doc) &&
-                    DocumentManager.Instance.FollowLink(linkDoc, (view.state.schema as any).Document,
+                    DocumentManager.Instance.FollowLink(linkDoc, view.state.schema.Document,
                         document => addDocTab(document, undefined, node.attrs.location ? node.attrs.location : "inTab"), false));
             }
         };
@@ -730,7 +730,7 @@ export class DashDocView {
         this._dashSpan.style.width = node.attrs.width;
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
-        this._dashSpan.style.display = "inline-block"
+        this._dashSpan.style.display = "inline-block";
         this._handle.style.position = "absolute";
         this._handle.style.width = "20px";
         this._handle.style.height = "20px";
@@ -771,16 +771,10 @@ export class DashDocView {
         this._dashSpan.onclick = function (e: any) {
             FormattedTextBox.firstTarget && FormattedTextBox.firstTarget();
             e.stopPropagation();
-        }
-        this._dashSpan.onkeydown = function (e: any) {
-            e.stopPropagation();
-        }
-        this._dashSpan.onkeypress = function (e: any) {
-            e.stopPropagation();
-        }
-        this._dashSpan.onkeyup = function (e: any) {
-            e.stopPropagation();
-        }
+        };
+        this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
+        this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();

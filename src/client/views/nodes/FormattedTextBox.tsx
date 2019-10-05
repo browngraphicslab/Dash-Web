@@ -291,7 +291,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (de.data.urlField && link) {
                 let url: string = de.data.urlField.url.href;
                 let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
-                node = model.create({ src: url, docid: link[Id] })
+                node = model.create({ src: url, docid: link[Id] });
             } else {
                 node = schema.nodes.dashDoc.create({
                     width: target[WidthSym](), height: target[HeightSym](),
@@ -798,7 +798,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this._editorView!.focus();
                 }
             }
-        }
+        };
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
@@ -807,9 +807,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         }
     }
-
+    static InputBoxOverlay: any = null;
     @action
     onFocused = (e: React.FocusEvent): void => {
+        FormattedTextBox.InputBoxOverlay = this;
         document.removeEventListener("keypress", this.recordKeyHandler);
         document.addEventListener("keypress", this.recordKeyHandler);
         this.tryUpdateHeight();
