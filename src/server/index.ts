@@ -320,6 +320,16 @@ app.get("/serializeDoc/:docId", async (req, res) => {
     res.send({ docs, files: Array.from(files) });
 });
 
+app.get(`${RouteStore.imageHierarchyExport}/:hierarchy`, async (req, res) => {
+    const hierarchy = JSON.parse(req.params.hierarchy);
+    Object.keys(hierarchy).map(key => {
+        let value: any;
+        if (value = hierarchy[key]) {
+
+        }
+    });
+});
+
 app.get("/downloadId/:docId", async (req, res) => {
     res.set('Content-disposition', `attachment;`);
     res.set('Content-Type', "application/zip");
