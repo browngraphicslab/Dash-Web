@@ -74,6 +74,7 @@ export interface DocumentOptions {
     backgroundLayout?: string;
     chromeStatus?: string;
     curPage?: number;
+    currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
     schemaColumns?: List<SchemaHeaderField>;
@@ -120,7 +121,7 @@ export namespace Docs {
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { curPage: 0 }
+                options: {}
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
@@ -136,7 +137,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { curPage: 0 },
+                options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -662,15 +663,17 @@ export namespace DocUtils {
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = target.ctx;
-            linkDocProto.sourceContext = source.ctx;
             linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
 
             linkDocProto.anchor1 = source.doc;
+            linkDocProto.anchor1Context = source.ctx;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             LinkManager.Instance.addLink(linkDocProto);
 

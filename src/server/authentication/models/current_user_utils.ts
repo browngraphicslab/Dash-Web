@@ -112,7 +112,7 @@ export class CurrentUserUtils {
             if (sidebar) {
                 sidebar.backgroundColor = "lightgrey";
             }
-        })
+        });
 
         if (doc.overlays === undefined) {
             const overlays = Docs.Create.FreeformDocument([], { title: "Overlays" });

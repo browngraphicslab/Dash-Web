@@ -16,6 +16,7 @@
         mix-blend-mode: multiply;
         opacity: 0.9;
     }
+    .textLayer ::selection { background: yellow; } // should match the backgroundColor in createAnnotation()
     .textLayer .highlight {
         background-color: yellow;
     }
@@ -51,10 +52,9 @@
         pointer-events: none;
         mix-blend-mode: multiply;
 
-        .pdfPage-annotationBox {
+        .pdfViewer-annotationBox {
             position: absolute;
-            background-color: red;
-            opacity: 0.1;
+            background-color: rgba(245, 230, 95, 0.616);
         }
     }
     .pdfViewer-waiting {

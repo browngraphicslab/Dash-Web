@@ -94,6 +94,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             PDFMenu.Instance.AddTag = this.addTag.bind(this);
             PDFMenu.Instance.PinToPres = this.pinToPres;
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
+            e.stopPropagation();
         }
         else if (e.button === 0) {
             let annoGroup = await Cast(this.props.document.group, Doc);
@@ -104,6 +105,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             }
         }
     }
+
 
     addTag = (key: string, value: string): boolean => {
         let group = FieldValue(Cast(this.props.document.group, Doc));
@@ -122,9 +124,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 left: this.props.x,
                 width: this.props.width,
                 height: this.props.height,
-                transition: "opacity 0.5s",
                 opacity: this._brushed ? 0.5 : undefined,
-                backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.color)
+                backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
+                transition: "opacity 0.5s",
             }} />);
     }
 }

@@ -285,7 +285,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
+                    d.displayTimecode = undefined;
                     return d;
                 });
             }

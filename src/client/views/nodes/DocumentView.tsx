@@ -111,6 +111,7 @@ export const documentSchema = createSchema({
     type: "string",             // enumerated type of document
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
     lockedPosition: "boolean",  // whether the document can be spatially manipulated
+    inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
@@ -243,7 +244,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active && e.button === 0 && !this.Document.lockedPosition) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+        if (this.active && e.button === 0 && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -253,7 +254,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && !this.topMost && e.buttons === 1) {
                     document.removeEventListener("pointermove", this.onPointerMove);

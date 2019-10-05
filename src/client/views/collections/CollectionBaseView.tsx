@@ -101,8 +101,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        var curPage = NumCast(this.props.Document.curPage, -1);
-        Doc.GetProto(doc).page = curPage;
+        var curTime = NumCast(this.props.Document.currentTimecode, -1);
+        curTime !== -1 && (doc.displayTimecode = curTime);
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }

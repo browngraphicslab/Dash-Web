@@ -65,9 +65,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
     public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
     public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
-    public backPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) - 1); }
+    public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
-    public forwardPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) + 1); }
+    public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
 
     @undoBatch
     @action
@@ -128,7 +128,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
-                <input value={`${NumCast(this.props.Document.curPage)}`}
+                <input value={`${(this.Document.curPage || 1)}`}
                     onChange={e => this.gotoPage(Number(e.currentTarget.value))}
                     style={{ left: 20, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
                     onClick={action(() => this._pageControls = !this._pageControls)} />

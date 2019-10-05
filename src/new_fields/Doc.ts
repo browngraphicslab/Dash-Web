@@ -685,7 +685,7 @@ export namespace Doc {
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
         document.addEventListener("pointerdown", linkFollowUnhighlight);
         let x = dt = Date.now();
-        window.setTimeout(() => dt == x && linkFollowUnhighlight(), 5000);
+        window.setTimeout(() => dt === x && linkFollowUnhighlight(), 5000);
     }
 
     export class HighlightBrush {
