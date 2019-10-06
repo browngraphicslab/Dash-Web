@@ -108,6 +108,12 @@
         margin-top: 2px;
         background: $main-accent;
         height: 5px;
+
+        &.active {
+            margin-left: 0;
+            margin-right: 0;
+            background: red;
+        }
     }
 
     .collectionStackingView-sectionHeader {

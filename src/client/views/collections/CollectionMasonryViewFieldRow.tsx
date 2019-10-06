@@ -161,7 +161,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     pointerEnteredRow = () => {
-        this._createAliasSelected = false;
         if (SelectionManager.GetIsDragging()) {
             this._background = "#b4b4b4";
         }
@@ -344,7 +343,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         };
         let headingView = this.props.headingObject ?
             <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
-                <div className="collectionStackingView-collapseBar" onClick={this.collapseSection}></div>
+                <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}

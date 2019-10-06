@@ -328,7 +328,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         ((uniqueHeadings.length +
                             ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
                 }}>
-                <div className="collectionStackingView-collapseBar" onClick={this.collapseSection}></div>
+                <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
