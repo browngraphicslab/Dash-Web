@@ -74,6 +74,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @undoBatch
     @action
     rowDrop = (e: Event, de: DragManager.DropEvent) => {
+        this._createAliasSelected = false;
         if (de.data instanceof DragManager.DocumentDragData) {
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
             let castedValue = this.getValue(this._heading);
@@ -130,6 +131,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     headingChanged = (value: string, shiftDown?: boolean) => {
+        this._createAliasSelected = false;
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
         let castedValue = this.getValue(value);
         if (castedValue) {
@@ -150,6 +152,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     changeColumnColor = (color: string) => {
+        this._createAliasSelected = false;
         if (this.props.headingObject) {
             this.props.headingObject.setColor(color);
             this._color = color;
@@ -158,6 +161,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     pointerEnteredRow = () => {
+        this._createAliasSelected = false;
         if (SelectionManager.GetIsDragging()) {
             this._background = "#b4b4b4";
         }
@@ -165,12 +169,14 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     pointerLeaveRow = () => {
+        this._createAliasSelected = false;
         this._background = "inherit";
         document.removeEventListener("pointermove", this.startDrag);
     }
 
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
+        this._createAliasSelected = false;
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
         let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
@@ -179,6 +185,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     deleteRow = () => {
+        this._createAliasSelected = false;
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
         this.props.docList.forEach(d => d[key] = undefined);
         if (this.props.parent.sectionHeaders && this.props.headingObject) {
@@ -189,6 +196,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     collapseSection = () => {
+        this._createAliasSelected = false;
         if (this.props.headingObject) {
             this._headingsHack++;
             this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
@@ -278,11 +286,11 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     renderMenu = () => {
-        let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+        let selected = this._createAliasSelected;
         return (
             <div className="collectionStackingView-optionPicker">
                 <div className="optionOptions">
-                    <div className="optionPicker" onClick={this.toggleAlias}>Create Alias</div>
+                    <div className={"optionPicker" + (selected === true ? " active" : "")} onClick={this.toggleAlias}>Create Alias</div>
                 </div>
             </div>
         );
