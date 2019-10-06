@@ -381,9 +381,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                                 gridGap: style.gridGap,
                                 gridTemplateColumns: singleColumn ? undefined : templatecols,
                                 gridAutoRows: singleColumn ? undefined : "0px"
-                            }}
-                        // ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}
-                        >
+                            }}>
                             {this.children(this.props.docList)}
                             {singleColumn ? (null) : this.props.parent.columnDragger}
                         </div>
