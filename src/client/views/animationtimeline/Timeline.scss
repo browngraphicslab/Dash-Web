@@ -13,7 +13,11 @@
     }
 }
 
-
+.tick{
+    height:100%; 
+    width: 1px; 
+    background-color:black; 
+}   
 .timeline-container{
     width:100%;
     height:300px; 
@@ -35,11 +39,7 @@
             background-color: transparent; 
             height: 30px;
             width:100%; 
-            .tick{
-                height:100%; 
-                width: 1px; 
-                background-color:black; 
-            }   
+          
         }
         .scrubber{
             top:30px; 

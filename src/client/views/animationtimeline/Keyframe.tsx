@@ -288,7 +288,7 @@ export class Keyframe extends React.Component<IProps> {
         } else if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut) { // no keyframes, just fades
             this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration);
             this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
-        } else if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {
+        } else if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {  
             let dif = this.regiondata.position - (leftRegion.position + leftRegion.duration);
             this.regiondata.position = leftRegion.position + leftRegion.duration;
             this.regiondata.duration += dif;
@@ -296,8 +296,8 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
-        this.keyframes[0].time = this.regiondata.position; 
-        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
+        // this.keyframes[0].time = this.regiondata.position; 
+        // this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
     }
 
 
@@ -308,14 +308,11 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
-        if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= NumCast((this.keyframes[this.keyframes.length - 1]).time)) {
-            let dif = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - NumCast((this.keyframes[this.keyframes.length - 1]).time);
-            this.regiondata.duration -= dif;
-        } else if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut) { // nokeyframes, just fades
-            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
-        } else if (rightRegion && this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position) {
-            let dif = rightRegion.position - (this.regiondata.position + this.regiondata.duration);
-            this.regiondata.duration += dif;
+        console.log(offset); 
+        console.log(this.keyframes[this.keyframes.length - 3].time); 
+        console.log(this.regiondata.position + this.regiondata.duration - offset); 
+        if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - offset <= NumCast(this.keyframes[this.keyframes.length - 3].time)) {
+            console.log("HI"); 
         } else {
             this.regiondata.duration += offset;
         }
@@ -458,6 +455,7 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
     }
 
+    @action
     checkInput = (val: any) => {
         return typeof(val === "number"); 
     }
@@ -471,6 +469,7 @@ export class Keyframe extends React.Component<IProps> {
         });
     }
 
+    @action
     onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -479,6 +478,7 @@ export class Keyframe extends React.Component<IProps> {
         Doc.BrushDoc(this.props.node); 
     }
 
+    @action
     onContainerOut = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -568,6 +568,60 @@ export class Keyframe extends React.Component<IProps> {
             document.removeEventListener("pointerup", this.onReactionListen); 
         }
     }
+
+    @action
+    drawKeyframes = () => {
+        let keyframeDivs:JSX.Element[] = []; 
+        this.keyframes.forEach( kf => {
+            if (kf.type as KeyframeFunc.KeyframeType === KeyframeFunc.KeyframeType.default) {
+                keyframeDivs.push(
+                    <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                        <div className="divider"></div>
+                        <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            this.makeKeyframeMenu(kf, e.nativeEvent); 
+                        }}></div>
+                    </div>
+                );
+            }
+            else {
+                keyframeDivs.push(
+                    <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                        <div className="divider"></div>
+                    </div>
+                );
+            }
+        });
+        return keyframeDivs; 
+    }
+
+    @action 
+    drawKeyframeDividers = () => {
+        let keyframeDividers:JSX.Element[] = []; 
+        this.keyframes.forEach(kf => {
+            if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
+                let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
+                let bodyRef = React.createRef<HTMLDivElement>(); 
+                let kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
+                let leftPos = KeyframeFunc.convertPixelTime(NumCast(left!.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
+                return (
+                    <div ref={bodyRef}className="body-container" style={{left: `${kfPos - this.pixelPosition}px`, width:`${leftPos - kfPos}px`}}
+                    onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
+                    onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
+                    onContextMenu={(e) => {
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        this._mouseToggled = true; 
+                        this.makeRegionMenu(kf, e.nativeEvent); 
+                    }}>
+                    </div>
+                ); 
+            }  
+        }); 
+        return keyframeDividers; 
+    }
+
     render() {
         return (
             <div>
@@ -577,49 +631,8 @@ export class Keyframe extends React.Component<IProps> {
                     onPointerDown={this.onBarPointerDown}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    {this.keyframes.map(kf => {
-                        if (kf.type as KeyframeFunc.KeyframeType === KeyframeFunc.KeyframeType.default) {
-                            return (
-                                <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
-                                    <div className="divider"></div>
-                                    <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        this.makeKeyframeMenu(kf, e.nativeEvent); 
-                                    }}></div>
-                                </div>
-                            );
-                        }
-                        else {
-                            return (
-                                <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
-                                    <div className="divider"></div>
-                                </div>
-                            );
-                        }
-                      
-                    })}
-                    {this.keyframes.map( kf => {
-                       if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
-                            let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
-                            let bodyRef = React.createRef<HTMLDivElement>(); 
-                            let kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
-                            let leftPos = KeyframeFunc.convertPixelTime(NumCast(left!.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
-                            return (
-                                <div ref={bodyRef}className="body-container" style={{left: `${kfPos - this.pixelPosition}px`, width:`${leftPos - kfPos}px`}}
-                                onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
-                                onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
-                                onContextMenu={(e) => {
-                                    e.preventDefault(); 
-                                    e.stopPropagation(); 
-                                    this._mouseToggled = true; 
-                                    this.makeRegionMenu(kf, e.nativeEvent); 
-                                }}>
-                                </div>
-                            ); 
-                       }  
-                    })}
-
+                    {this.drawKeyframes()}
+                    {this.drawKeyframeDividers()}
                 </div>
             </div>
         );
