@@ -67,15 +67,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onDrop = (e: React.DragEvent): void => {
-        var pt = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
-        const mutator = (input: Opt<Doc | Doc[]>) => {
-            let x = (((e.pageX / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+        const { pageX, pageY } = e;
+        var pt = this.props.ScreenToLocalTransform().transformPoint(pageX, pageY);
+        const mutator = (input: Doc | Doc[]) => {
+            console.log("DKLFDSKLJDFHSKDLFHSDKLFJHSDFKL", pageX);
+            let x = (((pageX / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
             let fieldval = this._values[0] + x * this.barref.current!.getBoundingClientRect().width / this._range;
-            //input[this.sortstate] = fieldval;
+            console.log(x, fieldval);
+            if (Array.isArray(input)) {
+                for (let inputs of input) {
+                    inputs[this.sortstate] = fieldval;
+                }
+            }
+            else {
+                input[this.sortstate] = fieldval;
+            }
         };
-
-        super.onDrop(e, { x: pt[0], y: pt[1] }, undefined);
-
+        super.onDrop(e, { x: pt[0], y: pt[1] }, undefined, mutator);
     }
 
 

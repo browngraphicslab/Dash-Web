@@ -24,13 +24,15 @@ import { CollectionView } from "./CollectionView";
 import React = require("react");
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: AddDocumentFunction;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     chromeCollapsed: boolean;
 }
+
+export type AddDocumentFunction = (document: Doc, allowDuplicates?: boolean) => boolean;
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
@@ -141,10 +143,17 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             return false;
         }
 
+        private tryMutateAndAdd = (target: Doc, mutator?: (docInput: Doc[] | Doc) => void, allowDuplicates = false) => {
+            if (this.props.addDocument) {
+                mutator && mutator(target);
+                this.props.addDocument(target, allowDuplicates);
+            }
+        }
+
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Opt<Doc[] | Doc>) => void) {
-            let newlyCreated: Opt<Doc[] | Doc>;
+        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Doc[] | Doc) => void) {
+            let newlyCreated: Doc[] | Doc;
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -166,15 +175,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.tryMutateAndAdd(f, mutateDoc);
                             }
                         });
                     } else {
                         newlyCreated = Docs.Create.WebDocument(href, options);
-                        this.props.addDocument && this.props.addDocument(newlyCreated);
+                        this.tryMutateAndAdd(newlyCreated, mutateDoc);
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                    this.tryMutateAndAdd(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), mutateDoc);
                 }
                 return;
             }
@@ -185,7 +194,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (img) {
                     let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
-                    this.props.addDocument(doc, false);
+                    this.tryMutateAndAdd(doc, mutateDoc);
                     return;
                 } else {
                     let path = window.location.origin + "/doc/";
@@ -194,19 +203,19 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.tryMutateAndAdd(f, mutateDoc);
                             }
                         });
                     } else {
                         let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                        this.props.addDocument(htmlDoc, false);
+                        this.tryMutateAndAdd(htmlDoc, mutateDoc);
                     }
                     return;
                 }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
+                this.tryMutateAndAdd(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }), mutateDoc);
                 return;
             }
             let matches: RegExpExecArray | null;
@@ -217,14 +226,14 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 proto[GoogleRef] = matches[2];
                 proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
-                this.props.addDocument(newBox);
+                this.tryMutateAndAdd(newBox, mutateDoc)
                 return;
             }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
             // tslint:disable-next-line:prefer-for-of
+            newlyCreated = [];
             for (let i = 0; i < e.dataTransfer.items.length; i++) {
-                newlyCreated = [];
                 const upload = window.location.origin + RouteStore.upload;
                 let item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
@@ -235,7 +244,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let type = result["content-type"];
                             if (type) {
                                 Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
-                                    .then(doc => doc && this.props.addDocument(doc, false));
+                                    .then(doc => doc && this.tryMutateAndAdd(doc, mutateDoc));
                             }
                         });
                     promises.push(prom);
@@ -260,7 +269,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             Docs.Get.DocumentFromType(type, path, full).then(doc => {
                                 if (doc) {
                                     (newlyCreated as Doc[]).push(doc);
-                                    this.props.addDocument(doc);
+                                    this.tryMutateAndAdd(doc, mutateDoc);
                                 }
                             });
                         }));
@@ -274,7 +283,17 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             } else {
                 batch.end();
             }
-            mutateDoc && mutateDoc(newlyCreated);
+            // if (mutateDoc) {
+            //     // mutateDoc(newlyCreated);
+            //     if (Array.isArray(newlyCreated)) {
+            //         for (let newly of newlyCreated) {
+            //             this.props.addDocument(newly);
+            //         }
+            //     }
+            //     else {
+            //         this.props.addDocument(newlyCreated);
+            //     }
+            // }
         }
     }
     return CollectionSubView;
