@@ -20,7 +20,6 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
-import Measure from "react-measure";
 
 library.add(faPalette);
 
