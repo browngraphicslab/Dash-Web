@@ -899,7 +899,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0) {
+        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0 && getComputedStyle(this._ref.current!.parentElement!).bottom !== "0px") {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
@@ -913,8 +913,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
-        if (this.props.isSelected()) {
-            FormattedTextBox._toolTipTextMenu!.update(this._editorView!, undefined, this.props);
+        if (this._editorView && this.props.isSelected()) {
+            FormattedTextBox._toolTipTextMenu!.updateInternal(this._editorView, undefined, this.props);
         }
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
@@ -922,7 +922,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     overflowY: this.props.Document.autoHeight ? "hidden" : "auto",
                     height: this.props.Document.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
-                    opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || Doc.IsBrushed(this.props.Document) ? 1 : 0.1) : 1,
+                    opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive,
                     fontSize: this._fontSize,
