@@ -10,7 +10,8 @@ var sw = require('stopword');
 var FeedParser = require('feedparser');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
-import { ToPlainText, RichTextField } from "../new_fields/RichTextField";
+import { RichTextField } from "../new_fields/RichTextField";
+import { ToPlainText } from "../new_fields/FieldSymbols";
 
 export interface RecommenderProps {
     title: string;
@@ -166,14 +167,18 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                 });
             });
             this.highKP = highKP;
-            console.log(highKP);
+            //console.log(highKP);
             const kts_counted = new List<string>();
             keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
             const values = await this.sendRequest(highKP);
             return { keyterms: keyterms, keyterms_counted: kts_counted, values };
         };
-        return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
+        if (data != "") {
+            return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
+        }
+        return;
     }
+
 
     private countFrequencies(keyphrase: string, paragraph: string) {
         let data = paragraph.split(" ");
