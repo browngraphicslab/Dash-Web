@@ -751,7 +751,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     public static firstTarget: () => void = emptyFunction;
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.nativeEvent as any).formattedHandled) return;
+        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
         let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
         pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
@@ -799,6 +799,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
+        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
+        (e.nativeEvent as any).formattedHandled = true;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
             let location: string;

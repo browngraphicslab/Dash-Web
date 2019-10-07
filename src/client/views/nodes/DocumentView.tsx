@@ -202,6 +202,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             preventDefault && e.preventDefault();
         }
+        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
     }
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
@@ -249,8 +250,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
+        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
     }
     onPointerMove = (e: PointerEvent): void => {
+        if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }

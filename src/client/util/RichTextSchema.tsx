@@ -770,7 +770,14 @@ export class DashDocView {
         let self = this;
         this._dashSpan.onclick = function (e: any) {
             FormattedTextBox.firstTarget && FormattedTextBox.firstTarget();
+        };
+        this._dashSpan.onpointermove = function (e: any) {
+            (e as any).formattedHandled = true;
+        };
+        this._dashSpan.onpointerup = function (e: any) {
             e.stopPropagation();
+        };
+        this._dashSpan.onpointerdown = function (e: any) {
         };
         this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
