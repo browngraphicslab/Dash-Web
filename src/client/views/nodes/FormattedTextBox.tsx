@@ -262,20 +262,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let target = de.data.embeddableSourceDoc;
             // We're dealing with an internal document drop
             const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
-            let node: Node<any>;
-            if (de.data.urlField && link) {
-                let url: string = de.data.urlField.url.href;
-                let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
-                node = model.create({ src: url, docid: link[Id] });
-            } else {
-                let alias = Doc.MakeAlias(target);
-                alias.fitToBox = true;
-                node = schema.nodes.dashDoc.create({
-                    width: target[WidthSym](), height: target[HeightSym](),
-                    title: "dashDoc", docid: alias[Id],
-                    float: "none"
-                });
-            }
+            let alias = Doc.MakeAlias(target);
+            alias.fitToBox = true;
+            let node = schema.nodes.dashDoc.create({
+                width: target[WidthSym](), height: target[HeightSym](),
+                title: "dashDoc", docid: alias[Id],
+                float: "none"
+            });
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
             link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, node));
             this.tryUpdateHeight();

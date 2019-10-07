@@ -16,7 +16,7 @@ import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
-import { BoolCast } from "../../new_fields/Types";
+import { BoolCast, NumCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
@@ -712,7 +712,6 @@ export class ImageResizeView {
 }
 
 export class DashDocView {
-    _handle: HTMLElement;
     _dashSpan: HTMLDivElement;
     _outer: HTMLElement;
     _dashDoc: Doc | undefined;
@@ -721,11 +720,11 @@ export class DashDocView {
 
     getDocTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
-        return new Transform(-translateX, -translateY, 1).scale(1 / scale);
+        return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
+    contentScaling = () => NumCast(this._dashDoc!.nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!.nativeWidth) : 1;
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBox = tbox;
-        this._handle = document.createElement("span");
         this._dashSpan = document.createElement("div");
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
@@ -739,14 +738,11 @@ export class DashDocView {
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
-        this._handle.style.position = "absolute";
-        this._handle.style.width = "20px";
-        this._handle.style.height = "20px";
-        this._handle.style.backgroundColor = "blue";
-        this._handle.style.borderRadius = "15px";
-        this._handle.style.display = "none";
-        this._handle.style.bottom = "-10px";
-        this._handle.style.right = "-10px";
+        let removeDoc = () => {
+            let ns = new NodeSelection(view.state.doc.resolve(getPos()));
+            view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
+            return true;
+        }
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
                 self._dashDoc = dashDoc;
@@ -754,16 +750,15 @@ export class DashDocView {
                     view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc.width + "px", height: dashDoc.height + "px" }));
                 }
                 this._reactionDisposer && this._reactionDisposer();
-                this._reactionDisposer = reaction(() => {
-                    return dashDoc[HeightSym]();
-                }, () => {
+                this._reactionDisposer = reaction(() => dashDoc[HeightSym]() + dashDoc[WidthSym](), () => {
                     this._dashSpan.style.height = this._outer.style.height = dashDoc[HeightSym]() + "px";
+                    this._dashSpan.style.width = this._outer.style.width = dashDoc[WidthSym]() + "px";
                 });
                 ReactDOM.render(<DocumentView
                     fitToBox={BoolCast(dashDoc.fitToBox)}
                     Document={dashDoc}
                     addDocument={returnFalse}
-                    removeDocument={returnFalse}
+                    removeDocument={removeDoc}
                     ruleProvider={undefined}
                     ScreenToLocalTransform={this.getDocTransform}
                     addDocTab={self._textBox.props.addDocTab}
@@ -780,59 +775,20 @@ export class DashDocView {
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    ContentScaling={returnOne}
+                    ContentScaling={this.contentScaling}
                 />, this._dashSpan);
             }
         });
         let self = this;
-        this._outer.onpointerenter = function (e: any) { self.selectNode(); };
-        this._outer.onpointerleave = function (e: any) { self.deselectNode(); };
         this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onwheel = function (e: any) { e.preventDefault(); };
         this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };
-        this._handle.onpointerdown = function (e: any) {
-            e.preventDefault();
-            e.stopPropagation();
-            const startX = e.pageX;
-            const startY = e.pageY;
-            const startWidth = parseFloat(node.attrs.width);
-            const startHeight = parseFloat(node.attrs.height);
-            const onpointermove = action((e: any) => {
-                let { scale } = Utils.GetScreenTransform(self._handle as HTMLElement);
-                const diffInPx = (e.pageX - startX) / scale;
-                const diffInPy = (e.pageY - startY) / scale;
-                self._dashDoc!.width = startWidth + diffInPx;
-                self._dashDoc!.height = startHeight + diffInPy;
-                self._outer.style.width = `${self._dashDoc!.width}`;
-                self._outer.style.height = `${self._dashDoc!.height}`;
-            });
-
-            const onpointerup = () => {
-                document.removeEventListener("pointermove", onpointermove);
-                document.removeEventListener("pointerup", onpointerup);
-                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: self._outer.style.width, height: self._outer.style.height }));
-            };
-
-            document.addEventListener("pointermove", onpointermove);
-            document.addEventListener("pointerup", onpointerup);
-        };
-
         this._outer.appendChild(this._dashSpan);
-        this._outer.appendChild(this._handle);
         (this as any).dom = this._outer;
     }
-
-    selectNode() {
-        this._dashSpan.classList.add("ProseMirror-selectednode");
-
-        this._handle.style.display = "";
-    }
-
-    deselectNode() {
-        this._dashSpan.classList.remove("ProseMirror-selectednode");
-
-        this._handle.style.display = "none";
+    destroy() {
+        this._reactionDisposer && this._reactionDisposer();
     }
 }
 
