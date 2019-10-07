@@ -1,24 +1,23 @@
+import { action, observable, runInAction, reaction, IReactionDisposer } from "mobx";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { EditorState, TextSelection, NodeSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
-import { Doc } from "../../new_fields/Doc";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import * as ReactDOM from 'react-dom';
+import { Doc, WidthSym, HeightSym } from "../../new_fields/Doc";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
+import { DocumentView } from "../views/nodes/DocumentView";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
-import React = require("react");
-import { action, Lambda, observable, reaction, computed, runInAction, trace } from "mobx";
-import { observer } from "mobx-react";
-import * as ReactDOM from 'react-dom';
-import { DocumentView } from "../views/nodes/DocumentView";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../Utils";
 import { Transform } from "./Transform";
-import { NumCast } from "../../new_fields/Types";
+import React = require("react");
+import { BoolCast } from "../../new_fields/Types";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -716,7 +715,16 @@ export class DashDocView {
     _handle: HTMLElement;
     _dashSpan: HTMLDivElement;
     _outer: HTMLElement;
-    constructor(node: any, view: any, getPos: any, addDocTab: any) {
+    _dashDoc: Doc | undefined;
+    _reactionDisposer: IReactionDisposer | undefined;
+    _textBox: FormattedTextBox;
+
+    getDocTransform = () => {
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
+        return new Transform(-translateX, -translateY, 1).scale(1 / scale);
+    }
+    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._textBox = tbox;
         this._handle = document.createElement("span");
         this._dashSpan = document.createElement("div");
         this._outer = document.createElement("span");
@@ -741,19 +749,28 @@ export class DashDocView {
         this._handle.style.right = "-10px";
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
-                let scale = () => 100 / NumCast(dashDoc.nativeWidth, 100);
+                self._dashDoc = dashDoc;
+                if (node.attrs.width !== dashDoc.width + "px" || node.attrs.height !== dashDoc.height + "px") {
+                    view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc.width + "px", height: dashDoc.height + "px" }));
+                }
+                this._reactionDisposer && this._reactionDisposer();
+                this._reactionDisposer = reaction(() => {
+                    return dashDoc[HeightSym]();
+                }, () => {
+                    this._dashSpan.style.height = this._outer.style.height = dashDoc[HeightSym]() + "px";
+                });
                 ReactDOM.render(<DocumentView
-                    fitToBox={true}
+                    fitToBox={BoolCast(dashDoc.fitToBox)}
                     Document={dashDoc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
-                    addDocTab={returnFalse}
+                    ScreenToLocalTransform={this.getDocTransform}
+                    addDocTab={self._textBox.props.addDocTab}
                     pinToPres={returnFalse}
                     renderDepth={1}
-                    PanelWidth={() => 100}
-                    PanelHeight={() => 100}
+                    PanelWidth={self._dashDoc![WidthSym]}
+                    PanelHeight={self._dashDoc![HeightSym]}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
                     parentActive={returnFalse}
@@ -763,24 +780,16 @@ export class DashDocView {
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    ContentScaling={scale}
-                ></DocumentView>, this._dashSpan);
+                    ContentScaling={returnOne}
+                />, this._dashSpan);
             }
         });
         let self = this;
-        this._dashSpan.onclick = function (e: any) {
-            FormattedTextBox.firstTarget && FormattedTextBox.firstTarget();
-        };
-        this._dashSpan.onpointermove = function (e: any) {
-            (e as any).formattedHandled = true;
-        };
-        this._dashSpan.onpointerup = function (e: any) {
-            e.stopPropagation();
-        };
-        this._dashSpan.onpointerdown = function (e: any) {
-        };
+        this._outer.onpointerenter = function (e: any) { self.selectNode(); };
+        this._outer.onpointerleave = function (e: any) { self.deselectNode(); };
         this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._dashSpan.onwheel = function (e: any) { e.preventDefault(); };
         this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
@@ -789,19 +798,20 @@ export class DashDocView {
             const startY = e.pageY;
             const startWidth = parseFloat(node.attrs.width);
             const startHeight = parseFloat(node.attrs.height);
-            const onpointermove = (e: any) => {
-                const diffInPx = e.pageX - startX;
-                const diffInPy = e.pageY - startY;
-                self._outer.style.width = `${startWidth + diffInPx}`;
-                self._outer.style.height = `${startHeight + diffInPy}`;
-            };
+            const onpointermove = action((e: any) => {
+                let { scale } = Utils.GetScreenTransform(self._handle as HTMLElement);
+                const diffInPx = (e.pageX - startX) / scale;
+                const diffInPy = (e.pageY - startY) / scale;
+                self._dashDoc!.width = startWidth + diffInPx;
+                self._dashDoc!.height = startHeight + diffInPy;
+                self._outer.style.width = `${self._dashDoc!.width}`;
+                self._outer.style.height = `${self._dashDoc!.height}`;
+            });
 
             const onpointerup = () => {
                 document.removeEventListener("pointermove", onpointermove);
                 document.removeEventListener("pointerup", onpointerup);
-                let pos = view.state.selection.from;
                 view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: self._outer.style.width, height: self._outer.style.height }));
-                view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(pos))));
             };
 
             document.addEventListener("pointermove", onpointermove);

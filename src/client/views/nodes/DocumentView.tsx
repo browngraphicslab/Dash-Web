@@ -202,7 +202,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             preventDefault && e.preventDefault();
         }
-        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
     }
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
@@ -234,7 +233,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.nativeEvent.cancelBubble) return;
+        if (e.nativeEvent.cancelBubble && e.button === 0) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitTemplateDrag = false;

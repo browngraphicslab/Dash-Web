@@ -268,9 +268,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let model: NodeType = [".mov", ".mp4"].includes(url) ? schema.nodes.video : schema.nodes.image;
                 node = model.create({ src: url, docid: link[Id] });
             } else {
+                let alias = Doc.MakeAlias(target);
+                alias.fitToBox = true;
                 node = schema.nodes.dashDoc.create({
                     width: target[WidthSym](), height: target[HeightSym](),
-                    title: "dashDoc", docid: target[Id],
+                    title: "dashDoc", docid: alias[Id],
                     float: "none"
                 });
             }
@@ -700,7 +702,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self.props.addDocTab); },
+                    dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
@@ -749,10 +751,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._searchReactionDisposer && this._searchReactionDisposer();
         this._editorView && this._editorView.destroy();
     }
-    public static firstTarget: () => void = emptyFunction;
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
-        (e.nativeEvent as any).formattedHandled = true;
         let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
         pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
         if (this.props.onClick && e.button === 0) {
@@ -764,16 +763,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             e.preventDefault();
         }
-        FormattedTextBox.firstTarget = () => {  // this is here to support nested text boxes.  when that happens, the click event will propagate through prosemirror to the outer editor.  In RichTextSchema, the outer editor calls this function to revert the focus/selection
-            if (pos && pos.pos > 0) {
-                let node = this._editorView!.state.doc.nodeAt(pos.pos);
-                if (!node || (node.type !== this._editorView!.state.schema.nodes.dashDoc && node.type !== this._editorView!.state.schema.nodes.image &&
-                    pos.pos !== this._editorView!.state.selection.from)) {
-                    this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new TextSelection(this._editorView!.state.doc.resolve(pos!.pos))));
-                    this._editorView!.focus();
-                }
-            }
-        };
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
@@ -832,7 +821,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 e.stopPropagation();
                 e.preventDefault();
             }
-
         }
         // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
         if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
@@ -858,14 +846,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         this._editorView!.focus();
     }
-    onMouseDown = (e: React.MouseEvent): void => {
-        if (!this.props.isSelected()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
-            e.preventDefault(); // bcz: this would normally be in OnPointerDown - however, if done there, no mouse move events will be generated which makes transititioning to GoldenLayout's drag interactions impossible
+    onMouseUp = (e: React.MouseEvent): void => {
+        e.stopPropagation();
+
+        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
+        if ((this._editorView as any).mouseDown) {
+            let originalUpHandler = (this._editorView as any).mouseDown.up;
+            (this._editorView as any).root.removeEventListener("mouseup", originalUpHandler);
+            (this._editorView as any).mouseDown.up = (e: MouseEvent) => {
+                !(e as any).formattedHandled && originalUpHandler(e);
+                e.stopPropagation();
+                (e as any).formattedHandled = true;
+            };
+            (this._editorView as any).root.addEventListener("mouseup", (this._editorView as any).mouseDown.up);
         }
     }
 
     tooltipTextMenuPlugin() {
-        let myprops = this.props;
         let self = FormattedTextBox;
         return new Plugin({
             view(_editorView) {
@@ -944,7 +941,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
-                onMouseDown={this.onMouseDown}
+                onMouseUp={this.onMouseUp}
                 onWheel={this.onPointerWheel}
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}

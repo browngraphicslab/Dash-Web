@@ -186,7 +186,7 @@ export class TooltipTextMenu {
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
-        this.update(view, undefined, undefined);
+        this.updateInternal(view, undefined, undefined);
         TooltipTextMenu.Toolbar = this.wrapper;
     }
     public static Toolbar: HTMLDivElement | undefined;
@@ -439,7 +439,7 @@ export class TooltipTextMenu {
         let tr = state.tr;
         tr.addMark(state.selection.from, state.selection.to, mark);
         let content = tr.selection.content();
-        let newNode = schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
         dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
@@ -587,7 +587,7 @@ export class TooltipTextMenu {
             class: "summarize",
             execEvent: "",
             run: (state, dispatch) => {
-                TooltipTextMenu.insertStar(state, dispatch);
+                TooltipTextMenu.insertStar(this.view.state, this.view.dispatch);
             }
 
         });
@@ -849,8 +849,9 @@ export class TooltipTextMenu {
         }
     }
 
+    update(view: EditorView, lastState: EditorState | undefined) { this.updateInternal(view, lastState, this.editorProps) }
     //updates the tooltip menu when the selection changes
-    update(view: EditorView, lastState: EditorState | undefined, props: any) {
+    private updateInternal(view: EditorView, lastState: EditorState | undefined, props: any) {
         this.view = view;
         let state = view.state;
         props && (this.editorProps = props);
