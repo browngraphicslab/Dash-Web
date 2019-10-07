@@ -131,7 +131,7 @@ export namespace Database {
             }
         }
 
-        public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
+        public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = "newDocuments") {
             if (this.db) {
                 this.db.collection(collectionName).findOne({ _id: id }, (err, result) => {
                     if (result) {
@@ -165,7 +165,7 @@ export namespace Database {
             }
         }
 
-        public async visit(ids: string[], fn: (result: any) => string[], collectionName = "newDocuments"): Promise<void> {
+        public async visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName = "newDocuments"): Promise<void> {
             if (this.db) {
                 const visited = new Set<string>();
                 while (ids.length) {
@@ -179,10 +179,9 @@ export namespace Database {
                     for (const doc of docs) {
                         const id = doc.id;
                         visited.add(id);
-                        ids.push(...fn(doc));
+                        ids.push(...(await fn(doc)));
                     }
                 }
-
             } else {
                 return new Promise(res => {
                     this.onConnect.push(() => {

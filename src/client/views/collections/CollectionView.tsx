@@ -18,6 +18,7 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -123,6 +124,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
+            ContextMenu.Instance.addItem({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
         }
     }
 

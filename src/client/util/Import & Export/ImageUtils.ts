@@ -21,31 +21,11 @@ export namespace ImageUtils {
         return data !== undefined;
     };
 
-    export type Hierarchy = { [id: string]: string | Hierarchy };
-
-    export const ExportHierarchyToFileSystem = async (doc: Doc): Promise<void> => {
-        const hierarchy: Hierarchy = {};
-        await HierarchyTraverserRecursive(doc, hierarchy);
+    export const ExportHierarchyToFileSystem = async (collection: Doc): Promise<void> => {
         const a = document.createElement("a");
-        a.href = Utils.prepend(`${RouteStore.imageHierarchyExport}/${JSON.stringify(hierarchy)}`);
-        a.download = `Full Export of ${StrCast(doc.title)}`;
+        a.href = Utils.prepend(`${RouteStore.imageHierarchyExport}/${collection[Id]}`);
+        a.download = `Dash Export [${StrCast(collection.title)}].zip`;
         a.click();
-    };
-
-    const HierarchyTraverserRecursive = async (collection: Doc, hierarchy: Hierarchy) => {
-        const children = await DocListCastAsync(collection.data);
-        if (children) {
-            const local: Hierarchy = {};
-            hierarchy[collection[Id]] = local;
-            for (const child of children) {
-                let imageData: Opt<ImageField>;
-                if (imageData = Cast(child.data, ImageField)) {
-                    local[child[Id]] = imageData.url.href;
-                } else {
-                    await HierarchyTraverserRecursive(child, local);
-                }
-            }
-        }
     };
 
 }
