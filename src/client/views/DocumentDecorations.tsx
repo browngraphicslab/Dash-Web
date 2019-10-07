@@ -546,6 +546,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return "-unset-";
     }
 
+    TextBar: HTMLDivElement | undefined;
+    setTextBar = (ele: HTMLDivElement) => {
+        if (ele) {
+            this.TextBar = ele;
+            TooltipTextMenu.Toolbar && Array.from(ele.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && ele.appendChild(TooltipTextMenu.Toolbar);
+        }
+    }
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -578,7 +585,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div className="documentDecorations-container" ref={(r) => r && TooltipTextMenu.Toolbar && Array.from(r.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && r.appendChild(TooltipTextMenu.Toolbar)} style={{
+            <div className="documentDecorations-container" ref={this.setTextBar} style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight + 3) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,

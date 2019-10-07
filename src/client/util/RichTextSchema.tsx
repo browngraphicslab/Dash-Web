@@ -168,7 +168,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             width: { default: 200 },
             height: { default: 100 },
             title: { default: null },
-            float: { default: "left" },
+            float: { default: "right" },
             location: { default: "onRight" },
             docid: { default: "" }
         },

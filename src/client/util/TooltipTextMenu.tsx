@@ -19,6 +19,7 @@ import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
 import { Cast, NumCast } from '../../new_fields/Types';
 import { updateBullets } from './ProsemirrorExampleTransfer';
+import { DocumentDecorations } from '../views/DocumentDecorations';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -186,7 +187,7 @@ export class TooltipTextMenu {
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
-        this.updateInternal(view, undefined, undefined);
+        this.updateFromDash(view, undefined, undefined);
         TooltipTextMenu.Toolbar = this.wrapper;
     }
     public static Toolbar: HTMLDivElement | undefined;
@@ -849,11 +850,12 @@ export class TooltipTextMenu {
         }
     }
 
-    update(view: EditorView, lastState: EditorState | undefined) { this.updateInternal(view, lastState, this.editorProps) }
+    update(view: EditorView, lastState: EditorState | undefined) { this.updateFromDash(view, lastState, this.editorProps) }
     //updates the tooltip menu when the selection changes
-    private updateInternal(view: EditorView, lastState: EditorState | undefined, props: any) {
+    public updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
         this.view = view;
         let state = view.state;
+        DocumentDecorations.Instance.setTextBar(DocumentDecorations.Instance.TextBar);
         props && (this.editorProps = props);
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&

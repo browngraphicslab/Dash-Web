@@ -267,7 +267,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let node = schema.nodes.dashDoc.create({
                 width: target[WidthSym](), height: target[HeightSym](),
                 title: "dashDoc", docid: alias[Id],
-                float: "none"
+                float: "right"
             });
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
             link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, node));
@@ -759,7 +759,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        FormattedTextBoxComment.textBox = this;
+        if (!(e.nativeEvent as any).formattedHandled) { FormattedTextBoxComment.textBox = this; }
+        (e.nativeEvent as any).formattedHandled = true;
+
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
@@ -837,7 +839,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 }
             }
         }
-        this._editorView!.focus();
     }
     onMouseUp = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -914,7 +915,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         if (this.props.isSelected()) {
-            FormattedTextBox._toolTipTextMenu!.update(this._editorView!, undefined, this.props);
+            FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         }
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
