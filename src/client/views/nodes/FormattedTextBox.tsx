@@ -18,7 +18,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, timenow, Utils } from '../../../Utils';
+import { numberRange, timenow, Utils, emptyFunction } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -76,7 +76,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
-    private _linkClicked = "";
     private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
     private _searchReactionDisposer?: Lambda;
@@ -117,7 +116,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     public static getToolTip(ev: EditorView) {
-        return this._toolTipTextMenu ? this._toolTipTextMenu : this._toolTipTextMenu = new TooltipTextMenu(ev, undefined);
+        return this._toolTipTextMenu ? this._toolTipTextMenu : this._toolTipTextMenu = new TooltipTextMenu(ev);
     }
 
     @undoBatch
@@ -750,7 +749,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._searchReactionDisposer && this._searchReactionDisposer();
         this._editorView && this._editorView.destroy();
     }
-    public static firstTarget: () => void;
+    public static firstTarget: () => void = emptyFunction;
     onPointerDown = (e: React.PointerEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) return;
         (e.nativeEvent as any).formattedHandled = true;
@@ -800,15 +799,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
-        let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
             let location: string;
             if ((e.target as any).attributes.location) {
                 location = (e.target as any).attributes.location.value;
-            }
-            for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
-                href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
             let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
@@ -821,18 +816,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    if (this._linkClicked) {
-                        DocServer.GetRefField(this._linkClicked).then(async linkDoc =>
+                    let linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    if (linkClicked) {
+                        DocServer.GetRefField(linkClicked).then(async linkDoc => {
                             (linkDoc instanceof Doc) &&
-                            DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false));
-                        e.stopPropagation();
-                        e.preventDefault();
+                                DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false);
+                        });
                     }
                 } else {
                     let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
-                    this._linkClicked = webDoc[Id];
                 }
                 e.stopPropagation();
                 e.preventDefault();
@@ -862,11 +855,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
         this._editorView!.focus();
-        if (this._linkClicked) {
-            this._linkClicked = "";
-            e.preventDefault();
-            e.stopPropagation();
-        }
     }
     onMouseDown = (e: React.MouseEvent): void => {
         if (!this.props.isSelected()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
