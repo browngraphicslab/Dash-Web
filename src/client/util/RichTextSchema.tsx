@@ -234,6 +234,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
             setFontSize: { default: undefined },
+            setFontFamily: { default: undefined },
             inheritedFontSize: { default: undefined },
             visibility: { default: true }
         },
@@ -243,8 +244,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
             let fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
-            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;font-size: ${fsize}` }, 0] :
-                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}` }];
+            let ffam = node.attrs.setFontFamily;
+            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }, 0] :
+                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }];
         }
     },
 
@@ -739,10 +741,11 @@ export class DashDocView {
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
         let removeDoc = () => {
-            let ns = new NodeSelection(view.state.doc.resolve(getPos()));
+            let pos = getPos();
+            let ns = new NodeSelection(view.state.doc.resolve(pos));
             view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
             return true;
-        }
+        };
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
                 self._dashDoc = dashDoc;

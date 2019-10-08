@@ -522,23 +522,14 @@ export class TooltipTextMenu {
             }
             //actually apply font
             if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
-                view.dispatch(updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
-                    { ...(view.state.selection as NodeSelection).node.attrs, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema));
+                let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                    { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: markType.name, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema);
+                view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
             }
             else toggleMark(markType)(view.state, view.dispatch, view);
         }
     }
 
-    updateBullets = (tx2: Transaction, style: string) => {
-        tx2.doc.descendants((node: any, offset: any, index: any) => {
-            if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
-                let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
-                if (node.type === schema.nodes.ordered_list) depth++;
-                tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
-            }
-        });
-    }
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
         //remove oldif (nodeType) { //add new
@@ -547,18 +538,18 @@ export class TooltipTextMenu {
         } else {
             var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
             if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
-                marks && tx2.ensureMarks([...marks]);
-                marks && tx2.setStoredMarks([...marks]);
+                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
 
                 view.dispatch(tx2);
             })) {
                 let tx2 = view.state.tr;
-                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
-                marks && tx2.ensureMarks([...marks]);
-                marks && tx2.setStoredMarks([...marks]);
+                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
 
-                view.dispatch(tx2);
+                view.dispatch(tx3);
             }
         }
     }
@@ -855,7 +846,7 @@ export class TooltipTextMenu {
     public updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
         this.view = view;
         let state = view.state;
-        DocumentDecorations.Instance.setTextBar(DocumentDecorations.Instance.TextBar);
+        DocumentDecorations.Instance.TextBar && DocumentDecorations.Instance.setTextBar(DocumentDecorations.Instance.TextBar);
         props && (this.editorProps = props);
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&

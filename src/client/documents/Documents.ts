@@ -73,6 +73,7 @@ export interface DocumentOptions {
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
+    fontSize?: number;
     curPage?: number;
     currentTimecode?: number;
     documentText?: string;
