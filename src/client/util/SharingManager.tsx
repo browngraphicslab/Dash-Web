@@ -224,7 +224,6 @@ export default class SharingManager extends React.Component<{}> {
 
     private get sharingInterface() {
         const existOtherUsers = this.users.length > 0;
-        console.log(existOtherUsers);
         return (
             <div className={"sharing-interface"}>
                 <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
