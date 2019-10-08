@@ -349,5 +349,16 @@ export function addStyleSheetRule(sheet: any, selector: any, css: any) {
     return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
 }
 export function removeStyleSheetRule(sheet: any, rule: number) {
-    sheet.removeRule(rule);
+    if (sheet.rules.length) {
+        sheet.removeRule(rule);
+        return true;
+    }
+    return false;
+}
+export function clearStyleSheetRules(sheet: any) {
+    if (sheet.rules.length) {
+        numberRange(sheet.rules.length).map(n => sheet.removeRule(0));
+        return true;
+    }
+    return false;
 }

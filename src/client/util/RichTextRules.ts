@@ -72,6 +72,27 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: Number(match[1]) }));
             }),
         new InputRule(
+            new RegExp(/\t/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "todo", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+            }),
+        new InputRule(
+            new RegExp(/\!/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "important", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+            }),
+        new InputRule(
+            new RegExp(/\x/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "disagree", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+            }),
+        new InputRule(
             new RegExp(/^\^\^\s$/),
             (state, match, start, end) => {
                 let node = (state.doc.resolve(start) as any).nodeAfter;

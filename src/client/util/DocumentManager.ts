@@ -168,7 +168,7 @@ export class DocumentManager {
                             retryDocView.props.focus(targetDoc, willZoom); // focus on the target if it now exists in the context
                         } else {
                             if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
-                            (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), undefined); // otherwise create a new view of the target
+                            targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), undefined); // otherwise create a new view of the target
                         }
                         highlight();
                     }, 0);

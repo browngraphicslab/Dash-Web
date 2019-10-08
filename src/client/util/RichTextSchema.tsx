@@ -439,20 +439,34 @@ export const marks: { [index: string]: MarkSpec } = {
     user_mark: {
         attrs: {
             userid: { default: "" },
-            hide_users: { default: [] },
             opened: { default: true },
-            modified: { default: "when?" }
+            modified: { default: "when?" }, // 5 second intervals since 1970
         },
         group: "inline",
         toDOM(node: any) {
-            let hideUsers = node.attrs.hide_users;
-            let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
-            return hidden ?
-                (node.attrs.opened ?
-                    ['span', { class: "userMarkOpen" }, 0] :
-                    ['span', { class: "userMark" }, ['span', 0]]
-                ) :
-                ['span', 0];
+            let uid = node.attrs.userid.replace(".", "").replace("@", "");
+            let min = Math.round(node.attrs.modified / 12);
+            let hr = Math.round(min / 60);
+            let day = Math.round(hr / 60 / 24);
+            return node.attrs.opened ?
+                ['span', { class: "userMark-" + uid + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
+                ['span', { class: "userMark-" + uid + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
+        }
+    },
+    // the id of the user who entered the text
+    user_tag: {
+        attrs: {
+            userid: { default: "" },
+            opened: { default: true },
+            modified: { default: "when?" }, // 5 second intervals since 1970
+            tag: { default: "" }
+        },
+        group: "inline",
+        toDOM(node: any) {
+            let uid = node.attrs.userid.replace(".", "").replace("@", "");
+            return node.attrs.opened ?
+                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0] :
+                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, ['span', 0]];
         }
     },
 

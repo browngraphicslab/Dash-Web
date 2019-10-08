@@ -18,7 +18,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, timenow, Utils, addStyleSheet, addStyleSheetRule, removeStyleSheetRule } from '../../../Utils';
+import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -43,6 +43,7 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -298,9 +299,51 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+
+    static _highlights: string[] = [];
+
+    updateHighlights = () => {
+        clearStyleSheetRules(FormattedTextBox._userStyleSheet);
+        if (FormattedTextBox._highlights.indexOf("My Text") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "yellow" });
+        }
+        if (FormattedTextBox._highlights.indexOf("Todo Items") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "todo", { outline: "black solid 1px" });
+        }
+        if (FormattedTextBox._highlights.indexOf("Important Items") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "important", { "font-size": "larger" });
+        }
+        if (FormattedTextBox._highlights.indexOf("Disagree Items") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "disagree", { "text-decoration": "line-through" });
+        }
+        if (FormattedTextBox._highlights.indexOf("By Recent Minute") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
+            let min = Math.round(Date.now() / 1000 / 60);
+            numberRange(10).map(i => addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-min-" + (min - i), { opacity: ((10 - i - 1) / 10).toString() }));
+            setTimeout(() => this.updateHighlights());
+        }
+        if (FormattedTextBox._highlights.indexOf("By Recent Hour") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
+            let hr = Math.round(Date.now() / 1000 / 60 / 60);
+            numberRange(10).map(i => addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-hr-" + (hr - i), { opacity: ((10 - i - 1) / 10).toString() }));
+        }
+    }
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Dictate", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
+        ["My Text", "Todo Items", "Important Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
+            funcs.push({
+                description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
+                    e.stopPropagation();
+                    if (FormattedTextBox._highlights.indexOf(option) === -1) {
+                        FormattedTextBox._highlights.push(option);
+                    } else {
+                        FormattedTextBox._highlights.splice(FormattedTextBox._highlights.indexOf(option), 1);
+                    }
+                    this.updateHighlights();
+                }, icon: "expand-arrows-alt"
+            }));
 
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: funcs, icon: "asterisk" });
     }
@@ -718,7 +761,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
-        this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
+        this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) })];
     }
     getFont(font: string) {
         switch (font) {
@@ -781,7 +824,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    static _sheet: any = addStyleSheet();
+    static _bulletStyleSheet: any = addStyleSheet();
+    static _userStyleSheet: any = addStyleSheet();
 
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
@@ -824,9 +868,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
     hitBulletTargets(x: number, y: number, offsetX: number, select: boolean = false) {
-        if (FormattedTextBox._sheet.rules.length) {
-            removeStyleSheetRule(FormattedTextBox._sheet, 0);
-        }
+        clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
         if (this.props.isSelected() && offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: x, top: y });
             if (pos && pos.pos > 0) {
@@ -840,7 +882,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         let ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
                         if (ol && ol.type === schema.nodes.ordered_list && select) {
                             this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
-                            addStyleSheetRule(FormattedTextBox._sheet, hit.className + ":before", { background: "gray" });
+                            addStyleSheetRule(FormattedTextBox._bulletStyleSheet, hit.className + ":before", { background: "gray" });
                         } else {
                             this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
                         }
@@ -898,7 +940,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })));
+        let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) });
+        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
