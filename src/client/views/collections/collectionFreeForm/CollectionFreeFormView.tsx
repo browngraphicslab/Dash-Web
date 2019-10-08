@@ -38,6 +38,7 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { InteractionUtils } from "../../../util/InteractionUtils";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -279,12 +280,63 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     onPointerUp = (e: PointerEvent): void => {
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) return;
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+    }
+
+    @action
+    pan = (e: PointerEvent | React.Touch): void => {
+        let x = this.Document.panX || 0;
+        let y = this.Document.panY || 0;
+        let docs = this.childLayoutPairs.map(pair => pair.layout);
+        let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+        if (!this.isAnnotationOverlay) {
+            PDFMenu.Instance.fadeOut(true);
+            let minx = docs.length ? NumCast(docs[0].x) : 0;
+            let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
+            let miny = docs.length ? NumCast(docs[0].y) : 0;
+            let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+            let ranges = docs.filter(doc => doc).reduce((range, doc) => {
+                let x = NumCast(doc.x);
+                let xe = x + NumCast(doc.width);
+                let y = NumCast(doc.y);
+                let ye = y + NumCast(doc.height);
+                return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
+                [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
+            }, [[minx, maxx], [miny, maxy]]);
+            let ink = Cast(this.fieldExtensionDoc.ink, InkField);
+            if (ink && ink.inkData) {
+                ink.inkData.forEach((value: StrokeData, key: string) => {
+                    let bounds = InkingCanvas.StrokeRect(value);
+                    ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
+                    ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
+                });
+            }
+
+            let cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
+            let panelDim = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth() / this.zoomScaling() * cscale,
+                this.props.PanelHeight() / this.zoomScaling() * cscale);
+            if (ranges[0][0] - dx > (this.panX() + panelDim[0] / 2)) x = ranges[0][1] + panelDim[0] / 2;
+            if (ranges[0][1] - dx < (this.panX() - panelDim[0] / 2)) x = ranges[0][0] - panelDim[0] / 2;
+            if (ranges[1][0] - dy > (this.panY() + panelDim[1] / 2)) y = ranges[1][1] + panelDim[1] / 2;
+            if (ranges[1][1] - dy < (this.panY() - panelDim[1] / 2)) y = ranges[1][0] - panelDim[1] / 2;
+        }
+        this.setPan(x - dx, y - dy);
+        this._lastX = e.pageX;
+        this._lastY = e.pageY;
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) {
+            if (this.props.active()) {
+                e.stopPropagation();
+            }
+            return;
+        }
         if (!e.cancelBubble && !this.isAnnotationOverlay) {
             if (this._hitCluster && this.tryDragCluster(e)) {
                 e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -293,47 +345,125 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 document.removeEventListener("pointerup", this.onPointerUp);
                 return;
             }
-            let x = this.Document.panX || 0;
-            let y = this.Document.panY || 0;
-            let docs = this.childLayoutPairs.map(pair => pair.layout);
-            let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-            if (!this.isAnnotationOverlay) {
-                PDFMenu.Instance.fadeOut(true);
-                let minx = docs.length ? NumCast(docs[0].x) : 0;
-                let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
-                let miny = docs.length ? NumCast(docs[0].y) : 0;
-                let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
-                let ranges = docs.filter(doc => doc).reduce((range, doc) => {
-                    let x = NumCast(doc.x);
-                    let xe = x + NumCast(doc.width);
-                    let y = NumCast(doc.y);
-                    let ye = y + NumCast(doc.height);
-                    return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
-                    [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
-                }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.fieldExtensionDoc.ink, InkField);
-                if (ink && ink.inkData) {
-                    ink.inkData.forEach((value: StrokeData, key: string) => {
-                        let bounds = InkingCanvas.StrokeRect(value);
-                        ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
-                        ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
-                    });
-                }
-
-                let cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
-                let panelDim = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth() / this.zoomScaling() * cscale,
-                    this.props.PanelHeight() / this.zoomScaling() * cscale);
-                if (ranges[0][0] - dx > (this.panX() + panelDim[0] / 2)) x = ranges[0][1] + panelDim[0] / 2;
-                if (ranges[0][1] - dx < (this.panX() - panelDim[0] / 2)) x = ranges[0][0] - panelDim[0] / 2;
-                if (ranges[1][0] - dy > (this.panY() + panelDim[1] / 2)) y = ranges[1][1] + panelDim[1] / 2;
-                if (ranges[1][1] - dy < (this.panY() - panelDim[1] / 2)) y = ranges[1][0] - panelDim[1] / 2;
-            }
-            this.setPan(x - dx, y - dy);
-            this._lastX = e.pageX;
-            this._lastY = e.pageY;
+            this.pan(e);
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
         }
+    }
+
+    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
+    public FirstX: number = 0;
+    public FirstY: number = 0;
+    public SecondX: number = 0;
+    public SecondY: number = 0;
+
+    private _touchDrag: boolean = false;
+
+    /**
+     * When a touch even starts, we keep track of each touch that is associated with that event
+     */
+    @action
+    onTouchStart = (e: React.TouchEvent): void => {
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            let pt = e.targetTouches.item(i);
+            this.prevPoints.set(pt.identifier, pt);
+        }
+        document.removeEventListener("touchmove", this.onTouch);
+        document.addEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+        document.addEventListener("touchend", this.onTouchEnd);
+    }
+
+    /**
+    * Handle touch move event
+    */
+    @action
+    onTouch = (e: TouchEvent): void => {
+        // if we're not actually moving a lot, don't consider it as dragging yet
+        if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
+        this._touchDrag = true;
+        switch (e.targetTouches.length) {
+            case 1:
+                // panning a workspace
+                if (!e.cancelBubble && this.props.active()) {
+                    let pt = e.targetTouches.item(0);
+                    if (pt) {
+                        this.pan(pt);
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+                break;
+            case 2:
+                // pinch zooming
+                if (!e.cancelBubble) {
+                    let pt1: Touch | null = e.targetTouches.item(0);
+                    let pt2: Touch | null = e.targetTouches.item(1);
+                    if (!pt1 || !pt2) return;
+
+                    if (this.prevPoints.size === 2) {
+                        let oldPoint1 = this.prevPoints.get(pt1.identifier);
+                        let oldPoint2 = this.prevPoints.get(pt2.identifier);
+                        if (oldPoint1 && oldPoint2) {
+                            let dir = InteractionUtils.Pinching(pt1, pt2, oldPoint1, oldPoint2);
+
+                            // if zooming, zoom
+                            if (dir !== 0) {
+                                let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2));
+                                let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2));
+                                let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+                                let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                                let delta = dir * (d1 + d2);
+                                this.zoom(centerX, centerY, delta, 250);
+                                this.prevPoints.set(pt1.identifier, pt1);
+                                this.prevPoints.set(pt2.identifier, pt2);
+                            }
+                        }
+                    }
+                }
+                e.stopPropagation();
+                e.preventDefault();
+                break;
+        }
+    }
+
+    @action
+    onTouchEnd = (e: TouchEvent): void => {
+        this._touchDrag = false;
+        e.stopPropagation();
+
+        // remove all the touches associated with the event
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            let pt = e.targetTouches.item(i);
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.delete(pt.identifier);
+                }
+            }
+        }
+
+        if (e.targetTouches.length === 0) {
+            this.prevPoints.clear();
+        }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+    }
+
+    @action
+    zoom = (pointX: number, pointY: number, deltaY: number, coefficient: number): void => {
+        let deltaScale = deltaY > 0 ? (1 / 1.1) : 1.1;
+        if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
+            deltaScale = 1 / this.zoomScaling();
+        }
+        if (deltaScale < 0) deltaScale = -deltaScale;
+        let [x, y] = this.getTransform().transformPoint(pointX, pointY);
+        let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
+
+        let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
+        this.props.Document.scale = Math.abs(safeScale);
+        this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
     }
 
     @action
@@ -344,17 +474,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         else if (this.props.active()) {
             e.stopPropagation();
-            let deltaScale = e.deltaY > 0 ? (1 / 1.1) : 1.1;
-            if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
-                deltaScale = 1 / this.zoomScaling();
-            }
-            if (deltaScale < 0) deltaScale = -deltaScale;
-            let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
-            let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
-
-            let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
-            this.props.Document.scale = Math.abs(safeScale);
-            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
+            this.zoom(e.clientX, e.clientY, e.deltaY, 1)
         }
     }
 
@@ -696,7 +816,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return (
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (NumCast(this.props.Document.scrollHeight) ? NumCast(this.props.Document.scrollHeight) : "100%") : this.props.PanelHeight() }}
-                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
+                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox} setPreviewCursor={this.props.setPreviewCursor}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>

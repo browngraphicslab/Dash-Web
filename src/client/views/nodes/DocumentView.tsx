@@ -610,6 +610,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             layoutKey="layout"
             DataDoc={this.props.DataDoc} />);
     }
+
+    onTouchStart = (e: React.TouchEvent) => {
+        e.stopPropagation();
+    }
+
     render() {
         let animDims = this.props.Document.animateToDimensions ? Array.from(Cast(this.props.Document.animateToDimensions, listSpec("number"))!) : undefined;
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
@@ -675,6 +680,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transform: `scale(${this.props.Document.fitWidth ? 1 : this.props.ContentScaling()})`,
                     opacity: this.Document.opacity
                 }}
+                onTouchStart={this.onTouchStart}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
