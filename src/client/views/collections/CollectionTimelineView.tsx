@@ -70,10 +70,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         const { pageX, pageY } = e;
         var pt = this.props.ScreenToLocalTransform().transformPoint(pageX, pageY);
         const mutator = (input: Doc | Doc[]) => {
-            console.log("DKLFDSKLJDFHSKDLFHSDKLFJHSDFKL", pageX);
-            let x = (((pageX / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
-            let fieldval = this._values[0] + x * this.barref.current!.getBoundingClientRect().width / this._range;
-            console.log(x, fieldval);
+            let newX = pageX;
+            newX += -(document.body.clientWidth - this.barref.current!.getBoundingClientRect().width);
+            let x = (((newX / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+            let fieldval = NumCast(this.props.Document.minvalue) + x * this._range * 1.1 / this.barref.current!.getBoundingClientRect().width;
             if (Array.isArray(input)) {
                 for (let inputs of input) {
                     inputs[this.sortstate] = fieldval;
@@ -624,10 +624,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.windowheight = this.screenref.current.getBoundingClientRect().height - 40;
         }
         let border = "";
-        this.rowPrev === true ? border = "1px black dashed" : null;
+        let cursor = "";
+        if (this.rowPrev === true) {
+            border = "1px black dashed";
+            cursor = "n-resize";
+        }
         for (let i = 0; i < this.windowheight; i
             += this.rowscale) {
-            this.rows.push(<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", borderTop: border, height: "5px", position: "absolute", top: i, width: "100%", zIndex: 100 }} />);
+
+
+            this.rows.push(<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: cursor, borderTop: border, height: "5px", position: "absolute", top: i, width: "100%", zIndex: 100 }} />);
+
             this.rowval.push(i);
         }
         this.rows.pop();
@@ -750,6 +757,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return BoolCast(doc.rowPrev);
     }
 
+    private set bugfix(boolean: boolean) {
+        this.props.Document.bugfix = boolean;
+    }
+
+    private get bugfix() {
+        let doc = this.props.Document;
+        if (!doc.bugfix) {
+            this.bugfix = false;
+        }
+        return BoolCast(doc.bugfix);
+    }
+
+
     private set update(boolean: boolean) {
         this.props.Document.update = boolean;
     }
@@ -767,9 +787,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.transtate = boolean;
     }
 
-    private get transstate() {
+    private get transtate() {
         let doc = this.props.Document;
-        if (!doc.transtate) {
+        if (doc.transtate === undefined) {
+            console.log("hi");
             doc.transtate = true;
         }
         return BoolCast(doc.transtate);
@@ -819,13 +840,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     leftboundSet = (number: number) => {
-        this.props.Document.transtate = false;
+        this.transtate = false;
         runInAction(() => this.leftbound = number);
         this.markerrender();
     }
     @action
     rightboundSet = (number: number) => {
-        this.props.Document.transtate = false;
+        this.transtate = false;
         this.rightbound = number;
         this.markerrender();
     }
@@ -1035,6 +1056,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerMove_OnBar = (e: PointerEvent): void => {
+        this.transtate = false;
         e.stopPropagation();
         let newx2 = this.rightbound - e.movementX;
         let newx = this.leftbound + e.movementX;
@@ -1067,6 +1089,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerMove_LeftBound = (e: PointerEvent): void => {
+        this.transtate = false;
+
         e.stopPropagation();
         if (this.leftbound + e.movementX < 0) {
             this.leftbound = 0;
@@ -1083,6 +1107,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerMove_RightBound = (e: PointerEvent): void => {
+        this.transtate = false;
+
         e.stopPropagation();
         if (this.rightbound - e.movementX < 0) {
             this.rightbound = 0;
@@ -1114,6 +1140,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
+        this.transtate = false;
+
         this.downbool = false;
         let temp = this.barwidth - this.rightbound - this.leftbound;
         let newx = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98;
@@ -1151,7 +1179,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.thumbnailloop();
         this.createdownbool();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        console.log(this.thumbnails[0] ? this.thumbnails[0].select : null);
+        console.log(this.transtate);
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", cursor: "grab", width: "100%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
@@ -1188,7 +1216,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         {({ measureRef }) => <div ref={measureRef}> </div>}
                     </Measure>
                     <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", position: "absolute", height: "100%", width: "100%", }}>
-                        {this.rows}
+                        {this.rows.map(r => this.props.Document.rowPrev ? r : r)}
                         {this.thumbnails.map(doc =>
                             <Thumbnail
                                 scale={this.rowscale}
@@ -1215,7 +1243,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
                             position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
                         }}>
-                            {this.ticks}
+                            {this.rows.splice(Math.round(this.rowval.length / 2), 1, (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "100%", zIndex: 100 }} />))}
+                            {this.ticks.map(tick => this.bugfix ? tick : tick)}
                         </div>
 
                     </div>

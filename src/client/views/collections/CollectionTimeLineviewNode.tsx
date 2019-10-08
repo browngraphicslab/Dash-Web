@@ -1,4 +1,4 @@
-import { observable, action, runInAction,computed } from "mobx";
+import { observable, action, runInAction, computed } from "mobx";
 import React = require("react");
 import "./CollectionTimelineView.scss";
 import { Doc, DocListCast, Field, FieldResult, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -139,7 +139,7 @@ export class Thumbnail extends React.Component<NodeProps> {
 
     opacity: number | undefined;
     @computed
-    get selectclass(){
+    get selectclass() {
         return this.props.select;
     }
 
@@ -147,7 +147,7 @@ export class Thumbnail extends React.Component<NodeProps> {
         this.maketransition();
         this.getCaption();
         this.tog();
-        console.log(this.selectclass);
+        console.log(this.props.transition);
         return (
             <div>
                 <div onPointerDown={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
@@ -202,5 +202,5 @@ export interface NodeProps {
     select: boolean;
     update: boolean;
     range: number;
-    appenddoc: (doc:Doc)=>void;
+    appenddoc: (doc: Doc) => void;
 }

@@ -838,6 +838,8 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                     props.leftbound = thing;
                 }
             }
+            this.props.CollectionView.props.Document.bugfix = !BoolCast(this.props.CollectionView.props.Document.bugfix);
+            console.log(this.props.CollectionView.props.Document.bugfix);
             props.transtate = true;
             props.sortstate = this.searchString3;
         }
