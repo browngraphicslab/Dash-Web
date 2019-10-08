@@ -742,7 +742,7 @@ export class DashDocView {
             let ns = new NodeSelection(view.state.doc.resolve(getPos()));
             view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
             return true;
-        }
+        };
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
                 self._dashDoc = dashDoc;

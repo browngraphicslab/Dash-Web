@@ -849,7 +849,7 @@ export class TooltipTextMenu {
         }
     }
 
-    update(view: EditorView, lastState: EditorState | undefined) { this.updateInternal(view, lastState, this.editorProps) }
+    update(view: EditorView, lastState: EditorState | undefined) { this.updateInternal(view, lastState, this.editorProps); }
     //updates the tooltip menu when the selection changes
     public updateInternal(view: EditorView, lastState: EditorState | undefined, props: any) {
         this.view = view;
