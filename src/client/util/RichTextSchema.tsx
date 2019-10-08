@@ -739,7 +739,8 @@ export class DashDocView {
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
         let removeDoc = () => {
-            let ns = new NodeSelection(view.state.doc.resolve(getPos()));
+            let pos = getPos();
+            let ns = new NodeSelection(view.state.doc.resolve(pos));
             view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
             return true;
         };

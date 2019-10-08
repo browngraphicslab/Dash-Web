@@ -457,7 +457,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         },
             action((rules: any) => {
                 this._fontFamily = rules ? rules.font : "Arial";
-                this._fontSize = rules ? rules.size : 13;
+                this._fontSize = rules ? rules.size : NumCast(this.props.Document.fontSize, 13);
                 rules && setTimeout(() => {
                     const view = this._editorView!;
                     if (this._proseRef) {
