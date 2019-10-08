@@ -15,6 +15,10 @@
         
         mix-blend-mode: multiply;
         opacity: 0.9;
+        span {
+            padding-right: 5px;
+            padding-bottom: 4px;
+        }
     }
     .textLayer ::selection { background: yellow; } // should match the backgroundColor in createAnnotation()
     .textLayer .highlight {

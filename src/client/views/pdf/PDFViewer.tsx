@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import smoothScroll, { Utils, emptyFunction, returnOne, intersectRect } from "../../../Utils";
+import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
@@ -24,6 +24,7 @@ import { CollectionView } from "../collections/CollectionView";
 import Annotation from "./Annotation";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -62,6 +63,7 @@ interface IViewerProps {
  */
 @observer
 export class PDFViewer extends React.Component<IViewerProps> {
+    static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
@@ -150,7 +152,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     copy = (e: ClipboardEvent) => {
         if (this.props.active() && e.clipboardData) {
-            let annoDoc = this.makeAnnotationDocument("#0390fc");
+            let annoDoc = this.makeAnnotationDocument("rgba(3,144,152,0.3)");  // copied text markup color (blueish)
             if (annoDoc) {
                 e.clipboardData.setData("text/plain", this._selectionText);
                 e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
@@ -237,6 +239,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._pdfViewer.setDocument(this.props.pdf);
     }
 
+    @undoBatch
     @action
     makeAnnotationDocument = (color: string): Opt<Doc> => {
         if (this._savedAnnotations.size() === 0) return undefined;
@@ -388,6 +391,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
+        addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
         if (NumCast(this.props.Document.scale, 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active()) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
@@ -475,6 +479,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     onSelectEnd = (e: PointerEvent): void => {
+        clearStyleSheetRules(PDFViewer._annotationStyle);
         this._savedAnnotations.clear();
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
@@ -510,8 +515,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
             }
         }
 
-        if (PDFMenu.Instance.Highlighting) {
-            this.highlight("rgba(245, 230, 95, 0.616)");  // when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
+        if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
+            this.highlight("rgba(245, 230, 95, 0.616)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
         }
         else {
             PDFMenu.Instance.StartDrag = this.startDrag;
@@ -538,7 +543,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         e.preventDefault();
         e.stopPropagation();
         let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "Note linked to " + this.props.Document.title });
-        const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)");
+        const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
             let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {

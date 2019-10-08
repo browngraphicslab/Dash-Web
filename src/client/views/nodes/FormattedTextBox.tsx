@@ -548,7 +548,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let editor = this._editorView;
                     let ret = findLinkFrag(editor.state.doc.content, editor);
 
-                    if (ret.frag.size > 2) {
+                    if (ret.frag.size > 2 && ret.start >= 0) {
                         let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                         if (ret.frag.firstChild) {
                             selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected

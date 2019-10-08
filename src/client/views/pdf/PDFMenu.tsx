@@ -155,7 +155,7 @@ export default class PDFMenu extends React.Component {
 
     @action
     highlightClicked = (e: React.MouseEvent) => {
-        if (!this.Highlight("rgba(245, 230, 95, 0.616)") && this.Pinned) {
+        if (!this.Highlight("rgba(245, 230, 95, 0.616)") && this.Pinned) { // yellowish highlight color for a marker type highlight
             this.Highlighting = !this.Highlighting;
         }
     }

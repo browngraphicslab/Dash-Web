@@ -545,7 +545,7 @@ export class TooltipTextMenu {
                 view.dispatch(tx2);
             })) {
                 let tx2 = view.state.tr;
-                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                let tx3 = nodeType ? updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle) : tx2;
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
