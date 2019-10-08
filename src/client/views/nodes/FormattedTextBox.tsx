@@ -41,6 +41,8 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
+import { ContextMenuProps } from '../ContextMenuItem';
+import { ContextMenu } from '../ContextMenu';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -296,14 +298,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    recordKeyHandler = (e: KeyboardEvent) => {
-        if (SelectionManager.SelectedDocuments().length && this.props.Document === SelectionManager.SelectedDocuments()[0].props.Document) {
-            if (e.key === "R" && e.altKey) {
-                e.stopPropagation();
-                e.preventDefault();
-                this.recordBullet();
-            }
-        }
+    specificContextMenu = (e: React.MouseEvent): void => {
+        let funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Dictate", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
+
+        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
     recordBullet = async () => {
@@ -336,12 +335,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     nextBullet = (pos: number) => {
         if (this._editorView) {
             let frag = Fragment.fromArray(this.newListItems(2));
-            let slice = new Slice(frag, 2, 2);
-            let state = this._editorView.state;
-            this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
-            pos += 4;
-            state = this._editorView.state;
-            this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
+            if (this._editorView.state.doc.resolve(pos).depth >= 2) {
+                let slice = new Slice(frag, 2, 2);
+                let state = this._editorView.state;
+                this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
+                pos += 4;
+                state = this._editorView.state;
+                this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
+            }
         }
     }
 
@@ -769,8 +770,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @action
     onFocused = (e: React.FocusEvent): void => {
         FormattedTextBox.InputBoxOverlay = this;
-        document.removeEventListener("keypress", this.recordKeyHandler);
-        document.addEventListener("keypress", this.recordKeyHandler);
         this.tryUpdateHeight();
     }
     onPointerWheel = (e: React.WheelEvent): void => {
@@ -873,7 +872,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
     onBlur = (e: any) => {
-        document.removeEventListener("keypress", this.recordKeyHandler);
+        DictationManager.Controls.stop(false);
         if (this._undoTyping) {
             this._undoTyping.end();
             this._undoTyping = undefined;
@@ -899,7 +898,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0 && getComputedStyle(this._ref.current!.parentElement!).bottom !== "0px") {
+        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0 && getComputedStyle(this._ref.current!.parentElement!).top === "0px") {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
@@ -928,6 +927,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     fontSize: this._fontSize,
                     fontFamily: this._fontFamily,
                 }}
+                onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
