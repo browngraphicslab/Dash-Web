@@ -29,7 +29,6 @@ import "./ImageBox.scss";
 import React = require("react");
 import { SearchUtil } from '../../util/SearchUtil';
 import { ClientRecommender } from '../../ClientRecommender';
-import { DocumentType } from '../../documents/Documents';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');

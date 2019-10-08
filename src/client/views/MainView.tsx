@@ -41,7 +41,6 @@ import { FilterBox } from './search/FilterBox';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 //import { DocumentManager } from '../util/DocumentManager';
 import { RecommendationsBox } from './Recommendations';
-import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
 import { OverlayView } from './OverlayView';
 

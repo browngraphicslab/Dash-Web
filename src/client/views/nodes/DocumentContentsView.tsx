@@ -2,8 +2,6 @@ import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
-import { OmitKeys, Without } from "../../../Utils";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -30,14 +28,10 @@ import { PresElementBox } from "../presentationview/PresElementBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import React = require("react");
-import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
-import { Doc } from "../../../new_fields/Doc";
-import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { RecommendationsBox } from "../../views/Recommendations";
-import { ScriptField } from "../../../new_fields/ScriptField";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;

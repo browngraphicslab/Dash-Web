@@ -621,7 +621,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         recommendations.documentIconHeight = 150;
         recommendations.sourceDoc = this.props.Document;
         recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
-        CollectionDockingView.Instance.AddRightSplit(recommendations, undefined);
+        CollectionDockingView.AddRightSplit(recommendations, undefined);
 
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
@@ -641,7 +641,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             body.href = urls[i];
             bodies.push(body);
         }
-        CollectionDockingView.Instance.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
