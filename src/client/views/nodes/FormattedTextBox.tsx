@@ -779,6 +779,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    static _sheet: any = undefined;
+    static addRule = ((style) => {
+        style.type = "text/css"
+        var sheets = document.head.appendChild(style);
+        FormattedTextBox._sheet = (sheets as any).sheet;
+        return function (selector: any, css: any) {
+            var propText = typeof css === "string" ? css : Object.keys(css).map(function (p) {
+                return p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p]);
+            }).join(";");
+            return FormattedTextBox._sheet.insertRule("." + selector + "{" + propText + "}", FormattedTextBox._sheet.cssRules.length);
+        };
+    })(document.createElement("style"));
+
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
@@ -814,6 +827,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 e.preventDefault();
             }
         }
+
+        if (FormattedTextBox._sheet.rules.length) {
+            FormattedTextBox._sheet.removeRule(0);
+        }
         // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
         if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
@@ -821,14 +838,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
                 let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
                 if (node === this._nodeClicked && node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
-                    let hit = this._editorView!.domAtPos(pos.pos).node as any;
-                    let beforeEle = document.querySelector("." + hit.className) as Element;
-                    let before = beforeEle ? window.getComputedStyle(beforeEle, ':before') : undefined;
+                    let hit = this._editorView!.domAtPos(pos.pos).node as any;   // let beforeEle = document.querySelector("." + hit.className) as Element;
+                    let before = hit ? window.getComputedStyle(hit, ':before') : undefined;
                     let beforeWidth = before ? Number(before.getPropertyValue('width').replace("px", "")) : undefined;
                     if (beforeWidth && e.nativeEvent.offsetX < beforeWidth) {
                         let ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
-                        if (ol && ol.type === schema.nodes.ordered_list && !e.shiftKey) {
+                        if (ol && ol.type === schema.nodes.ordered_list && e.shiftKey) {
                             this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
+                            FormattedTextBox.addRule(hit.className + ":before", { background: "gray" });
                         } else {
                             this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
                         }
