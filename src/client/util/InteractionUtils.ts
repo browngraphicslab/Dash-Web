@@ -2,7 +2,7 @@ export namespace InteractionUtils {
     export const MOUSE = "mouse";
     export const TOUCH = "touch";
 
-    export function IsType(e: PointerEvent, type: PointerTypes): boolean {
+    export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {
         return e.pointerType === type;
     }
 

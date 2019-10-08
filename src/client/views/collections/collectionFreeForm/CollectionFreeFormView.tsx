@@ -351,100 +351,50 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
-    public FirstX: number = 0;
-    public FirstY: number = 0;
-    public SecondX: number = 0;
-    public SecondY: number = 0;
-
-    private _touchDrag: boolean = false;
-
-    /**
-     * When a touch even starts, we keep track of each touch that is associated with that event
-     */
-    @action
-    onTouchStart = (e: React.TouchEvent): void => {
-        for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
-            this.prevPoints.set(pt.identifier, pt);
-        }
-        document.removeEventListener("touchmove", this.onTouch);
-        document.addEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
-        document.addEventListener("touchend", this.onTouchEnd);
-    }
-
-    /**
-    * Handle touch move event
-    */
-    @action
-    onTouch = (e: TouchEvent): void => {
-        // if we're not actually moving a lot, don't consider it as dragging yet
-        if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
-        this._touchDrag = true;
-        switch (e.targetTouches.length) {
-            case 1:
-                // panning a workspace
-                if (!e.cancelBubble && this.props.active()) {
-                    let pt = e.targetTouches.item(0);
-                    if (pt) {
-                        this.pan(pt);
-                    }
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
-                break;
-            case 2:
-                // pinch zooming
-                if (!e.cancelBubble) {
-                    let pt1: Touch | null = e.targetTouches.item(0);
-                    let pt2: Touch | null = e.targetTouches.item(1);
-                    if (!pt1 || !pt2) return;
-
-                    if (this.prevPoints.size === 2) {
-                        let oldPoint1 = this.prevPoints.get(pt1.identifier);
-                        let oldPoint2 = this.prevPoints.get(pt2.identifier);
-                        if (oldPoint1 && oldPoint2) {
-                            let dir = InteractionUtils.Pinching(pt1, pt2, oldPoint1, oldPoint2);
-
-                            // if zooming, zoom
-                            if (dir !== 0) {
-                                let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2));
-                                let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2));
-                                let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
-                                let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                                let delta = dir * (d1 + d2);
-                                this.zoom(centerX, centerY, delta, 250);
-                                this.prevPoints.set(pt1.identifier, pt1);
-                                this.prevPoints.set(pt2.identifier, pt2);
-                            }
-                        }
-                    }
-                }
-                e.stopPropagation();
-                e.preventDefault();
-                break;
-        }
-    }
-
-    @action
-    onTouchEnd = (e: TouchEvent): void => {
-        this._touchDrag = false;
-        e.stopPropagation();
-
-        // remove all the touches associated with the event
-        for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
+    handle1Pointer = (e: TouchEvent) => {
+        // panning a workspace
+        if (!e.cancelBubble && this.props.active()) {
+            let pt = e.targetTouches.item(0);
             if (pt) {
-                if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.delete(pt.identifier);
+                this.pan(pt);
+            }
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
+    handle2Pointers = (e: TouchEvent) => {
+        // pinch zooming
+        if (!e.cancelBubble) {
+            let pt1: Touch | null = e.targetTouches.item(0);
+            let pt2: Touch | null = e.targetTouches.item(1);
+            if (!pt1 || !pt2) return;
+
+            if (this.prevPoints.size === 2) {
+                let oldPoint1 = this.prevPoints.get(pt1.identifier);
+                let oldPoint2 = this.prevPoints.get(pt2.identifier);
+                if (oldPoint1 && oldPoint2) {
+                    let dir = InteractionUtils.Pinching(pt1, pt2, oldPoint1, oldPoint2);
+
+                    // if zooming, zoom
+                    if (dir !== 0) {
+                        let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2));
+                        let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2));
+                        let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+                        let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                        let delta = dir * (d1 + d2);
+                        this.zoom(centerX, centerY, delta, 250);
+                        this.prevPoints.set(pt1.identifier, pt1);
+                        this.prevPoints.set(pt2.identifier, pt2);
+                    }
                 }
             }
         }
+        e.stopPropagation();
+        e.preventDefault();
+    }
 
-        if (e.targetTouches.length === 0) {
-            this.prevPoints.clear();
-        }
+    cleanUpInteractions = () => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.removeEventListener("touchmove", this.onTouch);

@@ -13,6 +13,7 @@ import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
 import { ImageField } from '../../../new_fields/URLField';
+import { Touchable } from '../Touchable';
 
 export enum CollectionViewType {
     Invalid,
@@ -60,7 +61,7 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 @observer
-export class CollectionBaseView extends React.Component<CollectionViewProps> {
+export class CollectionBaseView extends Touchable<CollectionViewProps> {
     @observable private static _safeMode = false;
     static InSafeMode() { return this._safeMode; }
     static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }

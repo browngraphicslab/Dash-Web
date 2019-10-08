@@ -611,8 +611,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DataDoc={this.props.DataDoc} />);
     }
 
-    onTouchStart = (e: React.TouchEvent) => {
+    handle1Pointer = (e: TouchEvent) => {
         e.stopPropagation();
+        e.preventDefault();
     }
 
     render() {
