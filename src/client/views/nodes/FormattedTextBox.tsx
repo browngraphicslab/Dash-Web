@@ -18,7 +18,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, timenow, Utils, emptyFunction } from '../../../Utils';
+import { numberRange, timenow, Utils, addStyleSheet, addStyleSheetRule, removeStyleSheetRule } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -781,18 +781,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    static _sheet: any = undefined;
-    static addRule = ((style) => {
-        style.type = "text/css"
-        var sheets = document.head.appendChild(style);
-        FormattedTextBox._sheet = (sheets as any).sheet;
-        return function (selector: any, css: any) {
-            var propText = typeof css === "string" ? css : Object.keys(css).map(function (p) {
-                return p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p]);
-            }).join(";");
-            return FormattedTextBox._sheet.insertRule("." + selector + "{" + propText + "}", FormattedTextBox._sheet.cssRules.length);
-        };
-    })(document.createElement("style"));
+    static _sheet: any = addStyleSheet();
 
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
@@ -830,12 +819,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
 
+        this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey);
+    }
+
+    // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
+    hitBulletTargets(x: number, y: number, offsetX: number, select: boolean = false) {
         if (FormattedTextBox._sheet.rules.length) {
-            FormattedTextBox._sheet.removeRule(0);
+            removeStyleSheetRule(FormattedTextBox._sheet, 0);
         }
-        // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
-        if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
-            let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+        if (this.props.isSelected() && offsetX < 40) {
+            let pos = this._editorView!.posAtCoords({ left: x, top: y });
             if (pos && pos.pos > 0) {
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
                 let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
@@ -843,11 +836,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let hit = this._editorView!.domAtPos(pos.pos).node as any;   // let beforeEle = document.querySelector("." + hit.className) as Element;
                     let before = hit ? window.getComputedStyle(hit, ':before') : undefined;
                     let beforeWidth = before ? Number(before.getPropertyValue('width').replace("px", "")) : undefined;
-                    if (beforeWidth && e.nativeEvent.offsetX < beforeWidth) {
+                    if (beforeWidth && offsetX < beforeWidth) {
                         let ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
-                        if (ol && ol.type === schema.nodes.ordered_list && e.shiftKey) {
+                        if (ol && ol.type === schema.nodes.ordered_list && select) {
                             this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
-                            FormattedTextBox.addRule(hit.className + ":before", { background: "gray" });
+                            addStyleSheetRule(FormattedTextBox._sheet, hit.className + ":before", { background: "gray" });
                         } else {
                             this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
                         }
@@ -875,8 +868,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tooltipTextMenuPlugin() {
         let self = FormattedTextBox;
         return new Plugin({
-            view(_editorView) {
-                return self._toolTipTextMenu = FormattedTextBox.getToolTip(_editorView);
+            view(newView) {
+                return self._toolTipTextMenu = FormattedTextBox.getToolTip(newView);
             }
         });
     }

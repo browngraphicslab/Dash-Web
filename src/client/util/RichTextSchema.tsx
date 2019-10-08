@@ -4,7 +4,7 @@ import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection, Plugin } from "prosemirror-state";
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
@@ -847,7 +847,14 @@ export class FootnoteView {
                     "Mod-z": () => undo(this.outerView.state, this.outerView.dispatch),
                     "Mod-y": () => redo(this.outerView.state, this.outerView.dispatch),
                     "Mod-b": toggleMark(schema.marks.strong)
-                })]
+                }),
+                new Plugin({
+                    view(newView) {
+                        return FormattedTextBox.getToolTip(newView);
+                    }
+                })
+                ],
+
             }),
             // This is the magic part
             dispatchTransaction: this.dispatchInner.bind(this),
