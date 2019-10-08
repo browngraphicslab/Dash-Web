@@ -316,6 +316,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (FormattedTextBox._highlights.indexOf("Disagree Items") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "disagree", { "text-decoration": "line-through" });
         }
+        if (FormattedTextBox._highlights.indexOf("Ignore Items") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "ignore", { "font-size": "0" });
+        }
         if (FormattedTextBox._highlights.indexOf("By Recent Minute") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
             let min = Math.round(Date.now() / 1000 / 60);
@@ -332,7 +335,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Dictate", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
-        ["My Text", "Todo Items", "Important Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
+        ["My Text", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
                     e.stopPropagation();
