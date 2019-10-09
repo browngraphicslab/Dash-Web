@@ -55,6 +55,8 @@ interface ValidatedUser {
     notificationDoc: Doc;
 }
 
+const storage = "data";
+
 @observer
 export default class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
@@ -131,7 +133,6 @@ export default class SharingManager extends React.Component<{}> {
         const target = this.targetDoc!;
         const manager = this.sharingDoc!;
         const key = user.userDocumentId;
-        const storage = "data";
         if (state === SharingPermissions.None) {
             const metadata = (await DocCastAsync(manager[key]));
             if (metadata) {
