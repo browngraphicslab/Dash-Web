@@ -39,6 +39,7 @@ import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { OverlayView } from './OverlayView';
+import AuthenticationManager from '../apis/AuthenticationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -677,6 +678,7 @@ export class MainView extends React.Component {
             <div id="main-div">
                 {this.dictationOverlay}
                 <SharingManager />
+                <AuthenticationManager />
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />

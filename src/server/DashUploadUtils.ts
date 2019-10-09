@@ -22,7 +22,7 @@ export namespace DashUploadUtils {
     const gifs = [".gif"];
     const pngs = [".png"];
     const jpgs = [".jpg", ".jpeg"];
-    const imageFormats = [...pngs, ...jpgs, ...gifs];
+    export const imageFormats = [...pngs, ...jpgs, ...gifs];
     const videoFormats = [".mov", ".mp4"];
 
     const size = "content-length";
