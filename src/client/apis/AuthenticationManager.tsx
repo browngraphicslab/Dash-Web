@@ -6,6 +6,8 @@ import { Opt } from "../../new_fields/Doc";
 import { Identified } from "../Network";
 import { RouteStore } from "../../server/RouteStore";
 
+const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+
 @observer
 export default class AuthenticationManager extends React.Component<{}> {
     public static Instance: AuthenticationManager;
@@ -30,24 +32,30 @@ export default class AuthenticationManager extends React.Component<{}> {
         runInAction(() => this.clickedState = value);
     }
 
-    public executeFullRoutine = async (authenticationLink: string) => {
-        this.authenticationLink = authenticationLink;
-        this.isOpen = true;
-        return new Promise<string>(async resolve => {
-            const disposer = reaction(
-                () => this.authenticationCode,
-                authenticationCode => {
-                    if (authenticationCode) {
-                        Identified.PostToServer(RouteStore.writeGooglePhotosAccessToken, { authenticationCode }).then(token => {
-                            this.isOpen = false;
-                            this.hasBeenClicked = false;
-                            resolve(token);
-                            disposer();
-                        });
+    public executeFullRoutine = async (service: string) => {
+        let response = await Identified.FetchFromServer(`/read${service}AccessToken`);
+        // if this is an authentication url, activate the UI to register the new access token
+        if (new RegExp(AuthenticationUrl).test(response)) {
+            this.isOpen = true;
+            this.authenticationLink = response;
+            return new Promise<string>(async resolve => {
+                const disposer = reaction(
+                    () => this.authenticationCode,
+                    authenticationCode => {
+                        if (authenticationCode) {
+                            Identified.PostToServer(`/write${service}AccessToken`, { authenticationCode }).then(token => {
+                                this.isOpen = false;
+                                this.hasBeenClicked = false;
+                                resolve(token);
+                                disposer();
+                            });
+                        }
                     }
-                }
-            );
-        });
+                );
+            });
+        }
+        // otherwise, we already have a valid, stored access token
+        return response;
     }
 
     constructor(props: {}) {

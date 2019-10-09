@@ -19,14 +19,8 @@ import { List } from "../../../new_fields/List";
 
 export namespace GooglePhotos {
 
-    const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-
     const endpoint = async () => {
-        let response = await Identified.FetchFromServer(RouteStore.readGooglePhotosAccessToken);
-        if (new RegExp(AuthenticationUrl).test(response)) {
-            response = await AuthenticationManager.Instance.executeFullRoutine(response);
-        }
-        return new Photos(response);
+        return new Photos(await AuthenticationManager.Instance.executeFullRoutine("GooglePhotos"));
     };
 
     export enum MediaType {
