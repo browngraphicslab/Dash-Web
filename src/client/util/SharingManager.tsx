@@ -270,14 +270,10 @@ export default class SharingManager extends React.Component<{}> {
                                     <select
                                         className={"permissions-dropdown"}
                                         value={permissions}
-                                        style={{
-                                            color,
-                                            borderColor: color
-                                        }}
+                                        style={{ color, borderColor: color }}
                                         onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
                                     >
                                         {this.sharingOptions}
-
                                     </select>
                                     <span className={"padding"}>{user.email}</span>
                                 </div>
