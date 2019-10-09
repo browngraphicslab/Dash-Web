@@ -79,7 +79,7 @@ export default class SharingManager extends React.Component<{}> {
                 this.sharingDoc = new Doc;
             }
         }));
-    };
+    }
 
     public close = action(() => {
         this.isOpen = false;
