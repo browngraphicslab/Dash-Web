@@ -111,6 +111,7 @@ export const documentSchema = createSchema({
     type: "string",             // enumerated type of document
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
     lockedPosition: "boolean",  // whether the document can be spatially manipulated
+    inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
@@ -206,7 +207,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
         let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-        let linkedDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
+        let linkDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
         let expandedDocs: Doc[] = [];
         expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
         expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
@@ -223,33 +224,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 expandedDocs.forEach(maxDoc => (!this.props.addDocTab(maxDoc, undefined, "close") && this.props.addDocTab(maxDoc, undefined, maxLocation)));
             }
         }
-        else if (linkedDocs.length) {
-            SelectionManager.DeselectAll();
-            let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document) && !d.anchor1anchored);
-            let second = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor2 as Doc, this.props.Document) && !d.anchor2anchored);
-            let firstUnshown = first.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
-            let secondUnshown = second.filter(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
-            if (firstUnshown.length) first = [firstUnshown[0]];
-            if (secondUnshown.length) second = [secondUnshown[0]];
-            let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : second.length ? [second[0].anchor1 as Doc, second[0].anchor1 as Doc] : undefined;
-
-            // @TODO: shouldn't always follow target context
-            let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
-            let linkedFwdPage = [first.length ? NumCast(first[0].anchor2Page, undefined) : undefined, undefined];
-
-            if (linkedFwdDocs && !linkedFwdDocs.some(l => l instanceof Promise)) {
-                let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
-                let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionDoc) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
-                    // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                    doc => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
-                    linkedFwdPage[altKey ? 1 : 0], targetContext);
-            }
+        else if (linkDocs.length) {
+            DocumentManager.Instance.FollowLink(undefined, this.props.Document,
+                // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
+                (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
+                ctrlKey, altKey, this.props.ContainingCollectionDoc);
         }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.nativeEvent.cancelBubble) return;
+        if (e.nativeEvent.cancelBubble && e.button === 0) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitTemplateDrag = false;
@@ -260,17 +244,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active && e.button === 0 && !this.Document.lockedPosition) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+        if (this.active && e.button === 0 && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
+        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
     }
     onPointerMove = (e: PointerEvent): void => {
+        if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && !this.topMost && e.buttons === 1) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -352,15 +338,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (de.data instanceof DragManager.AnnotationDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            let sourceDoc = de.data.annotationDocument;
-            let targetDoc = this.props.Document;
-            let annotations = await DocListCastAsync(sourceDoc.annotations);
-            sourceDoc.linkedToDoc = true;
-            de.data.targetContext = this.props.ContainingCollectionDoc;
-            targetDoc.targetContext = de.data.targetContext;
-            annotations && annotations.forEach(anno => anno.target = targetDoc);
+            (de.data as any).linkedToDoc = true;
 
-            DocUtils.MakeLink(sourceDoc, targetDoc, this.props.ContainingCollectionDoc, `Link from ${StrCast(sourceDoc.title)}`);
+            DocUtils.MakeLink({ doc: de.data.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `Link from ${StrCast(de.data.annotationDocument.title)}`);
         }
         if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
             Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document);
@@ -371,7 +351,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.data.linkSourceDocument !== this.props.Document &&
-                (de.data.linkDocument = DocUtils.MakeLink(de.data.linkSourceDocument, this.props.Document, this.props.ContainingCollectionDoc, undefined, "in-text link being created")); // TODODO this is where in text links get passed
+                (de.data.linkDocument = DocUtils.MakeLink({ doc: de.data.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
         }
     }
 
@@ -407,7 +387,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
                 let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.Document.width || 0) + 10, height: this.Document.height || 0, title: portalID });
-                DocUtils.MakeLink(this.props.Document, portal, undefined, portalID);
+                DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, portalID, "portal link");
                 this.Document.isButton = true;
             });
         }
@@ -635,6 +615,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DataDoc={this.props.DataDoc} />);
     }
     render() {
+        let animDims = this.props.Document.animateToDimensions ? Array.from(Cast(this.props.Document.animateToDimensions, listSpec("number"))!) : undefined;
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
@@ -644,7 +625,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
         const nativeWidth = this.props.Document.fitWidth ? this.props.PanelWidth() : this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.props.Document.fitWidth ? this.props.PanelHeight() : this.Document.ignoreAspect || this.props.Document.fitWidth ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : nativeWidth !== "100%" ? nativeWidth : "100%";
+        const nativeHeight = this.props.Document.fitWidth ? this.props.PanelHeight() : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
@@ -678,6 +659,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     SetValue={(value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true}
                 />
             </div>);
+        let animheight = animDims ? animDims[1] : nativeHeight;
+        let animwidth = animDims ? animDims[0] : nativeWidth;
+
+        const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
+        const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -685,13 +671,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
                     pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.Document.color),
-                    outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
-                    outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
-                    outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
-                    border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
+                    outline: fullDegree && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
+                    border: fullDegree && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                     background: backgroundColor,
-                    width: nativeWidth,
-                    height: nativeHeight,
+                    width: animwidth,
+                    height: animheight,
                     transform: `scale(${this.props.Document.fitWidth ? 1 : this.props.ContentScaling()})`,
                     opacity: this.Document.opacity
                 }}

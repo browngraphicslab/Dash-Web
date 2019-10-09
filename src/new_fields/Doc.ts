@@ -63,6 +63,10 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
 }
 
+export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
+    return Cast(field, Doc);
+}
+
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
@@ -144,14 +148,8 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => {
-        let animDims = this[SelfProxy].animateToDimensions ? Array.from(Cast(this[SelfProxy].animateToDimensions, listSpec("number"))!) : undefined;
-        return animDims ? animDims[0] : NumCast(this[SelfProxy].width);
-    }
-    public [HeightSym] = () => {
-        let animDims = this[SelfProxy].animateToDimensions ? Array.from(Cast(this[SelfProxy].animateToDimensions, listSpec("number"))!) : undefined;
-        return animDims ? animDims[1] : NumCast(this[SelfProxy].height);
-    }
+    public [WidthSym] = () => NumCast(this[SelfProxy].width);
+    public [HeightSym] = () => NumCast(this[SelfProxy].height);
 
     [ToScriptString]() {
         return "invalid";
@@ -643,7 +641,7 @@ export namespace Doc {
 
     export function isBrushedHighlightedDegree(doc: Doc) {
         if (Doc.IsHighlighted(doc)) {
-            return 3;
+            return 6;
         }
         else {
             return Doc.IsBrushedDegree(doc);
@@ -671,10 +669,27 @@ export namespace Doc {
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        return doc;
     }
     export function UnBrushDoc(doc: Doc) {
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        return doc;
+    }
+
+    export function linkFollowUnhighlight() {
+        Doc.UnhighlightAll();
+        document.removeEventListener("pointerdown", linkFollowUnhighlight);
+    }
+
+    let dt = 0;
+    export function linkFollowHighlight(destDoc: Doc) {
+        linkFollowUnhighlight();
+        Doc.HighlightDoc(destDoc);
+        document.removeEventListener("pointerdown", linkFollowUnhighlight);
+        document.addEventListener("pointerdown", linkFollowUnhighlight);
+        let x = dt = Date.now();
+        window.setTimeout(() => dt === x && linkFollowUnhighlight(), 5000);
     }
 
     export class HighlightBrush {

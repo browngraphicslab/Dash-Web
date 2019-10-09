@@ -217,7 +217,7 @@ class TreeView extends React.Component<TreeViewProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.document;
-            DocUtils.MakeLink(sourceDoc, destDoc);
+            DocUtils.MakeLink({doc:sourceDoc}, {doc:destDoc});
             e.stopPropagation();
         }
         if (de.data instanceof DragManager.DocumentDragData) {

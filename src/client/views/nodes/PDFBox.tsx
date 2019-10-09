@@ -57,20 +57,17 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
-        if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
-            let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
-            this.Document.nativeWidth = nw * 96 / 72;
-            this.Document.nativeHeight = this.Document.nativeHeight ? nw * 96 / 72 * oldaspect : nh * 96 / 72;
-        }
+        this.Document.nativeWidth = nw * 96 / 72;
+        this.Document.nativeHeight = nh * 96 / 72;
         !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
     public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
     public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
-    public backPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) - 1); }
+    public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
-    public forwardPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) + 1); }
+    public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
 
     @undoBatch
     @action
@@ -131,7 +128,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
-                <input value={`${NumCast(this.props.Document.curPage)}`}
+                <input value={`${(this.Document.curPage || 1)}`}
                     onChange={e => this.gotoPage(Number(e.currentTarget.value))}
                     style={{ left: 20, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
                     onClick={action(() => this._pageControls = !this._pageControls)} />
@@ -177,16 +174,22 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
+    _initialScale: number | undefined;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
-        if (!noPdf && (this.props.isSelected() || this.props.ScreenToLocalTransform().Scale < 2.5)) this._everActive = true;
-        return (!this._everActive ?
-            <div className="pdfBox-title-outer"><div className="pdfBox-title-cont" >
-                <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong> </div></div> :
+        if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
+        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+            <div className="pdfBox-title-outer" >
+                <div className={classname} >
+                    <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
+                </div>
+            </div> :
             <div className={classname} style={{
-                transformOrigin: "top left", width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                transformOrigin: "top left",
+                width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
                 height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
                 transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
             }} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
@@ -199,11 +202,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
-                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage}
+                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
                     pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} startupLive={this.props.ScreenToLocalTransform().Scale < 2.5 ? true : false} />
+                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }

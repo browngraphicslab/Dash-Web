@@ -1,12 +1,9 @@
-import { observable, runInAction, action, autorun } from "mobx";
+import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { Doc, Opt } from "../../new_fields/Doc";
+import { Doc, Opt, DocCastAsync } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
-import { List } from "../../new_fields/List";
 import { RouteStore } from "../../server/RouteStore";
 import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
@@ -49,11 +46,18 @@ const SharingKey = "sharingPermissions";
 const PublicKey = "publicLinkPermissions";
 const DefaultColor = "black";
 
+interface ValidatedUser {
+    user: User;
+    notificationDoc: Doc;
+}
+
+const storage = "data";
+
 @observer
 export default class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false;
-    @observable private users: User[] = [];
+    @observable private users: ValidatedUser[] = [];
     @observable private targetDoc: Doc | undefined;
     @observable private targetDocView: DocumentView | undefined;
     @observable private copied = false;
@@ -79,6 +83,7 @@ export default class SharingManager extends React.Component<{}> {
 
     public close = action(() => {
         this.isOpen = false;
+        this.users = [];
         setTimeout(action(() => {
             this.copied = false;
             MainView.Instance.hasActiveModal = false;
@@ -101,53 +106,43 @@ export default class SharingManager extends React.Component<{}> {
 
     populateUsers = async () => {
         let userList = await RequestPromise.get(Utils.prepend(RouteStore.getUsers));
-        runInAction(() => {
-            this.users = (JSON.parse(userList) as User[]).filter(({ email }) => email !== Doc.CurrentUserEmail);
+        const raw = JSON.parse(userList) as User[];
+        const evaluating = raw.map(async user => {
+            let isCandidate = user.email !== Doc.CurrentUserEmail;
+            if (isCandidate) {
+                const userDocument = await DocServer.GetRefField(user.userDocumentId);
+                if (userDocument instanceof Doc) {
+                    const notificationDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                    runInAction(() => {
+                        if (notificationDoc instanceof Doc) {
+                            this.users.push({ user, notificationDoc });
+                        }
+                    });
+                }
+            }
         });
+        return Promise.all(evaluating);
     }
 
-    setInternalSharing = async (user: User, state: string) => {
-        if (!this.sharingDoc) {
-            console.log("SHARING ABORTED!");
-            return;
-        }
-        let sharingDoc = await this.sharingDoc;
-        sharingDoc[user.userDocumentId] = state;
-        const userDocument = await DocServer.GetRefField(user.userDocumentId);
-        if (!(userDocument instanceof Doc)) {
-            console.log(`Couldn't get user document of user ${user.email}`);
-            return;
-        }
-        let target = this.targetDoc;
-        if (!target) {
-            console.log("SharingManager trying to share an undefined document!!");
-            return;
-        }
-        const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-        if (notifDoc instanceof Doc) {
-            const data = await Cast(notifDoc.data, listSpec(Doc));
-            if (!data) {
-                console.log("UNABLE TO ACCESS NOTIFICATION DATA");
-                return;
+    setInternalSharing = async (recipient: ValidatedUser, state: string) => {
+        const { user, notificationDoc } = recipient;
+        const target = this.targetDoc!;
+        const manager = this.sharingDoc!;
+        const key = user.userDocumentId;
+        if (state === SharingPermissions.None) {
+            const metadata = (await DocCastAsync(manager[key]));
+            if (metadata) {
+                let sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
+                Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
+                manager[key] = undefined;
             }
-            console.log(`Attempting to set permissions to ${state} for the document ${target[Id]}`);
-            if (state !== SharingPermissions.None) {
-                const sharedDoc = Doc.MakeAlias(target);
-                if (data) {
-                    data.push(sharedDoc);
-                } else {
-                    notifDoc.data = new List([sharedDoc]);
-                }
-            } else {
-                let dataDocs = (await Promise.all(data.map(doc => doc))).map(doc => Doc.GetProto(doc));
-                if (dataDocs.includes(target)) {
-                    console.log("Searching in ", dataDocs, "for", target);
-                    dataDocs.splice(dataDocs.indexOf(target), 1);
-                    console.log("SUCCESSFULLY UNSHARED DOC");
-                } else {
-                    console.log("DIDN'T THINK WE HAD IT, SO NOT SUCCESSFULLY UNSHARED");
-                }
-            }
+        } else {
+            const sharedAlias = Doc.MakeAlias(target);
+            Doc.AddDocToList(notificationDoc, storage, sharedAlias);
+            const metadata = new Doc;
+            metadata.permissions = state;
+            metadata.sharedAlias = sharedAlias;
+            manager[key] = metadata;
         }
     }
 
@@ -188,11 +183,12 @@ export default class SharingManager extends React.Component<{}> {
         let title = this.targetDoc ? StrCast(this.targetDoc.title) : "";
         return (
             <span
+                className={"focus-span"}
                 title={title}
                 onClick={() => {
                     let context: Opt<CollectionVideoView | CollectionPDFView | CollectionView>;
                     if (this.targetDoc && this.targetDocView && (context = this.targetDocView.props.ContainingCollectionView)) {
-                        DocumentManager.Instance.jumpToDocument(this.targetDoc, true, undefined, undefined, undefined, context.props.Document);
+                        DocumentManager.Instance.jumpToDocument(this.targetDoc, true, undefined, context.props.Document);
                     }
                 }}
                 onPointerEnter={action(() => {
@@ -213,7 +209,20 @@ export default class SharingManager extends React.Component<{}> {
         );
     }
 
+    private computePermissions = (userKey: string) => {
+        const sharingDoc = this.sharingDoc;
+        if (!sharingDoc) {
+            return SharingPermissions.None;
+        }
+        const metadata = sharingDoc[userKey] as Doc;
+        if (!metadata) {
+            return SharingPermissions.None;
+        }
+        return StrCast(metadata.permissions, SharingPermissions.None)!;
+    }
+
     private get sharingInterface() {
+        const existOtherUsers = this.users.length > 0;
         return (
             <div className={"sharing-interface"}>
                 <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
@@ -247,25 +256,24 @@ export default class SharingManager extends React.Component<{}> {
                 </div>
                 <div className={"hr-substitute"} />
                 <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
-                <div className={"users-list"} style={{ display: this.users.length ? "block" : "flex" }}>
-                    {!this.users.length ? "There are no other users in your database." :
-                        this.users.map(user => {
+                <div className={"users-list"} style={{ display: existOtherUsers ? "block" : "flex", minHeight: existOtherUsers ? undefined : 200 }}>
+                    {!existOtherUsers ? "There are no other users in your database." :
+                        this.users.map(({ user, notificationDoc }) => {
+                            const userKey = user.userDocumentId;
+                            const permissions = this.computePermissions(userKey);
+                            const color = ColorMapping.get(permissions);
                             return (
                                 <div
-                                    key={user.email}
+                                    key={userKey}
                                     className={"container"}
                                 >
                                     <select
                                         className={"permissions-dropdown"}
-                                        value={this.sharingDoc ? StrCast(this.sharingDoc[user.userDocumentId], SharingPermissions.None) : SharingPermissions.None}
-                                        style={{
-                                            color: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[user.userDocumentId], SharingPermissions.None)) : DefaultColor,
-                                            borderColor: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[user.userDocumentId], SharingPermissions.None)) : DefaultColor
-                                        }}
-                                        onChange={e => this.setInternalSharing(user, e.currentTarget.value)}
+                                        value={permissions}
+                                        style={{ color, borderColor: color }}
+                                        onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
                                     >
                                         {this.sharingOptions}
-
                                     </select>
                                     <span className={"padding"}>{user.email}</span>
                                 </div>

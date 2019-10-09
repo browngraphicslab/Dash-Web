@@ -51,7 +51,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["zIndex", ColumnType.Number]
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -309,11 +309,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             return resized;
         }, [] as { id: string, value: number }[]);
     }
-    @computed get sorted(): { id: string, desc?: true }[] {
+    @computed get sorted(): { id: string, desc: boolean }[] {
         return this.columns.reduce((sorted, shf) => {
             shf.desc && sorted.push({ id: shf.heading, desc: shf.desc });
             return sorted;
-        }, [] as { id: string, desc?: true }[]);
+        }, [] as { id: string, desc: boolean }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }

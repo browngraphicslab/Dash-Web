@@ -73,7 +73,9 @@ export interface DocumentOptions {
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
+    fontSize?: number;
     curPage?: number;
+    currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
     schemaColumns?: List<SchemaHeaderField>;
@@ -120,7 +122,7 @@ export namespace Docs {
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { curPage: 0 }
+                options: {}
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
@@ -136,7 +138,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { curPage: 0 },
+                options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -591,6 +593,7 @@ export namespace Docs {
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
                 options.nativeWidth = 1200;
+                options.nativeHeight = 1200;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
@@ -652,32 +655,31 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionDoc === target) return;
-        if (target === CurrentUserUtils.UserDocument) return undefined;
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
+        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
         let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = targetContext;
-            linkDocProto.sourceContext = sourceContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
 
-            linkDocProto.anchor1 = source;
-            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1 = source.doc;
+            linkDocProto.anchor1Context = source.ctx;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor1Groups = new List<Doc>([]);
-            linkDocProto.anchor1anchored = anchored1;
-            linkDocProto.anchor2 = target;
-            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

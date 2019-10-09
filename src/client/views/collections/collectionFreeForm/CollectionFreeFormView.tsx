@@ -105,7 +105,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
     }
-    public isCurrent(doc: Doc) { return !this.props.Document.isMinimized && (Math.abs(NumCast(doc.page, -1) - NumCast(this.Document.curPage, -1)) < 1.5 || NumCast(doc.page, -1) === -1); }
+    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
@@ -267,6 +267,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        if (e.nativeEvent.cancelBubble) return;
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
         if (e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
@@ -338,7 +339,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.props.Document.lockedPosition || this.isAnnotationOverlay) return;
+        if (this.props.Document.lockedPosition || this.props.Document.inOverlay || this.isAnnotationOverlay) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -360,7 +361,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
-        if (!this.props.Document.lockedPosition) {
+        if (!this.props.Document.lockedPosition || this.props.Document.inOverlay) {
             this.props.Document.panTransformType = "None";
             var scale = this.getLocalTransform().inverse().Scale;
             const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -403,8 +404,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
             let annotOn = Cast(doc.annotationOn, Doc) as Doc;
-            let offset = annotOn && (NumCast(annotOn.height) / 2);
-            this.props.Document.scrollY = NumCast(doc.y) - offset;
+            if (!annotOn) {
+                this.props.focus(doc);
+            } else {
+                let contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn.height);
+                let offset = annotOn && (contextHgt / 2 * 96 / 72);
+                this.props.Document.scrollY = NumCast(doc.y) - offset;
+            }
         } else {
             const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
             const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
@@ -416,6 +422,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
             this.setPan(newPanX, newPanY);
             this.Document.panTransformType = "Ease";
+            Doc.BrushDoc(this.props.Document);
             this.props.focus(this.props.Document);
             willZoom && this.setScaleToZoom(doc, scale);
 

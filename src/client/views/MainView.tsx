@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv, faChevronRight, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -33,14 +33,13 @@ import { DocumentDecorations } from './DocumentDecorations';
 import KeyManager from './GlobalKeyHandler';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
-import { MainOverlayTextBox } from './MainOverlayTextBox';
 import MainViewModal from './MainViewModal';
 import { DocumentView } from './nodes/DocumentView';
-import { PresBox } from './nodes/PresBox';
-import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
+import { OverlayView } from './OverlayView';
+import AuthenticationManager from '../apis/AuthenticationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -213,6 +212,8 @@ export class MainView extends React.Component {
         library.add(faArrowUp);
         library.add(faCloudUploadAlt);
         library.add(faBolt);
+        library.add(faChevronRight);
+        library.add(faEllipsisV);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -366,12 +367,14 @@ export class MainView extends React.Component {
     }
 
     @observable flyoutWidth: number = 250;
+    @observable flyoutTranslate: boolean = true;
     @computed get dockingContent() {
         let flyoutWidth = this.flyoutWidth;
+        let countWidth = this.flyoutTranslate;
         let mainCont = this.mainContainer;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutWidth}px`, transform: `translate(${flyoutWidth}px, 0px)` }} onDrop={this.onDrop}>
+                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${countWidth ? flyoutWidth : 0}px`, transform: `translate(${countWidth ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
                     {!mainCont ? (null) :
                         <DocumentView Document={mainCont}
                             DataDoc={undefined}
@@ -411,6 +414,23 @@ export class MainView extends React.Component {
         e.stopPropagation();
         e.preventDefault();
     }
+
+    @action
+    pointerOverDragger = () => {
+        if (this.flyoutWidth === 0) {
+            this.flyoutWidth = 250;
+            this.flyoutTranslate = false;
+        }
+    }
+
+    @action
+    pointerLeaveDragger = () => {
+        if (!this.flyoutTranslate) {
+            this.flyoutWidth = 0;
+            this.flyoutTranslate = true;
+        }
+    }
+
     @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
@@ -467,26 +487,52 @@ export class MainView extends React.Component {
             getScale={returnOne}>
         </DocumentView>;
     }
+
     @computed
     get mainContent() {
         if (!this.userDoc) {
-            return <div>{this.dockingContent}</div>;
+            return (<div>{this.dockingContent}</div>);
         }
         let sidebar = this.userDoc.sidebar;
         if (!(sidebar instanceof Doc)) {
             return (null);
         }
-        return <div>
-            <div className="mainView-libraryHandle"
-                style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
-                onPointerDown={this.onPointerDown}>
-                <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
-            </div>
-            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px`, zIndex: 1 }}>
-                {this.flyout}
-            </div>
-            {this.dockingContent}
-        </div>;
+        return (
+            <div className="mainContent" style={{ width: "100%", height: "100%", position: "absolute" }}>
+                <div onPointerLeave={this.pointerLeaveDragger}>
+                    <div className="mainView-libraryHandle"
+                        style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this.flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
+                        onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>
+                        <span title="library View Dragger" style={{
+                            width: (this.flyoutWidth !== 0 && this.flyoutTranslate) ? "100%" : "5vw",
+                            height: (this.flyoutWidth !== 0 && this.flyoutTranslate) ? "100%" : "30vh",
+                            position: "absolute",
+                            top: (this.flyoutWidth !== 0 && this.flyoutTranslate) ? "" : "-10vh"
+                        }} />
+                    </div>
+                    <div className="mainView-libraryFlyout" style={{
+                        width: `${this.flyoutWidth}px`,
+                        zIndex: 1,
+                        transformOrigin: this.flyoutTranslate ? "" : "left center",
+                        transition: this.flyoutTranslate ? "" : "width .5s",
+                        transform: `scale(${this.flyoutTranslate ? 1 : 0.8})`,
+                        boxShadow: this.flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
+                    }}>
+                        {this.flyout}
+                        {this.expandButton}
+                    </div>
+                </div>
+                {this.dockingContent}
+            </div>);
+    }
+
+    @computed get expandButton() {
+        return !this.flyoutTranslate ? (<div className="expandFlyoutButton" title="Re-attach sidebar" onPointerDown={() => {
+            runInAction(() => {
+                this.flyoutWidth = 250;
+                this.flyoutTranslate = true;
+            });
+        }}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
     selected = (tool: InkTool) => {
@@ -550,7 +596,7 @@ export class MainView extends React.Component {
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
-        return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
+        return < div id="add-nodes-menu" style={{ left: (this.flyoutTranslate ? this.flyoutWidth : 0) + 20, bottom: 20 }} >
 
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Close Menu"><p>+</p></label>
@@ -632,6 +678,7 @@ export class MainView extends React.Component {
             <div id="main-div">
                 {this.dictationOverlay}
                 <SharingManager />
+                <AuthenticationManager />
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />
@@ -639,7 +686,6 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
         );
