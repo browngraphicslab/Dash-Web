@@ -72,9 +72,8 @@ export default class SharingManager extends React.Component<{}> {
         return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
     }
 
-    public open = action((target: DocumentView) => {
+    public open = (target: DocumentView) => {
         SelectionManager.DeselectAll();
-        this.users = [];
         this.populateUsers().then(action(() => {
             this.targetDocView = target;
             this.targetDoc = target.props.Document;
@@ -84,10 +83,11 @@ export default class SharingManager extends React.Component<{}> {
                 this.sharingDoc = new Doc;
             }
         }));
-    });
+    };
 
     public close = action(() => {
         this.isOpen = false;
+        this.users = [];
         setTimeout(action(() => {
             this.copied = false;
             MainView.Instance.hasActiveModal = false;
