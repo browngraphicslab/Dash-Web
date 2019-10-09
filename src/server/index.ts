@@ -924,7 +924,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
 
     const failedCount = failed.length;
     if (failedCount) {
-        console.log(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`)
+        console.log(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
     }
 
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(

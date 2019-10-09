@@ -86,7 +86,7 @@ export namespace GoogleApiServerUtils {
                 resolve(new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]));
             });
         });
-    }
+    };
 
     export const GenerateAuthenticationUrl = async (information: CredentialInformation) => {
         const client = await RetrieveOAuthClient(information);
@@ -109,7 +109,7 @@ export namespace GoogleApiServerUtils {
                 resolve({ token, client: oAuth2Client });
             });
         });
-    }
+    };
 
     export const RetrieveCredentials = (information: CredentialInformation) => {
         return new Promise<TokenResult>((resolve, reject) => {

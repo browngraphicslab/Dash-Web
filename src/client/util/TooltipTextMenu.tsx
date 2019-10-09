@@ -841,11 +841,11 @@ export class TooltipTextMenu {
         }
     }
 
-    update(view: EditorView, lastState: EditorState | undefined) { this.updateFromDash(view, lastState, this.editorProps) }
+    update(view: EditorView, lastState: EditorState | undefined) { this.updateFromDash(view, lastState, this.editorProps); }
     //updates the tooltip menu when the selection changes
     public updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
         if (!view) {
-            console.log("no editor?  why?")
+            console.log("no editor?  why?");
             return;
         }
         this.view = view;
