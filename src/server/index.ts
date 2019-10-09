@@ -862,7 +862,7 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.readGooglePhotosAccessToken, async (req, res) => {
+app.get(RouteStore.readGoogleAccessToken, async (req, res) => {
     const userId = req.header("userId")!;
     const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
     const information = { credentialsPath, userId };
@@ -872,7 +872,7 @@ app.get(RouteStore.readGooglePhotosAccessToken, async (req, res) => {
     GoogleApiServerUtils.RetrieveAccessToken(information).then(token => res.send(token));
 });
 
-app.post(RouteStore.writeGooglePhotosAccessToken, async (req, res) => {
+app.post(RouteStore.writeGoogleAccessToken, async (req, res) => {
     const userId = req.header("userId")!;
     const information = { credentialsPath, userId };
     const { token } = await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode);

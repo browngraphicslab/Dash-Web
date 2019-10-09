@@ -14,14 +14,11 @@ import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/Share
 import { AssertionError } from "assert";
 import { DocumentView } from "../../views/nodes/DocumentView";
 import { Identified } from "../../Network";
-import AuthenticationManager from "../AuthenticationManager";
-import { List } from "../../../new_fields/List";
+import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
 
 export namespace GooglePhotos {
 
-    const endpoint = async () => {
-        return new Photos(await AuthenticationManager.Instance.executeFullRoutine("GooglePhotos"));
-    };
+    const endpoint = async () => new Photos(await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken());
 
     export enum MediaType {
         ALL_MEDIA = 'ALL_MEDIA',

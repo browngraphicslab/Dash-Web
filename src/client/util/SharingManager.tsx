@@ -218,7 +218,7 @@ export default class SharingManager extends React.Component<{}> {
         if (!metadata) {
             return SharingPermissions.None;
         }
-        return StrCast(metadata.permissions, SharingPermissions.None)!;
+        return StrCast(metadata.permissions, SharingPermissions.None);
     }
 
     private get sharingInterface() {
