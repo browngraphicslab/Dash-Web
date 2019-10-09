@@ -70,7 +70,7 @@ export default class AuthenticationManager extends React.Component<{}> {
 
     private handlePaste = action((e: React.ChangeEvent<HTMLInputElement>) => {
         this.authenticationCode = e.currentTarget.value;
-    })
+    });
 
     private get renderPrompt() {
         return (
@@ -82,7 +82,7 @@ export default class AuthenticationManager extends React.Component<{}> {
                     style={{ marginTop: 15 }}
                 /> : (null)}
             </div>
-        )
+        );
     }
 
     render() {
