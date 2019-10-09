@@ -24,6 +24,7 @@ import { CollectionView } from "./CollectionView";
 import React = require("react");
 var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -194,6 +195,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (img) {
                     let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
+                    ImageUtils.ExtractExif(doc);
                     this.props.addDocument(doc, false);
                     return;
                 } else {
