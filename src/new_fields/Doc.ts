@@ -63,6 +63,10 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
 }
 
+export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
+    return Cast(field, Doc);
+}
+
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
