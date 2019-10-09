@@ -29,8 +29,7 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import React = require("react");
 import { Without, OmitKeys } from "../../../Utils";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
+import { Cast } from "../../../new_fields/Types";
 import { RecommendationsBox } from "../../views/Recommendations";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -103,7 +102,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
+            components={{ FormattedTextBox, RecommendationsBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}
