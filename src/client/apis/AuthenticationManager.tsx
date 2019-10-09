@@ -4,9 +4,9 @@ import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { Opt } from "../../new_fields/Doc";
 import { Identified } from "../Network";
-import { RouteStore } from "../../server/RouteStore";
 
 const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+const prompt = "Please paste the external authetication code here...";
 
 @observer
 export default class AuthenticationManager extends React.Component<{}> {
@@ -16,16 +16,8 @@ export default class AuthenticationManager extends React.Component<{}> {
     @observable private authenticationCode: Opt<string> = undefined;
     @observable private clickedState = false;
 
-    private get isOpen() {
-        return this.openState;
-    }
-
     private set isOpen(value: boolean) {
         runInAction(() => this.openState = value);
-    }
-
-    private get hasBeenClicked() {
-        return this.clickedState;
     }
 
     private set hasBeenClicked(value: boolean) {
@@ -78,7 +70,7 @@ export default class AuthenticationManager extends React.Component<{}> {
                 <button onClick={this.handleClick}>Please click here to authorize a Google account...</button>
                 {this.clickedState ? <input
                     onChange={this.handlePaste}
-                    placeholder={"Please paste the external authetication code here..."}
+                    placeholder={prompt}
                     style={{ marginTop: 15 }}
                 /> : (null)}
             </div>
