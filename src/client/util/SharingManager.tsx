@@ -1,12 +1,9 @@
-import { observable, runInAction, action, autorun } from "mobx";
+import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { Doc, Opt, DocListCastAsync, DocCastAsync } from "../../new_fields/Doc";
+import { Doc, Opt, DocCastAsync } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
-import { List } from "../../new_fields/List";
 import { RouteStore } from "../../server/RouteStore";
 import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
@@ -23,7 +20,6 @@ import { DocumentManager } from "./DocumentManager";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionView } from "../views/collections/CollectionView";
-import { RefField } from "../../new_fields/RefField";
 
 library.add(fa.faCopy);
 
