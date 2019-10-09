@@ -862,7 +862,22 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.header("userId")! }).then(token => res.send(token)));
+app.get(RouteStore.readGooglePhotosAccessToken, async (req, res) => {
+    const userId = req.header("userId")!;
+    const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+    const information = { credentialsPath, userId };
+    if (!token) {
+        return res.send(await GoogleApiServerUtils.GenerateAuthenticationUrl(information));
+    }
+    GoogleApiServerUtils.RetrieveAccessToken(information).then(token => res.send(token));
+});
+
+app.post(RouteStore.writeGooglePhotosAccessToken, async (req, res) => {
+    const userId = req.header("userId")!;
+    const information = { credentialsPath, userId };
+    const { token } = await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode);
+    res.send(token.access_token);
+});
 
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
@@ -885,16 +900,17 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
 
     await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
 
-    let failed = 0;
+    let failed: number[] = [];
 
     const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
         { magnitude: 100, unit: TimeUnit.Milliseconds },
         async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
             const newMediaItems: NewMediaItem[] = [];
-            for (let element of batch) {
+            for (let index = 0; index < batch.length; index++) {
+                const element = batch[index];
                 const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
                 if (!uploadToken) {
-                    failed++;
+                    failed.push(index);
                 } else {
                     newMediaItems.push({
                         description: element.description,
@@ -906,12 +922,13 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         }
     );
 
-    if (failed) {
-        return _error(res, tokenError);
+    const failedCount = failed.length;
+    if (failedCount) {
+        console.log(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`)
     }
 
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-        result => _success(res, result.newMediaItemResults),
+        result => _success(res, { results: result.newMediaItemResults, failed }),
         error => _error(res, mediaError, error)
     );
 });
