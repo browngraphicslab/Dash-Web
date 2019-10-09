@@ -272,12 +272,12 @@ export namespace CognitiveServices {
                     if (wordvecs) {
                         let indices = Object.keys(wordvecs);
                         console.log("successful vectorization!");
-                        var vectorValues = new Set<number[]>();
+                        var vectorValues = new List<number>();
                         indices.forEach((ind: any) => {
                             //console.log(wordvec.word);
-                            vectorValues.add(wordvecs[ind]);
+                            vectorValues.push(wordvecs[ind]);
                         });
-                        ClientRecommender.Instance.mean(vectorValues, dataDoc, mainDoc);
+                        ClientRecommender.Instance.processVector(vectorValues, dataDoc, mainDoc);
                     } // adds document to internal doc set
                     else {
                         console.log("unsuccessful :( word(s) not in vocabulary");
@@ -295,7 +295,7 @@ export namespace CognitiveServices {
                 target[keys[0]] = keyterms;
                 console.log("analyzed!");
                 if (internal) {
-                    await vectorize(keyterms_counted, dataDoc, mainDoc, data);
+                    await vectorize(keyterms, dataDoc, mainDoc, data);
                 } else {
                     return values;
                 }

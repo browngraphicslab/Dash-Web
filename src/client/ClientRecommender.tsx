@@ -126,6 +126,14 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         return meanVector;
     }
 
+    public processVector(vector: number[], dataDoc: Doc, mainDoc: boolean) {
+        if (vector.length > 0) {
+            const internalDoc: RecommenderDocument = { actualDoc: dataDoc, vectorDoc: vector, score: 0 };
+            if (mainDoc) ClientRecommender.Instance.mainDoc = internalDoc;
+            ClientRecommender.Instance.addToDocSet(internalDoc);
+        }
+    }
+
     private addToDocSet(internalDoc: RecommenderDocument) {
         if (ClientRecommender.Instance.docVectors) {
             ClientRecommender.Instance.docVectors.add(internalDoc);
@@ -149,6 +157,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                 let keyPhrases = doc.keyPhrases;
                 keyPhrases.map((kp: string) => {
                     const frequency = this.countFrequencies(kp, data);
+                    keyterms.push(kp);
                     if (frequency > high) {
                         high = frequency;
                         highKP = [kp];
@@ -159,7 +168,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     let words = kp.split(" "); // separates phrase into words
                     words = this.removeStopWords(words); // removes stop words if they appear in phrases
                     words.forEach((word) => {
-                        keyterms.push(word);
+                        //keyterms.push(word);
                         for (let i = 0; i < frequency; i++) {
                             keyterms_counted.push(word);
                         }
@@ -170,7 +179,8 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             //console.log(highKP);
             const kts_counted = new List<string>();
             keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
-            const values = await this.sendRequest(highKP);
+            let values = "";
+            if (!internal) values = await this.sendRequest(highKP);
             return { keyterms: keyterms, keyterms_counted: kts_counted, values };
         };
         if (data != "") {

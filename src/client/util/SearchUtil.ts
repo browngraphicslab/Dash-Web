@@ -127,7 +127,7 @@ export namespace SearchUtil {
         });
         let result: IdSearchResult = JSON.parse(response);
         const { ids, numFound, highlighting } = result;
-        console.log(ids.length);
+        //console.log(ids.length);
         const docMap = await DocServer.GetRefFields(ids);
         const docs: Doc[] = [];
         for (const id of ids) {
