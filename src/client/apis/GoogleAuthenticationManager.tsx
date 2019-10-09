@@ -88,12 +88,12 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                 {this.displayLauncher ? <button
                     className={"dispatch"}
                     onClick={this.handleClick}
+                    style={{ marginBottom: 15 }}
                 >Authorize a Google account...</button> : (null)}
                 {this.clickedState ? <input
                     className={'paste-target'}
                     onChange={this.handlePaste}
                     placeholder={prompt}
-                    style={{ marginTop: 15 }}
                 /> : (null)}
             </div>
         );
