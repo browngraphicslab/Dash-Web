@@ -21,6 +21,7 @@ import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { updateBullets } from './ProsemirrorExampleTransfer';
 import { DocumentDecorations } from '../views/DocumentDecorations';
 import { SelectionManager } from './SelectionManager';
+import { PastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -623,16 +624,6 @@ export class TooltipTextMenu {
 
     }
 
-    public static insertStar(state: EditorState<any>, dispatch: any) {
-        if (state.selection.empty) return false;
-        let mark = state.schema.marks.highlight.create();
-        let tr = state.tr;
-        tr.addMark(state.selection.from, state.selection.to, mark);
-        let content = tr.selection.content();
-        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
-        dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
-        return true;
-    }
 
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
     updateListItemDropdown(label: string, listTypeBtn: any) {
@@ -772,6 +763,93 @@ export class TooltipTextMenu {
             }
 
         });
+    }
+
+    public static insertStar(state: EditorState<any>, dispatch: any) {
+        if (state.selection.empty) return false;
+        let mark = state.schema.marks.highlight.create();
+        let tr = state.tr;
+        tr.addMark(state.selection.from, state.selection.to, mark);
+        let content = tr.selection.content();
+        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
+        return true;
+    }
+
+    createColorTool() {
+        return new MenuItem({
+            title: "Summarize",
+            label: "Summarize",
+            icon: icons.join,
+            css: "color:white;",
+            class: "menuicon",
+            execEvent: "",
+            run: (state, dispatch) => {
+                TooltipTextMenu.insertStar(this.view.state, this.view.dispatch);
+            }
+
+        });
+    }
+
+    insertColor(color: String, state: EditorState<any>, dispatch: any) {
+
+    }
+
+    createColorDropdown() {
+        // menu item for color picker
+        let colors = new MenuItem({
+            title: "",
+            execEvent: "",
+            class: "button-setting-disabled",
+            css: "",
+            render() {
+                let p = document.createElement("p");
+                p.textContent = "Change color:";
+
+                // input.type = "text";
+                // input.placeholder = "Enter URL";
+                // console.log(targetTitle);
+                // if (targetTitle) input.value = targetTitle;
+                // input.onclick = (e: MouseEvent) => {
+                //     input.select();
+                //     input.focus();
+                // };
+
+                let colorsWrapper = document.createElement("div");
+                colorsWrapper.className = "colorPicker-wrapper";
+
+                let colors = [
+                    PastelSchemaPalette.get("pink2"),
+                    PastelSchemaPalette.get("purple4"),
+                    PastelSchemaPalette.get("bluegreen1"),
+                    PastelSchemaPalette.get("yellow4"),
+                    PastelSchemaPalette.get("red2"),
+                    PastelSchemaPalette.get("bluegreen7"),
+                    PastelSchemaPalette.get("bluegreen5"),
+                    PastelSchemaPalette.get("orange1"),
+                    "#f1efeb",
+                    "#000"
+                ];
+
+                colors.forEach(color => {
+                    let button = document.createElement("button");
+                    button.className = color === TooltipTextMenuManager.Instance.color ? "colorPicker active" : "colorPicker";
+                    if (color) button.style.backgroundColor = color;
+
+                });
+
+                let div = document.createElement("div");
+                div.appendChild(p);
+                return div;
+            },
+            enable() { return false; },
+            run(p1, p2, p3, event) {
+                event.stopPropagation();
+            }
+        });
+
+        let colorDropdown = new Dropdown([colors], { class: "buttonSettings-dropdown" }) as MenuItem;
+        return colorDropdown;
     }
 
     deleteLinkItem() {
@@ -1306,6 +1384,8 @@ class TooltipTextMenuManager {
 
     public _brushMarks: Set<Mark> | undefined;
     public _brushIsEmpty: boolean = true;
+
+    public color: String = "#000";
 
     public activeMenu: TooltipTextMenu | undefined;
 
