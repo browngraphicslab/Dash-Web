@@ -50,6 +50,7 @@ export class TooltipTextMenu {
     private linkDrag?: HTMLImageElement;
     private _linkDropdownDom?: Node;
     private _brushdom?: Node;
+    private _brushDropdownDom?: Node;
 
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
@@ -154,10 +155,9 @@ export class TooltipTextMenu {
 
         // link menu
         this.updateLinkMenu();
-        // let dropdown = await this.createLinkDropdown();
-        // let newLinkDropdowndom = dropdown.render(this.view).dom;
-        // this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
-        // this._linkDropdownDom = newLinkDropdowndom;
+        let dropdown = await this.createLinkDropdown();
+        this._linkDropdownDom = dropdown.render(this.view).dom;
+        this.tooltip.appendChild(this._linkDropdownDom);
 
         // list of font styles
         this.initFontStyles();
@@ -171,18 +171,18 @@ export class TooltipTextMenu {
         // init brush tool
         this._brushdom = this.createBrush().render(this.view).dom;
         this.tooltip.appendChild(this._brushdom);
-        // this._brushDropdownDom = this.createBrushDropdown().render(this.view).dom;
-        // this.tooltip.appendChild(this._brushDropdownDom);
+        this._brushDropdownDom = this.createBrushDropdown().render(this.view).dom;
+        this.tooltip.appendChild(this._brushDropdownDom);
 
-        // star and pin
-        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+        // star
+        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
         //
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         //
-        this.updateFromDash(view, undefined, undefined);
+        await this.updateFromDash(view, undefined, undefined);
         // TooltipTextMenu.Toolbar = this.wrapper;
 
         // dragger
@@ -302,11 +302,11 @@ export class TooltipTextMenu {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
             this.linkEditor.className = "ProseMirror-icon menuicon";
-            this.linkEditor.style.color = "black";
+            // this.linkEditor.style.color = "black";
             this.linkText = document.createElement("div");
-            this.linkText.style.cssFloat = "left";
-            this.linkText.style.marginRight = "5px";
-            this.linkText.style.marginLeft = "5px";
+            // this.linkText.style.cssFloat = "left";
+            // this.linkText.style.marginRight = "5px";
+            // this.linkText.style.marginLeft = "5px";
             this.linkText.setAttribute("contenteditable", "true");
             this.linkText.style.whiteSpace = "nowrap";
             this.linkText.style.width = "150px";
@@ -345,9 +345,10 @@ export class TooltipTextMenu {
             this.linkDrag.style.width = "15px";
             this.linkDrag.style.height = "15px";
             this.linkDrag.title = "Drag to create link";
-            this.linkDrag.style.color = "black";
-            this.linkDrag.style.background = "black";
-            this.linkDrag.style.cssFloat = "left";
+            this.linkDrag.id = "link-drag";
+            // this.linkDrag.style.color = "black";
+            // this.linkDrag.style.background = "black";
+            // this.linkDrag.style.cssFloat = "left";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 if (!this.editorProps) return;
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
@@ -366,7 +367,7 @@ export class TooltipTextMenu {
                                     if (proto && docView) {
                                         proto.sourceContext = docView.props.ContainingCollectionDoc;
                                     }
-                                    let text = this.makeLink(linkDoc, ctrlKey ? "onRight" : "inTab");
+                                    let text = this.makeLinkToDoc(linkDoc, ctrlKey ? "onRight" : "inTab");
                                     if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
                                         proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
                                     }
@@ -396,81 +397,125 @@ export class TooltipTextMenu {
         // this.tooltip.appendChild(this.linkEditor);
     }
 
-    // updateLinkMenu() {
-    //     if (!this.linkEditor || !this.linkText) {
-    //         this.linkEditor = document.createElement("div");
-    //         this.linkEditor.className = "ProseMirror-icon menuicon";
-    //         this.linkDrag = document.createElement("img");
-    //         this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
-    //         this.linkDrag.style.width = "13px";
-    //         this.linkDrag.style.height = "13px";
-    //         this.linkDrag.title = "Drag to create link";
-    //         this.linkDrag.id = "link-drag";
-    //         this.linkDrag.onpointerdown = (e: PointerEvent) => {
-    //             let node = this.view.state.selection.$from.nodeAfter;
-    //             let link = node && node.marks.find(m => m.type.name === "link");
-    //             if (link) {
-    //                 let href: string = link.attrs.href;
-    //                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-    //                     let docid = href.replace(Utils.prepend("/doc/"), "");
-    //                     DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
-    //                         if (f instanceof Doc) {
-    //                             if (DocumentManager.Instance.getDocumentView(f)) {
-    //                                 DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
-    //                             }
-    //                             else this.editorProps && this.editorProps.addDocTab(f, undefined, "onRight");
-    //                         }
-    //                     }));
-    //                 }
-    //                 // TODO This should have an else to handle external links
-    //                 e.stopPropagation();
-    //                 e.preventDefault();
-    //             }
-    //         };
-    //         this.linkEditor.appendChild(this.linkDrag);
-    //         this.tooltip.appendChild(this.linkEditor);
-    //     }
+    async getTextLinkTargetTitle() {
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = node && node.marks.find(m => m.type.name === "link");
+        // let href = link!.attrs.href;
+        if (link) {
+            let href = link.attrs.href;
+            if (href) {
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    if (linkclicked) {
+                        let linkDoc = await DocServer.GetRefField(linkclicked);
+                        if (linkDoc instanceof Doc) {
+                            let anchor1 = await Cast(linkDoc.anchor1, Doc);
+                            let anchor2 = await Cast(linkDoc.anchor2, Doc);
+                            let currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+                            if (currentDoc && anchor1 && anchor2) {
+                                if (Doc.AreProtosEqual(currentDoc, anchor1)) {
+                                    return StrCast(anchor2.title);
+                                }
+                                if (Doc.AreProtosEqual(currentDoc, anchor2)) {
+                                    return StrCast(anchor1.title);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return href;
+                }
+            } else {
+                return link.attrs.title;
+            }
+        }
+    }
 
-    //     // let node = this.view.state.selection.$from.nodeAfter;
-    //     // let link = node && node.marks.find(m => m.type.name === "link");
-    //     // this.linkText.textContent = link ? link.attrs.href : "-empty-";
+    async createLinkDropdown() {
+        let targetTitle = await this.getTextLinkTargetTitle();
+        let input = document.createElement("input");
 
-    //     // this.linkText.onkeydown = (e: KeyboardEvent) => {
-    //     //     if (e.key === "Enter") {
-    //     //         // this.makeLink(this.linkText!.textContent!);
-    //     //         e.stopPropagation();
-    //     //         e.preventDefault();
-    //     //     }
-    //     // };
-    //     // // this.tooltip.appendChild(this.linkEditor);
-    // }
+        // menu item for input for hyperlink url 
+        // TODO: integrate search to allow users to search for a doc to link to
+        let linkInfo = new MenuItem({
+            title: "",
+            execEvent: "",
+            class: "button-setting-disabled",
+            css: "",
+            render() {
+                let p = document.createElement("p");
+                p.textContent = "Linked to:";
 
-    // async getTextLinkTargetTitle() {
-    //     let node = this.view.state.selection.$from.nodeAfter;
-    //     let link = node && node.marks.find(m => m.type.name === "link");
-    //     if (link) {
-    //         let href = link.attrs.href;
-    //         if (href) {
-    //             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-    //                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-    //                 if (linkclicked) {
-    //                     let linkDoc = await DocServer.GetRefField(linkclicked);
-    //                     if (linkDoc instanceof Doc) {
-    //                         let anchor1 = await Cast(linkDoc.anchor1, Doc);
-    //                         let anchor2 = await Cast(linkDoc.anchor2, Doc);
-    //                         let currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
-    //                         if (currentDoc && anchor1 && anchor2) {
-    //                             if (Doc.AreProtosEqual(currentDoc, anchor1)) return StrCast(anchor2.title);
-    //                             if (Doc.AreProtosEqual(currentDoc, anchor2)) return StrCast(anchor2.title);
-    //                         }
-    //                     }
-    //                 }
-    //             } else {
-    //                 return href;
-    //             }
-    //         }
-    //     }
-    // }
+                input.type = "text";
+                input.placeholder = "Enter URL";
+                console.log(targetTitle);
+                if (targetTitle) input.value = targetTitle;
+                input.onclick = (e: MouseEvent) => {
+                    input.select();
+                    input.focus();
+                };
+
+                let div = document.createElement("div");
+                div.appendChild(p);
+                div.appendChild(input);
+                return div;
+            },
+            enable() { return false; },
+            run(p1, p2, p3, event) {
+                event.stopPropagation();
+            }
+        });
+
+        // menu item to update/apply the hyperlink to the selected text
+        let linkApply = new MenuItem({
+            title: "",
+            execEvent: "",
+            class: "",
+            css: "",
+            render() {
+                let button = document.createElement("button");
+                button.className = "link-url-button";
+                button.textContent = "Apply hyperlink";
+                return button;
+            },
+            enable() { return false; },
+            run: (state, dispatch, view, event) => {
+                event.stopPropagation();
+                this.makeLinkToURL(input.value, "onRight");
+            }
+        });
+
+        // menu item to remove the link
+        // TODO: allow this to be undoable
+        let self = this;
+        let deleteLink = new MenuItem({
+            title: "Delete link",
+            execEvent: "",
+            class: "separated-button",
+            css: "",
+            render() {
+                let button = document.createElement("button");
+                button.textContent = "Remove link";
+
+                let wrapper = document.createElement("div");
+                wrapper.appendChild(button);
+                return wrapper;
+            },
+            enable() { return true; },
+            async run() {
+                self.deleteLink();
+                // update link dropdown
+                let dropdown = await self.createLinkDropdown();
+                let newLinkDropdowndom = dropdown.render(self.view).dom;
+                self._linkDropdownDom && self.tooltip.replaceChild(newLinkDropdowndom, self._linkDropdownDom);
+                self._linkDropdownDom = newLinkDropdowndom;
+            }
+        });
+
+
+        let linkDropdown = new Dropdown(targetTitle ? [linkInfo, linkApply, deleteLink] : [linkInfo, linkApply], { class: "buttonSettings-dropdown" }) as MenuItem;
+        return linkDropdown;
+    }
 
     dragElement(elmnt: HTMLElement) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -532,7 +577,7 @@ export class TooltipTextMenu {
     //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     // }
 
-    makeLink = (targetDoc: Doc, location: string): string => {
+    makeLinkToDoc = (targetDoc: Doc, location: string): string => {
         let target = Utils.prepend("/doc/" + targetDoc[Id]);
         let node = this.view.state.selection.$from.nodeAfter;
         let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: targetDoc[Id] });
@@ -546,6 +591,15 @@ export class TooltipTextMenu {
             }
         }
         return "";
+    }
+
+    makeLinkToURL = (target: String, lcoation: string) => {
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
+        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+        this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
+        node = this.view.state.selection.$from.nodeAfter;
+        link = node && node.marks.find(m => m.type.name === "link");
     }
 
     deleteLink = () => {
@@ -711,7 +765,7 @@ export class TooltipTextMenu {
             label: "Summarize",
             icon: icons.join,
             css: "color:white;",
-            class: "summarize",
+            class: "menuicon",
             execEvent: "",
             run: (state, dispatch) => {
                 TooltipTextMenu.insertStar(this.view.state, this.view.dispatch);
@@ -743,15 +797,21 @@ export class TooltipTextMenu {
             height: 32, width: 32,
             path: "M30.828 1.172c-1.562-1.562-4.095-1.562-5.657 0l-5.379 5.379-3.793-3.793-4.243 4.243 3.326 3.326-14.754 14.754c-0.252 0.252-0.358 0.592-0.322 0.921h-0.008v5c0 0.552 0.448 1 1 1h5c0 0 0.083 0 0.125 0 0.288 0 0.576-0.11 0.795-0.329l14.754-14.754 3.326 3.326 4.243-4.243-3.793-3.793 5.379-5.379c1.562-1.562 1.562-4.095 0-5.657zM5.409 30h-3.409v-3.409l14.674-14.674 3.409 3.409-14.674 14.674z"
         };
+        let self = this;
         return new MenuItem({
             title: "Brush tool",
             label: "Brush tool",
             icon: icon,
             css: "color:white;",
-            class: active ? "brush-active" : "brush",
+            class: active ? "menuicon-active" : "menuicon",
             execEvent: "",
             run: (state, dispatch) => {
                 this.brush_function(state, dispatch);
+
+                // update dropdown with marks
+                let newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
+                self._brushDropdownDom && self.tooltip.replaceChild(newBrushDropdowndom, self._brushDropdownDom);
+                self._brushDropdownDom = newBrushDropdowndom;
             },
             active: (state) => {
                 return true;
@@ -796,6 +856,67 @@ export class TooltipTextMenu {
         }
 
 
+    }
+
+    createBrushDropdown(active: boolean = false) {
+        let label = "Stored marks: ";
+        if (TooltipTextMenuManager.Instance._brushMarks && TooltipTextMenuManager.Instance._brushMarks.size > 0) {
+            TooltipTextMenuManager.Instance._brushMarks.forEach((mark: Mark) => {
+                const markType = mark.type;
+                label += markType.name;
+                label += ", ";
+            });
+            label = label.substring(0, label.length - 2);
+        } else {
+            label = "No marks are currently stored";
+        }
+
+
+        let brushInfo = new MenuItem({
+            title: "",
+            label: label,
+            execEvent: "",
+            class: "button-setting-disabled",
+            css: "",
+            enable() { return false; },
+            run(p1, p2, p3, event) {
+                event.stopPropagation();
+            }
+        });
+
+        let self = this;
+        let clearBrush = new MenuItem({
+            title: "Clear brush",
+            execEvent: "",
+            class: "separated-button",
+            css: "",
+            render() {
+                let button = document.createElement("button");
+                button.textContent = "Clear brush";
+
+                let wrapper = document.createElement("div");
+                wrapper.appendChild(button);
+                return wrapper;
+            },
+            enable() { return true; },
+            run() {
+                TooltipTextMenuManager.Instance._brushIsEmpty = true;
+                TooltipTextMenuManager.Instance._brushMarks = new Set();
+
+                // update brush tool
+                // TODO: this probably isn't very clean
+                let newBrushdom = self.createBrush().render(self.view).dom;
+                self._brushdom && self.tooltip.replaceChild(newBrushdom, self._brushdom);
+                self._brushdom = newBrushdom;
+                let newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
+                self._brushDropdownDom && self.tooltip.replaceChild(newBrushDropdowndom, self._brushDropdownDom);
+                self._brushDropdownDom = newBrushDropdowndom;
+            }
+        });
+
+        let hasMarks = TooltipTextMenuManager.Instance._brushMarks && TooltipTextMenuManager.Instance._brushMarks.size > 0;
+        let brushDom = new Dropdown(hasMarks ? [brushInfo, clearBrush] : [brushInfo], { class: "buttonSettings-dropdown" }) as MenuItem;
+        return brushDom;
     }
 
     // createCollapse() {
@@ -978,7 +1099,7 @@ export class TooltipTextMenu {
 
     update(view: EditorView, lastState: EditorState | undefined) { this.updateFromDash(view, lastState, this.editorProps); }
     //updates the tooltip menu when the selection changes
-    public updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
+    public async updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
         if (!view) {
             console.log("no editor?  why?");
             return;
@@ -999,6 +1120,12 @@ export class TooltipTextMenu {
             //return;
         }
         //UPDATE LIST ITEM DROPDOWN
+
+        // update link dropdown
+        let dropdown = await this.createLinkDropdown();
+        let newLinkDropdowndom = dropdown.render(this.view).dom;
+        this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
+        this._linkDropdownDom = newLinkDropdowndom;
 
         //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);
