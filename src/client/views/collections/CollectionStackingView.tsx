@@ -29,12 +29,12 @@ import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
     _draggerRef = React.createRef<HTMLDivElement>();
-    @observable _heightMap = new Map<string, number>();
     _heightDisposer?: IReactionDisposer;
     _sectionFilterDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
-    @observable private cursor: CursorProperty = "grab";
+    @observable _heightMap = new Map<string, number>();
+    @observable _cursor: CursorProperty = "grab";
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
@@ -49,12 +49,26 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
     }
-    @computed get NodeWidth() {
-        return this.props.PanelWidth();
-    }
+    @computed get NodeWidth() { return this.props.PanelWidth(); }
 
     childDocHeight(child: Doc) { return this.getDocHeight(Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, child).layout); }
 
+    children(docs: Doc[]) {
+        this._docXfs.length = 0;
+        return docs.map((d, i) => {
+            let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
+            let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
+            let height = () => this.getDocHeight(pair.layout);
+            let dref = React.createRef<HTMLDivElement>();
+            let dxf = () => this.getDocTransform(pair.layout!, dref.current!);
+            this._docXfs.push({ dxf: dxf, width: width, height: height });
+            let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
+            let style = this.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
+            return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
+                {this.getDisplayDoc(pair.layout as Doc, pair.data, dxf, width)}
+            </div>;
+        });
+    }
     @action
     setDocHeight = (key: string, sectionHeight: number) => {
         this._heightMap.set(key, sectionHeight);
@@ -177,19 +191,19 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
+        let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
         if (!d.ignoreAspect && !d.fitWidth && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
-            let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
             if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
             return wid * aspect;
         }
-        return d.fitWidth ? this.props.PanelHeight() - 2 * this.yMargin : d[HeightSym]();
+        return d.fitWidth ? Math.min(wid * NumCast(d.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : d[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        runInAction(() => this.cursor = "grabbing");
+        runInAction(() => this._cursor = "grabbing");
         document.addEventListener("pointermove", this.onDividerMove);
         document.addEventListener('pointerup', this.onDividerUp);
         this._columnStart = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
@@ -204,13 +218,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @action
     onDividerUp = (e: PointerEvent): void => {
-        runInAction(() => this.cursor = "grab");
+        runInAction(() => this._cursor = "grab");
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
     }
 
     @computed get columnDragger() {
-        return <div className="collectionStackingView-columnDragger" onPointerDown={this.columnDividerDown} ref={this._draggerRef} style={{ cursor: this.cursor, left: `${this.columnWidth + this.xMargin}px` }} >
+        return <div className="collectionStackingView-columnDragger" onPointerDown={this.columnDividerDown} ref={this._draggerRef} style={{ cursor: this._cursor, left: `${this.columnWidth + this.xMargin}px` }} >
             <FontAwesomeIcon icon={"arrows-alt-h"} />
         </div>;
     }
@@ -375,26 +389,27 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             sections = entries.sort(this.sortFunc);
         }
         return (
-            <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
-                ref={this.createRef}
-                onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
-                onDrop={this.onDrop.bind(this)}
-                onContextMenu={this.onContextMenu}
-                onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
-                {sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]))}
-                {!this.showAddAGroup ? (null) :
-                    <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
-                        style={{ width: this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
-                        <EditableView {...editableViewProps} />
-                    </div>}
-                {this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled' ? <Switch
-                    onChange={this.onToggle}
-                    onClick={this.onToggle}
-                    defaultChecked={this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode'}
-                    checkedChildren="edit"
-                    unCheckedChildren="view"
-                /> : null}
-            </div>
+            <div className="collectionStackingMasonry-cont" >
+                <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
+                    ref={this.createRef}
+                    onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
+                    onDrop={this.onDrop.bind(this)}
+                    onContextMenu={this.onContextMenu}
+                    onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
+                    {sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]))}
+                    {!this.showAddAGroup ? (null) :
+                        <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
+                            style={{ width: this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
+                            <EditableView {...editableViewProps} />
+                        </div>}
+                    {this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled' ? <Switch
+                        onChange={this.onToggle}
+                        onClick={this.onToggle}
+                        defaultChecked={this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode'}
+                        checkedChildren="edit"
+                        unCheckedChildren="view"
+                    /> : null}
+                </div> </div>
         );
     }
 }

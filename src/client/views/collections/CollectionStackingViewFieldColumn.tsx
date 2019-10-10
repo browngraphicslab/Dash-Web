@@ -73,25 +73,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             e.stopPropagation();
         }
     })
-
-    children(docs: Doc[]) {
-        let parent = this.props.parent;
-        parent._docXfs.length = 0;
-        return docs.map((d, i) => {
-            let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
-            let height = () => parent.getDocHeight(pair.layout);
-            let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => parent.getDocTransform(pair.layout!, dref.current!);
-            parent._docXfs.push({ dxf: dxf, width: width, height: height });
-            let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-            let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
-            return <div className={`collectionStackingView-${parent.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {parent.getDisplayDoc(pair.layout as Doc, pair.data, dxf, width)}
-            </div>;
-        });
-    }
-
     getValue = (value: string): any => {
         let parsed = parseInt(value);
         if (!isNaN(parsed)) {
@@ -373,7 +354,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                                     gridTemplateColumns: singleColumn ? undefined : templatecols,
                                     gridAutoRows: singleColumn ? undefined : "0px"
                                 }}>
-                                {this.children(this.props.docList)}
+                                {this.props.parent.children(this.props.docList)}
                                 {singleColumn ? (null) : this.props.parent.columnDragger}
                             </div>
                             {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?

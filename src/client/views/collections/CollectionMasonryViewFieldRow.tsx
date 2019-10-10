@@ -88,32 +88,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         }
     })
 
-    masonryChildren(docs: Doc[]) {
-        let parent = this.props.parent;
-        parent._docXfs.length = 0;
-        return docs.map((d, i) => {
-            let dref = React.createRef<HTMLDivElement>();
-            let layoutDoc = Doc.expandTemplateLayout(d, parent.props.DataDoc);
-            let width = () => (d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? Math.min(d[WidthSym](), parent.columnWidth) : parent.columnWidth);/// (uniqueHeadings.length + 1);
-            let height = () => parent.getDocHeight(layoutDoc);
-            let dxf = () => parent.getDocTransform(layoutDoc as Doc, dref.current!);
-            let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-            parent._docXfs.push({ dxf: dxf, width: width, height: height });
-            return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
-                {this.props.parent.getDisplayDoc(layoutDoc as Doc, d, dxf, width)}
-            </div>;
-        });
-    }
-
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        let outerXf = Utils.GetScreenTransform(this.props.parent._masonryGridRef!);
-        let offset = this.props.parent.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        return this.props.parent.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1]).
-            scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
-    }
-
     getValue = (value: string): any => {
         let parsed = parseInt(value);
         if (!isNaN(parsed)) {
@@ -402,7 +376,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                                             gridGap: this.props.parent.gridGap,
                                             gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
                                         }}>
-                                        {this.masonryChildren(this.props.docList)}
+                                        {this.props.parent.children(this.props.docList)}
                                         {this.props.parent.columnDragger}
                                     </div>
                                     {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
