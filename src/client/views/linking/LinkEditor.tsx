@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, runInAction } from "mobx";
+import { observable, computed, action, trace, runInAction, reaction } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
@@ -349,7 +349,7 @@ interface LinkEditorProps {
 }
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
-    @observable private _linkOption: string = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0]; // changes visible selected pan TODODO how to ensure linkoption is changed if both screens for links are open?
+    @observable private _linkOption: string = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0];
     @observable private _linkOldOption: string = "";
 
     @action
@@ -390,6 +390,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         e.preventDefault();
         if (e.currentTarget.value === "confirm") {
             this.props.linkDoc.defaultLinkFollow = this._linkOption + "," + destination![Id] + ',false';
+            console.log(this.props.linkDoc.defaultLinkFollow);
             console.log('changed behavior');
         } else {
             this._linkOption = this._linkOldOption;
@@ -398,13 +399,16 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this._linkOldOption = "";
     }
 
+    //cnstructor
+    // reaction: etc etc
+    // pass in two function: 1) run anytime any observable value changes, pass edit updated value 2) doing smthng with updated value, 3) { fireImmediately: true }
+
     render() {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         let groupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
-        console.log(StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0]);
 
         if (destination) {
             return (
