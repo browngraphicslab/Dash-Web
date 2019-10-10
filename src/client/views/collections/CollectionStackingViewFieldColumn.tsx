@@ -72,7 +72,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             this.props.parent.drop(e, de);
             e.stopPropagation();
         }
-    })
+    });
     getValue = (value: string): any => {
         let parsed = parseInt(value);
         if (!isNaN(parsed)) {

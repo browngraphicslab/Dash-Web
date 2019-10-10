@@ -332,8 +332,10 @@ export namespace Doc {
         return Array.from(results);
     }
 
-    export function IndexOf(toFind: Doc, list: Doc[]) {
-        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
+    export function IndexOf(toFind: Doc, list: Doc[], allowProtos: boolean = true) {
+        let index = list.reduce((p, v, i) => (v instanceof Doc && v === toFind) ? i : p, -1);
+        index = allowProtos && index !== -1 ? index : list.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, toFind)) ? i : p, -1);
+        return index; // list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
     export function RemoveDocFromList(listDoc: Doc, key: string, doc: Doc) {
         if (listDoc[key] === undefined) {

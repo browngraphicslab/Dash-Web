@@ -120,11 +120,11 @@ export namespace Docs {
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
+                layout: { view: ImageBox, ext: anno },
                 options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
+                layout: { view: WebBox, ext: anno },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {

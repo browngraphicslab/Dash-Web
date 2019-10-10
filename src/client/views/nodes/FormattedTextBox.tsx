@@ -218,13 +218,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             let res = terms.map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
-            let tr = this._editorView!.state.tr;
+            let tr = this._editorView.state.tr;
             let flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
             let lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-            this._editorView!.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
+            this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
         }
     }
 
@@ -232,8 +232,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._editorView && (this._editorView as any).docView) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
-            let end = this._editorView!.state.doc.nodeSize - 2;
-            this._editorView!.dispatch(this._editorView!.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
+            let end = this._editorView.state.doc.nodeSize - 2;
+            this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
         }
     }
     setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {

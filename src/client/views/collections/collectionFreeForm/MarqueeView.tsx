@@ -217,7 +217,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._downY = y;
             PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
         }
-    })
+    });
 
     @action
     onClick = (e: React.MouseEvent): void => {

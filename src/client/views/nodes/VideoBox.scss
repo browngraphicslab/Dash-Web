@@ -1,8 +1,6 @@
-// .videoBox-container {
-//     .collectionfreeformview-container {
-//         mix-blend-mode: multiply;
-//     }
-// }
+.videoBox-container {
+    pointer-events: all;
+}
 
 .videoBox-content-YouTube, .videoBox-content-YouTube-fullScreen,
 .videoBox-content, .videoBox-content-interactive, .videoBox-cont-fullScreen {

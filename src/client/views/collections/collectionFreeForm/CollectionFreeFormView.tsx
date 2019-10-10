@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faFileUpload } from "@fortawesome/free-solid-svg-icons";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
@@ -286,7 +286,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble && !this.isAnnotationOverlay) {
+        if (!e.cancelBubble) {
             if (this._hitCluster && this.tryDragCluster(e)) {
                 e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                 e.preventDefault();
@@ -339,7 +339,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.props.Document.lockedPosition || this.props.Document.inOverlay || this.isAnnotationOverlay) return;
+        if (this.props.Document.lockedPosition || this.props.Document.inOverlay) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -477,7 +477,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
             ContentScaling: returnOne,
-            ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionView: this.props.ContainingCollectionView,
             focus: this.focusDocument,
             backgroundColor: returnEmptyString,
             parentActive: this.props.active,
@@ -681,10 +681,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
 
-    private childViews = () => [
-        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
-        ...this.views
-    ]
+    private childViews = () => {
+        let children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
+        return [
+            <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
+            ...children,
+            ...this.views,
+        ];
+    }
     render() {
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.props.Document.fitX = this.contentBounds && this.contentBounds.x;

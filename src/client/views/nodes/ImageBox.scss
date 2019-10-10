@@ -1,9 +1,9 @@
-.imageBox-cont {
+.imageBox-cont, .imageBox-cont-interactive {
     padding: 0vw;
-    position: relative;
+    position: absolute;
     text-align: center;
     width: 100%;
-    height: auto;
+    height: 100%;
     max-width: 100%;
     max-height: 100%;
     pointer-events: none;
@@ -11,8 +11,6 @@
 
 .imageBox-cont-interactive {
     pointer-events: all;
-    width: 100%;
-    height: auto;
 }
 
 .imageBox-dot {
