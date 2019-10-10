@@ -87,7 +87,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
-                page: NumCast(this.props.Document.curPage, -1)
+                displayTimecode: NumCast(this.props.Document.currentTimecode, -1)
             });
             this.inkData = data;
         }
@@ -150,9 +150,9 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get drawnPaths() {
-        let curPage = NumCast(this.props.Document.curPage, -1);
+        let curTimecode = NumCast(this.props.Document.currentTimecode, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page === -1 || (Math.abs(Math.round(strokeData.page) - Math.round(curPage)) < 3)) {
+            if (strokeData.displayTimecode === -1 || (Math.abs(Math.round(strokeData.displayTimecode) - Math.round(curTimecode)) < 3)) {
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
                     count={strokeData.pathData.length}

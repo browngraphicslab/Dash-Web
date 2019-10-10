@@ -16,8 +16,10 @@ export namespace HistoryUtil {
         initializers?: {
             [docId: string]: DocInitializerList;
         };
+        safe?: boolean;
         readonly?: boolean;
         nro?: boolean;
+        sharing?: boolean;
     }
 
     export type ParsedUrl = DocUrl;
@@ -52,7 +54,9 @@ export namespace HistoryUtil {
     }
 
     export function getState(): ParsedUrl {
-        return copyState(history.state);
+        let state = copyState(history.state);
+        state.initializers = state.initializers || {};
+        return state;
     }
 
     // export function addHandler(handler: (state: ParsedUrl | null) => void) {
@@ -141,7 +145,7 @@ export namespace HistoryUtil {
         };
     }
 
-    addParser("doc", {}, { readonly: true, initializers: true, nro: true }, (pathname, opts, current) => {
+    addParser("doc", {}, { readonly: true, initializers: true, nro: true, sharing: true }, (pathname, opts, current) => {
         if (pathname.length !== 2) return undefined;
 
         current.initializers = current.initializers || {};
@@ -156,7 +160,7 @@ export namespace HistoryUtil {
     export function parseUrl(location: Location | URL): ParsedUrl | undefined {
         const pathname = location.pathname.substring(1);
         const search = location.search;
-        const opts = qs.parse(search, { sort: false });
+        const opts = search.length ? qs.parse(search, { sort: false }) : {};
         let pathnameSplit = pathname.split("/");
 
         const type = pathnameSplit[0];

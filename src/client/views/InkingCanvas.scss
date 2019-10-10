@@ -1,7 +1,8 @@
 @import "globalCssVariables";
 
 .inkingCanvas {
-    opacity: 0.99;
+   // opacity: 0.99;
+    touch-action: none;
 
     .jsx-parser {
         position: absolute;
@@ -34,7 +35,7 @@
 
 .inkingCanvas-noSelect {
     pointer-events: none;
-    cursor: "arrow";
+    cursor: "crosshair";
 }
 
 .inkingCanvas-paths-ink,

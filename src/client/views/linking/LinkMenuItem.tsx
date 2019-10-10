@@ -1,18 +1,17 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye, faTimes, faArrowRight, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { DocumentManager } from "../../util/DocumentManager";
-import { undoBatch } from "../../util/UndoManager";
+import { Doc } from '../../../new_fields/Doc';
+import { Cast, StrCast } from '../../../new_fields/Types';
+import { DragLinkAsDocument } from '../../util/DragManager';
+import { LinkManager } from '../../util/LinkManager';
+import { ContextMenu } from '../ContextMenu';
+import { MainView } from '../MainView';
+import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
-import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
-import { observable, action } from 'mobx';
-import { LinkManager } from '../../util/LinkManager';
-import { DragLinkAsDocument } from '../../util/DragManager';
-import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { SelectionManager } from '../../util/SelectionManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -22,7 +21,7 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
 }
 
 @observer
@@ -31,43 +30,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }
 
-    @undoBatch
-    onFollowLink = async (e: React.PointerEvent): Promise<void> => {
-        e.stopPropagation();
-        e.persist();
-        let jumpToDoc = this.props.destinationDoc;
-        let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
-        if (pdfDoc) {
-            jumpToDoc = pdfDoc;
-        }
-        let proto = Doc.GetProto(this.props.linkDoc);
-        let targetContext = await Cast(proto.targetContext, Doc);
-        let sourceContext = await Cast(proto.sourceContext, Doc);
-        let self = this;
-
-
-        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-        if (e.ctrlKey) {
-            dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
-        }
-
-        if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext);
-        }
-        else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
-        }
-        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
-        }
-        else {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
-        }
-    }
-
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
         this.props.showEditor(this.props.linkDoc);
+        //SelectionManager.DeselectAll();
     }
 
     renderMetadata = (): JSX.Element => {
@@ -100,6 +66,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
+
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
+        }
         e.stopPropagation();
     }
 
@@ -111,6 +83,30 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
         }
         e.stopPropagation();
+    }
+
+    onContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => this.openLinkFollower(), icon: "link" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    @action.bound
+    async followDefault() {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.Instance.defaultLinkBehavior();
+        }
+    }
+
+    @action.bound
+    async openLinkFollower() {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+        }
     }
 
     render() {
@@ -127,7 +123,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}

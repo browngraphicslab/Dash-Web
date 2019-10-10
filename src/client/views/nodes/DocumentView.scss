@@ -4,6 +4,9 @@
   position: inherit;
   top: 0;
   left:0;
+  border-radius: inherit;
+  transition : outline .3s linear;
+                    
  // background: $light-color; //overflow: hidden;
   transform-origin: left top;
 
@@ -27,7 +30,62 @@
     overflow-y: scroll;
     height: calc(100% - 20px);
   }
+
+  .documentView-overlays {
+    border-radius: inherit;
+    position: absolute; 
+    display: inline-block; 
+    width: 100%; 
+    height: 100%; 
+    pointer-events: none;
+    .documentView-textOverlay {
+        border-radius: inherit;
+        width: 100%;
+        display: inline-block; 
+        position: absolute;
+    }
+  }
 }
 .documentView-node-topmost {
     background: white;
+}
+
+.documentView-styleWrapper {
+    position: absolute; 
+    display: inline-block;
+    width:100%;
+    height:100%;
+    pointer-events: none;
+
+    .documentView-styleContentWrapper {
+        width:100%;
+        display: inline-block;
+        position: absolute;
+    }
+    .documentView-titleWrapper {
+        overflow:hidden; 
+        color: white; 
+        transform-origin: top left; 
+        top: 0; 
+        height: 25;
+        background: rgba(0, 0, 0, .4);
+        padding: 4px; 
+        text-align: center; 
+        text-overflow: ellipsis; 
+        white-space: pre;
+    }
+
+    .documentView-searchHighlight {
+        position: absolute; 
+        background: yellow; 
+        bottom: -20px;
+        border-radius: 5px;
+        transform-origin: bottom left; 
+    }
+
+    .documentView-captionWrapper {
+        position: absolute; 
+        bottom: 0; 
+        transform-origin: bottom left;
+    }
 }

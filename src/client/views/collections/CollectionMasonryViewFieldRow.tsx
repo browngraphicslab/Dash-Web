@@ -214,7 +214,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             if (compiled.compiled) {
                 let scriptField = new ScriptField(compiled);
                 alias.viewSpecScript = scriptField;
-                let dragData = new DragManager.DocumentDragData([alias], [alias.proto]);
+                let dragData = new DragManager.DocumentDragData([alias]);
                 DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
             }
 
@@ -379,6 +379,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             </div > : (null);
         const background = this._background; //to account for observables in Measure
         const collapsed = this.collapsed;
+        let chromeStatus = this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus;
         return (
             <Measure offset onResize={this.handleResize}>
                 {({ measureRef }) => {
@@ -404,7 +405,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                                         {this.masonryChildren(this.props.docList)}
                                         {this.props.parent.columnDragger}
                                     </div>
-                                    {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                                    {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
                                         <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                                             style={{ width: style.columnWidth / style.numGroupColumns }}>
                                             <EditableView {...newEditableViewProps} />

@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
@@ -31,11 +31,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _draggerRef = React.createRef<HTMLDivElement>();
     @observable _heightMap = new Map<string, number>();
     _heightDisposer?: IReactionDisposer;
-    _childLayoutDisposer?: IReactionDisposer;
     _sectionFilterDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
+    @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
@@ -44,7 +44,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.sectionFilter && (this.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.CollectionView.props.Document.chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.sectionFilter && this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
@@ -96,12 +96,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     componentDidMount() {
-        this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-            async (args) => {
-                args[1] instanceof Doc &&
-                    this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined));
-            });
-        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking and masonry views -eeng
+        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
         this._heightDisposer = reaction(() => {
             if (BoolCast(this.props.Document.autoHeight)) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
@@ -130,7 +125,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         );
     }
     componentWillUnmount() {
-        this._childLayoutDisposer && this._childLayoutDisposer();
         this._heightDisposer && this._heightDisposer();
         this._sectionFilterDisposer && this._sectionFilterDisposer();
     }
@@ -149,7 +143,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : ScriptCast(this.Document.onChildClick); }
+    @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
     getDisplayDoc(layoutDoc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         let height = () => this.getDocHeight(layoutDoc);
@@ -159,11 +153,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             DataDocument={dataDoc}
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
+            ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
             fitToBox={this.props.fitToBox}
             onClick={layoutDoc.isTemplate ? this.onClickHandler : this.onChildClickHandler}
-            width={width}
-            height={height}
+            PanelWidth={width}
+            PanelHeight={height}
             getTransform={finalDxf}
+            focus={this.props.focus}
+            CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
             CollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
@@ -180,13 +177,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
-        if (!d.ignoreAspect && nw && nh) {
+        if (!d.ignoreAspect && !d.fitWidth && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
             let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
             if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
             return wid * aspect;
         }
-        return d[HeightSym]();
+        return d.fitWidth ? this.props.PanelHeight() - 2 * this.yMargin : d[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
@@ -223,12 +220,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     drop = (e: Event, de: DragManager.DropEvent) => {
         let where = [de.x, de.y];
         let targInd = -1;
+        let plusOne = false;
         if (de.data instanceof DragManager.DocumentDragData) {
             this._docXfs.map((cd, i) => {
                 let pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 let pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                     targInd = i;
+                    plusOne = (where[1] > (pos[1] + pos1[1]) / 2 ? 1 : 0) ? true : false;
                 }
             });
         }
@@ -240,14 +239,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 else targInd = docs.indexOf(this.filteredChildren[targInd]);
                 let srcInd = docs.indexOf(newDoc);
                 docs.splice(srcInd, 1);
-                docs.splice(targInd > srcInd ? targInd - 1 : targInd, 0, newDoc);
+                docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (plusOne ? 1 : 0), 0, newDoc);
             }
         }
         return false;
     }
     @undoBatch
     @action
-    onDrop = (e: React.DragEvent): void => {
+    onDrop = async (e: React.DragEvent): Promise<void> => {
         let where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {
@@ -293,11 +292,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     getDocTransform(doc: Doc, dref: HTMLDivElement) {
+        if (!dref) return Transform.Identity();
+        let y = this._scroll; // required for document decorations to update when the text box container is scrolled
         let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1]).
+            translate(offset[0], offset[1] + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0)).
             scale(NumCast(doc.width, 1) / this.columnWidth);
     }
 
@@ -342,7 +343,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     onToggle = (checked: Boolean) => {
-        this.props.CollectionView.props.Document.chromeStatus = checked ? "collapsed" : "view-mode";
+        this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus = checked ? "collapsed" : "view-mode");
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -352,8 +353,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             subItems.push({ description: `${this.props.Document.fillColumn ? "Variable Size" : "Autosize"} Column`, event: () => this.props.Document.fillColumn = !this.props.Document.fillColumn, icon: "plus" });
             subItems.push({ description: `${this.props.Document.showTitles ? "Hide Titles" : "Show Titles"}`, event: () => this.props.Document.showTitles = !this.props.Document.showTitles ? "title" : "", icon: "plus" });
             subItems.push({ description: `${this.props.Document.showCaptions ? "Hide Captions" : "Show Captions"}`, event: () => this.props.Document.showCaptions = !this.props.Document.showCaptions ? "caption" : "", icon: "plus" });
-            subItems.push({ description: "Edit onChildClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onChildClick") });
             ContextMenu.Instance.addItem({ description: "Stacking Options ...", subitems: subItems, icon: "eye" });
+
+            let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
         }
     }
 
@@ -364,21 +369,28 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             contents: "+ ADD A GROUP"
         };
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
-
-        let sections = (this.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc) : [[undefined, this.filteredChildren] as [SchemaHeaderField | undefined, Doc[]]]);
+        let sections = [[undefined, this.filteredChildren] as [SchemaHeaderField | undefined, Doc[]]];
+        if (this.sectionFilter) {
+            let entries = Array.from(this.Sections.entries());
+            sections = entries.sort(this.sortFunc);
+        }
         return (
             <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
-                ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
+                ref={this.createRef}
+                onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
+                onDrop={this.onDrop.bind(this)}
+                onContextMenu={this.onContextMenu}
+                onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]))}
                 {!this.showAddAGroup ? (null) :
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
                         style={{ width: this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                         <EditableView {...editableViewProps} />
                     </div>}
-                {this.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? <Switch
+                {this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled' ? <Switch
                     onChange={this.onToggle}
                     onClick={this.onToggle}
-                    defaultChecked={this.props.CollectionView.props.Document.chromeStatus !== 'view-mode'}
+                    defaultChecked={this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode'}
                     checkedChildren="edit"
                     unCheckedChildren="view"
                 /> : null}

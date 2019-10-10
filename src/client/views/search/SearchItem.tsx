@@ -4,13 +4,10 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { RichTextField } from "../../../new_fields/RichTextField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../../Utils";
-import { DocServer } from "../../DocServer";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
@@ -28,8 +25,9 @@ import "./SelectorContextMenu.scss";
 
 export interface SearchItemProps {
     doc: Doc;
-    query?: string;
+    query: string;
     highlighting: string[];
+    lines: string[];
 }
 
 library.add(faCaretUp);
@@ -63,6 +61,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         runInAction(() => {
             this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.doc }));
             this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+
         });
     }
 
@@ -70,12 +69,12 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
             if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
-                const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+                const newPanX = NumCast(target.x) + NumCast(target.width) / 2;
+                const newPanY = NumCast(target.y) + NumCast(target.height) / 2;
                 col.panX = newPanX;
                 col.panY = newPanY;
             }
-            CollectionDockingView.Instance.AddRightSplit(col, undefined);
+            CollectionDockingView.AddRightSplit(col, undefined);
         };
     }
     render() {
@@ -109,7 +108,7 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
     unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
 
-    getOnClick = (col: Doc) => () => CollectionDockingView.Instance.AddRightSplit(col, undefined);
+    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col, undefined);
 
     render() {
         return (
@@ -127,68 +126,31 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 export class SearchItem extends React.Component<SearchItemProps> {
 
     @observable _selected: boolean = false;
-    private _previewDoc?: Doc;
 
     onClick = () => {
         // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
         DocumentManager.Instance.jumpToDocument(this.props.doc, false);
-        if (this.props.doc.data instanceof RichTextField) {
-            this.highlightTextBox(this.props.doc);
-        }
-        // CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
-    highlightTextBox = (doc: Doc) => {
-        if (this.props.query) {
-            const fieldkey = 'search_string';
-            if (Object.keys(doc).indexOf(fieldkey) === -1) {
-                doc.search_string = this.props.query;
-            }
-            else {
-                doc.search_string = undefined;
-            }
-
-        }
+    componentDidMount() {
+        this.props.doc.search_string = this.props.query;
+        this.props.doc.search_fields = this.props.highlighting.join(", ");
     }
-
-    fitToBox = () => {
-        let bounds = Doc.ComputeContentBounds([this.props.doc]);
-        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
-    }
-
     componentWillUnmount() {
-        if (this._previewDoc) {
-            DocServer.DeleteDocument(this._previewDoc[Id]);
-        }
+        this.props.doc.search_string = undefined;
+        this.props.doc.search_fields = undefined;
     }
-
 
     //@computed
     @action
     public DocumentIcon() {
         let layoutresult = StrCast(this.props.doc.type);
         if (!this._useIcons) {
-            let renderDoc = this.props.doc;
-            //let box: number[] = [];
-            if (layoutresult.indexOf(DocumentType.COL) !== -1) {
-                renderDoc = Doc.MakeDelegate(renderDoc);
-                let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
-                    var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
-                    let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
-                    return {
-                        x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-                        r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-                    };
-                }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
-                let box = () => [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / (bounds.r - bounds.x), this._displayDim];
-            }
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
-            let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
-            this._previewDoc = newRenderDoc;
+            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
             const docview = <div
                 onPointerDown={action(() => {
                     this._useIcons = !this._useIcons;
@@ -201,6 +163,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
+                    ruleProvider={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
@@ -209,24 +172,17 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     PanelHeight={returnYDimension}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
-                    selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
                     ContentScaling={scale}
                 />
             </div>;
-            const data = renderDoc.data;
-            if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
-            newRenderDoc.preview = true;
-            newRenderDoc.search_string = this.props.query;
             return docview;
-        }
-        if (this._previewDoc) {
-            DocServer.DeleteDocument(this._previewDoc[Id]);
         }
         let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
@@ -269,6 +225,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
+    nextHighlight = (e: React.PointerEvent) => {
+        e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e);
+        let sstring = StrCast(this.props.doc.search_string);
+        this.props.doc.search_string = "";
+        setTimeout(() => this.props.doc.search_string = sstring, 0);
+    }
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
@@ -279,9 +241,9 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 Doc.BrushDoc(doc2);
             }
         } else {
-            DocumentManager.Instance.getAllDocumentViews(this.props.doc).forEach(element =>
-                Doc.BrushDoc(element.props.Document));
+            Doc.BrushDoc(this.props.doc);
         }
+        e.stopPropagation();
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
@@ -294,8 +256,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 Doc.UnBrushDoc(doc2);
             }
         } else {
-            DocumentManager.Instance.getAllDocumentViews(this.props.doc).
-                forEach(element => Doc.UnBrushDoc(element.props.Document));
+            Doc.UnBrushDoc(this.props.doc);
         }
     }
 
@@ -315,7 +276,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
-        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc], []), e.clientX, e.clientY, {
+        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
             handlers: { dragComplete: emptyFunction },
             hideSource: false,
         });
@@ -326,13 +287,14 @@ export class SearchItem extends React.Component<SearchItemProps> {
         const doc2 = Cast(this.props.doc.anchor2, Doc);
         return (
             <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
-                    onClick={this.onClick} onPointerDown={this.pointerDown} >
+                <div className="search-item" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
+                    onClick={this.onClick}>
                     <div className="main-search-info">
                         <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" /> </div>
                         <div className="search-title-container">
                             <div className="search-title">{StrCast(this.props.doc.title)}</div>
-                            <div className="search-highlighting">Matched fields: {this.props.highlighting.join(", ")}</div>
+                            <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
+                            {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="search-highlighting">`${l}`</div>)}
                         </div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>

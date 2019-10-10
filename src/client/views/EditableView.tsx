@@ -29,7 +29,8 @@ export interface EditableProps {
     contents: any;
     fontStyle?: string;
     fontSize?: number;
-    height?: number;
+    height?: number | "auto";
+    maxHeight?: number;
     display?: string;
     autosuggestProps?: {
         resetValue: () => void;
@@ -151,7 +152,7 @@ export class EditableView extends React.Component<EditableProps> {
             if (this.props.autosuggestProps) this.props.autosuggestProps.resetValue();
             return (
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
-                    style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
+                    style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick}>
                     <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{this.props.contents}</span>
                 </div>

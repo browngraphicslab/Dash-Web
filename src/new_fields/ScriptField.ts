@@ -1,5 +1,5 @@
 import { ObjectField } from "./ObjectField";
-import { CompiledScript, CompileScript, scriptingGlobal } from "../client/util/Scripting";
+import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions } from "../client/util/Scripting";
 import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
@@ -101,19 +101,39 @@ export class ScriptField extends ObjectField {
     [ToScriptString]() {
         return "script field";
     }
+    public static CompileScript(script: string, params: object = {}, addReturn = false) {
+        let compiled = CompileScript(script, {
+            params: { this: Doc.name, ...params },
+            typecheck: false,
+            editable: true,
+            addReturn: addReturn
+        });
+        return compiled;
+    }
+    public static MakeFunction(script: string, params: object = {}) {
+        let compiled = ScriptField.CompileScript(script, params, true);
+        return compiled.compiled ? new ScriptField(compiled) : undefined;
+    }
+
+    public static MakeScript(script: string, params: object = {}) {
+        let compiled = ScriptField.CompileScript(script, params, false);
+        return compiled.compiled ? new ScriptField(compiled) : undefined;
+    }
 }
 
 @scriptingGlobal
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value = computedFn((doc: Doc) => {
-        const val = this.script.run({ this: doc });
-        if (val.success) {
-            return val.result;
-        }
-        return undefined;
-    });
+    value = computedFn((doc: Doc) => this.script.run({ this: doc }, console.log).result);
+    public static MakeScript(script: string, params: object = {}, ) {
+        let compiled = ScriptField.CompileScript(script, params, false);
+        return compiled.compiled ? new ComputedField(compiled) : undefined;
+    }
+    public static MakeFunction(script: string, params: object = {}) {
+        let compiled = ScriptField.CompileScript(script, params, true);
+        return compiled.compiled ? new ComputedField(compiled) : undefined;
+    }
 }
 
 export namespace ComputedField {

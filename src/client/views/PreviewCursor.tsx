@@ -51,7 +51,7 @@ export class PreviewCursor extends React.Component<{}> {
                     // tests for URL and makes web document
                     let re: any = /^https?:\/\//g;
                     if (re.test(e.clipboardData.getData("text/plain"))) {
-                        const url = e.clipboardData.getData("text/plain")
+                        const url = e.clipboardData.getData("text/plain");
                         PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
                             title: url, width: 300, height: 300,
                             // nativeWidth: 300, nativeHeight: 472.5,
@@ -93,9 +93,7 @@ export class PreviewCursor extends React.Component<{}> {
 
     @action
     onKeyPress = (e: KeyboardEvent) => {
-        // Mixing events between React and Native is finicky.  In FormattedTextBox, we set the
-        // DASHFormattedTextBoxHandled flag when a text box consumes a key press so that we can ignore
-        // the keyPress here. 112-
+        // Mixing events between React and Native is finicky. 
         //if not these keys, make a textbox if preview cursor is active!
         if (e.key !== "Escape" && e.key !== "Backspace" && e.key !== "Delete" && e.key !== "CapsLock" &&
             e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta" && e.key !== "Control" &&
@@ -103,8 +101,8 @@ export class PreviewCursor extends React.Component<{}> {
             e.key !== "NumLock" &&
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
             !e.key.startsWith("Arrow") &&
-            !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
-            if (!e.ctrlKey && !e.metaKey) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
+            !e.defaultPrevented) {
+            if ((!e.ctrlKey || (e.keyCode >= 48 && e.keyCode <= 57)) && !e.metaKey) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
                 PreviewCursor.Visible = false;
             }

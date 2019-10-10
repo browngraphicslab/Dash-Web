@@ -3,8 +3,8 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction,
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { InkTool } from "../../../new_fields/InkField";
-import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { makeInterface, createSchema } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast, BoolCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -14,19 +14,21 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
-import { positionSchema } from "./DocumentView";
+import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
-import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faVideo } from "@fortawesome/free-solid-svg-icons";
-import { CompileScript } from "../../util/Scripting";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
+import { positionSchema } from "./CollectionFreeFormDocumentView";
 var path = require('path');
 
-type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
-const VideoDocument = makeInterface(positionSchema, pageSchema);
+export const timeSchema = createSchema({
+    currentTimecode: "number",
+});
+type VideoDocument = makeInterface<[typeof documentSchema, typeof positionSchema, typeof timeSchema]>;
+const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
 
 library.add(faVideo);
 
@@ -98,11 +100,11 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @action public Snapshot() {
-        let width = NumCast(this.props.Document.width);
-        let height = NumCast(this.props.Document.height);
+        let width = this.Document.width || 0;
+        let height = this.Document.height || 0;
         var canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.nativeWidth);
+        canvas.height = 640 * (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
         var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             ctx.rect(0, 0, canvas.width, canvas.height);
@@ -113,35 +115,25 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
         if (!this._videoRef) { // can't find a way to take snapshots of videos
             let b = Docs.Create.ButtonDocument({
-                x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
-                width: 150, height: 50, title: NumCast(this.props.Document.curPage).toString()
+                x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
+                width: 150, height: 50, title: (this.Document.currentTimecode || 0).toString()
             });
-            const script = CompileScript(`(self as any).curPage = ${NumCast(this.props.Document.curPage)}`, {
-                params: { this: Doc.name },
-                capturedVariables: { self: this.props.Document },
-                typecheck: false,
-                editable: true,
-            });
-            if (script.compiled) {
-                b.onClick = new ScriptField(script);
-                this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(b, false);
-            } else {
-                console.log(script.errors.map(error => error.messageText).join("\n"));
-            }
+            b.onClick = ScriptField.MakeScript(`this.currentTimecode = ${(this.Document.currentTimecode || 0)}`);
         } else {
             //convert to desired file format
             var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
-            VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
+            let filename = path.basename(encodeURIComponent("snapshot" + this.Document.title + "_" + (this.Document.currentTimecode || 0).toString()));
+            VideoBox.convertDataUri(dataUrl, filename.replace(/\..*$/, "")).then(returnedFilename => {
                 if (returnedFilename) {
                     let url = this.choosePath(Utils.prepend(returnedFilename));
                     let imageSummary = Docs.Create.ImageDocument(url, {
-                        x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
-                        width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
+                        x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
+                        width: 150, height: height / width * 150, title: "--snapshot" + (this.Document.currentTimecode || 0) + " image-"
                     });
+                    imageSummary.isButton = true;
                     this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(imageSummary, false);
-                    DocUtils.MakeLink(imageSummary, this.props.Document);
+                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "snapshot from " + this.Document.title, "video frame snapshot");
                 }
             });
         }
@@ -149,8 +141,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     @action
     updateTimecode = () => {
-        this.player && (this.props.Document.curPage = this.player.currentTime);
-        this._youtubePlayer && (this.props.Document.curPage = this._youtubePlayer.getCurrentTime());
+        this.player && (this.Document.currentTimecode = this.player.currentTime);
+        this._youtubePlayer && (this.Document.currentTimecode = this._youtubePlayer.getCurrentTime());
     }
 
     componentDidMount() {
@@ -158,12 +150,12 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
         if (this.youtubeVideoId) {
             let youtubeaspect = 400 / 315;
-            var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
-            var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
+            var nativeWidth = (this.Document.nativeWidth || 0);
+            var nativeHeight = (this.Document.nativeHeight || 0);
             if (!nativeWidth || !nativeHeight) {
                 if (!this.Document.nativeWidth) this.Document.nativeWidth = 600;
                 this.Document.nativeHeight = this.Document.nativeWidth / youtubeaspect;
-                this.Document.height = FieldValue(this.Document.width, 0) / youtubeaspect;
+                this.Document.height = (this.Document.width || 0) / youtubeaspect;
             }
         }
     }
@@ -180,10 +172,9 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         if (vref) {
             this._videoRef!.ontimeupdate = this.updateTimecode;
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
-            if (this._reactionDisposer) this._reactionDisposer();
-            this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>
-                !this.Playing && (vref.currentTime = this.Document.curPage || 0)
-                , { fireImmediately: true });
+            this._reactionDisposer && this._reactionDisposer();
+            this._reactionDisposer = reaction(() => this.Document.currentTimecode || 0,
+                time => !this.Playing && (vref.currentTime = time), { fireImmediately: true });
         }
     }
 
@@ -204,7 +195,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         if (field) {
             let url = field.url.href;
             let subitems: ContextMenuProps[] = [];
@@ -216,7 +207,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @computed get content() {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
@@ -228,7 +219,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @computed get youtubeVideoId() {
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         return field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
     }
 
@@ -254,7 +245,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let onYoutubePlayerReady = (event: any) => {
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
-            this._reactionDisposer = reaction(() => this.props.Document.curPage, () => !this.Playing && this.Seek(this.Document.curPage || 0));
+            this._reactionDisposer = reaction(() => this.Document.currentTimecode, () => !this.Playing && this.Seek(this.Document.currentTimecode || 0));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
@@ -269,18 +260,21 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     }
 
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
         let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
-        let start = untracked(() => Math.round(NumCast(this.props.Document.curPage)));
+        let start = untracked(() => Math.round(this.Document.currentTimecode || 0));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
-            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={NumCast(this.props.Document.nativeWidth, 640)} height={NumCast(this.props.Document.nativeHeight, 390)}
+            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.Document.nativeWidth || 640)} height={(this.Document.nativeHeight || 390)}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`}
         ></iframe>;
     }
 
     render() {
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return <div style={{ pointerEvents: "all", width: "100%", height: "100%" }} onContextMenu={this.specificContextMenu}>
             {this.youtubeVideoId ? this.youtubeContent : this.content}
         </div>;
