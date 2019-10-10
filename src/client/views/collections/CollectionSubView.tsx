@@ -18,7 +18,6 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 var path = require('path');
@@ -26,7 +25,7 @@ import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
@@ -37,7 +36,7 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: Opt<CollectionView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
     ruleProvider: Doc | undefined;
 }
 
@@ -175,14 +174,14 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.props.addDocument(f);
                             }
                         });
                     } else {
                         this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
                 }
                 return;
             }
@@ -194,7 +193,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
                     ImageUtils.ExtractExif(doc);
-                    this.props.addDocument(doc, false);
+                    this.props.addDocument(doc);
                     return;
                 } else {
                     let path = window.location.origin + "/doc/";
@@ -203,12 +202,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.props.addDocument(f);
                             }
                         });
                     } else {
                         let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                        this.props.addDocument(htmlDoc, false);
+                        this.props.addDocument(htmlDoc);
                     }
                     return;
                 }
@@ -252,7 +251,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let type = result["content-type"];
                             if (type) {
                                 Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
-                                    .then(doc => doc && this.props.addDocument(doc, false));
+                                    .then(doc => doc && this.props.addDocument(doc));
                             }
                         });
                     promises.push(prom);

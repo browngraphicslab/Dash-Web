@@ -333,7 +333,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
         selected.length === 1 && (doc.minimizedDoc = iconDoc);
-        selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
+        selected[0].props.addDocument && selected[0].props.addDocument(iconDoc);
         return iconDoc;
     }
     @action

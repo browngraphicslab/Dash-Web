@@ -21,7 +21,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -65,13 +64,13 @@ library.add(fa.faLock);
 library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
     fitToBox?: boolean;
     onClick?: ScriptField;
-    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -217,7 +216,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
             maxLocation = this.Document.maximizeLocation = (!ctrlKey ? !altKey ? maxLocation : (maxLocation !== "inPlace" ? "inPlace" : "onRight") : (maxLocation !== "inPlace" ? "inPlace" : "inTab"));
             if (maxLocation === "inPlace") {
-                expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc, false));
+                expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc));
                 let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
                 DocumentManager.Instance.animateBetweenPoint(scrpt, expandedDocs);
             } else {

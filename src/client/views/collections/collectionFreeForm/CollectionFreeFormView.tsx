@@ -93,10 +93,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             heading = !sorted.length ? Math.max(1, maxHeading) : NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
         }
         !this.Document.isRuleProvider && (newBox.heading = heading);
-        this.addDocument(newBox, false);
+        this.addDocument(newBox);
     }
-    private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
-        let added = this.props.addDocument(newBox, false);
+    private addDocument = (newBox: Doc) => {
+        let added = this.props.addDocument(newBox);
         added && this.bringToFront(newBox);
         added && this.updateCluster(newBox);
         return added;
@@ -659,7 +659,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             if (doc instanceof Doc) {
                                 const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
                                 doc.x = xx, doc.y = yy;
-                                this.props.addDocument && this.props.addDocument(doc, false);
+                                this.props.addDocument && this.props.addDocument(doc);
                             }
                         }
                     }

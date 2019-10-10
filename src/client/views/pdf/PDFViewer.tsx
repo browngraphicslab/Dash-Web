@@ -18,7 +18,6 @@ import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
 import * as rp from "request-promise";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import Annotation from "./Annotation";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -50,10 +49,10 @@ interface IViewerProps {
     GoToPage?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
-    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView>;
     whenActiveChanged: (isActive: boolean) => void;
 }
 
@@ -582,12 +581,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
         return this.removeDocument(doc) ? addDocument(doc) : false;
     }
-
-
+    @action.bound
+    addDocument(doc: Doc): boolean {
+        Doc.GetProto(doc).annotationOn = this.props.Document;
+        Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc);
+        return true;
+    }
     @action.bound
     removeDocument(doc: Doc): boolean {
         Doc.GetProto(doc).annotationOn = undefined;
-        //TODO This won't create the field if it doesn't already exist
         let targetDataDoc = this.props.fieldExtensionDoc;
         let targetField = this.props.fieldExt;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
@@ -659,8 +661,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}
-                    addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.GetProto(doc).annotationOn = this.props.Document; Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
-                    CollectionView={this.props.ContainingCollectionView}
+                    addDocument={this.addDocument}
+                    CollectionView={undefined}
                     ScreenToLocalTransform={this.scrollXf}
                     ruleProvider={undefined}
                     renderDepth={this.props.renderDepth + 1}

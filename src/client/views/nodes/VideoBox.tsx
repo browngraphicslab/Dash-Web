@@ -3,11 +3,11 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction,
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { InkTool } from "../../../new_fields/InkField";
-import { makeInterface, createSchema } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, BoolCast } from "../../../new_fields/Types";
+import { makeInterface, createSchema, listSpec } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction, returnOne } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
@@ -22,6 +22,8 @@ import { faVideo } from "@fortawesome/free-solid-svg-icons";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { positionSchema } from "./CollectionFreeFormDocumentView";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 var path = require('path');
 
 export const timeSchema = createSchema({
@@ -34,19 +36,24 @@ library.add(faVideo);
 
 @observer
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
+    static _youtubeIframeCounter: number = 0;
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
     private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
     private _youtubeContentCreated = false;
-    static _youtubeIframeCounter: number = 0;
+    private _downX: number = 0;
+    private _downY: number = 0;
+    private _isResetClick = 0;
+    private _isChildActive = false;
+    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     @observable _forceCreateYouTubeIFrame = false;
     @observable static _showControls: boolean;
     @observable _playTimer?: NodeJS.Timeout = undefined;
     @observable _fullScreen = false;
     @observable public Playing: boolean = false;
-    public static LayoutString() { return FieldView.LayoutString(VideoBox); }
+    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(VideoBox, "data", fieldExt); }
 
     public get player(): HTMLVideoElement | null {
         return this._videoRef;
@@ -123,8 +130,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             //convert to desired file format
             var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            let filename = path.basename(encodeURIComponent("snapshot" + this.Document.title + "_" + (this.Document.currentTimecode || 0).toString()));
-            VideoBox.convertDataUri(dataUrl, filename.replace(/\..*$/, "")).then(returnedFilename => {
+            let filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.Document.title).replace(/\..*$/, "") + "_" + (this.Document.currentTimecode || 0).toString().replace(/\./, "_")));
+            VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
                 if (returnedFilename) {
                     let url = this.choosePath(Utils.prepend(returnedFilename));
                     let imageSummary = Docs.Create.ImageDocument(url, {
@@ -132,7 +139,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                         width: 150, height: height / width * 150, title: "--snapshot" + (this.Document.currentTimecode || 0) + " image-"
                     });
                     imageSummary.isButton = true;
-                    this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(imageSummary, false);
+                    this.props.addDocument && this.props.addDocument(imageSummary);
                     DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "snapshot from " + this.Document.title, "video frame snapshot");
                 }
             });
@@ -259,7 +266,73 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         });
 
     }
+    private get uIButtons() {
+        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
+        let curTime = NumCast(this.props.Document.currentTimecode);
+        return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling})` }}>
+            <span>{"" + Math.round(curTime)}</span>
+            <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
+        </div>,
+        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} style={{ transform: `scale(${scaling})` }}>
+            <FontAwesomeIcon icon="camera" size="lg" />
+        </div>,
+        VideoBox._showControls ? (null) : [
+            <div className="videoBox-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling})` }}>
+                <FontAwesomeIcon icon={this.Playing ? "pause" : "play"} size="lg" />
+            </div>,
+            <div className="collecvideoBoxtionVideoView-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling})` }}>
+                F
+            </div>
+        ]]);
+    }
 
+    @action
+    onPlayDown = () => {
+        if (this.Playing) {
+            this.Pause();
+        } else {
+            this.Play();
+        }
+    }
+
+    @action
+    onFullDown = (e: React.PointerEvent) => {
+        this.FullScreen();
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    @action
+    onSnapshot = (e: React.PointerEvent) => {
+        this.Snapshot();
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    @action
+    onResetDown = (e: React.PointerEvent) => {
+        this.Pause();
+        e.stopPropagation();
+        this._isResetClick = 0;
+        document.addEventListener("pointermove", this.onResetMove, true);
+        document.addEventListener("pointerup", this.onResetUp, true);
+        InkingControl.Instance.switchTool(InkTool.Eraser);
+    }
+
+    @action
+    onResetMove = (e: PointerEvent) => {
+        this._isResetClick += Math.abs(e.movementX) + Math.abs(e.movementY);
+        this.Seek(Math.max(0, NumCast(this.props.Document.currentTimecode, 0) + Math.sign(e.movementX) * 0.0333));
+        e.stopImmediatePropagation();
+    }
+    @action
+    onResetUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onResetMove, true);
+        document.removeEventListener("pointerup", this.onResetUp, true);
+        InkingControl.Instance.switchTool(InkTool.None);
+        this._isResetClick < 10 && (this.props.Document.currentTimecode = 0);
+    }
+    @computed get fieldExtensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
     @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
@@ -273,11 +346,95 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         ></iframe>;
     }
 
+
+    setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => {
+        this._setPreviewCursor = func;
+    }
+
+    @action.bound
+    removeDocument(doc: Doc): boolean {
+        Doc.GetProto(doc).annotationOn = undefined;
+        //TODO This won't create the field if it doesn't already exist
+        let targetDataDoc = this.fieldExtensionDoc;
+        let targetField = this.props.fieldExt;
+        let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
+        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
+        index !== -1 && value.splice(index, 1);
+        return true;
+    }
+    // this is called with the document that was dragged and the collection to move it into.
+    // if the target collection is the same as this collection, then the move will be allowed.
+    // otherwise, the document being moved must be able to be removed from its container before
+    // moving it into the target.  
+    @action.bound
+    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
+            return true;
+        }
+        return this.removeDocument(doc) ? addDocument(doc) : false;
+    }
+
+    @action.bound
+    addDocument(doc: Doc): boolean {
+        Doc.GetProto(doc).annotationOn = this.props.Document;
+        var curTime = NumCast(this.props.Document.currentTimecode, -1);
+        curTime !== -1 && (doc.displayTimecode = curTime);
+        Doc.AddDocToList(this.fieldExtensionDoc, this.props.fieldExt, doc);
+        return true;
+    }
+    whenActiveChanged = (isActive: boolean) => {
+        this._isChildActive = isActive;
+        this.props.whenActiveChanged(isActive);
+    }
+    active = () => {
+        return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
+    }
+    onClick = (e: React.MouseEvent) => {
+        this._setPreviewCursor &&
+            e.button === 0 &&
+            Math.abs(e.clientX - this._downX) < 3 &&
+            Math.abs(e.clientY - this._downY) < 3 &&
+            this._setPreviewCursor(e.clientX, e.clientY, false);
+    }
+
+    onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
+        if ((e.button !== 0 || e.altKey) && this.active()) {
+            this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
+        }
+    }
+    @computed get annotationLayer() {
+        return <CollectionFreeFormView {...this.props}
+            setPreviewCursor={this.setPreviewCursor}
+            PanelHeight={this.props.PanelHeight}
+            PanelWidth={this.props.PanelWidth}
+            focus={this.props.focus}
+            isSelected={this.props.isSelected}
+            select={emptyFunction}
+            active={this.active}
+            ContentScaling={returnOne}
+            whenActiveChanged={this.whenActiveChanged}
+            removeDocument={this.removeDocument}
+            moveDocument={this.moveDocument}
+            addDocument={this.addDocument}
+            CollectionView={undefined}
+            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            ruleProvider={undefined}
+            renderDepth={this.props.renderDepth + 1}
+            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            chromeCollapsed={true}>
+        </CollectionFreeFormView>
+    }
+
     render() {
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
-        return <div style={{ pointerEvents: "all", width: "100%", height: "100%" }} onContextMenu={this.specificContextMenu}>
+        return (<div className={"videoBox-container"} onClick={this.onClick} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu}>
             {this.youtubeVideoId ? this.youtubeContent : this.content}
-        </div>;
+            {this.annotationLayer}
+            {this.uIButtons}
+        </div >);
     }
 }
 

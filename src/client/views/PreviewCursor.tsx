@@ -14,7 +14,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _onKeyPress?: (e: KeyboardEvent) => void;
     static _getTransform: () => Transform;
     static _addLiveTextDoc: (doc: Doc) => void;
-    static _addDocument: (doc: Doc, allowDuplicates: false) => boolean;
+    static _addDocument: (doc: Doc) => boolean;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     //when focus is lost, this will remove the preview cursor
@@ -44,7 +44,7 @@ export class PreviewCursor extends React.Component<{}> {
                             title: url, width: 400, height: 315,
                             nativeWidth: 600, nativeHeight: 472.5,
                             x: newPoint[0], y: newPoint[1]
-                        }), false);
+                        }));
                         return;
                     }
 
@@ -56,7 +56,7 @@ export class PreviewCursor extends React.Component<{}> {
                             title: url, width: 300, height: 300,
                             // nativeWidth: 300, nativeHeight: 472.5,
                             x: newPoint[0], y: newPoint[1]
-                        }), false);
+                        }));
                         return;
                     }
 
@@ -79,11 +79,11 @@ export class PreviewCursor extends React.Component<{}> {
 
                     let img: Doc = Docs.Create.ImageDocument(
                         arr[1], {
-                            width: 300, title: arr[1],
-                            x: newPoint[0],
-                            y: newPoint[1],
-                        });
-                    PreviewCursor._addDocument(img, false);
+                        width: 300, title: arr[1],
+                        x: newPoint[0],
+                        y: newPoint[1],
+                    });
+                    PreviewCursor._addDocument(img);
                     return;
                 }
 
@@ -113,7 +113,7 @@ export class PreviewCursor extends React.Component<{}> {
         onKeyPress: (e: KeyboardEvent) => void,
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
-        addDocument: (doc: Doc, allowDuplicates: false) => boolean) {
+        addDocument: (doc: Doc) => boolean) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;

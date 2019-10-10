@@ -8,7 +8,6 @@ import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
 import { Transform } from "../../util/Transform";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { FormattedTextBox } from "./FormattedTextBox";
@@ -28,7 +27,7 @@ export interface FieldViewProps {
     fieldExt: string;
     leaveNativeSize?: boolean;
     fitToBox?: boolean;
-    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     ruleProvider: Doc | undefined;
     Document: Doc;
@@ -37,7 +36,7 @@ export interface FieldViewProps {
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
-    addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument?: (document: Doc) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;

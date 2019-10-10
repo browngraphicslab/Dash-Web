@@ -1,7 +1,6 @@
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
-import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
 import { AudioBox } from "../views/nodes/AudioBox";
@@ -137,7 +136,7 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
+                layout: { view: VideoBox, ext: anno },
                 options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {

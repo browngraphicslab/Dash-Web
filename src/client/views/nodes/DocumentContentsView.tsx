@@ -9,7 +9,6 @@ import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
@@ -100,7 +99,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

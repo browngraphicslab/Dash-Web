@@ -10,7 +10,7 @@ export interface CollectionFreeFormLinkViewProps {
     A: Doc;
     B: Doc;
     LinkDocs: Doc[];
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
 }
 

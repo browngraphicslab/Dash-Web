@@ -45,7 +45,7 @@ export namespace CollectionViewType {
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
@@ -100,22 +100,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
-    addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        var curTime = NumCast(this.props.Document.currentTimecode, -1);
-        curTime !== -1 && (doc.displayTimecode = curTime);
+    addDocument(doc: Doc): boolean {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
-        const value = Cast(targetDataDoc[targetField], listSpec(Doc));
-        if (value !== undefined) {
-            if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
-                value.push(doc);
-            }
-        } else {
-            Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
-        }
+        Doc.AddDocToList(targetDataDoc, targetField, doc);
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }

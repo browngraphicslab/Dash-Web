@@ -91,7 +91,7 @@ export class WebBox extends React.Component<FieldViewProps> {
         });
 
         SelectionManager.SelectedDocuments().map(dv => {
-            dv.props.addDocument && dv.props.addDocument(newBox, false);
+            dv.props.addDocument && dv.props.addDocument(newBox);
             dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
         });
 
