@@ -7,7 +7,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Mark, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
+import { Fragment, Mark, Node, Node as ProsNode, Slice } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
@@ -43,7 +43,7 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { TextShadowProperty } from 'csstype';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -80,6 +80,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
     private _nodeClicked: any;
+    private _searchIndex = 0;
     private _undoTyping?: UndoManager.Batch;
     private _searchReactionDisposer?: Lambda;
     private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
@@ -212,37 +213,27 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    public highlightSearchTerms = (terms: String[]) => {
+    public highlightSearchTerms = (terms: string[]) => {
         if (this._editorView && (this._editorView as any).docView) {
-            const doc = this._editorView.state.doc;
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
-            doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
-                if (node.isLeaf && node.isText && node.text) {
-                    let nodeText: String = node.text;
-                    let tokens = nodeText.split(" ");
-                    let start = pos;
-                    tokens.forEach((word) => {
-                        if (terms.includes(word) && this._editorView) {
-                            this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
-                        }
-                        start += word.length + 1;
-                    });
-                }
-            });
+            const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
+            let res = terms.map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            let tr = this._editorView!.state.tr;
+            let flattened: TextSelection[] = [];
+            res.map(r => r.map(h => flattened.push(h)));
+            let lastSel = Math.min(flattened.length - 1, this._searchIndex);
+            flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
+            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+            this._editorView!.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
         }
     }
 
     public unhighlightSearchTerms = () => {
         if (this._editorView && (this._editorView as any).docView) {
-            const doc = this._editorView.state.doc;
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
-            doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
-                if (node.isLeaf && node.isText && node.text) {
-                    if (node.marks.includes(mark) && this._editorView) {
-                        this._editorView.dispatch(this._editorView.state.tr.removeMark(pos, pos + node.nodeSize, mark));
-                    }
-                }
-            });
+            const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
+            let end = this._editorView!.state.doc.textContent.length - 1;
+            this._editorView!.dispatch(this._editorView!.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
         }
     }
     setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
@@ -299,7 +290,45 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {
+        let offset = 0
 
+        if (context === node) return { from: offset, to: offset + node.nodeSize }
+
+        if (node.isBlock) {
+            for (let i = 0; i < (context.content as any).content.length; i++) {
+                let result = this.getNodeEndpoints((context.content as any).content[i], node)
+                if (result) {
+                    return {
+                        from: result.from + offset + (context.type.name === "doc" ? 0 : 1),
+                        to: result.to + offset + (context.type.name === "doc" ? 0 : 1)
+                    }
+                }
+                offset += (context.content as any).content[i].nodeSize
+            }
+            return null;
+        } else {
+            return null;
+        }
+    }
+
+
+    //Recursively finds matches within a given node
+    findInNode(pm: EditorView, node: Node, find: string) {
+        let ret: TextSelection[] = [];
+
+        if (node.isTextblock) {
+            let index = 0, foundAt, ep = this.getNodeEndpoints(pm.state.doc, node);
+            while (ep && (foundAt = node.textContent.slice(index).search(RegExp(find, "i"))) > -1) {
+                let sel = new TextSelection(pm.state.doc.resolve(ep.from + index + foundAt + 1), pm.state.doc.resolve(ep.from + index + foundAt + find.length + 1))
+                ret.push(sel)
+                index = index + foundAt + find.length;
+            }
+        } else {
+            node.content.forEach((child, i) => ret = ret.concat(this.findInNode(pm, child, find)))
+        }
+        return ret
+    }
     static _highlights: string[] = [];
 
     updateHighlights = () => {

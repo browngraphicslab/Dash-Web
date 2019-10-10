@@ -427,10 +427,13 @@ export const marks: { [index: string]: MarkSpec } = {
     },
 
     search_highlight: {
+        attrs: {
+            selected: { default: false }
+        },
         parseDOM: [{ style: 'background: yellow' }],
-        toDOM() {
+        toDOM(node: any) {
             return ['span', {
-                style: 'background: yellow'
+                style: `background: ${node.attrs.selected ? "orange" : "yellow"}`
             }];
         }
     },
