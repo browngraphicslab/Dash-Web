@@ -41,23 +41,14 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                         if (authenticationCode) {
                             Identified.PostToServer(RouteStore.writeGoogleAccessToken, { authenticationCode }).then(
                                 token => {
-                                    runInAction(() => this.success = true);
-                                    setTimeout(() => {
-                                        this.isOpen = false;
-                                        runInAction(() => this.displayLauncher = false);
-                                        setTimeout(() => {
-                                            runInAction(() => this.success = undefined);
-                                            runInAction(() => this.displayLauncher = true);
-                                            this.hasBeenClicked = false;
-                                        }, 500);
-                                    }, 1000);
+                                    this.beginFadeout();
                                     disposer();
                                     resolve(token);
                                 },
-                                () => {
+                                action(() => {
                                     this.hasBeenClicked = false;
-                                    runInAction(() => this.success = false);
-                                }
+                                    this.success = false;
+                                })
                             );
                         }
                     }
@@ -67,6 +58,19 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
         // otherwise, we already have a valid, stored access token
         return response;
     }
+
+    beginFadeout = action(() => {
+        this.success = true;
+        setTimeout(action(() => {
+            this.isOpen = false;
+            this.displayLauncher = false;
+            setTimeout(action(() => {
+                this.success = undefined;
+                this.displayLauncher = true;
+                this.hasBeenClicked = false;
+            }), 500);
+        }), 2000);
+    });
 
     constructor(props: {}) {
         super(props);
@@ -99,6 +103,11 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
         );
     }
 
+    private get dialogueBoxStyle() {
+        const borderColor = this.success === undefined ? "black" : this.success ? "green" : "red";
+        return { borderColor, transition: "0.2s borderColor ease" };
+    }
+
     render() {
         return (
             <MainViewModal
@@ -106,7 +115,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                 interactive={true}
                 contents={this.renderPrompt}
                 overlayDisplayedOpacity={0.9}
-                dialogueBoxStyle={{ borderColor: this.success === undefined ? "black" : this.success ? "green" : "red" }}
+                dialogueBoxStyle={this.dialogueBoxStyle}
             />
         );
     }
