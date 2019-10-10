@@ -46,14 +46,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
-
-        protected createDropTarget = (ele: HTMLDivElement) => {
+        protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
         }
-        protected CreateDropTarget(ele: HTMLDivElement) {
+        protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
             this.createDropTarget(ele);
         }
 

@@ -42,6 +42,7 @@ import { ImageField } from '../../../new_fields/URLField';
 import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
 
+library.add(fa.faEdit);
 library.add(fa.faTrash);
 library.add(fa.faShare);
 library.add(fa.faDownload);
