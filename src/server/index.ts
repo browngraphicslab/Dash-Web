@@ -116,7 +116,7 @@ function addSecureRoute(method: Method,
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
-            handler(req.user, res, req);
+            handler(req.user as any, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -813,8 +813,8 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector = req.params.sector;
     let action = req.params.action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
-        let handler = EndpointHandlerMap.get(action);
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector as any], { credentials, token }).then(endpoint => {
+        let handler = EndpointHandlerMap.get(action as any);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(
                 response => res.send(response.data),

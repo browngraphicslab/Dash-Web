@@ -58,8 +58,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     }
 
     @undoBatch
-    @action
-    columnDrop = (e: Event, de: DragManager.DropEvent) => {
+    columnDrop = action((e: Event, de: DragManager.DropEvent) => {
         this._createAliasSelected = false;
         if (de.data instanceof DragManager.DocumentDragData) {
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
@@ -73,7 +72,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             this.props.parent.drop(e, de);
             e.stopPropagation();
         }
-    }
+    })
 
     children(docs: Doc[]) {
         let parent = this.props.parent;

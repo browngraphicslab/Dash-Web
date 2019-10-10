@@ -72,8 +72,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     @undoBatch
-    @action
-    rowDrop = (e: Event, de: DragManager.DropEvent) => {
+    rowDrop = action((e: Event, de: DragManager.DropEvent) => {
         this._createAliasSelected = false;
         if (de.data instanceof DragManager.DocumentDragData) {
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
@@ -87,7 +86,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             this.props.parent.drop(e, de);
             e.stopPropagation();
         }
-    }
+    })
 
     masonryChildren(docs: Doc[]) {
         let parent = this.props.parent;
