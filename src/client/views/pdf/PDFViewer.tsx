@@ -18,7 +18,6 @@ import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
 import * as rp from "request-promise";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import Annotation from "./Annotation";
@@ -54,7 +53,7 @@ interface IViewerProps {
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
     whenActiveChanged: (isActive: boolean) => void;
 }
 
@@ -315,9 +314,11 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
-        let offset = this.visibleHeight() / 2 * 96 / 72;
-        this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
-        Doc.linkFollowHighlight(scrollToAnnotation);
+        if (scrollToAnnotation) {
+            let offset = this.visibleHeight() / 2 * 96 / 72;
+            this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
+            Doc.linkFollowHighlight(scrollToAnnotation);
+        }
     }
 
 

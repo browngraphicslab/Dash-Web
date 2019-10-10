@@ -13,7 +13,6 @@ import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../globalCssVariables.s
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
-import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
@@ -34,8 +33,8 @@ export interface CellProps {
     row: number;
     col: number;
     rowProps: CellInfo;
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    ContainingCollection: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView | CollectionVideoView>;
+    ContainingCollection: Opt<CollectionView | CollectionVideoView>;
     Document: Doc;
     fieldKey: string;
     renderDepth: number;

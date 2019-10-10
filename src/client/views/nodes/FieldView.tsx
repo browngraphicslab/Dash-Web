@@ -8,7 +8,6 @@ import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
 import { Transform } from "../../util/Transform";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
@@ -29,7 +28,7 @@ export interface FieldViewProps {
     fieldExt: string;
     leaveNativeSize?: boolean;
     fitToBox?: boolean;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
     ContainingCollectionDoc: Opt<Doc>;
     ruleProvider: Doc | undefined;
     Document: Doc;

@@ -3,7 +3,6 @@ import { Doc, DocListCastAsync } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
-import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
@@ -57,7 +56,7 @@ export class DocumentManager {
         return this.getDocumentViewsById(doc[Id]);
     }
 
-    public getDocumentViewById(id: string, preferredCollection?: CollectionView | CollectionPDFView | CollectionVideoView): DocumentView | undefined {
+    public getDocumentViewById(id: string, preferredCollection?: CollectionView | CollectionVideoView): DocumentView | undefined {
 
         let toReturn: DocumentView | undefined;
         let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
@@ -82,7 +81,7 @@ export class DocumentManager {
         return toReturn;
     }
 
-    public getDocumentView(toFind: Doc, preferredCollection?: CollectionView | CollectionPDFView | CollectionVideoView): DocumentView | undefined {
+    public getDocumentView(toFind: Doc, preferredCollection?: CollectionView | CollectionVideoView): DocumentView | undefined {
         return this.getDocumentViewById(toFind[Id], preferredCollection);
     }
 

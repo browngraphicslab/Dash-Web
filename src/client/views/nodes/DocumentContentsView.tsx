@@ -8,7 +8,6 @@ import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
@@ -101,7 +100,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

@@ -21,7 +21,6 @@ import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
-import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionVideoView } from "./CollectionVideoView";
@@ -247,8 +246,8 @@ export interface SchemaTableProps {
     PanelHeight: () => number;
     PanelWidth: () => number;
     childDocs?: Doc[];
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
@@ -905,7 +904,7 @@ interface CollectionSchemaPreviewProps {
     ruleProvider: Doc | undefined;
     focus?: (doc: Doc) => void;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
-    CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView?: CollectionView | CollectionVideoView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
     getTransform: () => Transform;

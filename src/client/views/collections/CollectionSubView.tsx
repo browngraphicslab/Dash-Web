@@ -18,7 +18,6 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
-import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
@@ -38,7 +37,7 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView | CollectionVideoView>;
     ruleProvider: Doc | undefined;
 }
 

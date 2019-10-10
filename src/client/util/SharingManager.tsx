@@ -18,7 +18,6 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { SelectionManager } from "./SelectionManager";
 import { DocumentManager } from "./DocumentManager";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
-import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionView } from "../views/collections/CollectionView";
 
 library.add(fa.faCopy);
@@ -186,7 +185,7 @@ export default class SharingManager extends React.Component<{}> {
                 className={"focus-span"}
                 title={title}
                 onClick={() => {
-                    let context: Opt<CollectionVideoView | CollectionPDFView | CollectionView>;
+                    let context: Opt<CollectionVideoView | CollectionView>;
                     if (this.targetDoc && this.targetDocView && (context = this.targetDocView.props.ContainingCollectionView)) {
                         DocumentManager.Instance.jumpToDocument(this.targetDoc, true, undefined, context.props.Document);
                     }

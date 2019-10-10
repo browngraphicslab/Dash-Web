@@ -21,7 +21,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
@@ -66,7 +65,7 @@ library.add(fa.faLock);
 library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
