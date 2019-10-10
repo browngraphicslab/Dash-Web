@@ -232,7 +232,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._editorView && (this._editorView as any).docView) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
-            let end = this._editorView!.state.doc.textContent.length - 1;
+            let end = this._editorView!.state.doc.nodeSize - 2;
             this._editorView!.dispatch(this._editorView!.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
         }
     }
@@ -291,20 +291,20 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {
-        let offset = 0
+        let offset = 0;
 
-        if (context === node) return { from: offset, to: offset + node.nodeSize }
+        if (context === node) return { from: offset, to: offset + node.nodeSize };
 
         if (node.isBlock) {
             for (let i = 0; i < (context.content as any).content.length; i++) {
-                let result = this.getNodeEndpoints((context.content as any).content[i], node)
+                let result = this.getNodeEndpoints((context.content as any).content[i], node);
                 if (result) {
                     return {
                         from: result.from + offset + (context.type.name === "doc" ? 0 : 1),
                         to: result.to + offset + (context.type.name === "doc" ? 0 : 1)
-                    }
+                    };
                 }
-                offset += (context.content as any).content[i].nodeSize
+                offset += (context.content as any).content[i].nodeSize;
             }
             return null;
         } else {
@@ -320,14 +320,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (node.isTextblock) {
             let index = 0, foundAt, ep = this.getNodeEndpoints(pm.state.doc, node);
             while (ep && (foundAt = node.textContent.slice(index).search(RegExp(find, "i"))) > -1) {
-                let sel = new TextSelection(pm.state.doc.resolve(ep.from + index + foundAt + 1), pm.state.doc.resolve(ep.from + index + foundAt + find.length + 1))
-                ret.push(sel)
+                let sel = new TextSelection(pm.state.doc.resolve(ep.from + index + foundAt + 1), pm.state.doc.resolve(ep.from + index + foundAt + find.length + 1));
+                ret.push(sel);
                 index = index + foundAt + find.length;
             }
         } else {
-            node.content.forEach((child, i) => ret = ret.concat(this.findInNode(pm, child, find)))
+            node.content.forEach((child, i) => ret = ret.concat(this.findInNode(pm, child, find)));
         }
-        return ret
+        return ret;
     }
     static _highlights: string[] = [];
 
