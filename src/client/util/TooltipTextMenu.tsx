@@ -17,79 +17,99 @@ import { DragManager } from "./DragManager";
 import { LinkManager } from "./LinkManager";
 import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
-import { Cast, NumCast } from '../../new_fields/Types';
+import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { updateBullets } from './ProsemirrorExampleTransfer';
 import { DocumentDecorations } from '../views/DocumentDecorations';
+import { SelectionManager } from './SelectionManager';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
-    public tooltip: HTMLElement;
+    // editor state
     private view: EditorView;
     private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
-    private fontStyles: MarkType[];
-    private fontSizes: MarkType[];
-    private listTypes: (NodeType | any)[];
-    private fontSizeToNum: Map<MarkType, number>;
-    private fontStylesToName: Map<MarkType, string>;
-    private listTypeToIcon: Map<NodeType | any, string>;
+    private fontStyles: MarkType[] = [];
+    private fontSizes: MarkType[] = [];
+    private listTypes: (NodeType | any)[] = [];
+    private fontSizeToNum: Map<MarkType, number> = new Map();
+    private fontStylesToName: Map<MarkType, string> = new Map();
+    private listTypeToIcon: Map<NodeType | any, string> = new Map();
+    private _activeMarks: Mark[] = [];
+    private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
+    // private _brushMarks?: Set<Mark>;
     //private link: HTMLAnchorElement;
-    private wrapper: HTMLDivElement;
-    private extras: HTMLDivElement;
+
+    // editor doms
+    public tooltip: HTMLElement = document.createElement("div");
+    private wrapper: HTMLDivElement = document.createElement("div");
 
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
     private linkDrag?: HTMLImageElement;
-    //dropdown doms
+    private _linkDropdownDom?: Node;
+    private _brushdom?: Node;
+
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
 
-    private _activeMarks: Mark[] = [];
-
-    private _collapseBtn?: MenuItem;
-
-    private _brushMarks?: Set<Mark>;
-    private _brushIsEmpty: boolean = true;
-    private _brushdom?: Node;
-
-    private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
-
     private _collapsed: boolean = false;
+    // private _collapseBtn?: MenuItem;
+    // private _brushIsEmpty: boolean = true;
+
+
+    public static Toolbar: HTMLDivElement | undefined;
+
 
     constructor(view: EditorView) {
         this.view = view;
 
-        this.wrapper = document.createElement("div");
-        this.tooltip = document.createElement("div");
-        this.extras = document.createElement("div");
+        // replace old active menu with this
+        if (TooltipTextMenuManager.Instance.activeMenu) {
+            TooltipTextMenuManager.Instance.activeMenu.wrapper.remove();
+        }
+        TooltipTextMenuManager.Instance.activeMenu = this;
 
-        this.wrapper.appendChild(this.extras);
+        // initialize the tooltip
+        this.createTooltip(view);
+
+        // initialize the wrapper
+        this.wrapper = document.createElement("div");
+        this.wrapper.className = "wrapper";
         this.wrapper.appendChild(this.tooltip);
 
-        this.tooltip.className = "tooltipMenu";
-        this.extras.className = "tooltipExtras";
-        this.wrapper.className = "wrapper";
+        // positioning?
+        TooltipTextMenu.Toolbar = this.wrapper;
 
-        const dragger = document.createElement("span");
-        dragger.className = "dragger";
-        dragger.textContent = ">>>";
-        this.extras.appendChild(dragger);
+        // // position wrapper
+        // if (TooltipTextMenuManager.Instance.isPinned) {
+        //     this.wrapper.style.position = "absolute";
+        //     this.wrapper.style.left = TooltipTextMenuManager.Instance.pinnedX + "px";
+        //     this.wrapper.style.top = TooltipTextMenuManager.Instance.pinnedY + "px";
 
-        this.dragElement(dragger);
+        //     // if pinned, append to mainview
+        //     const mainView = document.querySelector("#main-div");
+        //     mainView && mainView.appendChild(this.wrapper);
+        // } else {
+        //     this.wrapper.style.position = "absolute";
+        //     this.wrapper.style.top = (this.wrapper.offsetTop + TooltipTextMenuManager.Instance.unpinnedY) + "px";
+        //     this.wrapper.style.left = (this.wrapper.offsetLeft + TooltipTextMenuManager.Instance.unpinnedX) + "px";
 
-        // this.createCollapse();
-        // if (this._collapseBtn) {
-        //     this.tooltip.appendChild(this._collapseBtn.render(this.view).dom);
+        //     // add tooltip to outerdiv to circumvent scaling problem
+        //     const outer_div = this.editorProps.outer_div;
+        //     outer_div && outer_div(this.wrapper);
         // }
-        //add the div which is the tooltip
-        //view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
 
-        //add additional icons
-        library.add(faListUl);
-        //add the buttons to the tooltip
+    }
+
+    private async createTooltip(view: EditorView) {
+        // initialize element
+        this.tooltip = document.createElement("div");
+        this.tooltip.className = "tooltipMenu";
+
+        // init buttons to the tooltip
         let items = [
             { command: toggleMark(schema.marks.strong), dom: this.icon("B", "strong", "Bold") },
             { command: toggleMark(schema.marks.em), dom: this.icon("i", "em", "Italic") },
@@ -100,8 +120,8 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
         ];
 
+        // add menu items
         this._marksToDoms = new Map();
-        //add menu items
         items.forEach(({ dom, command }) => {
             this.tooltip.appendChild(dom);
             switch (dom.title) {
@@ -131,10 +151,46 @@ export class TooltipTextMenu {
             });
 
         });
+
+        // link menu
         this.updateLinkMenu();
+        let dropdown = await this.createLinkDropdown();
+        let newLinkDropdowndom = dropdown.render(this.view).dom;
+        this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
+        this._linkDropdownDom = newLinkDropdowndom;
 
+        // list of font styles
+        this.initFontStyles();
 
-        //list of font styles
+        // font sizes
+        this.initFontSizes();
+
+        // list types
+        this.initListTypes();
+
+        // init brush tool
+        this._brushdom = this.createBrush().render(this.view).dom;
+        this.tooltip.appendChild(this._brushdom);
+        // this._brushDropdownDom = this.createBrushDropdown().render(this.view).dom;
+        // this.tooltip.appendChild(this._brushDropdownDom);
+
+        // star and pin
+        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+        this.tooltip.appendChild(this.createStar().render(this.view).dom);
+
+        //
+        this.updateListItemDropdown(":", this.listTypeBtnDom);
+
+        //
+        this.updateFromDash(view, undefined, undefined);
+        // TooltipTextMenu.Toolbar = this.wrapper;
+
+        // dragger
+        // TODO: onclick handler in drag handles collapsing
+        this.createDragger();
+    }
+
+    initFontStyles() {
         this.fontStylesToName = new Map();
         this.fontStylesToName.set(schema.marks.timesNewRoman, "Times New Roman");
         this.fontStylesToName.set(schema.marks.arial, "Arial");
@@ -144,8 +200,9 @@ export class TooltipTextMenu {
         this.fontStylesToName.set(schema.marks.impact, "Impact");
         this.fontStylesToName.set(schema.marks.crimson, "Crimson Text");
         this.fontStyles = Array.from(this.fontStylesToName.keys());
+    }
 
-        //font sizes
+    initFontSizes() {
         this.fontSizeToNum = new Map();
         this.fontSizeToNum.set(schema.marks.p10, 10);
         this.fontSizeToNum.set(schema.marks.p12, 12);
@@ -158,39 +215,41 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
         this.fontSizeToNum.set(schema.marks.pFontSize, 10);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 12);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 14);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 16);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 18);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 20);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 24);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 32);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 48);
-        // this.fontSizeToNum.set(schema.marks.pFontSize, 72);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
+    }
 
-        //list types
+    initListTypes() {
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1");
         this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A");
         // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
-
-        //custom tools
-        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
-
-        this._brushdom = this.createBrush().render(this.view).dom;
-        this.tooltip.appendChild(this._brushdom);
-        this.tooltip.appendChild(this.createLink().render(this.view).dom);
-        this.tooltip.appendChild(this.createStar().render(this.view).dom);
-
-        this.updateListItemDropdown(":", this.listTypeBtnDom);
-
-        this.updateFromDash(view, undefined, undefined);
-        TooltipTextMenu.Toolbar = this.wrapper;
     }
-    public static Toolbar: HTMLDivElement | undefined;
+
+    createDragger() {
+        const dragger = document.createElement("div");
+        dragger.className = "dragger";
+
+        let draggerWrapper = document.createElement("div");
+        draggerWrapper.className = "dragger-wrapper";
+
+        let line1 = document.createElement("span");
+        line1.className = "dragger-line";
+        let line2 = document.createElement("span");
+        line2.className = "dragger-line";
+        let line3 = document.createElement("span");
+        line3.className = "dragger-line";
+
+        draggerWrapper.appendChild(line1);
+        draggerWrapper.appendChild(line2);
+        draggerWrapper.appendChild(line3);
+
+        dragger.appendChild(draggerWrapper);
+
+        this.tooltip.appendChild(dragger);
+        this.dragElement(dragger);
+    }
 
     //label of dropdown will change to given label
     updateFontSizeDropdown(label: string) {
@@ -243,24 +302,13 @@ export class TooltipTextMenu {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
             this.linkEditor.className = "ProseMirror-icon menuicon";
-            this.linkEditor.style.color = "black";
-            this.linkText = document.createElement("div");
-            this.linkText.style.cssFloat = "left";
-            this.linkText.style.marginRight = "5px";
-            this.linkText.style.marginLeft = "5px";
-            this.linkText.setAttribute("contenteditable", "true");
-            this.linkText.style.whiteSpace = "nowrap";
-            this.linkText.style.width = "150px";
-            this.linkText.style.overflow = "hidden";
-            this.linkText.style.color = "white";
-            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
-            let linkBtn = document.createElement("div");
-            linkBtn.textContent = ">>";
-            linkBtn.style.width = "10px";
-            linkBtn.style.height = "10px";
-            linkBtn.style.color = "white";
-            linkBtn.style.cssFloat = "left";
-            linkBtn.onpointerdown = (e: PointerEvent) => {
+            this.linkDrag = document.createElement("img");
+            this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
+            this.linkDrag.style.width = "13px";
+            this.linkDrag.style.height = "13px";
+            this.linkDrag.title = "Drag to create link";
+            this.linkDrag.id = "link-drag";
+            this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let node = this.view.state.selection.$from.nodeAfter;
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
@@ -281,61 +329,136 @@ export class TooltipTextMenu {
                     e.preventDefault();
                 }
             };
-            this.linkDrag = document.createElement("img");
-            this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
-            this.linkDrag.style.width = "15px";
-            this.linkDrag.style.height = "15px";
-            this.linkDrag.title = "Drag to create link";
-            this.linkDrag.style.color = "black";
-            this.linkDrag.style.background = "black";
-            this.linkDrag.style.cssFloat = "left";
-            this.linkDrag.onpointerdown = (e: PointerEvent) => {
-                if (!this.editorProps) return;
-                let dragData = new DragManager.LinkDragData(this.editorProps.Document);
-                dragData.dontClearTextBox = true;
-                // hack to get source context -sy
-                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
-                e.stopPropagation();
-                let ctrlKey = e.ctrlKey;
-                DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
-                    {
-                        handlers: {
-                            dragComplete: action(() => {
-                                if (dragData.linkDocument) {
-                                    let linkDoc = dragData.linkDocument;
-                                    let proto = Doc.GetProto(linkDoc);
-                                    if (proto && docView) {
-                                        proto.sourceContext = docView.props.ContainingCollectionDoc;
-                                    }
-                                    let text = this.makeLink(linkDoc, ctrlKey ? "onRight" : "inTab");
-                                    if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
-                                        proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
-                                    }
-                                }
-                            }),
-                        },
-                        hideSource: false
-                    });
-                e.stopPropagation();
-                e.preventDefault();
-            };
             this.linkEditor.appendChild(this.linkDrag);
             this.tooltip.appendChild(this.linkEditor);
         }
 
+        // let node = this.view.state.selection.$from.nodeAfter;
+        // let link = node && node.marks.find(m => m.type.name === "link");
+        // this.linkText.textContent = link ? link.attrs.href : "-empty-";
+
+        // this.linkText.onkeydown = (e: KeyboardEvent) => {
+        //     if (e.key === "Enter") {
+        //         // this.makeLink(this.linkText!.textContent!);
+        //         e.stopPropagation();
+        //         e.preventDefault();
+        //     }
+        // };
+        // // this.tooltip.appendChild(this.linkEditor);
+    }
+
+    async getTextLinkTargetTitle() {
         let node = this.view.state.selection.$from.nodeAfter;
         let link = node && node.marks.find(m => m.type.name === "link");
-        this.linkText.textContent = link ? link.attrs.href : "-empty-";
-
-        this.linkText.onkeydown = (e: KeyboardEvent) => {
-            if (e.key === "Enter") {
-                // this.makeLink(this.linkText!.textContent!);
-                e.stopPropagation();
-                e.preventDefault();
+        if (link) {
+            let href = link.attrs.href;
+            if (href) {
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    if (linkclicked) {
+                        let linkDoc = await DocServer.GetRefField(linkclicked);
+                        if (linkDoc instanceof Doc) {
+                            let anchor1 = await Cast(linkDoc.anchor1, Doc);
+                            let anchor2 = await Cast(linkDoc.anchor2, Doc);
+                            let currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+                            if (currentDoc && anchor1 && anchor2) {
+                                if (Doc.AreProtosEqual(currentDoc, anchor1)) return StrCast(anchor2.title);
+                                if (Doc.AreProtosEqual(currentDoc, anchor2)) return StrCast(anchor2.title);
+                            }
+                        }
+                    }
+                } else {
+                    return href;
+                }
             }
-        };
-        // this.tooltip.appendChild(this.linkEditor);
+        }
     }
+
+    async createLinkDropdown() {
+        let targetTitle = await this.getTextLinkTargetTitle();
+        let input = document.createElement("input");
+
+        // menu item for input for hyperlink url 
+        // TODO: integrate search to allow users to search for a doc to link to
+        let linkInfo = new MenuItem({
+            title: "",
+            execEvent: "",
+            class: "button-setting-disabled",
+            css: "",
+            render() {
+                let p = document.createElement("p");
+                p.textContent = "Linked to:";
+
+                input.type = "text";
+                input.placeholder = "Enter URL";
+                if (targetTitle) input.value = targetTitle;
+                input.onclick = (e: MouseEvent) => {
+                    input.select();
+                    input.focus();
+                };
+
+                let div = document.createElement("div");
+                div.appendChild(p);
+                div.appendChild(input);
+                return div;
+            },
+            enable() { return false; },
+            run(p1, p2, p3, event) {
+                event.stopPropagation();
+            }
+        });
+
+        // menu item to update/apply the hyperlink to the selected text
+        let linkApply = new MenuItem({
+            title: "",
+            execEvent: "",
+            class: "",
+            css: "",
+            render() {
+                let button = document.createElement("button");
+                button.className = "link-url-button";
+                button.textContent = "Apply hyperlink";
+                return button;
+            },
+            enable() { return false; },
+            run: (state, dispatch, view, event) => {
+                event.stopPropagation();
+                this.makeLink(input.value, "onRight");
+            }
+        });
+
+        // menu item to remove the link
+        // TODO: allow this to be undoable
+        let self = this;
+        let deleteLink = new MenuItem({
+            title: "Delete link",
+            execEvent: "",
+            class: "separated-button",
+            css: "",
+            render() {
+                let button = document.createElement("button");
+                button.textContent = "Remove link";
+
+                let wrapper = document.createElement("div");
+                wrapper.appendChild(button);
+                return wrapper;
+            },
+            enable() { return true; },
+            async run() {
+                self.deleteLink();
+                // update link dropdown
+                let dropdown = await self.createLinkDropdown();
+                let newLinkDropdowndom = dropdown.render(self.view).dom;
+                self._linkDropdownDom && self.tooltip.replaceChild(newLinkDropdowndom, self._linkDropdownDom);
+                self._linkDropdownDom = newLinkDropdowndom;
+            }
+        });
+
+
+        let linkDropdown = new Dropdown(targetTitle ? [linkInfo, linkApply, deleteLink] : [linkInfo, linkApply], { class: "buttonSettings-dropdown" }) as MenuItem;
+        return linkDropdown;
+    }
+
 
     dragElement(elmnt: HTMLElement) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -627,15 +750,15 @@ export class TooltipTextMenu {
     // selectionchanged event handler
 
     brush_function(state: EditorState<any>, dispatch: any) {
-        if (this._brushIsEmpty) {
+        if (TooltipTextMenuManager.Instance._brushIsEmpty) {
             const selected_marks = this.getMarksInSelection(this.view.state);
             if (this._brushdom) {
                 if (selected_marks.size >= 0) {
-                    this._brushMarks = selected_marks;
+                    TooltipTextMenuManager.Instance._brushMarks = selected_marks;
                     const newbrush = this.createBrush(true).render(this.view).dom;
                     this.tooltip.replaceChild(newbrush, this._brushdom);
                     this._brushdom = newbrush;
-                    this._brushIsEmpty = !this._brushIsEmpty;
+                    TooltipTextMenuManager.Instance._brushIsEmpty = !TooltipTextMenuManager.Instance._brushIsEmpty;
                 }
             }
         }
@@ -643,9 +766,9 @@ export class TooltipTextMenu {
             let { from, to, $from } = this.view.state.selection;
             if (this._brushdom) {
                 if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
-                    if (this._brushMarks && to - from > 0) {
+                    if (TooltipTextMenuManager.Instance._brushMarks && to - from > 0) {
                         this.view.dispatch(this.view.state.tr.removeMark(from, to));
-                        Array.from(this._brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
+                        Array.from(TooltipTextMenuManager.Instance._brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
                             const markType = mark.type;
                             this.changeToMarkInGroup(markType, this.view, []);
                         });
@@ -655,7 +778,7 @@ export class TooltipTextMenu {
                     const newbrush = this.createBrush(false).render(this.view).dom;
                     this.tooltip.replaceChild(newbrush, this._brushdom);
                     this._brushdom = newbrush;
-                    this._brushIsEmpty = !this._brushIsEmpty;
+                    TooltipTextMenuManager.Instance._brushIsEmpty = !TooltipTextMenuManager.Instance._brushIsEmpty;
                 }
             }
         }
@@ -663,46 +786,46 @@ export class TooltipTextMenu {
 
     }
 
-    createCollapse() {
-        this._collapseBtn = new MenuItem({
-            title: "Collapse",
-            //label: "Collapse",
-            icon: icons.join,
-            execEvent: "",
-            css: "color:white;",
-            class: "summarize",
-            run: () => {
-                this.collapseToolTip();
-            }
-        });
-    }
+    // createCollapse() {
+    //     this._collapseBtn = new MenuItem({
+    //         title: "Collapse",
+    //         //label: "Collapse",
+    //         icon: icons.join,
+    //         execEvent: "",
+    //         css: "color:white;",
+    //         class: "summarize",
+    //         run: () => {
+    //             this.collapseToolTip();
+    //         }
+    //     });
+    // }
 
-    collapseToolTip() {
-        if (this._collapseBtn) {
-            if (this._collapseBtn.spec.title === "Collapse") {
-                // const newcollapseBtn = new MenuItem({
-                //     title: "Expand",
-                //     icon: icons.join,
-                //     execEvent: "",
-                //     css: "color:white;",
-                //     class: "summarize",
-                //     run: (state, dispatch, view) => {
-                //         this.collapseToolTip();
-                //     }
-                // });
-                // this.tooltip.replaceChild(newcollapseBtn.render(this.view).dom, this._collapseBtn.render(this.view).dom);
-                // this._collapseBtn = newcollapseBtn;
-                this.tooltip.style.width = "30px";
-                this._collapseBtn.spec.title = "Expand";
-                this._collapseBtn.render(this.view);
-            }
-            else {
-                this._collapseBtn.spec.title = "Collapse";
-                this.tooltip.style.width = "550px";
-                this._collapseBtn.render(this.view);
-            }
-        }
-    }
+    // collapseToolTip() {
+    //     if (this._collapseBtn) {
+    //         if (this._collapseBtn.spec.title === "Collapse") {
+    //             // const newcollapseBtn = new MenuItem({
+    //             //     title: "Expand",
+    //             //     icon: icons.join,
+    //             //     execEvent: "",
+    //             //     css: "color:white;",
+    //             //     class: "summarize",
+    //             //     run: (state, dispatch, view) => {
+    //             //         this.collapseToolTip();
+    //             //     }
+    //             // });
+    //             // this.tooltip.replaceChild(newcollapseBtn.render(this.view).dom, this._collapseBtn.render(this.view).dom);
+    //             // this._collapseBtn = newcollapseBtn;
+    //             this.tooltip.style.width = "30px";
+    //             this._collapseBtn.spec.title = "Expand";
+    //             this._collapseBtn.render(this.view);
+    //         }
+    //         else {
+    //             this._collapseBtn.spec.title = "Collapse";
+    //             this.tooltip.style.width = "550px";
+    //             this._collapseBtn.render(this.view);
+    //         }
+    //     }
+    // }
 
     createLink() {
         let markType = schema.marks.link;
@@ -913,32 +1036,41 @@ export class TooltipTextMenu {
     update_mark_doms() {
         this.reset_mark_doms();
         let foundlink = false;
-        let children = this.extras.childNodes;
+        // let children = this.extras.childNodes;
         this._activeMarks.forEach((mark) => {
             if (this._marksToDoms.has(mark)) {
                 let dom = this._marksToDoms.get(mark);
                 if (dom) dom.style.color = "greenyellow";
             }
-            if (children.length > 1) {
-                foundlink = true;
-            }
-            if (mark.type.name === "link" && children.length === 1) {
-                // let del = document.createElement("button");
-                // del.textContent = "X";
-                // del.style.color = "red";
-                // del.style.height = "10px";
-                // del.style.width = "10px";
-                // del.style.marginLeft = "5px";
-                // del.onclick = this.deleteLink;
-                // this.extras.appendChild(del);
-                let del = this.deleteLinkItem().render(this.view).dom;
-                this.extras.appendChild(del);
-                foundlink = true;
-            }
+            // if (children.length > 1) {
+            //     foundlink = true;
+            // }
+            // if (mark.type.name === "link" && children.length === 1) {
+            //     // let del = document.createElement("button");
+            //     // del.textContent = "X";
+            //     // del.style.color = "red";
+            //     // del.style.height = "10px";
+            //     // del.style.width = "10px";
+            //     // del.style.marginLeft = "5px";
+            //     // del.onclick = this.deleteLink;
+            //     // this.extras.appendChild(del);
+            //     let del = this.deleteLinkItem().render(this.view).dom;
+            //     this.extras.appendChild(del);
+            //     foundlink = true;
+            // }
         });
-        if (!foundlink) {
-            if (children.length > 1) {
-                this.extras.removeChild(children[1]);
+        // if (!foundlink) {
+        //     if (children.length > 1) {
+        //         this.extras.removeChild(children[1]);
+        //     }
+        // }
+
+        // keeps brush tool highlighted if active when switching between textboxes
+        if (!TooltipTextMenuManager.Instance._brushIsEmpty) {
+            if (this._brushdom) {
+                const newbrush = this.createBrush(true).render(this.view).dom;
+                this.tooltip.replaceChild(newbrush, this._brushdom);
+                this._brushdom = newbrush;
             }
         }
 
@@ -1020,5 +1152,55 @@ export class TooltipTextMenu {
 
     destroy() {
         this.wrapper.remove();
+    }
+}
+
+
+class TooltipTextMenuManager {
+    private static _instance: TooltipTextMenuManager;
+
+    public pinnedX: number = 0;
+    public pinnedY: number = 0;
+    public unpinnedX: number = 0;
+    public unpinnedY: number = 0;
+    private _isPinned: boolean = false;
+
+    public _brushMarks: Set<Mark> | undefined;
+    public _brushIsEmpty: boolean = true;
+
+    public activeMenu: TooltipTextMenu | undefined;
+
+    static get Instance() {
+        if (!TooltipTextMenuManager._instance) {
+            TooltipTextMenuManager._instance = new TooltipTextMenuManager();
+        }
+        return TooltipTextMenuManager._instance;
+    }
+
+    // private pinnedToUnpinned() {
+    //     let position = MainOverlayTextBox.Instance.position;
+
+    //     this.unpinnedX = this.pinnedX - position[0];
+    //     this.unpinnedY = this.pinnedY - position[1];
+    // }
+
+    // private unpinnedToPinned() {
+    //     let position = MainOverlayTextBox.Instance.position;
+
+    //     this.pinnedX = position[0] + this.unpinnedX;
+    //     this.pinnedY = position[1] + this.unpinnedY;
+    // }
+
+    public get isPinned() {
+        return this._isPinned;
+    }
+
+    public toggleIsPinned() {
+        // if (this._isPinned) {
+        //     this.pinnedToUnpinned();
+        // } else {
+        //     this.unpinnedToPinned();
+        // }
+        this._isPinned = !this._isPinned;
     }
 }
