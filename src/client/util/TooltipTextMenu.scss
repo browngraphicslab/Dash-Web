@@ -55,12 +55,6 @@
     }
 }
 
-// .ProseMirror-menu-submenu {
-//     display: none;
-//     min-width: 4em;
-//     left: 100%;
-//     top: -3px;
-// }
 
 .ProseMirror-menu-submenu-label:after {
     content: "";
@@ -72,34 +66,6 @@
     right: 4px;
     top: calc(50% - 4px);
 }
-
-
-  
-//   .ProseMirror-menu-active {
-//     background: #eee;
-//     border-radius: 4px;
-//   }
-  
-//   .ProseMirror-menu-disabled {
-//     opacity: .3;
-//   }
-  
-  
-// .ProseMirror-menubar {
-//     border-top-left-radius: inherit;
-//     border-top-right-radius: inherit;
-//     position: relative;
-//     min-height: 1em;
-//     color: white;
-//     padding: 10px 10px;
-//     top: 0; left: 0; right: 0;
-//     border-bottom: 1px solid silver;
-//     background:$dark-color;
-//     z-index: 10;
-//     -moz-box-sizing: border-box;
-//     box-sizing: border-box;
-//     overflow: visible;
-// }
   
   .ProseMirror-icon {
     display: inline-block;
@@ -121,74 +87,6 @@
         vertical-align: text-top;
       }  
   }
-  
-//   .ProseMirror ul, .ProseMirror ol {
-//     padding-left: 30px;
-//   }
-  
-//   .ProseMirror blockquote {
-//     padding-left: 1em;
-//     border-left: 3px solid #eee;
-//     margin-left: 0; margin-right: 0;
-//   }
-  
-//   .ProseMirror-example-setup-style img {
-//     cursor: default;
-//   }
-  
-//   .ProseMirror-prompt {
-//     background: white;
-//     padding: 5px 10px 5px 15px;
-//     border: 1px solid silver;
-//     position: fixed;
-//     border-radius: 3px;
-//     z-index: 11;
-//     box-shadow: -.5px 2px 5px white(255, 255, 255, 0.2);
-//   }
-  
-//   .ProseMirror-prompt h5 {
-//     margin: 0;
-//     font-weight: normal;
-//     font-size: 100%;
-//     color: #444;
-//   }
-  
-//   .ProseMirror-prompt input[type="text"],
-//   .ProseMirror-prompt textarea {
-//     background: white;
-//     border: none;
-//     outline: none;
-//   }
-  
-//   .ProseMirror-prompt input[type="text"] {
-//     padding: 0 4px;
-//   }
-  
-//   .ProseMirror-prompt-close {
-//     position: absolute;
-//     left: 2px; top: 1px;
-//     color: #666;
-//     border: none; background: transparent; padding: 0;
-//   }
-  
-//   .ProseMirror-prompt-close:after {
-//     content: "✕";
-//     font-size: 12px;
-//   }
-  
-//   .ProseMirror-invalid {
-//     background: #ffc;
-//     border: 1px solid #cc7;
-//     border-radius: 4px;
-//     padding: 5px 10px;
-//     position: absolute;
-//     min-width: 10em;
-//   }
-  
-//   .ProseMirror-prompt-buttons {
-//     margin-top: 5px;
-//     display: none;
-//   }
 
 .wrapper {
     position: absolute;
@@ -223,36 +121,6 @@
       line-height: 2px;
     }
 }
-
-// .tooltipExtras {
-//     position: absolute;
-//     z-index: 20000;
-//     background: #121721;
-//     border: 1px solid silver;
-//     border-radius: 15px;
-//     //height: 60px;
-//     //padding: 2px 10px;
-//     //margin-top: 100px;
-//     //-webkit-transform: translateX(-50%);
-//     //transform: translateX(-50%);
-//     transform: translateY(-115px);
-//     pointer-events: all;
-//     height: 25px;
-//     width:fit-content;
-//     .ProseMirror-example-setup-style hr {
-//       padding: 2px 10px;
-//       border: none;
-//       margin: 1em 0;
-//     }
-    
-//     .ProseMirror-example-setup-style hr:after {
-//       content: "";
-//       display: block;
-//       height: 1px;
-//       background-color: silver;
-//       line-height: 2px;
-//     }
-// }
 
 #link-drag {
     background-color: #323232;

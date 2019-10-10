@@ -154,10 +154,10 @@ export class TooltipTextMenu {
 
         // link menu
         this.updateLinkMenu();
-        let dropdown = await this.createLinkDropdown();
-        let newLinkDropdowndom = dropdown.render(this.view).dom;
-        this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
-        this._linkDropdownDom = newLinkDropdowndom;
+        // let dropdown = await this.createLinkDropdown();
+        // let newLinkDropdowndom = dropdown.render(this.view).dom;
+        // this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
+        // this._linkDropdownDom = newLinkDropdowndom;
 
         // list of font styles
         this.initFontStyles();
@@ -302,13 +302,24 @@ export class TooltipTextMenu {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
             this.linkEditor.className = "ProseMirror-icon menuicon";
-            this.linkDrag = document.createElement("img");
-            this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
-            this.linkDrag.style.width = "13px";
-            this.linkDrag.style.height = "13px";
-            this.linkDrag.title = "Drag to create link";
-            this.linkDrag.id = "link-drag";
-            this.linkDrag.onpointerdown = (e: PointerEvent) => {
+            this.linkEditor.style.color = "black";
+            this.linkText = document.createElement("div");
+            this.linkText.style.cssFloat = "left";
+            this.linkText.style.marginRight = "5px";
+            this.linkText.style.marginLeft = "5px";
+            this.linkText.setAttribute("contenteditable", "true");
+            this.linkText.style.whiteSpace = "nowrap";
+            this.linkText.style.width = "150px";
+            this.linkText.style.overflow = "hidden";
+            this.linkText.style.color = "white";
+            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
+            let linkBtn = document.createElement("div");
+            linkBtn.textContent = ">>";
+            linkBtn.style.width = "10px";
+            linkBtn.style.height = "10px";
+            linkBtn.style.color = "white";
+            linkBtn.style.cssFloat = "left";
+            linkBtn.onpointerdown = (e: PointerEvent) => {
                 let node = this.view.state.selection.$from.nodeAfter;
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
@@ -329,136 +340,137 @@ export class TooltipTextMenu {
                     e.preventDefault();
                 }
             };
+            this.linkDrag = document.createElement("img");
+            this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
+            this.linkDrag.style.width = "15px";
+            this.linkDrag.style.height = "15px";
+            this.linkDrag.title = "Drag to create link";
+            this.linkDrag.style.color = "black";
+            this.linkDrag.style.background = "black";
+            this.linkDrag.style.cssFloat = "left";
+            this.linkDrag.onpointerdown = (e: PointerEvent) => {
+                if (!this.editorProps) return;
+                let dragData = new DragManager.LinkDragData(this.editorProps.Document);
+                dragData.dontClearTextBox = true;
+                // hack to get source context -sy
+                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
+                e.stopPropagation();
+                let ctrlKey = e.ctrlKey;
+                DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
+                    {
+                        handlers: {
+                            dragComplete: action(() => {
+                                if (dragData.linkDocument) {
+                                    let linkDoc = dragData.linkDocument;
+                                    let proto = Doc.GetProto(linkDoc);
+                                    if (proto && docView) {
+                                        proto.sourceContext = docView.props.ContainingCollectionDoc;
+                                    }
+                                    let text = this.makeLink(linkDoc, ctrlKey ? "onRight" : "inTab");
+                                    if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
+                                        proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
+                                    }
+                                }
+                            }),
+                        },
+                        hideSource: false
+                    });
+                e.stopPropagation();
+                e.preventDefault();
+            };
             this.linkEditor.appendChild(this.linkDrag);
             this.tooltip.appendChild(this.linkEditor);
         }
 
-        // let node = this.view.state.selection.$from.nodeAfter;
-        // let link = node && node.marks.find(m => m.type.name === "link");
-        // this.linkText.textContent = link ? link.attrs.href : "-empty-";
-
-        // this.linkText.onkeydown = (e: KeyboardEvent) => {
-        //     if (e.key === "Enter") {
-        //         // this.makeLink(this.linkText!.textContent!);
-        //         e.stopPropagation();
-        //         e.preventDefault();
-        //     }
-        // };
-        // // this.tooltip.appendChild(this.linkEditor);
-    }
-
-    async getTextLinkTargetTitle() {
         let node = this.view.state.selection.$from.nodeAfter;
         let link = node && node.marks.find(m => m.type.name === "link");
-        if (link) {
-            let href = link.attrs.href;
-            if (href) {
-                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    if (linkclicked) {
-                        let linkDoc = await DocServer.GetRefField(linkclicked);
-                        if (linkDoc instanceof Doc) {
-                            let anchor1 = await Cast(linkDoc.anchor1, Doc);
-                            let anchor2 = await Cast(linkDoc.anchor2, Doc);
-                            let currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
-                            if (currentDoc && anchor1 && anchor2) {
-                                if (Doc.AreProtosEqual(currentDoc, anchor1)) return StrCast(anchor2.title);
-                                if (Doc.AreProtosEqual(currentDoc, anchor2)) return StrCast(anchor2.title);
-                            }
-                        }
-                    }
-                } else {
-                    return href;
-                }
+        this.linkText.textContent = link ? link.attrs.href : "-empty-";
+
+        this.linkText.onkeydown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+                // this.makeLink(this.linkText!.textContent!);
+                e.stopPropagation();
+                e.preventDefault();
             }
-        }
+        };
+        // this.tooltip.appendChild(this.linkEditor);
     }
 
-    async createLinkDropdown() {
-        let targetTitle = await this.getTextLinkTargetTitle();
-        let input = document.createElement("input");
+    // updateLinkMenu() {
+    //     if (!this.linkEditor || !this.linkText) {
+    //         this.linkEditor = document.createElement("div");
+    //         this.linkEditor.className = "ProseMirror-icon menuicon";
+    //         this.linkDrag = document.createElement("img");
+    //         this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
+    //         this.linkDrag.style.width = "13px";
+    //         this.linkDrag.style.height = "13px";
+    //         this.linkDrag.title = "Drag to create link";
+    //         this.linkDrag.id = "link-drag";
+    //         this.linkDrag.onpointerdown = (e: PointerEvent) => {
+    //             let node = this.view.state.selection.$from.nodeAfter;
+    //             let link = node && node.marks.find(m => m.type.name === "link");
+    //             if (link) {
+    //                 let href: string = link.attrs.href;
+    //                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+    //                     let docid = href.replace(Utils.prepend("/doc/"), "");
+    //                     DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
+    //                         if (f instanceof Doc) {
+    //                             if (DocumentManager.Instance.getDocumentView(f)) {
+    //                                 DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
+    //                             }
+    //                             else this.editorProps && this.editorProps.addDocTab(f, undefined, "onRight");
+    //                         }
+    //                     }));
+    //                 }
+    //                 // TODO This should have an else to handle external links
+    //                 e.stopPropagation();
+    //                 e.preventDefault();
+    //             }
+    //         };
+    //         this.linkEditor.appendChild(this.linkDrag);
+    //         this.tooltip.appendChild(this.linkEditor);
+    //     }
 
-        // menu item for input for hyperlink url 
-        // TODO: integrate search to allow users to search for a doc to link to
-        let linkInfo = new MenuItem({
-            title: "",
-            execEvent: "",
-            class: "button-setting-disabled",
-            css: "",
-            render() {
-                let p = document.createElement("p");
-                p.textContent = "Linked to:";
+    //     // let node = this.view.state.selection.$from.nodeAfter;
+    //     // let link = node && node.marks.find(m => m.type.name === "link");
+    //     // this.linkText.textContent = link ? link.attrs.href : "-empty-";
 
-                input.type = "text";
-                input.placeholder = "Enter URL";
-                if (targetTitle) input.value = targetTitle;
-                input.onclick = (e: MouseEvent) => {
-                    input.select();
-                    input.focus();
-                };
+    //     // this.linkText.onkeydown = (e: KeyboardEvent) => {
+    //     //     if (e.key === "Enter") {
+    //     //         // this.makeLink(this.linkText!.textContent!);
+    //     //         e.stopPropagation();
+    //     //         e.preventDefault();
+    //     //     }
+    //     // };
+    //     // // this.tooltip.appendChild(this.linkEditor);
+    // }
 
-                let div = document.createElement("div");
-                div.appendChild(p);
-                div.appendChild(input);
-                return div;
-            },
-            enable() { return false; },
-            run(p1, p2, p3, event) {
-                event.stopPropagation();
-            }
-        });
-
-        // menu item to update/apply the hyperlink to the selected text
-        let linkApply = new MenuItem({
-            title: "",
-            execEvent: "",
-            class: "",
-            css: "",
-            render() {
-                let button = document.createElement("button");
-                button.className = "link-url-button";
-                button.textContent = "Apply hyperlink";
-                return button;
-            },
-            enable() { return false; },
-            run: (state, dispatch, view, event) => {
-                event.stopPropagation();
-                this.makeLink(input.value, "onRight");
-            }
-        });
-
-        // menu item to remove the link
-        // TODO: allow this to be undoable
-        let self = this;
-        let deleteLink = new MenuItem({
-            title: "Delete link",
-            execEvent: "",
-            class: "separated-button",
-            css: "",
-            render() {
-                let button = document.createElement("button");
-                button.textContent = "Remove link";
-
-                let wrapper = document.createElement("div");
-                wrapper.appendChild(button);
-                return wrapper;
-            },
-            enable() { return true; },
-            async run() {
-                self.deleteLink();
-                // update link dropdown
-                let dropdown = await self.createLinkDropdown();
-                let newLinkDropdowndom = dropdown.render(self.view).dom;
-                self._linkDropdownDom && self.tooltip.replaceChild(newLinkDropdowndom, self._linkDropdownDom);
-                self._linkDropdownDom = newLinkDropdowndom;
-            }
-        });
-
-
-        let linkDropdown = new Dropdown(targetTitle ? [linkInfo, linkApply, deleteLink] : [linkInfo, linkApply], { class: "buttonSettings-dropdown" }) as MenuItem;
-        return linkDropdown;
-    }
-
+    // async getTextLinkTargetTitle() {
+    //     let node = this.view.state.selection.$from.nodeAfter;
+    //     let link = node && node.marks.find(m => m.type.name === "link");
+    //     if (link) {
+    //         let href = link.attrs.href;
+    //         if (href) {
+    //             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+    //                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+    //                 if (linkclicked) {
+    //                     let linkDoc = await DocServer.GetRefField(linkclicked);
+    //                     if (linkDoc instanceof Doc) {
+    //                         let anchor1 = await Cast(linkDoc.anchor1, Doc);
+    //                         let anchor2 = await Cast(linkDoc.anchor2, Doc);
+    //                         let currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+    //                         if (currentDoc && anchor1 && anchor2) {
+    //                             if (Doc.AreProtosEqual(currentDoc, anchor1)) return StrCast(anchor2.title);
+    //                             if (Doc.AreProtosEqual(currentDoc, anchor2)) return StrCast(anchor2.title);
+    //                         }
+    //                     }
+    //                 }
+    //             } else {
+    //                 return href;
+    //             }
+    //         }
+    //     }
+    // }
 
     dragElement(elmnt: HTMLElement) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
