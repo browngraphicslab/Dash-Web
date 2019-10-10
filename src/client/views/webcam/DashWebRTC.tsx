@@ -6,6 +6,7 @@ import { observable } from "mobx";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
+import "./DashWebRTC.scss"
 import adapter from 'webrtc-adapter';
 
 
