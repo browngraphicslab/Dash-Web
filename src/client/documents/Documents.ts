@@ -74,6 +74,7 @@ export interface DocumentOptions {
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
+    columnWidth?: number;
     fontSize?: number;
     curPage?: number;
     currentTimecode?: number;
@@ -83,6 +84,7 @@ export interface DocumentOptions {
     dockingConfig?: string;
     autoHeight?: boolean;
     dbDoc?: Doc;
+    icon?: string;
     // [key: string]: Opt<Field>;
 }
 

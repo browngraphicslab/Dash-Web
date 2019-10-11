@@ -9,6 +9,7 @@ import { DictationManager } from "../util/DictationManager";
 import SharingManager from "../util/SharingManager";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Cast, PromiseValue } from "../../new_fields/Types";
+import { ScriptField } from "../../new_fields/ScriptField";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -162,12 +163,31 @@ export default class KeyManager {
                     }
                 }
                 break;
+            case "c":
+                if (MainView.Instance.flyoutWidth > 0) {
+                    MainView.Instance.flyoutWidth = 0;
+                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                } else {
+                    MainView.Instance.flyoutWidth = 400;
+                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                }
+                break;
+            case "l":
+                if (MainView.Instance.flyoutWidth > 0) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 400;
+                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                }
+                break;
             case "f":
-                stopPropagation = false;
-                preventDefault = false;
-                MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
-                MainView.Instance.flyoutWidth = MainView.Instance.isSearchVisible ? 400 : 0;
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.searchBox, Doc)).then(pv => pv && (pv.treeViewOpen = (MainView.Instance.flyoutWidth > 0)));
+                if (MainView.Instance.flyoutWidth > 0) {
+                    MainView.Instance.flyoutWidth = 0;
+                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                } else {
+                    MainView.Instance.flyoutWidth = 400;
+                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                }
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];

@@ -15,7 +15,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, returnFalse, Utils } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { ClientUtils } from '../util/ClientUtils';
@@ -40,6 +40,8 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { OverlayView } from './OverlayView';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { CollectionStackingView } from './collections/CollectionStackingView';
+import { ScriptField } from '../../new_fields/ScriptField';
 
 @observer
 export class MainView extends React.Component {
@@ -459,33 +461,63 @@ export class MainView extends React.Component {
     @computed
     get flyout() {
         let sidebar: FieldResult<Field>;
-        if (!this.userDoc || !((sidebar = this.userDoc.sidebar) instanceof Doc)) {
+        if (!this.userDoc || !((sidebar = this.userDoc.sidebarContainer) instanceof Doc)) {
             return (null);
         }
-        return <DocumentView
-            Document={this.isSearchVisible ? Cast(CurrentUserUtils.UserDocument.searchBox, Doc) as Doc : sidebar}
-            DataDoc={undefined}
-            addDocument={undefined}
-            addDocTab={this.addDocTabFunc}
-            pinToPres={emptyFunction}
-            removeDocument={undefined}
-            ruleProvider={undefined}
-            onClick={undefined}
-            ScreenToLocalTransform={Transform.Identity}
-            ContentScaling={returnOne}
-            PanelWidth={this.flyoutWidthFunc}
-            PanelHeight={this.getPHeight}
-            renderDepth={0}
-            focus={emptyFunction}
-            backgroundColor={returnEmptyString}
-            parentActive={returnTrue}
-            whenActiveChanged={emptyFunction}
-            bringToFront={emptyFunction}
-            ContainingCollectionView={undefined}
-            ContainingCollectionDoc={undefined}
-            zoomToScale={emptyFunction}
-            getScale={returnOne}>
-        </DocumentView>;
+        (Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc).columnWidth = this.flyoutWidthFunc() / 3 - 30;
+        return <div style={{ display: "flex", flexDirection: "column", position: "absolute", width: "100%", height: "100%" }}>
+            <div style={{ position: "relative", height: "85px", width: "100%" }}>
+                <DocumentView
+                    Document={Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc}
+                    DataDoc={undefined}
+                    addDocument={undefined}
+                    addDocTab={this.addDocTabFunc}
+                    pinToPres={emptyFunction}
+                    removeDocument={undefined}
+                    ruleProvider={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getPHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}>
+                </DocumentView>
+            </div>
+            <div style={{ position: "relative", height: "calc(100% - 80px)", width: "100%" }}>
+                <DocumentView
+                    Document={this.isSearchVisible ? Cast(CurrentUserUtils.UserDocument.searchBox, Doc) as Doc : sidebar}
+                    DataDoc={undefined}
+                    addDocument={undefined}
+                    addDocTab={this.addDocTabFunc}
+                    pinToPres={emptyFunction}
+                    removeDocument={undefined}
+                    ruleProvider={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getPHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}>
+                </DocumentView>
+            </div></div>;
     }
 
     @computed
@@ -493,7 +525,7 @@ export class MainView extends React.Component {
         if (!this.userDoc) {
             return (<div>{this.dockingContent}</div>);
         }
-        let sidebar = this.userDoc.sidebar;
+        let sidebar = this.userDoc.sidebarContainer;
         if (!(sidebar instanceof Doc)) {
             return (null);
         }
@@ -585,16 +617,16 @@ export class MainView extends React.Component {
         // let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc | Promise<Doc>][] = [
-            [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
-            [React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
-            [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
-            [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
-            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
+            //[React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            //[React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
+            //[React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
+            //[React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
+            //[React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
             // [React.createRef<HTMLDivElement>(), "object-group", "Test Google Photos Search", googlePhotosSearch],
-            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
+            //[React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];
-        if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
+        //if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
         return < div id="add-nodes-menu" style={{ left: (this.flyoutTranslate ? this.flyoutWidth : 0) + 20, bottom: 20 }} >
 
@@ -603,7 +635,7 @@ export class MainView extends React.Component {
 
             <div id="add-options-content">
                 <ul id="add-options-list">
-                    <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
+                    {/* <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li> */}
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -612,7 +644,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -648,9 +680,7 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action.bound
     toggleSearch = () => {
-        this.isSearchVisible = !MainView.Instance.isSearchVisible;
-        MainView.Instance.flyoutWidth = MainView.Instance.isSearchVisible ? 400 : 0;
-        PromiseValue(Cast(CurrentUserUtils.UserDocument.searchBox, Doc)).then(pv => pv && (pv.treeViewOpen = (MainView.Instance.flyoutWidth > 0)));
+        PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
     }
 
     @computed private get dictationOverlay() {

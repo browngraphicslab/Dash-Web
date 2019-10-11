@@ -60,7 +60,7 @@ export class IconBar extends React.Component {
         return (
             <div className="icon-bar">
                 {FilterBox.Instance._allIcons.map((type: string) =>
-                    <IconButton type={type} />
+                    <IconButton key={type.toString()} type={type} />
                 )}
             </div>
         );

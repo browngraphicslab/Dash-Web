@@ -52,7 +52,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
             e.stopPropagation();
             e.preventDefault();
             let res = onDragStart && onDragStart.script.run({ this: this.props.Document }).result;
-            let doc = (res as Doc) ||  Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
+            let doc = (res as Doc) || Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
             DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
         }
         e.stopPropagation();
@@ -93,7 +93,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
 
     render() {
         return (<div className="dragBox-outerDiv" onContextMenu={this.onContextMenu} onPointerDown={this.onDragStart} ref={this._mainCont}>
-            <FontAwesomeIcon className="dragBox-icon" icon="folder" size="lg" color="white" />
+            <FontAwesomeIcon className="dragBox-icon" icon={this.props.Document.icon as any} size="lg" color="white" />
         </div>);
     }
 }
