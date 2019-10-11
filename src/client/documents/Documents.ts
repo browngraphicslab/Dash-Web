@@ -45,6 +45,7 @@ import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { QueryBox } from "../views/nodes/QueryBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -62,6 +63,7 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
+    fitWidth?: boolean;
     layout?: string | Doc;
     isTemplate?: boolean;
     templates?: List<string>;
@@ -118,6 +120,10 @@ export namespace Docs {
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
                 options: { height: 300, backgroundColor: "black" }
+            }],
+            [DocumentType.QUERY, {
+                layout: { view: QueryBox },
+                options: { width: 400, fitWidth: true }
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, ext: anno },
@@ -372,6 +378,10 @@ export namespace Docs {
 
         export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
+        }
+
+        export function QueryDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
         }
 
         export function TextDocument(options: DocumentOptions = {}) {

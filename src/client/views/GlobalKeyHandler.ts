@@ -7,6 +7,8 @@ import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
 import SharingManager from "../util/SharingManager";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { Cast, PromiseValue } from "../../new_fields/Types";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -162,6 +164,8 @@ export default class KeyManager {
                 break;
             case "f":
                 MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
+                MainView.Instance.flyoutWidth = MainView.Instance.isSearchVisible ? 400 : 0;
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.searchBox, Doc)).then(pv => pv && (pv.treeViewOpen = (MainView.Instance.flyoutWidth > 0)));
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];

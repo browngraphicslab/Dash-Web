@@ -97,6 +97,12 @@ export class CurrentUserUtils {
             curPresentation.boxShadow = "0 0";
             doc.curPresentation = curPresentation;
         }
+        if (doc.searchBox === undefined) {
+            const searchBox = Docs.Create.QueryDocument({ title: "Searching" });
+            searchBox.boxShadow = "0 0";
+            searchBox.ignoreClick = true;
+            doc.searchBox = searchBox;
+        }
 
         if (doc.sidebar === undefined) {
             const sidebar = Docs.Create.TreeDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });

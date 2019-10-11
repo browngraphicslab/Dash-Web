@@ -260,7 +260,10 @@ class TreeView extends React.Component<TreeViewProps> {
             let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return NumCast(this.props.document.height) ? NumCast(this.props.document.height) : 50;
+            return this.props.document.fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection.height) :
+                Math.min(this.docWidth() * NumCast(this.props.document.scrollHeight, NumCast(this.props.document.nativeHeight)) / NumCast(this.props.document.nativeWidth,
+                    NumCast(this.props.containingCollection.height)))) :
+                NumCast(this.props.document.height) ? NumCast(this.props.document.height) : 50;
         })());
     }
 

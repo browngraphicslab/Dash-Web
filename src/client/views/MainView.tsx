@@ -12,7 +12,7 @@ import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
@@ -463,7 +463,7 @@ export class MainView extends React.Component {
             return (null);
         }
         return <DocumentView
-            Document={sidebar}
+            Document={this.isSearchVisible ? Cast(CurrentUserUtils.UserDocument.searchBox, Doc) as Doc : sidebar}
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
@@ -640,7 +640,7 @@ export class MainView extends React.Component {
     @computed
     get miscButtons() {
         return [
-            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
+            //this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
         ];
 
     }
@@ -648,7 +648,9 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action.bound
     toggleSearch = () => {
-        this.isSearchVisible = !this.isSearchVisible;
+        this.isSearchVisible = !MainView.Instance.isSearchVisible;
+        MainView.Instance.flyoutWidth = MainView.Instance.isSearchVisible ? 400 : 0;
+        PromiseValue(Cast(CurrentUserUtils.UserDocument.searchBox, Doc)).then(pv => pv && (pv.treeViewOpen = (MainView.Instance.flyoutWidth > 0)));
     }
 
     @computed private get dictationOverlay() {

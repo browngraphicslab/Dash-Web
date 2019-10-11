@@ -59,23 +59,9 @@ export class IconBar extends React.Component {
     render() {
         return (
             <div className="icon-bar">
-                <div className="type-outer">
-                    <div className={"type-icon all"}
-                        onClick={this.selectAll}>
-                        <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
-                    </div>
-                    <div className="filter-description">Select All</div>
-                </div>
                 {FilterBox.Instance._allIcons.map((type: string) =>
                     <IconButton type={type} />
                 )}
-                <div className="type-outer">
-                    <div className={"type-icon none"}
-                        onClick={this.resetSelf}>
-                        <FontAwesomeIcon className="fontawesome-icon" icon={faTimesCircle} />
-                    </div>
-                    <div className="filter-description">Clear</div>
-                </div>
             </div>
         );
     }
