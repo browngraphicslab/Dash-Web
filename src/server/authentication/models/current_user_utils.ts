@@ -99,7 +99,7 @@ export class CurrentUserUtils {
         }
 
         if (doc.sidebar === undefined) {
-            const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
+            const sidebar = Docs.Create.TreeDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
             sidebar.forceActive = true;
             sidebar.lockedPosition = true;
             sidebar.gridGap = 5;

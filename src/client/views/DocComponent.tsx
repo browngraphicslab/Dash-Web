@@ -21,7 +21,8 @@ interface DocAnnotatableProps {
     fieldKey: string;
     fieldExt: string;
     whenActiveChanged: (isActive: boolean) => void;
-    isSelected: () => boolean, renderDepth: number
+    isSelected: () => boolean;
+    renderDepth: number;
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends React.Component<P> {

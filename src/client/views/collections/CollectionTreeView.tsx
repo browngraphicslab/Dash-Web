@@ -28,6 +28,7 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 
 export interface TreeViewProps {
@@ -198,6 +199,7 @@ class TreeView extends React.Component<TreeViewProps> {
             } else {
                 ContextMenu.Instance.addItem({ description: "Open as Workspace", event: () => MainView.Instance.openWorkspace(this.dataDoc), icon: "caret-square-right" });
                 ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
+                ContextMenu.Instance.addItem({ description: "Create New Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             }
             ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.document, StrCast(this.props.document.title), () => { }, () => { }), icon: "file" });
@@ -217,7 +219,7 @@ class TreeView extends React.Component<TreeViewProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.document;
-            DocUtils.MakeLink({doc:sourceDoc}, {doc:destDoc});
+            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc });
             e.stopPropagation();
         }
         if (de.data instanceof DragManager.DocumentDragData) {
@@ -538,7 +540,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) {
+        if (!e.isPropagationStopped() && this.props.Document === CurrentUserUtils.UserDocument.workspaces) {
             ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
             e.stopPropagation();
