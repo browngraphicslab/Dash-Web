@@ -238,9 +238,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
         let view = this._editorView!;
-        let mid = view.state.doc.resolve(Math.round((start + end) / 2));
         let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
-        view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark).setSelection(new TextSelection(mid)));
+        view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark));
     }
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._proseRef = ele;
@@ -333,8 +332,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     updateHighlights = () => {
         clearStyleSheetRules(FormattedTextBox._userStyleSheet);
+        if (FormattedTextBox._highlights.indexOf("Text from Others") !== -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-remote", { background: "yellow" });
+        }
         if (FormattedTextBox._highlights.indexOf("My Text") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "yellow" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "moccasin" });
         }
         if (FormattedTextBox._highlights.indexOf("Todo Items") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "todo", { outline: "black solid 1px" });
@@ -364,7 +366,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Dictate", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
-        ["My Text", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
+        ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
                     e.stopPropagation();

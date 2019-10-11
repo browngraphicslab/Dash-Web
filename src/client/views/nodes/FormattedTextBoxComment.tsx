@@ -93,7 +93,7 @@ export class FormattedTextBoxComment {
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;
 
-        if (!FormattedTextBoxComment.textBox || !FormattedTextBoxComment.textBox.props.isSelected()) return;
+        if (!FormattedTextBoxComment.textBox || !FormattedTextBoxComment.textBox.props || !FormattedTextBoxComment.textBox.props.isSelected()) return;
         let set = "none";
         if (FormattedTextBoxComment.textBox && state.selection.$from) {
             let nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);

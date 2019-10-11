@@ -46,7 +46,7 @@ export class CurrentUserUtils {
 
         // setup workspaces library item
         if (doc.workspaces === undefined) {
-            const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces".toUpperCase(), height: 100 });
+            const workspaces = Docs.Create.TreeDocument([], { title: "WORKSPACES", height: 100 });
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
@@ -112,6 +112,7 @@ export class CurrentUserUtils {
             sidebar.xMargin = 5;
             sidebar.yMargin = 5;
             sidebar.boxShadow = "1 1 3";
+            sidebar.workspaceLibrary = true; // flag that this is the document that shows the Notifications button when documents are shared
             doc.sidebar = sidebar;
         }
         PromiseValue(Cast(doc.sidebar, Doc)).then(sidebar => {
