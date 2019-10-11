@@ -17,7 +17,7 @@ export class Recommender {
     private _model: any;
     static Instance: Recommender;
     private dimension: number = 0;
-    private choice: string = "";
+    private choice: string = ""; // Tensorflow or Word2Vec
 
     constructor() {
         console.log("creating recommender...");

@@ -15,7 +15,7 @@ type RequestExecutor = (apiKey: string, body: string, service: Service) => Promi
 type AnalysisApplier<D> = (target: Doc, relevantKeys: string[], data: D, ...args: any) => any;
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
-type TextConverter = (results: any, data: string) => Promise<{ keyterms: Field, keyterms_counted: Field, values: any }>;
+type TextConverter = (results: any, data: string) => Promise<{ keyterms: Field, keyterms_counted: Field, values: any, kp_string: string[] }>;
 
 export type Tag = { name: string, confidence: number };
 export type Rectangle = { top: number, left: number, width: number, height: number };
@@ -290,12 +290,12 @@ export namespace CognitiveServices {
             export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, mainDoc: boolean = false, internal: boolean = true) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
-                let { keyterms, values, keyterms_counted } = await converter(results, data);
+                let { keyterms, values, keyterms_counted, kp_string } = await converter(results, data);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
                 target[keys[0]] = keyterms;
                 console.log("analyzed!");
                 if (internal) {
-                    await vectorize(keyterms, dataDoc, mainDoc, data);
+                    await vectorize(kp_string, dataDoc, mainDoc, data);
                 } else {
                     return values;
                 }

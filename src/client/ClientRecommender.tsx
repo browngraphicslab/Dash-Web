@@ -35,7 +35,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     static Instance: ClientRecommender;
     private mainDoc?: RecommenderDocument;
     private docVectors: Set<RecommenderDocument> = new Set();
-    private highKP: string[] = [];
 
     @observable private corr_matrix = [[0, 0], [0, 0]];
 
@@ -94,7 +93,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     public computeSimilarities() {
         ClientRecommender.Instance.docVectors.forEach((doc: RecommenderDocument) => {
             if (ClientRecommender.Instance.mainDoc) {
-                const distance = ClientRecommender.Instance.distance(ClientRecommender.Instance.mainDoc.vectorDoc, doc.vectorDoc, "euclidian");
+                const distance = ClientRecommender.Instance.distance(ClientRecommender.Instance.mainDoc.vectorDoc, doc.vectorDoc, "cosine");
                 doc.score = distance;
             }
         }
@@ -151,17 +150,21 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         let converter = async (results: any, data: string) => {
             let keyterms = new List<string>(); // raw keywords
             let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated as 
-            let highKP: string[] = [""]; // most frequent 
+            let kp_string: string = "";
+            let highKP: string[] = [""]; // most frequent keyphrase
             let high = 0;
             results.documents.forEach((doc: any) => {
                 let keyPhrases = doc.keyPhrases;
                 keyPhrases.map((kp: string) => {
                     const frequency = this.countFrequencies(kp, data);
                     keyterms.push(kp);
+                    kp_string += kp + ", ";
+                    // replaces highKP with new one
                     if (frequency > high) {
                         high = frequency;
                         highKP = [kp];
                     }
+                    // appends to current highKP phrase
                     else if (frequency === high) {
                         highKP.push(kp);
                     }
@@ -175,13 +178,11 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     });
                 });
             });
-            this.highKP = highKP;
-            //console.log(highKP);
             const kts_counted = new List<string>();
             keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
             let values = "";
             if (!internal) values = await this.sendRequest(highKP);
-            return { keyterms: keyterms, keyterms_counted: kts_counted, values };
+            return { keyterms: keyterms, keyterms_counted: kts_counted, values, kp_string: [kp_string] };
         };
         if (data != "") {
             return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
@@ -189,6 +190,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         return;
     }
 
+    /**
+     * 
+     * Counts frequencies of keyphrase in paragraph. 
+     */
 
     private countFrequencies(keyphrase: string, paragraph: string) {
         let data = paragraph.split(" ");
@@ -196,8 +201,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         let num_keywords = kp_array.length;
         let par_length = data.length;
         let frequency = 0;
-        // console.log("Paragraph: ", data);
-        // console.log("Keyphrases:", kp_array);
+        // slides keyphrase windows across paragraph and checks if it matches with corresponding paragraph slice
         for (let i = 0; i <= par_length - num_keywords; i++) {
             const window = data.slice(i, i + num_keywords);
             if (JSON.stringify(window).toLowerCase() === JSON.stringify(kp_array).toLowerCase() || kp_array.every(val => window.includes(val))) {
@@ -207,10 +211,20 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         return frequency;
     }
 
+    /**
+     * 
+     * Removes stopwords from list of strings representing a sentence
+     */
+
     private removeStopWords(word_array: string[]) {
         //console.log(sw.removeStopwords(word_array));
         return sw.removeStopwords(word_array);
     }
+
+    /**
+     * 
+     * API for sending arXiv request.
+     */
 
     private async sendRequest(keywords: string[]) {
         let query = "";
@@ -221,13 +235,14 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     }
 
     /**
-     * Request to the arXiv server for ML articles.
+     * Actual request to the arXiv server for ML articles.
      */
 
     arxivrequest = async (query: string) => {
         let xhttp = new XMLHttpRequest();
         let serveraddress = "http://export.arxiv.org/api";
-        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=5";
+        const maxresults = 5;
+        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=" + maxresults.toString();
         let promisified = (resolve: any, reject: any) => {
             xhttp.onreadystatechange = function () {
                 if (this.readyState === 4) {
@@ -243,7 +258,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                                 let titles = xml.getElementsByTagName("title");
                                 let counter = 1;
                                 if (titles && titles.length > 1) {
-                                    while (counter <= 5) {
+                                    while (counter <= maxresults) {
                                         const title = titles[counter].childNodes[0].nodeValue!;
                                         console.log(title)
                                         title_vals.push(title);
@@ -253,7 +268,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                                 let ids = xml.getElementsByTagName("id");
                                 counter = 1;
                                 if (ids && ids.length > 1) {
-                                    while (counter <= 5) {
+                                    while (counter <= maxresults) {
                                         const url = ids[counter].childNodes[0].nodeValue!;
                                         console.log(url);
                                         url_vals.push(url);
@@ -280,64 +295,8 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         console.log(text);
     }
 
-    /***
-     * Creates distance matrix for all Documents analyzed
-     */
-
-    @action
-    public createDistanceMatrix(documents: Set<RecommenderDocument> = ClientRecommender.Instance.docVectors) {
-        const documents_list = Array.from(documents);
-        const n = documents_list.length;
-        var matrix = new Array<number>(n).fill(0).map(() => new Array<number>(n).fill(0));
-        for (let i = 0; i < n; i++) {
-            var doc1 = documents_list[i];
-            for (let j = 0; j < n; j++) {
-                var doc2 = documents_list[j];
-                matrix[i][j] = ClientRecommender.Instance.distance(doc1.vectorDoc, doc2.vectorDoc, "euclidian");
-            }
-        }
-        ClientRecommender.Instance.corr_matrix = matrix;
-        return matrix;
-    }
-
-    @computed
-    private get generateRows() {
-        const n = ClientRecommender.Instance.corr_matrix.length;
-        let rows: JSX.Element[] = [];
-        for (let i = 0; i < n; i++) {
-            let children: JSX.Element[] = [];
-            for (let j = 0; j < n; j++) {
-                //let cell = React.createElement("td", ClientRecommender.Instance.corr_matrix[i][j]);
-                let cell = <td>{ClientRecommender.Instance.corr_matrix[i][j].toFixed(4)}</td>;
-                children.push(cell);
-            }
-            //let row = React.createElement("tr", { children: children, key: i });
-            let row = <tr>{children}</tr>;
-            rows.push(row);
-        }
-        return rows;
-    }
-
     render() {
         return (<div className="wrapper">
-            <h3 >{ClientRecommender.Instance.props.title ? ClientRecommender.Instance.props.title : "hello"}</h3>
-            {/* <table className="space" >
-                <tbody>
-                    <tr key="1">
-                        <td key="1">{ClientRecommender.Instance.corr_matrix[0][0].toFixed(4)}</td>
-                        <td key="2">{ClientRecommender.Instance.corr_matrix[0][1].toFixed(4)}</td>
-                    </tr>
-                    <tr key="2">
-                        <td key="1">{ClientRecommender.Instance.corr_matrix[1][0].toFixed(4)}</td>
-                        <td key="2">{ClientRecommender.Instance.corr_matrix[1][1].toFixed(4)}</td>
-                    </tr>
-                </tbody>
-            </table> */}
-            <table className="space">
-                <tbody>
-                    {ClientRecommender.Instance.generateRows}
-                </tbody>
-            </table>
         </div>);
     }
 

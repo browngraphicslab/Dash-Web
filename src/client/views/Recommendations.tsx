@@ -70,15 +70,9 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
         newRenderDoc.height = NumCast(this.props.Document.documentIconHeight);
         newRenderDoc.autoHeight = false;
         const docview = <div>
-            {/* onPointerDown={action(() => {
-                this._useIcons = !this._useIcons;
-                this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
-            })}
-            onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
-            onPointerLeave={action(() => this._displayDim = 50)} > */}
             <DocumentView
-                fitToBox={StrCast(doc).indexOf(DocumentType.COL) !== -1}
-                Document={doc}
+                fitToBox={StrCast(doc.type).indexOf(DocumentType.COL) !== -1}
+                Document={newRenderDoc}
                 addDocument={returnFalse}
                 removeDocument={returnFalse}
                 ruleProvider={undefined}
@@ -100,10 +94,6 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 ContentScaling={scale}
             />
         </div>;
-        // const data = renderDoc.data;
-        // if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
-        // newRenderDoc.preview = true;
-        // this.previewDocs.push(newRenderDoc);
         return docview;
 
     }
@@ -171,16 +161,16 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 {DocListCast(this.props.Document.data).map(doc => {
                     return (
                         <div className="content">
-                            {/* <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
+                            <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
                                 {this.DocumentIcon(doc)}
-                            </span> */}
+                            </span>
                             <span className="score">{NumCast(doc.score).toFixed(4)}</span>
                             <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
                                 <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
                             </div>
-                            {/* <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
+                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
                                 <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
-                            </div> */}
+                            </div>
                         </div>
                     );
                 })}
