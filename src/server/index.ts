@@ -213,7 +213,6 @@ const solrURL = "http://localhost:8983/solr/#/dash";
 
 app.get("/textsearch", async (req, res) => {
     let q = req.query.q;
-    console.log("TEXTSEARCH " + q);
     if (q === undefined) {
         res.send([]);
         return;

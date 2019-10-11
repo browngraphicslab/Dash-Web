@@ -163,6 +163,8 @@ export default class KeyManager {
                 }
                 break;
             case "f":
+                stopPropagation = false;
+                preventDefault = false;
                 MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
                 MainView.Instance.flyoutWidth = MainView.Instance.isSearchVisible ? 400 : 0;
                 PromiseValue(Cast(CurrentUserUtils.UserDocument.searchBox, Doc)).then(pv => pv && (pv.treeViewOpen = (MainView.Instance.flyoutWidth > 0)));

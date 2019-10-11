@@ -45,6 +45,6 @@ export class QueryBox extends React.Component<FieldViewProps> {
     render() {
         return <div style={{ width: "100%", height: "100%", position: "absolute", pointerEvents: "all" }}>
             <FilterBox></FilterBox>
-        </div>
+        </div>;
     }
 }
