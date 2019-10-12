@@ -958,8 +958,7 @@ app.get(RouteStore.readGoogleAccessToken, async (req, res) => {
 app.post(RouteStore.writeGoogleAccessToken, async (req, res) => {
     const userId = req.header("userId")!;
     const information = { credentialsPath, userId };
-    const { token } = await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode);
-    res.send(token.access_token);
+    res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
 });
 
 const tokenError = "Unable to successfully upload bytes for all images!";
