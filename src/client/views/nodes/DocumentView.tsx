@@ -602,7 +602,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }
             }
         }));
-        const doclist = ClientRecommender.Instance.computeSimilarities();
+        const doclist = ClientRecommender.Instance.computeSimilarities("cosine");
         let recDocs: { preview: Doc, score: number }[] = [];
         // tslint:disable-next-line: prefer-for-of
         for (let i = 0; i < doclist.length; i++) {

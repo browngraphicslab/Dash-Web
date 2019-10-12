@@ -36,7 +36,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     private mainDoc?: RecommenderDocument;
     private docVectors: Set<RecommenderDocument> = new Set();
 
-    @observable private corr_matrix = [[0, 0], [0, 0]];
+    @observable private corr_matrix = [[0, 0], [0, 0]]; // for testing
 
     constructor(props: RecommenderProps) {
         //console.log("creating client recommender...");
@@ -90,16 +90,21 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * Returns list of {doc, similarity (to main doc)} in increasing score
      */
 
-    public computeSimilarities() {
+    public computeSimilarities(distance_metric: string) {
         ClientRecommender.Instance.docVectors.forEach((doc: RecommenderDocument) => {
             if (ClientRecommender.Instance.mainDoc) {
-                const distance = ClientRecommender.Instance.distance(ClientRecommender.Instance.mainDoc.vectorDoc, doc.vectorDoc, "cosine");
+                const distance = ClientRecommender.Instance.distance(ClientRecommender.Instance.mainDoc.vectorDoc, doc.vectorDoc, distance_metric);
                 doc.score = distance;
             }
         }
         );
         let doclist = Array.from(ClientRecommender.Instance.docVectors);
-        doclist.sort((a: RecommenderDocument, b: RecommenderDocument) => a.score - b.score);
+        if (distance_metric == "euclidian") {
+            doclist.sort((a: RecommenderDocument, b: RecommenderDocument) => a.score - b.score);
+        }
+        else {
+            doclist.sort((a: RecommenderDocument, b: RecommenderDocument) => b.score - a.score);
+        }
         return doclist;
     }
 
@@ -107,8 +112,8 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * Computes the mean of a set of vectors
      */
 
-    public mean(paragraph: Set<number[]>, dataDoc: Doc, mainDoc: boolean) {
-        const n = 200;
+    public mean(paragraph: Set<number[]>) {
+        const n = 512;
         const num_words = paragraph.size;
         let meanVector = new Array<number>(n).fill(0); // mean vector
         if (num_words > 0) { // check to see if paragraph actually was vectorized
@@ -118,23 +123,20 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                 }
             });
             meanVector = meanVector.map(x => x / num_words);
-            const internalDoc: RecommenderDocument = { actualDoc: dataDoc, vectorDoc: meanVector, score: 0 };
-            if (mainDoc) ClientRecommender.Instance.mainDoc = internalDoc;
-            ClientRecommender.Instance.addToDocSet(internalDoc);
         }
         return meanVector;
     }
 
-    public processVector(vector: number[], dataDoc: Doc, mainDoc: boolean) {
+    public processVector(vector: number[], dataDoc: Doc, isMainDoc: boolean) {
         if (vector.length > 0) {
             const internalDoc: RecommenderDocument = { actualDoc: dataDoc, vectorDoc: vector, score: 0 };
-            if (mainDoc) ClientRecommender.Instance.mainDoc = internalDoc;
-            ClientRecommender.Instance.addToDocSet(internalDoc);
+            ClientRecommender.Instance.addToDocSet(internalDoc, isMainDoc);
         }
     }
 
-    private addToDocSet(internalDoc: RecommenderDocument) {
+    private addToDocSet(internalDoc: RecommenderDocument, isMainDoc: boolean) {
         if (ClientRecommender.Instance.docVectors) {
+            if (isMainDoc) ClientRecommender.Instance.mainDoc = internalDoc;
             ClientRecommender.Instance.docVectors.add(internalDoc);
         }
     }
@@ -143,22 +145,25 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * Uses Cognitive Services to extract keywords from a document
      */
 
-    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, mainDoc: boolean = false) {
+    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false) {
         let fielddata = Cast(dataDoc.data, RichTextField);
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";
         let converter = async (results: any, data: string) => {
             let keyterms = new List<string>(); // raw keywords
-            let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated as 
-            let kp_string: string = "";
+            // let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated. input to w2v
+            let kp_string: string = ""; // keywords concatenated into a string. input into TF
             let highKP: string[] = [""]; // most frequent keyphrase
             let high = 0;
             results.documents.forEach((doc: any) => {
                 let keyPhrases = doc.keyPhrases;
                 keyPhrases.map((kp: string) => {
-                    const frequency = this.countFrequencies(kp, data);
                     keyterms.push(kp);
-                    kp_string += kp + ", ";
+                    const frequency = this.countFrequencies(kp, data); // frequency of keyphrase in paragraph
+                    kp_string += kp + ", "; // ensures that if frequency is 0 for some reason kp is still added
+                    for (let i = 0; i < frequency - 1; i++) {
+                        kp_string += kp + ", "; // weights repeated keywords higher
+                    }
                     // replaces highKP with new one
                     if (frequency > high) {
                         high = frequency;
@@ -168,24 +173,25 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     else if (frequency === high) {
                         highKP.push(kp);
                     }
-                    let words = kp.split(" "); // separates phrase into words
-                    words = this.removeStopWords(words); // removes stop words if they appear in phrases
-                    words.forEach((word) => {
-                        //keyterms.push(word);
-                        for (let i = 0; i < frequency; i++) {
-                            keyterms_counted.push(word);
-                        }
-                    });
+                    // let words = kp.split(" "); // separates phrase into words
+                    // words = this.removeStopWords(words); // removes stop words if they appear in phrases
+                    // words.forEach((word) => {
+                    //     for (let i = 0; i < frequency; i++) {
+                    //         keyterms_counted.push(word);
+                    //     }
+                    // });
                 });
             });
-            const kts_counted = new List<string>();
-            keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
+            // const kts_counted = new List<string>();
+            // keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
+            if (kp_string.length > 2) kp_string = kp_string.substring(0, kp_string.length - 2);
+            console.log("kp string: ", kp_string);
             let values = "";
             if (!internal) values = await this.sendRequest(highKP);
-            return { keyterms: keyterms, keyterms_counted: kts_counted, values, kp_string: [kp_string] };
+            return { keyterms: keyterms, external_recommendations: values, kp_string: [kp_string] };
         };
         if (data != "") {
-            return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc, internal);
+            return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, isMainDoc, internal);
         }
         return;
     }
@@ -196,7 +202,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     private countFrequencies(keyphrase: string, paragraph: string) {
-        let data = paragraph.split(" ");
+        let data = paragraph.split(/ |\n/); // splits by new lines and spaces
         let kp_array = keyphrase.split(" ");
         let num_keywords = kp_array.length;
         let par_length = data.length;
@@ -287,12 +293,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             xhttp.send();
         };
         return new Promise<any>(promisified);
-    }
-
-    processArxivResult = (result: any) => {
-        var xmlDoc = result as XMLDocument;
-        let text = xmlDoc.getElementsByTagName("title")[0].childNodes[0].nodeValue;
-        console.log(text);
     }
 
     render() {
