@@ -19,6 +19,8 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     @observable private clickedState = false;
     @observable private success: Opt<boolean> = undefined;
     @observable private displayLauncher = true;
+    @observable private avatar: Opt<string> = undefined;
+    @observable private username: Opt<string> = undefined;
 
     private set isOpen(value: boolean) {
         runInAction(() => this.openState = value);
@@ -40,10 +42,14 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                     authenticationCode => {
                         if (authenticationCode) {
                             Identified.PostToServer(RouteStore.writeGoogleAccessToken, { authenticationCode }).then(
-                                token => {
+                                ({ access_token, avatar, name }) => {
+                                    runInAction(() => {
+                                        this.avatar = avatar;
+                                        this.username = name;
+                                    });
                                     this.beginFadeout();
                                     disposer();
-                                    resolve(token);
+                                    resolve(access_token);
                                 },
                                 action(() => {
                                     this.hasBeenClicked = false;
@@ -61,15 +67,18 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
 
     beginFadeout = action(() => {
         this.success = true;
+        this.authenticationCode = undefined;
+        this.displayLauncher = false;
+        this.hasBeenClicked = false;
         setTimeout(action(() => {
             this.isOpen = false;
-            this.displayLauncher = false;
             setTimeout(action(() => {
                 this.success = undefined;
                 this.displayLauncher = true;
-                this.hasBeenClicked = false;
+                this.avatar = undefined;
+                this.username = undefined;
             }), 500);
-        }), 2000);
+        }), 3000);
     });
 
     constructor(props: {}) {
@@ -88,7 +97,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
 
     private get renderPrompt() {
         return (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div className={'authorize-container'}>
                 {this.displayLauncher ? <button
                     className={"dispatch"}
                     onClick={this.handleClick}
@@ -99,6 +108,14 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                     onChange={this.handlePaste}
                     placeholder={prompt}
                 /> : (null)}
+                {this.avatar ? <img
+                    className={'avatar'}
+                    src={this.avatar}
+                /> : (null)}
+                {this.username ? <span
+                    className={'welcome'}
+                >Welcome to Dash, {this.username}
+                </span> : (null)}
             </div>
         );
     }
