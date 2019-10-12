@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, runInAction, reaction } from "mobx";
+import { observable, computed, action, trace, runInAction, reaction, IReactionDisposer } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
@@ -349,8 +349,6 @@ interface LinkEditorProps {
 }
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
-    @observable private _linkOption: string = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0];
-    @observable private _linkOldOption: string = "";
 
     @action
     deleteLink = (): void => {
@@ -375,37 +373,18 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
         LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, this.props.sourceDoc, groupDoc);
     }
+
     @action
     linkChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         console.log(StrCast(this.props.linkDoc.defaultLinkFollow));
-        if (!this._linkOldOption) {
-            this._linkOldOption = this._linkOption;
-        }
-        this._linkOption = e.target.value;
-    }
-
-    @action
-    changeLinkBehavior = (e: React.MouseEvent<HTMLButtonElement>): void => {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-        e.preventDefault();
-        if (e.currentTarget.value === "confirm") {
-            this.props.linkDoc.defaultLinkFollow = this._linkOption + "," + destination![Id] + ',false';
-            console.log(this.props.linkDoc.defaultLinkFollow);
-            console.log('changed behavior');
-        } else {
-            this._linkOption = this._linkOldOption;
-            console.log('reverted behavior');
-        }
-        this._linkOldOption = "";
+        this.props.linkDoc.defaultLinkFollow = e.target.value + "," + destination![Id] + ',false';
     }
-
-    //cnstructor
-    // reaction: etc etc
-    // pass in two function: 1) run anytime any observable value changes, pass edit updated value 2) doing smthng with updated value, 3) { fireImmediately: true }
 
     render() {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         let groupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
+        let linkOption = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0];
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
@@ -426,7 +405,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.OPENTAB}
-                                        checked={this._linkOption === FollowModes.OPENTAB}
+                                        checked={linkOption === FollowModes.OPENTAB}
                                         onChange={this.linkChange} />
                                     {FollowModes.OPENTAB}</label>
                             </div>
@@ -435,7 +414,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.OPENRIGHT}
-                                        checked={this._linkOption === FollowModes.OPENRIGHT}
+                                        checked={linkOption === FollowModes.OPENRIGHT}
                                         onChange={this.linkChange} />
                                     {FollowModes.OPENRIGHT}</label>
                             </div>
@@ -444,7 +423,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.OPENFULL}
-                                        checked={this._linkOption === FollowModes.OPENFULL}
+                                        checked={linkOption === FollowModes.OPENFULL}
                                         onChange={this.linkChange} />
                                     {FollowModes.OPENFULL}</label>
                             </div>
@@ -453,7 +432,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.PAN}
-                                        checked={this._linkOption === FollowModes.PAN}
+                                        checked={linkOption === FollowModes.PAN}
                                         onChange={this.linkChange} />
                                     {FollowModes.PAN}</label>
                             </div>
@@ -462,15 +441,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.INPLACE}
-                                        checked={this._linkOption === FollowModes.INPLACE}
+                                        checked={linkOption === FollowModes.INPLACE}
                                         onChange={this.linkChange} />
                                     {FollowModes.INPLACE}</label>
                             </div>
-                            {this._linkOldOption ?
-                                <div className="linkEditor-changeLinkBehavior">
-                                    <button value="confirm" onClick={this.changeLinkBehavior}>confirm</button>
-                                    <button value="cancel" onClick={this.changeLinkBehavior}>cancel</button>
-                                </div> : null}
                         </div>
 
                     </div>
