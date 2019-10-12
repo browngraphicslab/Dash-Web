@@ -7,7 +7,7 @@ import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc
 import { Id } from '../../../new_fields/FieldSymbols';
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -102,6 +102,8 @@ export const documentSchema = createSchema({
     height: "number",           // "
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
+    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped (used for dragBox things)
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
     ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
     autoHeight: "boolean",      // whether the height of the document should be computed automatically based on its contents
@@ -167,9 +169,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.dropAction = dropAction;
             dragData.moveDocument = this.props.moveDocument;
             dragData.applyAsTemplate = applyAsTemplate;
+            dragData.removeDropProperties = this.Document.removeDropProperties || [];
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
-                    dragComplete: action(emptyFunction)
+                    dragComplete: action((emptyFunction))
                 },
                 hideSource: !dropAction
             });
@@ -260,7 +263,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!e.altKey && !this.topMost && e.buttons === 1) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers

@@ -3,7 +3,7 @@ import { faEdit } from '@fortawesome/free-regular-svg-icons';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc } from '../../../new_fields/Doc';
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
+import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { emptyFunction } from '../../../Utils';
 import { CompileScript } from '../../util/Scripting';
@@ -17,6 +17,8 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { DragManager } from '../../util/DragManager';
 import { Docs } from '../../documents/Documents';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Cast } from '../../../new_fields/Types';
+import { ContextMenuProps } from '../ContextMenuItem';
 
 library.add(faEdit as any);
 
@@ -51,16 +53,19 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
             const onDragStart = this.Document.onDragStart;
             e.stopPropagation();
             e.preventDefault();
-            DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([this.props.Document]), e.clientX, e.clientY, {
+            let dragData = new DragManager.DocumentDragData([this.props.Document]);
+            const factory = await Cast(this.props.Document.factory, Doc);// if there's a factory Doc that is being copied, make sure it's not pending.
+            dragData.removeDropProperties = factory ? Cast(factory.removeDropProperties, listSpec("string"), []) : [];
+            DragManager.StartDocumentDrag([this._mainCont.current!], dragData, e.clientX, e.clientY, {
                 finishDrag: async (dropData) => {
                     let res = onDragStart && onDragStart.script.run({ this: this.props.Document }).result;
                     let doc = (res as Doc) || Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
                     dropData.droppedDocuments = [doc];
+                    dragData.removeDropProperties.map(prop => dropData.droppedDocuments.map((d: Doc) => d[prop] = undefined));
                 },
                 handlers: { dragComplete: emptyFunction },
                 hideSource: false
             });
-            await this.props.Document.factory; // if there's a factory Doc that is being copied, make sure it's not pending.
         }
         e.stopPropagation();
         e.preventDefault();
@@ -72,7 +77,10 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
     }
 
     onContextMenu = () => {
-        ContextMenu.Instance.addItem({
+        let funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Set Make Aliases", icon: "edit", event: () => this.props.Document.factory && (this.props.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.factory)')) });
+        funcs.push({ description: "Set Make Copies", icon: "edit", event: () => this.props.Document.factory && (this.props.Document.onDragStart = ScriptField.MakeFunction('getCopy(this.factory, true)')) });
+        funcs.push({
             description: "Edit OnClick script", icon: "edit", event: () => {
                 let overlayDisposer: () => void = emptyFunction;
                 const script = this.Document.onDragStart;
@@ -96,6 +104,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
                 overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: `${this.Document.title || ""} OnDragStart` });
             }
         });
+        ContextMenu.Instance.addItem({ description: "DragBox Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
     render() {
