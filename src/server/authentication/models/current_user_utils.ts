@@ -115,7 +115,6 @@ export class CurrentUserUtils {
             library.xMargin = 5;
             library.yMargin = 5;
             library.boxShadow = "1 1 3";
-            library.workspaceLibrary = true; // flag that this is the document that shows the Notifications button when documents are shared
             Library.targetContainer = doc.sidebarContainer;
             Library.library = library;
             Library.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.library");

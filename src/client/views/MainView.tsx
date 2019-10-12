@@ -16,7 +16,7 @@ import { ScriptField } from '../../new_fields/ScriptField';
 import { BoolCast, Cast, FieldValue, PromiseValue, StrCast, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -40,6 +40,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { CollectionFreeFormDocumentView } from './nodes/CollectionFreeFormDocumentView';
+import { MainViewNotifs } from './MainViewNotifs';
 
 @observer
 export class MainView extends React.Component {
@@ -47,6 +48,7 @@ export class MainView extends React.Component {
     @observable addMenuToggle = React.createRef<HTMLInputElement>();
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+    private _buttonBarHeight = 85;
     private dropDisposer?: DragManager.DragDropDisposer;
 
     @observable private dictationState = DictationManager.placeholder;
@@ -138,24 +140,6 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
-
-        if (this.userDoc) {
-            reaction(() => {
-                let workspaces = this.userDoc.workspaces;
-                let recent = this.userDoc.recentlyClosed;
-                if (!(recent instanceof Doc)) return 0;
-                if (!(workspaces instanceof Doc)) return 0;
-                let workspacesDoc = workspaces;
-                let recentDoc = recent;
-                let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + this.userDoc[HeightSym]() * 0.00001;
-                return libraryHeight;
-            }, (libraryHeight: number) => {
-                if (libraryHeight && Math.abs(this.userDoc[HeightSym]() - libraryHeight) > 5) {
-                    this.userDoc.height = libraryHeight;
-                }
-                (Cast(this.userDoc.recentlyClosed, Doc) as Doc).allowClear = true;
-            }, { fireImmediately: true });
-        }
     }
 
     componentWillUnMount() {
@@ -340,7 +324,7 @@ export class MainView extends React.Component {
             if (this.userDoc && (col = await Cast(this.userDoc.optionalRightCollection, Doc))) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
-                    runInAction(() => CollectionTreeView.NotifsCol = col);
+                    runInAction(() => MainViewNotifs.NotifsCol = col);
                 }
             }
         }, 100);
@@ -349,7 +333,7 @@ export class MainView extends React.Component {
 
     drop = action((e: Event, de: DragManager.DropEvent) => {
         (de.data as DragManager.DocumentDragData).draggedDocuments.map(doc => Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc));
-    })
+    });
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -367,6 +351,9 @@ export class MainView extends React.Component {
     }
     getPHeight = () => {
         return this.pheight;
+    }
+    getContentsHeight = () => {
+        return this.pheight - this._buttonBarHeight;
     }
 
     @observable flyoutWidth: number = 250;
@@ -465,12 +452,12 @@ export class MainView extends React.Component {
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        (Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc).columnWidth = this.flyoutWidthFunc() / 3 - 30;
-        let buttonBarHeight = 85;
+        let libraryButtonDoc = Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc;
+        libraryButtonDoc.columnWidth = this.flyoutWidthFunc() / 3 - 30;
         return <div style={{ display: "flex", flexDirection: "column", position: "absolute", width: "100%", height: "100%" }}>
-            <div style={{ position: "relative", height: `${buttonBarHeight}px`, width: "100%" }}>
+            <div style={{ position: "relative", height: `${this._buttonBarHeight}px`, width: "100%" }}>
                 <DocumentView
-                    Document={Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc}
+                    Document={libraryButtonDoc}
                     DataDoc={undefined}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
@@ -494,20 +481,20 @@ export class MainView extends React.Component {
                     getScale={returnOne}>
                 </DocumentView>
             </div>
-            <div style={{ position: "relative", height: `calc(100% - ${buttonBarHeight}px)`, width: "100%", overflow: "auto" }}>
+            <div style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "auto" }}>
                 <DocumentView
                     Document={sidebarContent}
                     DataDoc={undefined}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
-                    removeDocument={undefined}
+                    removeDocument={returnFalse}
                     ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}
                     PanelWidth={this.flyoutWidthFunc}
-                    PanelHeight={this.getPHeight}
+                    PanelHeight={this.getContentsHeight}
                     renderDepth={0}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
@@ -519,16 +506,16 @@ export class MainView extends React.Component {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}>
                 </DocumentView>
+                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>
+                    {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                </button>
             </div></div>;
     }
 
     @computed
     get mainContent() {
-        if (!this.userDoc) {
-            return (<div>{this.dockingContent}</div>);
-        }
-        let sidebar = this.userDoc.sidebarContainer;
-        if (!(sidebar instanceof Doc)) {
+        let sidebar = this.userDoc && this.userDoc.sidebarContainer;
+        if (!this.userDoc || !(sidebar instanceof Doc)) {
             return (null);
         }
         return (
@@ -617,6 +604,7 @@ export class MainView extends React.Component {
 
         return < div id="add-nodes-menu" style={{ left: (this.flyoutTranslate ? this.flyoutWidth : 0) + 20, bottom: 20 }} >
 
+            <MainViewNotifs></MainViewNotifs>
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" ref={this.createDropTarget} title="Close Menu"><p>+</p></label>
 
@@ -632,7 +620,7 @@ export class MainView extends React.Component {
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
-                        removeDocument={undefined}
+                        removeDocument={(doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument, "docButtons", doc)}
                         ruleProvider={undefined}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
@@ -662,7 +650,6 @@ export class MainView extends React.Component {
                 <button key="marker" onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button>
                 <button key="eraser" onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button>
                 <InkingControl key="inkControls" />
-                <button key="logout" onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>{CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}</button>
             </div>
         </div >;
     }

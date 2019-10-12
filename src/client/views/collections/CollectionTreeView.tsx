@@ -517,8 +517,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
-    @observable static NotifsCol: Opt<Doc>;
-
     @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
@@ -557,31 +555,10 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
-    openNotifsCol = () => {
-        if (CollectionTreeView.NotifsCol) {
-            this.props.addDocTab(CollectionTreeView.NotifsCol, undefined, "onRight");
-        }
-    }
 
-    @computed get renderNotifsButton() {
-        const length = CollectionTreeView.NotifsCol ? DocListCast(CollectionTreeView.NotifsCol.data).length : 0;
-        const notifsRef = React.createRef<HTMLDivElement>();
-        const dragNotifs = action(() => CollectionTreeView.NotifsCol!);
-        return <div id="toolbar" key="toolbar">
-            <div ref={notifsRef}>
-                <button className="toolbar-button round-button" title="Notifs"
-                    onClick={this.openNotifsCol} onPointerDown={CollectionTreeView.NotifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
-                    <FontAwesomeIcon icon={faBell} size="sm" />
-                </button>
-                <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
-                    {length}
-                </div>
-            </div>
-        </div >;
-    }
     @computed get renderClearButton() {
         return <div id="toolbar" key="toolbar">
-            <button className="toolbar-button round-button" title="Notifs"
+            <button className="toolbar-button round-button" title="Empty"
                 onClick={undoBatch(action(() => Doc.GetProto(this.props.Document)[this.props.fieldKey] = undefined))}>
                 <FontAwesomeIcon icon={faTrash} size="sm" />
             </button>
@@ -614,7 +591,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, false);
                     })} />
-                {this.props.Document.workspaceLibrary ? this.renderNotifsButton : (null)}
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
