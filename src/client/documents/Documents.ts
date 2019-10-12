@@ -46,6 +46,7 @@ import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
+import { ColorBox } from "../views/nodes/ColorBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -69,6 +70,7 @@ export interface DocumentOptions {
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    ignoreClick?: boolean;
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
@@ -126,6 +128,10 @@ export namespace Docs {
             [DocumentType.QUERY, {
                 layout: { view: QueryBox },
                 options: { width: 400, fitWidth: true }
+            }],
+            [DocumentType.COLOR, {
+                layout: { view: ColorBox },
+                options: { nativeWidth: 220, nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, ext: anno },
@@ -384,6 +390,10 @@ export namespace Docs {
 
         export function QueryDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        }
+
+        export function ColorDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
         export function TextDocument(options: DocumentOptions = {}) {

@@ -22,4 +22,5 @@ export enum DocumentType {
     LINKFOLLOW = "linkfollow",
     PRESELEMENT = "preselement",
     QUERY = "search",
+    COLOR = "color",
 }

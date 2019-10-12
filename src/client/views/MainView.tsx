@@ -5,7 +5,6 @@ import { action, computed, configure, observable, reaction, runInAction } from '
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import { Doc, DocListCast, Field, FieldResult, HeightSym, Opt } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
@@ -640,11 +639,7 @@ export class MainView extends React.Component {
                     </DocumentView>
                 </div>)}
                 {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
-                <button key="color" className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
-                    <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
-                        <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
-                    </div>
-                </div></button>
+
                 <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button>
                 <button key="pen" onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} title="Pen" style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" /></button>
                 <button key="marker" onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button>

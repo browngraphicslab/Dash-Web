@@ -137,7 +137,9 @@ export class CurrentUserUtils {
             createPresentation.onDragStart = ScriptField.MakeFunction('Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })');
             let createFolderImport = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Import Folder", icon: "cloud-upload-alt" });
             createFolderImport.onDragStart = ScriptField.MakeFunction('Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })');
-            const creators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, height: 50, columnWidth: 35, chromeStatus: "disabled", title: "buttons" });
+            const dragCreators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, chromeStatus: "disabled", title: "buttons" });
+            const color = Docs.Create.ColorDocument({ title: "color picker", width: 400, ignoreClick: true });
+            const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "buttons" })
             Create.targetContainer = doc.sidebarContainer;
             Create.creators = creators;
             Create.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.creators");

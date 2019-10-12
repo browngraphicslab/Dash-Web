@@ -1,16 +1,14 @@
-import { action, computed, observable, trace } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { Doc, DocListCastAsync } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
+import { List } from '../../new_fields/List';
 import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
-import { undoBatch, UndoManager } from './UndoManager';
 import { Scripting } from './Scripting';
-import { List } from '../../new_fields/List';
 import { SelectionManager } from './SelectionManager';
-import { notDeepEqual } from 'assert';
 
 
 export class DocumentManager {
