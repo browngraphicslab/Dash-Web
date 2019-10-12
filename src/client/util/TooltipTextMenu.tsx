@@ -28,9 +28,11 @@ const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
+    public static Toolbar: HTMLDivElement | undefined;
+
     // editor state
     private view: EditorView;
-    private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
+    // private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
     private fontStyles: MarkType[] = [];
     private fontSizes: MarkType[] = [];
     private listTypes: (NodeType | any)[] = [];
@@ -39,40 +41,38 @@ export class TooltipTextMenu {
     private listTypeToIcon: Map<NodeType | any, string> = new Map();
     private _activeMarks: Mark[] = [];
     private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
-    // private _brushMarks?: Set<Mark>;
+    private _collapsed: boolean = false;
     //private link: HTMLAnchorElement;
 
     // editor doms
     public tooltip: HTMLElement = document.createElement("div");
     private wrapper: HTMLDivElement = document.createElement("div");
 
+    // editor button doms
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
     private linkDrag?: HTMLImageElement;
     private _linkDropdownDom?: Node;
     private _brushdom?: Node;
     private _brushDropdownDom?: Node;
-
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
 
-    private _collapsed: boolean = false;
+
     // private _collapseBtn?: MenuItem;
     // private _brushIsEmpty: boolean = true;
 
-
-    public static Toolbar: HTMLDivElement | undefined;
 
 
     constructor(view: EditorView) {
         this.view = view;
 
-        // replace old active menu with this
-        if (TooltipTextMenuManager.Instance.activeMenu) {
-            TooltipTextMenuManager.Instance.activeMenu.wrapper.remove();
-        }
-        TooltipTextMenuManager.Instance.activeMenu = this;
+        // // replace old active menu with this
+        // if (TooltipTextMenuManager.Instance.activeMenu) {
+        //     TooltipTextMenuManager.Instance.activeMenu.wrapper.remove();
+        // }
+        // TooltipTextMenuManager.Instance.activeMenu = this;
 
         // initialize the tooltip
         this.createTooltip(view);
@@ -84,30 +84,10 @@ export class TooltipTextMenu {
 
         // positioning?
         TooltipTextMenu.Toolbar = this.wrapper;
-
-        // // position wrapper
-        // if (TooltipTextMenuManager.Instance.isPinned) {
-        //     this.wrapper.style.position = "absolute";
-        //     this.wrapper.style.left = TooltipTextMenuManager.Instance.pinnedX + "px";
-        //     this.wrapper.style.top = TooltipTextMenuManager.Instance.pinnedY + "px";
-
-        //     // if pinned, append to mainview
-        //     const mainView = document.querySelector("#main-div");
-        //     mainView && mainView.appendChild(this.wrapper);
-        // } else {
-        //     this.wrapper.style.position = "absolute";
-        //     this.wrapper.style.top = (this.wrapper.offsetTop + TooltipTextMenuManager.Instance.unpinnedY) + "px";
-        //     this.wrapper.style.left = (this.wrapper.offsetLeft + TooltipTextMenuManager.Instance.unpinnedX) + "px";
-
-        //     // add tooltip to outerdiv to circumvent scaling problem
-        //     const outer_div = this.editorProps.outer_div;
-        //     outer_div && outer_div(this.wrapper);
-        // }
-
     }
 
     private async createTooltip(view: EditorView) {
-        // initialize element
+        // initialize tooltip dom
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
 
@@ -153,6 +133,10 @@ export class TooltipTextMenu {
             });
 
         });
+
+        // color menu
+        this.tooltip.appendChild(this.createColorTool().render(this.view).dom);
+        this.tooltip.appendChild(this.createColorDropdown().render(this.view).dom);
 
         // link menu
         this.updateLinkMenu();
@@ -785,18 +769,22 @@ export class TooltipTextMenu {
             class: "menuicon",
             execEvent: "",
             run: (state, dispatch) => {
-                TooltipTextMenu.insertStar(this.view.state, this.view.dispatch);
+                TooltipTextMenu.insertColor(TooltipTextMenuManager.Instance.color, this.view.state, this.view.dispatch);
             }
 
         });
     }
 
-    insertColor(color: String, state: EditorState<any>, dispatch: any) {
+    public static insertColor(color: String, state: EditorState<any>, dispatch: any) {
+        if (state.selection.empty) return false;
 
+        let colorMark = state.schema.mark(state.schema.marks.color, { color: color });
+        dispatch(state.tr.addMark(state.selection.from, state.selection.to, colorMark));
     }
 
     createColorDropdown() {
         // menu item for color picker
+        let self = this;
         let colors = new MenuItem({
             title: "",
             execEvent: "",
@@ -805,15 +793,6 @@ export class TooltipTextMenu {
             render() {
                 let p = document.createElement("p");
                 p.textContent = "Change color:";
-
-                // input.type = "text";
-                // input.placeholder = "Enter URL";
-                // console.log(targetTitle);
-                // if (targetTitle) input.value = targetTitle;
-                // input.onclick = (e: MouseEvent) => {
-                //     input.select();
-                //     input.focus();
-                // };
 
                 let colorsWrapper = document.createElement("div");
                 colorsWrapper.className = "colorPicker-wrapper";
@@ -834,12 +813,16 @@ export class TooltipTextMenu {
                 colors.forEach(color => {
                     let button = document.createElement("button");
                     button.className = color === TooltipTextMenuManager.Instance.color ? "colorPicker active" : "colorPicker";
-                    if (color) button.style.backgroundColor = color;
-
+                    if (color) {
+                        button.style.backgroundColor = color;
+                        button.onclick = e => TooltipTextMenuManager.Instance.color = color;
+                    }
+                    colorsWrapper.appendChild(button);
                 });
 
                 let div = document.createElement("div");
                 div.appendChild(p);
+                div.appendChild(colorsWrapper);
                 return div;
             },
             enable() { return false; },

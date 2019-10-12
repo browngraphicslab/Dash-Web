@@ -308,6 +308,24 @@ export const marks: { [index: string]: MarkSpec } = {
         }
     },
 
+    // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
+    color: {
+        attrs: {
+            color: { default: "#000" }
+        },
+        inclusive: false,
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { color: dom.getAttribute("color") };
+            }
+        }],
+        toDOM(node: any) {
+            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
+            // ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
+            // ["a", { ...node.attrs }, 0];
+        }
+    },
+
     // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
     // Has parse rules that also match `<i>` and `font-style: italic`.
     em: {

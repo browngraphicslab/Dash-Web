@@ -336,6 +336,27 @@
     }
 }
 
+.colorPicker-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-top: 3px;
+    margin-left: -3px;
+    width: calc(100% + 6px);
+}
+
+button.colorPicker {
+    width: 20px;
+    height: 20px;
+    border-radius: 15px !important;
+    margin: 3px;
+    border: none !important;
+
+    &.active {
+        border: 2px solid white !important;
+    }
+}
+
 // @import "../views/globalCssVariables";
 
 // .ProseMirror-textblock-dropdown {
