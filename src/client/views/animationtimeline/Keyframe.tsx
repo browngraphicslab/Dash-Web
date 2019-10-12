@@ -13,6 +13,7 @@ import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { thisTypeAnnotation } from "babel-types";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -280,24 +281,18 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
-        let firstkf: (Doc | undefined) = this.keyframes[0];
-        if (firstkf && this.regiondata.position + this.regiondata.fadeIn + offset >= NumCast(firstkf!.time)) {
-            let dif = NumCast(firstkf!.time) - (this.pixelPosition + this.pixelFadeIn);
-            this.regiondata.position = NumCast(firstkf!.time) - this.regiondata.fadeIn;
-            this.regiondata.duration -= dif;
-        } else if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut) { // no keyframes, just fades
-            this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration);
-            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
-        } else if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {  
-            let dif = this.regiondata.position - (leftRegion.position + leftRegion.duration);
-            this.regiondata.position = leftRegion.position + leftRegion.duration;
-            this.regiondata.duration += dif;
+        if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {
+            this.regiondata.position = leftRegion.position + leftRegion.duration; 
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - (leftRegion.position + leftRegion.duration); 
+        } else if (NumCast(this.keyframes[1].time) + offset >= NumCast(this.keyframes[2].time)) {
+            this.regiondata.position = NumCast(this.keyframes[2].time) - this.regiondata.fadeIn; 
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - NumCast(this.keyframes[2].time) + this.regiondata.fadeIn; 
         } else {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
-        // this.keyframes[0].time = this.regiondata.position; 
-        // this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
+        this.keyframes[0].time = this.regiondata.position; 
+        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
     }
 
 
@@ -308,17 +303,16 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
-        console.log(offset); 
-        console.log(this.keyframes[this.keyframes.length - 3].time); 
-        console.log(this.regiondata.position + this.regiondata.duration - offset); 
-        if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - offset <= NumCast(this.keyframes[this.keyframes.length - 3].time)) {
-            console.log("HI"); 
+        let fadeOutKeyframeTime = NumCast(this.keyframes[this.keyframes.length - 3].time); 
+        if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= fadeOutKeyframeTime) { //case 1: when third to last keyframe is in the way 
+            this.regiondata.duration = fadeOutKeyframeTime - this.regiondata.position + this.regiondata.fadeOut;
+        } else if (rightRegion && (this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position)){
+            this.regiondata.duration = rightRegion.position - this.regiondata.position; 
         } else {
             this.regiondata.duration += offset;
         }
         this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
         this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration; 
-       
     }
 
     @action
@@ -382,10 +376,10 @@ export class Keyframe extends React.Component<IProps> {
     @action 
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Add Ease", () => {
-            // this.onContainerDown(kf, "interpolate");
+            this.onContainerDown(kf, "interpolate");
         }),
         TimelineMenu.Instance.addItem("button", "Add Path", () => {
-            // this.onContainerDown(kf, "path");
+            this.onContainerDown(kf, "path");
         }),         
         TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{this.regions.splice(this.regions.indexOf(this.regiondata), 1);}),
         TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
@@ -514,16 +508,6 @@ export class Keyframe extends React.Component<IProps> {
     onReactionListen = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let message = prompt("GRAPHING MODE: Enter gain");      
-        if (message) {
-            let messageContent = parseInt(message, 10); 
-            if (messageContent === NaN) {
-                this._gain = Infinity; 
-            } else {
-                this._gain = messageContent; 
-            }
-        
-        }   
         if (this._reac && this._plotList && this._interpolationKeyframe) {
             this.props.collection.backgroundColor = "#FFF";
             this._reac();
@@ -605,10 +589,10 @@ export class Keyframe extends React.Component<IProps> {
                 let bodyRef = React.createRef<HTMLDivElement>(); 
                 let kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
                 let leftPos = KeyframeFunc.convertPixelTime(NumCast(left!.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
-                return (
+                keyframeDividers.push (
                     <div ref={bodyRef}className="body-container" style={{left: `${kfPos - this.pixelPosition}px`, width:`${leftPos - kfPos}px`}}
-                    onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
-                    onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
+                    onPointerOver={(e) => { e.preventDefault(); e.stopPropagation(); this.onContainerOver(e, bodyRef); }}
+                    onPointerOut={(e) => { e.preventDefault(); e.stopPropagation(); this.onContainerOut(e, bodyRef); }}
                     onContextMenu={(e) => {
                         e.preventDefault(); 
                         e.stopPropagation(); 
@@ -625,10 +609,12 @@ export class Keyframe extends React.Component<IProps> {
     render() {
         return (
             <div>
-                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.pixelPosition}px)`, 
-                width: `${this.pixelDuration}px`, 
-                background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(77, 153, 0, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
-                    onPointerDown={this.onBarPointerDown}>
+                <div className="bar" ref={this._bar} style={{ 
+                    transform: `translate(${this.pixelPosition}px)`, 
+                    width: `${this.pixelDuration}px`, 
+                    background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(77, 153, 0, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
+                    onPointerDown={this.onBarPointerDown
+                }>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     {this.drawKeyframes()}
