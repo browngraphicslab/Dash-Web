@@ -30,7 +30,6 @@ export class CurrentUserUtils {
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
         doc.viewType = CollectionViewType.Tree;
-        doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
         doc.title = Doc.CurrentUserEmail;
         this.updateUserDocument(doc);
@@ -114,6 +113,7 @@ export class CurrentUserUtils {
             library.gridGap = 5;
             library.xMargin = 5;
             library.yMargin = 5;
+            library.dropAction = "alias";
             library.boxShadow = "1 1 3";
             Library.targetContainer = doc.sidebarContainer;
             Library.library = library;
