@@ -99,9 +99,9 @@ export class CurrentUserUtils {
         }
 
         if (doc.Library === undefined) {
-            let Search = Docs.Create.ButtonDocument({ width: 50, height: 35, title: "Search" });
-            let Library = Docs.Create.ButtonDocument({ width: 50, height: 35, title: "Library" });
-            let Create = Docs.Create.ButtonDocument({ width: 35, height: 35, title: "Create" });
+            let Search = Docs.Create.ButtonDocument({ width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Search" });
+            let Library = Docs.Create.ButtonDocument({ width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library" });
+            let Create = Docs.Create.ButtonDocument({ width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create" });
             if (doc.sidebarContainer === undefined) {
                 doc.sidebarContainer = new Doc();
                 (doc.sidebarContainer as Doc).chromeStatus = "disabled";
@@ -114,40 +114,39 @@ export class CurrentUserUtils {
             library.xMargin = 5;
             library.yMargin = 5;
             library.dropAction = "alias";
-            library.boxShadow = "1 1 3";
             Library.targetContainer = doc.sidebarContainer;
             Library.library = library;
             Library.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.library");
 
-            const searchBox = Docs.Create.QueryDocument({ title: "Searching" });
-            searchBox.boxShadow = "0 0";
+            const searchBox = Docs.Create.QueryDocument({ title: "search stack" });
             searchBox.ignoreClick = true;
             Search.searchBox = searchBox;
             Search.targetContainer = doc.sidebarContainer;
             Search.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.searchBox");
 
-            let createCollection = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Collection", icon: "folder" });
-            let createWebPage = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Web Page", icon: "globe-asia" });
+            let createCollection = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Collection", icon: "folder" });
+            createCollection.onDragStart = ScriptField.MakeFunction('Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })');
+            let createWebPage = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Web Page", icon: "globe-asia" });
             createWebPage.onDragStart = ScriptField.MakeFunction('Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })');
-            let createCatImage = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Image", icon: "cat" });
+            let createCatImage = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Image", icon: "cat" });
             createCatImage.onDragStart = ScriptField.MakeFunction('Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })');
-            let createButton = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Button", icon: "bolt" });
+            let createButton = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Button", icon: "bolt" });
             createButton.onDragStart = ScriptField.MakeFunction('Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })');
-            let createPresentation = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Presentation", icon: "tv" });
+            let createPresentation = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Presentation", icon: "tv" });
             createPresentation.onDragStart = ScriptField.MakeFunction('Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })');
-            let createFolderImport = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Import Folder", icon: "cloud-upload-alt" });
+            let createFolderImport = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Import Folder", icon: "cloud-upload-alt" });
             createFolderImport.onDragStart = ScriptField.MakeFunction('Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })');
-            const dragCreators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, chromeStatus: "disabled", title: "buttons" });
+            const dragCreators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons" });
             const color = Docs.Create.ColorDocument({ title: "color picker", width: 400 });
             color.dropAction = "alias";
             color.ignoreClick = true;
             color.removeDropProperties = new List<string>(["dropAction", "ignoreClick"]);
-            const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "buttons" });
+            const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "creator stack" });
             Create.targetContainer = doc.sidebarContainer;
             Create.creators = creators;
             Create.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.creators");
 
-            const libraryButtons = Docs.Create.StackingDocument([Search, Library, Create], { width: 500, height: 80, chromeStatus: "disabled", title: "buttons" });
+            const libraryButtons = Docs.Create.StackingDocument([Search, Library, Create], { width: 500, height: 80, chromeStatus: "disabled", title: "library stack" });
             libraryButtons.sectionFilter = "title";
             libraryButtons.boxShadow = "0 0";
             libraryButtons.ignoreClick = true;

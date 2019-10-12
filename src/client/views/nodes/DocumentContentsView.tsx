@@ -16,7 +16,7 @@ import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
-import { DragBox } from "./DragBox";
+import { FontIconBox } from "./FontIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
@@ -102,7 +102,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return <ObserverJsxParser
             blacklistedAttrs={[]}
             components={{
-                FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView,
+                FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
                 CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                 PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox, ColorBox
             }}

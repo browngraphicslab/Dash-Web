@@ -37,7 +37,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
-import { DragBox } from "../views/nodes/DragBox";
+import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField } from "../../new_fields/ScriptField";
@@ -71,6 +71,7 @@ export interface DocumentOptions {
     viewType?: number;
     backgroundColor?: string;
     ignoreClick?: boolean;
+    lockedPosition?: boolean;
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
@@ -82,6 +83,7 @@ export interface DocumentOptions {
     currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
+    boxShadow?: string;
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
@@ -127,7 +129,7 @@ export namespace Docs {
             }],
             [DocumentType.QUERY, {
                 layout: { view: QueryBox },
-                options: { width: 400, fitWidth: true }
+                options: { width: 400 }
             }],
             [DocumentType.COLOR, {
                 layout: { view: ColorBox },
@@ -183,8 +185,8 @@ export namespace Docs {
                 layout: { view: PresBox },
                 options: {}
             }],
-            [DocumentType.DRAGBOX, {
-                layout: { view: DragBox },
+            [DocumentType.FONTICONBOX, {
+                layout: { view: FontIconBox },
                 options: { width: 40, height: 40 },
             }],
             [DocumentType.LINKFOLLOW, {
@@ -476,8 +478,8 @@ export namespace Docs {
         }
 
 
-        export function DragboxDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
+        export function FontIconDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICONBOX), undefined, { ...(options || {}) });
         }
 
         export function LinkFollowBoxDocument(options?: DocumentOptions) {

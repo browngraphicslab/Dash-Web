@@ -73,7 +73,6 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
-                main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 SharingManager.Instance.close();
