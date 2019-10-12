@@ -88,7 +88,7 @@ export class Thumbnail extends React.Component<NodeProps> {
     @action
     toggleSelection(e: React.PointerEvent) {
         e.stopPropagation();
-        this.props.appenddoc(this.props.doc);
+        this.selectclass = !this.selectclass;
         if (e.button === 2) {
             e.preventDefault();
             this.props.createportal();
@@ -101,8 +101,12 @@ export class Thumbnail extends React.Component<NodeProps> {
     }
 
     @action
+    toggletwo() {
+        this.selectclass = !this.selectclass;
+    }
+
+    @action
     adjust = (e: PointerEvent): void => {
-        console.log(this.props.doc[this.props.sortstate]);
         this.props.doc[this.props.sortstate] += e.movementX / this.props.range;
     }
 
@@ -140,14 +144,26 @@ export class Thumbnail extends React.Component<NodeProps> {
     opacity: number | undefined;
     @computed
     get selectclass() {
-        return this.props.select;
+        if (this.newclass === undefined) {
+            this.newclass = this.props.select;
+        }
+        else if (this.props.select === true) {
+            return true;
+        }
+        return this.newclass;
     }
+
+    set selectclass(boolean: boolean) {
+        this.newclass = boolean;
+    }
+
+    @observable newclass: boolean | undefined;
 
     render() {
         this.maketransition();
         this.getCaption();
         this.tog();
-        console.log(this.props.transition);
+
         return (
             <div>
                 <div onPointerDown={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
