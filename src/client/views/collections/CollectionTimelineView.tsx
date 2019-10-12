@@ -585,20 +585,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         overlap = false;
                     }
                 }
-            }
-            for (let thumbnail1 of this.thumbnails) {
-                if (thumbnail1.row === Math.round(this.rowval.length / 2)) {
-                    thumbnail1.row++;
-                    overlap = false;
+                for (let thumbnail1 of this.thumbnails) {
+                    if (thumbnail1.row === Math.round(this.rowval.length / 2)) {
+                        thumbnail1.row++;
+                        overlap = false;
+                    }
                 }
             }
+            // for (let thumbnail of this.thumbnails) {
+            //     if (thumbnail.row >= this.rows.length) {
+            //         this.rowscale = this.rowscale * 0.9;
+            //     }
+            // }
         }
-        // for (let thumbnail of this.thumbnails) {
-        //     if (thumbnail.row >= this.rows.length) {
-        //         this.rowscale = this.rowscale * 0.9;
-        //     }
-        // }
-    }
 
     private tickrefs: React.RefObject<HTMLDivElement>[] = [];
 
