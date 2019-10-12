@@ -41,6 +41,7 @@ import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../../new_fields/URLField';
 import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
+import { InteractionUtils } from '../../util/InteractionUtils';
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
@@ -248,6 +249,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
     }
+
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
@@ -264,6 +266,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.preventDefault();
         }
     }
+
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -609,11 +612,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             onClick={this.onClickHandler}
             layoutKey="layout"
             DataDoc={this.props.DataDoc} />);
-    }
-
-    handle1Pointer = (e: TouchEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
     }
 
     render() {

@@ -39,6 +39,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { InteractionUtils } from "../../../util/InteractionUtils";
+import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -289,6 +290,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     pan = (e: PointerEvent | React.Touch): void => {
+        // I think it makes sense for the marquee menu to go away when panned. -syip2
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+
         let x = this.Document.panX || 0;
         let y = this.Document.panY || 0;
         let docs = this.childLayoutPairs.map(pair => pair.layout);

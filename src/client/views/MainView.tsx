@@ -1,6 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv, faChevronRight, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv, faChevronRight, faEllipsisV, faCompressArrowsAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -42,6 +41,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
+import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -202,6 +202,7 @@ export class MainView extends React.Component {
         library.add(faMusic);
         library.add(faTree);
         library.add(faPlay);
+        library.add(faCompressArrowsAlt);
         library.add(faPause);
         library.add(faClone);
         library.add(faCut);
@@ -687,6 +688,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
+                <MarqueeOptionsMenu />
                 <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
