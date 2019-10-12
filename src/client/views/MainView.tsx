@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv, faChevronRight, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,15 +12,16 @@ import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
+import { ScriptField } from '../../new_fields/ScriptField';
+import { BoolCast, Cast, FieldValue, PromiseValue, StrCast, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, returnFalse, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
+import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
-import { ClientUtils } from '../util/ClientUtils';
 import { DictationManager } from '../util/DictationManager';
-import { SetupDrag } from '../util/DragManager';
+import { SetupDrag, DragManager } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
@@ -35,13 +36,10 @@ import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import MainViewModal from './MainViewModal';
 import { DocumentView } from './nodes/DocumentView';
+import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { FilterBox } from './search/FilterBox';
-import { OverlayView } from './OverlayView';
-import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
-import { CollectionStackingView } from './collections/CollectionStackingView';
-import { ScriptField } from '../../new_fields/ScriptField';
+import { CollectionFreeFormDocumentView } from './nodes/CollectionFreeFormDocumentView';
 
 @observer
 export class MainView extends React.Component {
@@ -49,6 +47,7 @@ export class MainView extends React.Component {
     @observable addMenuToggle = React.createRef<HTMLInputElement>();
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+    private dropDisposer?: DragManager.DragDropDisposer;
 
     @observable private dictationState = DictationManager.placeholder;
     @observable private dictationSuccessState: boolean | undefined = undefined;
@@ -164,6 +163,7 @@ export class MainView extends React.Component {
         //close presentation 
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
+        this.dropDisposer && this.dropDisposer();
     }
 
     constructor(props: Readonly<{}>) {
@@ -287,18 +287,15 @@ export class MainView extends React.Component {
         let workspaces: FieldResult<Doc>;
         let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), {}, id);
+        let mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), {}, id);
         if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
-            const list = Cast((workspaces).data, listSpec(Doc));
-            if (list) {
-                if (!this.userDoc.linkManagerDoc) {
-                    let linkManagerDoc = new Doc();
-                    linkManagerDoc.allLinks = new List<Doc>([]);
-                    this.userDoc.linkManagerDoc = linkManagerDoc;
-                }
-                list.push(mainDoc);
-                mainDoc.title = `Workspace ${list.length}`;
+            if (!this.userDoc.linkManagerDoc) {
+                let linkManagerDoc = new Doc();
+                linkManagerDoc.allLinks = new List<Doc>([]);
+                this.userDoc.linkManagerDoc = linkManagerDoc;
             }
+            Doc.AddDocToList(workspaces, "data", mainDoc);
+            mainDoc.title = `Workspace ${DocListCast(workspaces.data).length}`;
         }
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => {
@@ -349,6 +346,10 @@ export class MainView extends React.Component {
         }, 100);
         return true;
     }
+
+    drop = action((e: Event, de: DragManager.DropEvent) => {
+        (de.data as DragManager.DocumentDragData).draggedDocuments.map(doc => Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc));
+    })
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -460,13 +461,14 @@ export class MainView extends React.Component {
     }
     @computed
     get flyout() {
-        let sidebar: FieldResult<Field>;
-        if (!this.userDoc || !((sidebar = this.userDoc.sidebarContainer) instanceof Doc)) {
+        let sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
+        if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
         (Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc).columnWidth = this.flyoutWidthFunc() / 3 - 30;
+        let buttonBarHeight = 85;
         return <div style={{ display: "flex", flexDirection: "column", position: "absolute", width: "100%", height: "100%" }}>
-            <div style={{ position: "relative", height: "85px", width: "100%" }}>
+            <div style={{ position: "relative", height: `${buttonBarHeight}px`, width: "100%" }}>
                 <DocumentView
                     Document={Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc}
                     DataDoc={undefined}
@@ -492,9 +494,9 @@ export class MainView extends React.Component {
                     getScale={returnOne}>
                 </DocumentView>
             </div>
-            <div style={{ position: "relative", height: "calc(100% - 80px)", width: "100%" }}>
+            <div style={{ position: "relative", height: `calc(100% - ${buttonBarHeight}px)`, width: "100%", overflow: "auto" }}>
                 <DocumentView
-                    Document={this.isSearchVisible ? Cast(CurrentUserUtils.UserDocument.searchBox, Doc) as Doc : sidebar}
+                    Document={sidebarContent}
                     DataDoc={undefined}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
@@ -598,65 +600,69 @@ export class MainView extends React.Component {
         DocServer.setFieldWriteMode("viewType", mode2);
     }
 
+    protected createDropTarget = (ele: HTMLLabelElement) => { //used for stacking and masonry view
+        this.dropDisposer && this.dropDisposer();
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
 
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
-        let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-
-        let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addPresNode = action(() => Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" }));
-        let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
-        let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
-        let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
-        let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
-        let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
         // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
         // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         // let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
 
-        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc | Promise<Doc>][] = [
-            //[React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
-            //[React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
-            //[React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
-            //[React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
-            //[React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
-            // [React.createRef<HTMLDivElement>(), "object-group", "Test Google Photos Search", googlePhotosSearch],
-            //[React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
-            //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
-        ];
-        //if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
-
         return < div id="add-nodes-menu" style={{ left: (this.flyoutTranslate ? this.flyoutWidth : 0) + 20, bottom: 20 }} >
 
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
-            <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Close Menu"><p>+</p></label>
+            <label htmlFor="add-menu-toggle" ref={this.createDropTarget} title="Close Menu"><p>+</p></label>
 
             <div id="add-options-content">
-                <ul id="add-options-list">
-                    {/* <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li> */}
-                    <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
-                    <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
-                    {btns.map(btn =>
-                        <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
-                                <FontAwesomeIcon icon={btn[1]} size="sm" />
-                            </button>
-                        </div></li>)}
-                    {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
-                    <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
-                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
-                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
-                        </div>
-                    </div></button></li>
-                    <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
-                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} title="Pen" style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" /></button></li>
-                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button></li>
-                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button></li>
-                    <li key="inkControls"><InkingControl /></li>
-                    <li key="logout"><button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>{CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}</button></li>
-                </ul>
+                {/* <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li> */}
+                <button key="undo" className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
+                <button key="redo" className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
+
+                {DocListCast(CurrentUserUtils.UserDocument.docButtons).map(doc => <div className="mainView-docBtn" key={StrCast(doc.title)} >
+                    <DocumentView
+                        Document={doc}
+                        DataDoc={undefined}
+                        addDocument={undefined}
+                        addDocTab={this.addDocTabFunc}
+                        pinToPres={emptyFunction}
+                        removeDocument={undefined}
+                        ruleProvider={undefined}
+                        onClick={undefined}
+                        ScreenToLocalTransform={Transform.Identity}
+                        ContentScaling={() => 35 / NumCast(doc.nativeWidth, 35)}
+                        PanelWidth={() => 35}
+                        PanelHeight={() => 35}
+                        renderDepth={0}
+                        focus={emptyFunction}
+                        backgroundColor={returnEmptyString}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                        zoomToScale={emptyFunction}
+                        getScale={returnOne}>
+                    </DocumentView>
+                </div>)}
+                {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
+                <button key="color" className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+                    <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                        <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
+                    </div>
+                </div></button>
+                <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button>
+                <button key="pen" onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} title="Pen" style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" /></button>
+                <button key="marker" onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button>
+                <button key="eraser" onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button>
+                <InkingControl key="inkControls" />
+                <button key="logout" onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>{CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}</button>
             </div>
         </div >;
     }
@@ -668,16 +674,6 @@ export class MainView extends React.Component {
         this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
     }
 
-    /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
-    @computed
-    get miscButtons() {
-        return [
-            //this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
-        ];
-
-    }
-
-    @observable isSearchVisible = false;
     @action.bound
     toggleSearch = () => {
         PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
@@ -716,7 +712,6 @@ export class MainView extends React.Component {
                 <PreviewCursor />
                 <ContextMenu />
                 {this.nodesMenu()}
-                {this.miscButtons}
                 <PDFMenu />
                 <OverlayView />
             </div >

@@ -164,29 +164,27 @@ export default class KeyManager {
                 }
                 break;
             case "c":
-                if (MainView.Instance.flyoutWidth > 0) {
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 75) {
                     MainView.Instance.flyoutWidth = 0;
-                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 } else {
-                    MainView.Instance.flyoutWidth = 400;
-                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                    MainView.Instance.flyoutWidth = 75;
                 }
                 break;
             case "l":
-                if (MainView.Instance.flyoutWidth > 0) {
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 250) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {
-                    MainView.Instance.flyoutWidth = 400;
-                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                    MainView.Instance.flyoutWidth = 250;
                 }
                 break;
             case "f":
-                if (MainView.Instance.flyoutWidth > 0) {
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 400) {
                     MainView.Instance.flyoutWidth = 0;
-                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 } else {
                     MainView.Instance.flyoutWidth = 400;
-                    PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 }
                 break;
             case "o":

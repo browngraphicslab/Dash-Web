@@ -51,9 +51,15 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
             const onDragStart = this.Document.onDragStart;
             e.stopPropagation();
             e.preventDefault();
-            let res = onDragStart && onDragStart.script.run({ this: this.props.Document }).result;
-            let doc = (res as Doc) || Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
-            DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
+            DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([this.props.Document]), e.clientX, e.clientY, {
+                finishDrag: (dropData) => {
+                    let res = onDragStart && onDragStart.script.run({ this: this.props.Document }).result;
+                    let doc = (res as Doc) || Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
+                    dropData.droppedDocuments = [doc];
+                },
+                handlers: { dragComplete: emptyFunction },
+                hideSource: false
+            });
         }
         e.stopPropagation();
         e.preventDefault();

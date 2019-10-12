@@ -93,7 +93,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") {
             this.backPage();
         }
-    })
+    });
 
     @undoBatch
     @action

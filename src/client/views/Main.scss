@@ -211,14 +211,21 @@ button:hover {
 }
 
 #add-options-content {
-    display: table;
+    display: flex;
     opacity: 1;
     margin: 0;
     padding: 0;
     position: relative;
     float: right;
-    bottom: 0.3em;
-    margin-bottom: -1.68em;
+    .mainView-docBtn {
+        position:relative;
+        margin-right: 10px;
+        width: 35px;
+        height: 35px;
+    }
+    .collectionFreeFormDocumentView-container {
+        position: relative;
+    }
 }
 
 ul#add-options-list {
