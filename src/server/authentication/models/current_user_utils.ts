@@ -130,7 +130,7 @@ export class CurrentUserUtils {
             let createWebPage = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Web Page", icon: "globe-asia" });
             createWebPage.onDragStart = ScriptField.MakeFunction('Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })');
             let createCatImage = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Image", icon: "cat" });
-            createCatImage.onDragStart = ScriptField.MakeFunction('Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" })');
+            createCatImage.onDragStart = ScriptField.MakeFunction('Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })');
             let createButton = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Button", icon: "bolt" });
             createButton.onDragStart = ScriptField.MakeFunction('Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })');
             let createPresentation = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Presentation", icon: "tv" });
@@ -139,7 +139,7 @@ export class CurrentUserUtils {
             createFolderImport.onDragStart = ScriptField.MakeFunction('Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })');
             const dragCreators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, chromeStatus: "disabled", title: "buttons" });
             const color = Docs.Create.ColorDocument({ title: "color picker", width: 400, ignoreClick: true });
-            const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "buttons" })
+            const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "buttons" });
             Create.targetContainer = doc.sidebarContainer;
             Create.creators = creators;
             Create.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.creators");

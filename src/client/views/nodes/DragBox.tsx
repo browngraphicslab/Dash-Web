@@ -44,7 +44,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
         }
     }
 
-    onDragMove = (e: MouseEvent) => {
+    onDragMove = async (e: MouseEvent) => {
         if (!e.cancelBubble && (Math.abs(this._downX - e.clientX) > 5 || Math.abs(this._downY - e.clientY) > 5)) {
             document.removeEventListener("pointermove", this.onDragMove);
             document.removeEventListener("pointerup", this.onDragUp);
@@ -52,7 +52,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
             e.stopPropagation();
             e.preventDefault();
             DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([this.props.Document]), e.clientX, e.clientY, {
-                finishDrag: (dropData) => {
+                finishDrag: async (dropData) => {
                     let res = onDragStart && onDragStart.script.run({ this: this.props.Document }).result;
                     let doc = (res as Doc) || Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
                     dropData.droppedDocuments = [doc];
@@ -60,6 +60,7 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
                 handlers: { dragComplete: emptyFunction },
                 hideSource: false
             });
+            await this.props.Document.factory; // if there's a factory Doc that is being copied, make sure it's not pending.
         }
         e.stopPropagation();
         e.preventDefault();

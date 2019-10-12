@@ -40,6 +40,7 @@ import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { CollectionFreeFormDocumentView } from './nodes/CollectionFreeFormDocumentView';
 import { MainViewNotifs } from './MainViewNotifs';
+import { DocumentType } from '../documents/DocumentTypes';
 
 @observer
 export class MainView extends React.Component {
@@ -331,7 +332,15 @@ export class MainView extends React.Component {
     }
 
     drop = action((e: Event, de: DragManager.DropEvent) => {
-        (de.data as DragManager.DocumentDragData).draggedDocuments.map(doc => Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc));
+        (de.data as DragManager.DocumentDragData).draggedDocuments.map(doc => {
+            if (doc.type !== DocumentType.DRAGBOX) {
+                let dbox = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: "bolt" });
+                dbox.factory = doc;
+                dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.factory, true)');
+                doc = dbox;
+            }
+            Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc);
+        });
     });
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
