@@ -10,7 +10,6 @@ import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { Docs } from "../documents/Documents";
-import { CompileScript } from "./Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
@@ -208,6 +207,7 @@ export namespace DragManager {
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
+        removeDropProperties: string[] = [];
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
@@ -244,6 +244,7 @@ export namespace DragManager {
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments
                 );
+                dragData.removeDropProperties.map(prop => dropData.droppedDocuments.map((d: Doc) => d[prop] = undefined));
             });
     }
 

@@ -138,7 +138,10 @@ export class CurrentUserUtils {
             let createFolderImport = Docs.Create.DragboxDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Import Folder", icon: "cloud-upload-alt" });
             createFolderImport.onDragStart = ScriptField.MakeFunction('Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })');
             const dragCreators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, chromeStatus: "disabled", title: "buttons" });
-            const color = Docs.Create.ColorDocument({ title: "color picker", width: 400, ignoreClick: true });
+            const color = Docs.Create.ColorDocument({ title: "color picker", width: 400 });
+            color.dropAction = "alias";
+            color.ignoreClick = true;
+            color.removeDropProperties = new List<string>(["dropAction", "ignoreClick"]);
             const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "buttons" });
             Create.targetContainer = doc.sidebarContainer;
             Create.creators = creators;
