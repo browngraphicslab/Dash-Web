@@ -18,6 +18,8 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { CollectionLinearView } from '../CollectionLinearView';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -65,6 +67,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
             case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
+            case CollectionViewType.Linear: { return (<CollectionLinearView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
             case CollectionViewType.Freeform:
             default:
                 this.props.Document.freeformLayoutEngine = undefined;
@@ -123,6 +126,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
+            ContextMenu.Instance.addItem({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
         }
     }
 

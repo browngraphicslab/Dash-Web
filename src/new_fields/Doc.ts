@@ -63,6 +63,10 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
 }
 
+export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
+    return Cast(field, Doc);
+}
+
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
@@ -328,8 +332,10 @@ export namespace Doc {
         return Array.from(results);
     }
 
-    export function IndexOf(toFind: Doc, list: Doc[]) {
-        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
+    export function IndexOf(toFind: Doc, list: Doc[], allowProtos: boolean = true) {
+        let index = list.reduce((p, v, i) => (v instanceof Doc && v === toFind) ? i : p, -1);
+        index = allowProtos && index !== -1 ? index : list.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, toFind)) ? i : p, -1);
+        return index; // list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
     export function RemoveDocFromList(listDoc: Doc, key: string, doc: Doc) {
         if (listDoc[key] === undefined) {
@@ -637,7 +643,7 @@ export namespace Doc {
 
     export function isBrushedHighlightedDegree(doc: Doc) {
         if (Doc.IsHighlighted(doc)) {
-            return 3;
+            return 6;
         }
         else {
             return Doc.IsBrushedDegree(doc);
@@ -671,6 +677,21 @@ export namespace Doc {
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
         return doc;
+    }
+
+    export function linkFollowUnhighlight() {
+        Doc.UnhighlightAll();
+        document.removeEventListener("pointerdown", linkFollowUnhighlight);
+    }
+
+    let dt = 0;
+    export function linkFollowHighlight(destDoc: Doc) {
+        linkFollowUnhighlight();
+        Doc.HighlightDoc(destDoc);
+        document.removeEventListener("pointerdown", linkFollowUnhighlight);
+        document.addEventListener("pointerdown", linkFollowUnhighlight);
+        let x = dt = Date.now();
+        window.setTimeout(() => dt === x && linkFollowUnhighlight(), 5000);
     }
 
     export class HighlightBrush {
@@ -709,6 +730,7 @@ export namespace Doc {
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
+Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });

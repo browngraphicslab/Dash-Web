@@ -24,6 +24,7 @@ export enum CollectionViewType {
     Stacking,
     Masonry,
     Pivot,
+    Linear,
 }
 
 export namespace CollectionViewType {
@@ -36,7 +37,8 @@ export namespace CollectionViewType {
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
-        ["pivot", CollectionViewType.Pivot]
+        ["pivot", CollectionViewType.Pivot],
+        ["linear", CollectionViewType.Linear]
     ]);
 
     export const valueOf = (value: string) => {
@@ -46,7 +48,7 @@ export namespace CollectionViewType {
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
@@ -101,22 +103,13 @@ export class CollectionBaseView extends Touchable<CollectionViewProps> {
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
-    addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        var curPage = NumCast(this.props.Document.curPage, -1);
-        Doc.GetProto(doc).page = curPage;
+    addDocument(doc: Doc): boolean {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
-        const value = Cast(targetDataDoc[targetField], listSpec(Doc));
-        if (value !== undefined) {
-            if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
-                value.push(doc);
-            }
-        } else {
-            Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
-        }
+        Doc.AddDocToList(targetDataDoc, targetField, doc);
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
@@ -187,7 +180,7 @@ export class CollectionBaseView extends Touchable<CollectionViewProps> {
             <div id="collectionBaseView"
                 style={{
                     pointerEvents: this.props.Document.isBackground ? "none" : "all",
-                    boxShadow: this.props.Document.isBackground ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                    boxShadow: this.props.Document.isBackground || viewtype === CollectionViewType.Linear ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>

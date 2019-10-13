@@ -12,6 +12,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
+import { ScriptField } from "../../../new_fields/ScriptField";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -29,7 +30,6 @@ export class CurrentUserUtils {
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
         doc.viewType = CollectionViewType.Tree;
-        doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
         doc.title = Doc.CurrentUserEmail;
         this.updateUserDocument(doc);
@@ -37,7 +37,9 @@ export class CurrentUserUtils {
         doc.gridGap = 5;
         doc.xMargin = 5;
         doc.yMargin = 5;
+        doc.height = 42;
         doc.boxShadow = "0 0";
+        doc.convertToButtons = true; // for CollectionLinearView used as the docButton layout 
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
         return doc;
     }
@@ -46,7 +48,7 @@ export class CurrentUserUtils {
 
         // setup workspaces library item
         if (doc.workspaces === undefined) {
-            const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces".toUpperCase(), height: 100 });
+            const workspaces = Docs.Create.TreeDocument([], { title: "WORKSPACES", height: 100 });
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
@@ -98,21 +100,70 @@ export class CurrentUserUtils {
             doc.curPresentation = curPresentation;
         }
 
-        if (doc.sidebar === undefined) {
-            const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
-            sidebar.forceActive = true;
-            sidebar.lockedPosition = true;
-            sidebar.gridGap = 5;
-            sidebar.xMargin = 5;
-            sidebar.yMargin = 5;
-            sidebar.boxShadow = "1 1 3";
-            doc.sidebar = sidebar;
-        }
-        PromiseValue(Cast(doc.sidebar, Doc)).then(sidebar => {
-            if (sidebar) {
-                sidebar.backgroundColor = "lightgrey";
+        if (doc.Library === undefined) {
+            let Search = Docs.Create.ButtonDocument({ width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Search" });
+            let Library = Docs.Create.ButtonDocument({ width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library" });
+            let Create = Docs.Create.ButtonDocument({ width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create" });
+            if (doc.sidebarContainer === undefined) {
+                doc.sidebarContainer = new Doc();
+                (doc.sidebarContainer as Doc).chromeStatus = "disabled";
             }
-        })
+
+            const library = Docs.Create.TreeDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Library" });
+            library.forceActive = true;
+            library.lockedPosition = true;
+            library.gridGap = 5;
+            library.xMargin = 5;
+            library.yMargin = 5;
+            library.dropAction = "alias";
+            Library.targetContainer = doc.sidebarContainer;
+            Library.library = library;
+            Library.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.library");
+
+            const searchBox = Docs.Create.QueryDocument({ title: "search stack" });
+            searchBox.ignoreClick = true;
+            Search.searchBox = searchBox;
+            Search.targetContainer = doc.sidebarContainer;
+            Search.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.searchBox");
+
+            let createCollection = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Collection", icon: "folder" });
+            createCollection.onDragStart = ScriptField.MakeFunction('Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })');
+            let createWebPage = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Web Page", icon: "globe-asia" });
+            createWebPage.onDragStart = ScriptField.MakeFunction('Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })');
+            let createCatImage = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Image", icon: "cat" });
+            createCatImage.onDragStart = ScriptField.MakeFunction('Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })');
+            let createButton = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Button", icon: "bolt" });
+            createButton.onDragStart = ScriptField.MakeFunction('Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })');
+            let createPresentation = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Presentation", icon: "tv" });
+            createPresentation.onDragStart = ScriptField.MakeFunction('Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })');
+            let createFolderImport = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Import Folder", icon: "cloud-upload-alt" });
+            createFolderImport.onDragStart = ScriptField.MakeFunction('Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })');
+            const dragCreators = Docs.Create.MasonryDocument([createCollection, createWebPage, createCatImage, createButton, createPresentation, createFolderImport], { width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons" });
+            const color = Docs.Create.ColorDocument({ title: "color picker", width: 400 });
+            color.dropAction = "alias";
+            color.ignoreClick = true;
+            color.removeDropProperties = new List<string>(["dropAction", "ignoreClick"]);
+            const creators = Docs.Create.StackingDocument([dragCreators, color], { width: 500, height: 800, chromeStatus: "disabled", title: "creator stack" });
+            Create.targetContainer = doc.sidebarContainer;
+            Create.creators = creators;
+            Create.onClick = ScriptField.MakeScript("this.targetContainer.proto = this.creators");
+
+            const libraryButtons = Docs.Create.StackingDocument([Search, Library, Create], { width: 500, height: 80, chromeStatus: "disabled", title: "library stack" });
+            libraryButtons.sectionFilter = "title";
+            libraryButtons.boxShadow = "0 0";
+            libraryButtons.ignoreClick = true;
+            libraryButtons.hideHeadings = true;
+            libraryButtons.backgroundColor = "lightgrey";
+
+            doc.libraryButtons = libraryButtons;
+            doc.Library = Library;
+            doc.Create = Create;
+            doc.Search = Search;
+        }
+        PromiseValue(Cast(doc.libraryButtons, Doc)).then(libraryButtons => { });
+        PromiseValue(Cast(doc.Library, Doc)).then(library => library && library.library && library.targetContainer && (library.onClick as ScriptField).script.run({ this: library }));
+        PromiseValue(Cast(doc.Create, Doc)).then(async create => create && create.creators && create.targetContainer);
+        PromiseValue(Cast(doc.Search, Doc)).then(async search => search && search.searchBox && search.targetContainer);
 
         if (doc.overlays === undefined) {
             const overlays = Docs.Create.FreeformDocument([], { title: "Overlays" });
@@ -124,8 +175,7 @@ export class CurrentUserUtils {
             PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
         }
 
-        StrCast(doc.title).indexOf("@") !== -1 && (doc.title = (StrCast(doc.title).split("@")[0] + "'s Library").toUpperCase());
-        StrCast(doc.title).indexOf("'s Library") !== -1 && (doc.title = StrCast(doc.title).toUpperCase());
+        doc.title = "DOCUMENTS";
         doc.backgroundColor = "#eeeeee";
         doc.width = 100;
         doc.preventTreeViewOpen = true;

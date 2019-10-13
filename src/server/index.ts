@@ -53,6 +53,8 @@ import { DashUploadUtils } from './DashUploadUtils';
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { ParsedPDF } from "./PdfTypes";
 import { reject } from 'bluebird';
+import { ExifData } from 'exif';
+import { Result } from '../client/northstar/model/idea/idea';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -211,7 +213,6 @@ const solrURL = "http://localhost:8983/solr/#/dash";
 
 app.get("/textsearch", async (req, res) => {
     let q = req.query.q;
-    console.log("TEXTSEARCH " + q);
     if (q === undefined) {
         res.send([]);
         return;
@@ -318,6 +319,76 @@ app.get("/serializeDoc/:docId", async (req, res) => {
     const { docs, files } = await getDocs(req.params.docId);
     res.send({ docs, files: Array.from(files) });
 });
+
+export type Hierarchy = { [id: string]: string | Hierarchy };
+export type ZipMutator = (file: Archiver.Archiver) => void | Promise<void>;
+
+app.get(`${RouteStore.imageHierarchyExport}/:docId`, async (req, res) => {
+    const id = req.params.docId;
+    const hierarchy: Hierarchy = {};
+    await targetedVisitorRecursive(id, hierarchy);
+    BuildAndDispatchZip(res, async zip => {
+        await hierarchyTraverserRecursive(zip, hierarchy);
+    });
+});
+
+const BuildAndDispatchZip = async (res: Response, mutator: ZipMutator): Promise<void> => {
+    const zip = Archiver('zip');
+    zip.pipe(res);
+    await mutator(zip);
+    return zip.finalize();
+};
+
+const targetedVisitorRecursive = async (seedId: string, hierarchy: Hierarchy): Promise<void> => {
+    const local: Hierarchy = {};
+    const { title, data } = await getData(seedId);
+    const label = `${title} (${seedId})`;
+    if (Array.isArray(data)) {
+        hierarchy[label] = local;
+        await Promise.all(data.map(proxy => targetedVisitorRecursive(proxy.fieldId, local)));
+    } else {
+        hierarchy[label + path.extname(data)] = data;
+    }
+};
+
+const getData = async (seedId: string): Promise<{ data: string | any[], title: string }> => {
+    return new Promise<{ data: string | any[], title: string }>((resolve, reject) => {
+        Database.Instance.getDocument(seedId, async (result: any) => {
+            const { data, proto, title } = result.fields;
+            if (data) {
+                if (data.url) {
+                    resolve({ data: data.url, title });
+                } else if (data.fields) {
+                    resolve({ data: data.fields, title });
+                } else {
+                    reject();
+                }
+            }
+            if (proto) {
+                getData(proto.fieldId).then(resolve, reject);
+            }
+        });
+    });
+};
+
+const hierarchyTraverserRecursive = async (file: Archiver.Archiver, hierarchy: Hierarchy, prefix = "Dash Export"): Promise<void> => {
+    for (const key of Object.keys(hierarchy)) {
+        const result = hierarchy[key];
+        if (typeof result === "string") {
+            let path: string;
+            let matches: RegExpExecArray | null;
+            if ((matches = /\:1050\/files\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
+                path = `${__dirname}/public/files/${matches[1]}`;
+            } else {
+                const information = await DashUploadUtils.UploadImage(result);
+                path = information.mediaPaths[0];
+            }
+            file.file(path, { name: key, prefix });
+        } else {
+            await hierarchyTraverserRecursive(file, result, `${prefix}/${key}`);
+        }
+    }
+};
 
 app.get("/downloadId/:docId", async (req, res) => {
     res.set('Content-disposition', `attachment;`);
@@ -590,10 +661,11 @@ const uploadDirectory = __dirname + "/public/files/";
 const pdfDirectory = uploadDirectory + "text";
 DashUploadUtils.createIfNotExists(pdfDirectory);
 
-interface FileResponse {
+interface ImageFileResponse {
     name: string;
     path: string;
     type: string;
+    exif: Opt<DashUploadUtils.EnrichedExifData>;
 }
 
 // SETTERS
@@ -604,10 +676,11 @@ app.post(
         form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
         form.parse(req, async (_err, _fields, files) => {
-            let results: FileResponse[] = [];
+            let results: ImageFileResponse[] = [];
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
+                let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
                 if (filename.endsWith(".pdf")) {
                     let dataBuffer = fs.readFileSync(uploadDirectory + filename);
                     const result: ParsedPDF = await pdf(dataBuffer);
@@ -622,15 +695,25 @@ app.post(
                         });
                     });
                 } else {
-                    await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
+                    uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
                 }
-                results.push({ name, type, path: `/files/${filename}` });
+                const exif = uploadInformation ? uploadInformation.exifData : undefined;
+                results.push({ name, type, path: `/files/${filename}`, exif });
 
             }
             _success(res, results);
         });
     }
 );
+
+app.post(RouteStore.inspectImage, async (req, res) => {
+    const { source } = req.body;
+    if (typeof source === "string") {
+        const uploadInformation = await DashUploadUtils.UploadImage(source);
+        return res.send(await DashUploadUtils.InspectImage(uploadInformation.mediaPaths[0]));
+    }
+    res.send({});
+});
 
 addSecureRoute(
     Method.POST,
@@ -862,7 +945,21 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.header("userId")! }).then(token => res.send(token)));
+app.get(RouteStore.readGoogleAccessToken, async (req, res) => {
+    const userId = req.header("userId")!;
+    const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+    const information = { credentialsPath, userId };
+    if (!token) {
+        return res.send(await GoogleApiServerUtils.GenerateAuthenticationUrl(information));
+    }
+    GoogleApiServerUtils.RetrieveAccessToken(information).then(token => res.send(token));
+});
+
+app.post(RouteStore.writeGoogleAccessToken, async (req, res) => {
+    const userId = req.header("userId")!;
+    const information = { credentialsPath, userId };
+    res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
+});
 
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
@@ -885,16 +982,17 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
 
     await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
 
-    let failed = 0;
+    let failed: number[] = [];
 
     const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
         { magnitude: 100, unit: TimeUnit.Milliseconds },
         async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
             const newMediaItems: NewMediaItem[] = [];
-            for (let element of batch) {
+            for (let index = 0; index < batch.length; index++) {
+                const element = batch[index];
                 const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
                 if (!uploadToken) {
-                    failed++;
+                    failed.push(index);
                 } else {
                     newMediaItems.push({
                         description: element.description,
@@ -906,12 +1004,13 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         }
     );
 
-    if (failed) {
-        return _error(res, tokenError);
+    const failedCount = failed.length;
+    if (failedCount) {
+        console.log(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
     }
 
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-        result => _success(res, result.newMediaItemResults),
+        result => _success(res, { results: result.newMediaItemResults, failed }),
         error => _error(res, mediaError, error)
     );
 });

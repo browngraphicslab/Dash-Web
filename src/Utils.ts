@@ -322,7 +322,7 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
     return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
 };
 
-export default function smoothScroll(duration: number, element: HTMLElement, to: number) {
+export function smoothScroll(duration: number, element: HTMLElement, to: number) {
     const start = element.scrollTop;
     const change = to - start;
     const startDate = new Date().getTime();
@@ -339,4 +339,28 @@ export default function smoothScroll(duration: number, element: HTMLElement, to:
         }
     };
     animateScroll();
+}
+export function addStyleSheet(styleType: string = "text/css") {
+    let style = document.createElement("style");
+    style.type = styleType;
+    var sheets = document.head.appendChild(style);
+    return (sheets as any).sheet;
+}
+export function addStyleSheetRule(sheet: any, selector: any, css: any) {
+    var propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
+    return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
+}
+export function removeStyleSheetRule(sheet: any, rule: number) {
+    if (sheet.rules.length) {
+        sheet.removeRule(rule);
+        return true;
+    }
+    return false;
+}
+export function clearStyleSheetRules(sheet: any) {
+    if (sheet.rules.length) {
+        numberRange(sheet.rules.length).map(n => sheet.removeRule(0));
+        return true;
+    }
+    return false;
 }

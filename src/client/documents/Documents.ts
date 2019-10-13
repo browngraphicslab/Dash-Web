@@ -1,7 +1,6 @@
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
-import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
 import { AudioBox } from "../views/nodes/AudioBox";
@@ -38,7 +37,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
-import { DragBox } from "../views/nodes/DragBox";
+import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField } from "../../new_fields/ScriptField";
@@ -46,6 +45,8 @@ import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { QueryBox } from "../views/nodes/QueryBox";
+import { ColorBox } from "../views/nodes/ColorBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -63,23 +64,31 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
+    fitWidth?: boolean;
     layout?: string | Doc;
     isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    ignoreClick?: boolean;
+    lockedPosition?: boolean;
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
+    columnWidth?: number;
+    fontSize?: number;
     curPage?: number;
+    currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
+    boxShadow?: string;
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
     dbDoc?: Doc;
+    icon?: string;
     // [key: string]: Opt<Field>;
 }
 
@@ -118,12 +127,20 @@ export namespace Docs {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
                 options: { height: 300, backgroundColor: "black" }
             }],
+            [DocumentType.QUERY, {
+                layout: { view: QueryBox },
+                options: { width: 400 }
+            }],
+            [DocumentType.COLOR, {
+                layout: { view: ColorBox },
+                options: { nativeWidth: 220, nativeHeight: 300 }
+            }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { curPage: 0 }
+                layout: { view: ImageBox, ext: anno },
+                options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
+                layout: { view: WebBox, ext: anno },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
@@ -135,8 +152,8 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { curPage: 0 },
+                layout: { view: VideoBox, ext: anno },
+                options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -168,8 +185,8 @@ export namespace Docs {
                 layout: { view: PresBox },
                 options: {}
             }],
-            [DocumentType.DRAGBOX, {
-                layout: { view: DragBox },
+            [DocumentType.FONTICONBOX, {
+                layout: { view: FontIconBox },
                 options: { width: 40, height: 40 },
             }],
             [DocumentType.LINKFOLLOW, {
@@ -254,7 +271,7 @@ export namespace Docs {
             let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
-            let options = { title: title, type: type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
+            let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             let primary = layout.view.LayoutString(layout.ext);
             let collectionView = layout.collectionView;
             if (collectionView) {
@@ -373,6 +390,14 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
         }
 
+        export function QueryDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        }
+
+        export function ColorDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
+        }
+
         export function TextDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
@@ -453,8 +478,8 @@ export namespace Docs {
         }
 
 
-        export function DragboxDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
+        export function FontIconDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICONBOX), undefined, { ...(options || {}) });
         }
 
         export function LinkFollowBoxDocument(options?: DocumentOptions) {
@@ -653,7 +678,7 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: {doc:Doc,ctx?:Doc}, target: {doc:Doc,ctx?:Doc}, title: string = "", description: string = "", id?: string, anchored1?: boolean) {
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         let sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
@@ -662,16 +687,17 @@ export namespace DocUtils {
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = target.ctx;
-            linkDocProto.sourceContext = source.ctx;
             linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
 
             linkDocProto.anchor1 = source.doc;
+            linkDocProto.anchor1Context = source.ctx;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor1Groups = new List<Doc>([]);
-            linkDocProto.anchor1anchored = anchored1;
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             LinkManager.Instance.addLink(linkDocProto);
 

@@ -21,10 +21,8 @@ import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
-import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
@@ -51,7 +49,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["zIndex", ColumnType.Number]
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -247,8 +245,8 @@ export interface SchemaTableProps {
     PanelHeight: () => number;
     PanelWidth: () => number;
     childDocs?: Doc[];
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
@@ -905,11 +903,11 @@ interface CollectionSchemaPreviewProps {
     ruleProvider: Doc | undefined;
     focus?: (doc: Doc) => void;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
-    CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
     getTransform: () => Transform;
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument: (document: Doc) => boolean;
     active: () => boolean;

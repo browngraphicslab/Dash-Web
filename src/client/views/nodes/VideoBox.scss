@@ -1,6 +1,12 @@
+.videoBox-container {
+    pointer-events: all;
+}
+
 .videoBox-content-YouTube, .videoBox-content-YouTube-fullScreen,
 .videoBox-content, .videoBox-content-interactive, .videoBox-cont-fullScreen {
     width: 100%;
+    z-index: 0;  // logically this should be 0 (or unset) which would give us transparent brush strokes over videos.  However, this makes Chrome crawl to a halt
+    position: absolute;
 }
 
 .videoBox-content, .videoBox-content-interactive, .videoBox-content-fullScreen {
@@ -11,7 +17,52 @@
     height: 100%;
 }
 
-.videoBox-content-interactive, .videoBox-content-fullScreen,
-.videoBox-content-YouTube-fullScreen  {
+.videoBox-content-interactive, .videoBox-content-fullScreen, .videoBox-content-YouTube-fullScreen  {
     pointer-events: all;
+}
+
+.videoBox-time{
+    color : white;
+    top :25px;
+    left : 25px;
+    position: absolute;
+    background-color: rgba(50, 50, 50, 0.2);
+    transform-origin: left top;
+    pointer-events:all;
+}
+.videoBox-snapshot{
+    color : white;
+    top :25px;
+    right : 25px;
+    position: absolute;
+    background-color:rgba(50, 50, 50, 0.2);
+    transform-origin: left top;
+    pointer-events:all;
+}
+.videoBox-play {
+    width: 25px;
+    height: 20px;
+    bottom: 25px;
+    left : 25px;
+    position: absolute;
+    color : white;
+    background-color: rgba(50, 50, 50, 0.2);
+    border-radius: 4px;
+    text-align: center;
+    transform-origin: left bottom;
+    pointer-events:all;
+}
+.videoBox-full {
+    width: 25px;
+    height: 20px;
+    bottom: 25px;
+    right : 25px;
+    position: absolute;
+    color : white;
+    background-color: rgba(50, 50, 50, 0.2);
+    border-radius: 4px;
+    text-align: center;
+    transform-origin: right bottom;
+    pointer-events:all;
+
 }

@@ -314,12 +314,11 @@ export class PresBox extends React.Component<FieldViewProps> {
     }
 
     toggleMinimize = undoBatch(action((e: React.PointerEvent) => {
-        if (this.props.Document.minimizedView) {
-            this.props.Document.minimizedView = false;
+        if (this.props.Document.inOverlay) {
             Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
             CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
+            this.props.Document.inOverlay = false;
         } else {
-            this.props.Document.minimizedView = true;
             this.props.Document.x = e.clientX + 25;
             this.props.Document.y = e.clientY - 25;
             this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
@@ -370,9 +369,9 @@ export class PresBox extends React.Component<FieldViewProps> {
                         <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
                     </button>
                     <button className="presBox-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
-                    <button className="presBox-button" title={this.props.Document.minimizedView ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
+                    <button className="presBox-button" title={this.props.Document.inOverlay ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
                 </div>
-                {this.props.Document.minimizedView ? (null) :
+                {this.props.Document.inOverlay ? (null) :
                     <div className="presBox-listCont" >
                         <CollectionView {...this.props} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
                     </div>

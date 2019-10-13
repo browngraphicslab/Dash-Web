@@ -1,15 +1,15 @@
-import { computed, action, observable, reaction, IReactionDisposer, trace } from "mobx";
+import { random } from "animejs";
+import { computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
+import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { percent2frac } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
-import { percent2frac } from "../../../Utils";
-import { DocumentView, DocumentViewProps, documentSchema } from "./DocumentView";
 import "./CollectionFreeFormDocumentView.scss";
+import { documentSchema, DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
-import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
-import { random } from "animejs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, dataDoc?: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;

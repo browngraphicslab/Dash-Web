@@ -11,7 +11,7 @@ import "./Annotation.scss";
 
 interface IAnnotationProps {
     anno: Doc;
-    fieldExtensionDoc: Doc;
+    extensionDoc: Doc;
     addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     focus: (doc: Doc) => void;
@@ -29,7 +29,7 @@ interface IRegionAnnotationProps {
     y: number;
     width: number;
     height: number;
-    fieldExtensionDoc: Doc;
+    extensionDoc: Doc;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
@@ -51,10 +51,10 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         );
 
         this._brushDisposer = reaction(
-            () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.IsBrushed(FieldValue(Cast(this.props.document.group, Doc))!),
+            () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.isBrushedHighlightedDegree(FieldValue(Cast(this.props.document.group, Doc))!),
             (brushed) => {
                 if (brushed !== undefined) {
-                    runInAction(() => this._brushed = brushed);
+                    runInAction(() => this._brushed = brushed !== 0);
                 }
             }
         );
@@ -66,12 +66,12 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     deleteAnnotation = () => {
-        let annotation = DocListCast(this.props.fieldExtensionDoc.annotations);
+        let annotation = DocListCast(this.props.extensionDoc.annotations);
         let group = FieldValue(Cast(this.props.document.group, Doc));
         if (group) {
             if (annotation.indexOf(group) !== -1) {
                 let newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
-                this.props.fieldExtensionDoc.annotations = new List<Doc>(newAnnotations);
+                this.props.extensionDoc.annotations = new List<Doc>(newAnnotations);
             }
 
             DocListCast(group.annotations).forEach(anno => anno.delete = true);
@@ -94,16 +94,18 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             PDFMenu.Instance.AddTag = this.addTag.bind(this);
             PDFMenu.Instance.PinToPres = this.pinToPres;
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
+            e.stopPropagation();
         }
         else if (e.button === 0) {
             let annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
-                DocumentManager.Instance.FollowLink(annoGroup,
+                DocumentManager.Instance.FollowLink(undefined, annoGroup,
                     (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "onRight" : "inTab"),
                     false, false, undefined);
             }
         }
     }
+
 
     addTag = (key: string, value: string): boolean => {
         let group = FieldValue(Cast(this.props.document.group, Doc));
@@ -122,7 +124,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 left: this.props.x,
                 width: this.props.width,
                 height: this.props.height,
-                backgroundColor: this._brushed ? "green" : StrCast(this.props.document.color)
+                opacity: this._brushed ? 0.5 : undefined,
+                backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
+                transition: "opacity 0.5s",
             }} />);
     }
 }

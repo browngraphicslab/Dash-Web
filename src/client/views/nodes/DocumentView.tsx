@@ -7,7 +7,7 @@ import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc
 import { Id } from '../../../new_fields/FieldSymbols';
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -21,14 +21,11 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { MainView } from '../MainView';
 import { OverlayView } from '../OverlayView';
 import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
@@ -42,7 +39,9 @@ import { ImageField } from '../../../new_fields/URLField';
 import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
 import { InteractionUtils } from '../../util/InteractionUtils';
+import { DictationOverlay } from '../DictationOverlay';
 
+library.add(fa.faEdit);
 library.add(fa.faTrash);
 library.add(fa.faShare);
 library.add(fa.faDownload);
@@ -66,13 +65,13 @@ library.add(fa.faLock);
 library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
     fitToBox?: boolean;
     onClick?: ScriptField;
-    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -104,7 +103,11 @@ export const documentSchema = createSchema({
     height: "number",           // "
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
+    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
+    onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return an Doc to drag.
+    dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script
     ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
     autoHeight: "boolean",      // whether the height of the document should be computed automatically based on its contents
     isTemplate: "boolean",      // whether this document acts as a template layout for describing how other documents should be displayed
@@ -112,6 +115,7 @@ export const documentSchema = createSchema({
     type: "string",             // enumerated type of document
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
     lockedPosition: "boolean",  // whether the document can be spatially manipulated
+    inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
@@ -164,15 +168,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._mainCont.current) {
             let dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
-            dragData.offset = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
+            dragData.offset = this.Document.onDragStart ? [0, 0] : this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
-            dragData.moveDocument = this.props.moveDocument;
+            dragData.moveDocument = this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.applyAsTemplate = applyAsTemplate;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
-                    dragComplete: action(emptyFunction)
+                    dragComplete: action((emptyFunction))
                 },
-                hideSource: !dropAction
+                hideSource: !dropAction && !this.Document.onDragStart
             });
         }
     }
@@ -217,7 +221,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
             maxLocation = this.Document.maximizeLocation = (!ctrlKey ? !altKey ? maxLocation : (maxLocation !== "inPlace" ? "inPlace" : "onRight") : (maxLocation !== "inPlace" ? "inPlace" : "inTab"));
             if (maxLocation === "inPlace") {
-                expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc, false));
+                expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc));
                 let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
                 DocumentManager.Instance.animateBetweenPoint(scrpt, expandedDocs);
             } else {
@@ -225,14 +229,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         }
         else if (linkDocs.length) {
-            DocumentManager.Instance.FollowLink(this.props.Document,
+            DocumentManager.Instance.FollowLink(undefined, this.props.Document,
+                // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
                 (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
                 ctrlKey, altKey, this.props.ContainingCollectionDoc);
         }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.nativeEvent.cancelBubble) return;
+        if (e.nativeEvent.cancelBubble && e.button === 0) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitTemplateDrag = false;
@@ -243,23 +248,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if (this.active && e.button === 0 && !this.Document.lockedPosition) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+        if ((this.active || this.Document.onDragStart) && e.button === 0 && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
+        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
     }
 
     onPointerMove = (e: PointerEvent): void => {
+        if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive()) && !this.Document.lockedPosition) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive() || this.Document.onDragStart) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && !this.topMost && e.buttons === 1) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart) && e.buttons === 1) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -419,10 +426,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
             continuous: { indefinite: true },
             interimHandler: (results: string) => {
-                let main = MainView.Instance;
-                main.dictationSuccess = true;
-                main.dictatedPhrase = results;
-                main.isListening = { interim: true };
+                DictationOverlay.Instance.dictationSuccess = true;
+                DictationOverlay.Instance.dictatedPhrase = results;
+                DictationOverlay.Instance.isListening = { interim: true };
             }
         });
     }
@@ -471,6 +477,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+
+        let funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
+        funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
+        funcs.push({ description: "Drag Document", icon: "edit", event: () => this.Document.onDragStart = undefined });
+        ContextMenu.Instance.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
 
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
@@ -615,6 +627,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        if (!this.props.Document) return (null);
         let animDims = this.props.Document.animateToDimensions ? Array.from(Cast(this.props.Document.animateToDimensions, listSpec("number"))!) : undefined;
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
@@ -624,8 +637,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
-        const nativeWidth = this.props.Document.fitWidth ? this.props.PanelWidth() : this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.props.Document.fitWidth ? this.props.PanelHeight() : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const nativeWidth = this.props.Document.fitWidth ? this.props.PanelWidth() - 2 : this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
+        const nativeHeight = this.props.Document.fitWidth ? this.props.PanelHeight() - 2 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
@@ -662,6 +675,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let animheight = animDims ? animDims[1] : nativeHeight;
         let animwidth = animDims ? animDims[0] : nativeWidth;
 
+        const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
+        const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -669,10 +684,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
                     pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.Document.color),
-                    outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
-                    outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
-                    outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
-                    border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
+                    outline: fullDegree && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
+                    border: fullDegree && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                     background: backgroundColor,
                     width: animwidth,
                     height: animheight,

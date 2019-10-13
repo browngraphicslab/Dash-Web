@@ -31,14 +31,14 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { compileFunction } from 'vm';
 import { ComputedField } from '../../../new_fields/ScriptField';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
-    @observable public static Instance: CollectionDockingView;
+    @observable public static Instances: CollectionDockingView[] = [];
+    @computed public static get Instance() { return CollectionDockingView.Instances[0]; }
     public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
         return {
             type: 'react-component',
@@ -66,7 +66,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        !CollectionDockingView.Instance && runInAction(() => CollectionDockingView.Instance = this);
+        runInAction(() => !CollectionDockingView.Instances ? CollectionDockingView.Instances = [this] : CollectionDockingView.Instances.push(this));
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
@@ -318,13 +318,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } catch (e) {
 
         }
-        if (this._goldenLayout) this._goldenLayout.destroy();
-        runInAction(() => this._goldenLayout = null);
+        this._goldenLayout && this._goldenLayout.destroy();
+        runInAction(() => {
+            CollectionDockingView.Instances.splice(CollectionDockingView.Instances.indexOf(this), 1);
+            this._goldenLayout = null;
+        });
         window.removeEventListener('resize', this.onResize);
 
-        if (this.reactionDisposer) {
-            this.reactionDisposer();
-        }
+        this.reactionDisposer && this.reactionDisposer();
     }
     @action
     onResize = (event: any) => {

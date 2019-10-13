@@ -5,6 +5,7 @@ import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { unimplementedFunction, returnFalse } from "../../../Utils";
 import AntimodeMenu from "../AntimodeMenu";
+import { Doc, Opt } from "../../../new_fields/Doc";
 
 @observer
 export default class PDFMenu extends AntimodeMenu {
@@ -21,7 +22,7 @@ export default class PDFMenu extends AntimodeMenu {
     @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
-    public Highlight: (color: string) => void = unimplementedFunction;
+    public Highlight: (color: string) => Opt<Doc> = (color: string) => undefined;
     public Delete: () => void = unimplementedFunction;
     public Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = unimplementedFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
@@ -70,12 +71,8 @@ export default class PDFMenu extends AntimodeMenu {
 
     @action
     highlightClicked = (e: React.MouseEvent) => {
-        if (!this.Pinned) {
-            this.Highlight("#f4f442");
-        }
-        else {
+        if (!this.Highlight("rgba(245, 230, 95, 0.616)") && this.Pinned) { // yellowish highlight color for a marker type highlight
             this.Highlighting = !this.Highlighting;
-            this.Highlight("#f4f442");
         }
     }
 
