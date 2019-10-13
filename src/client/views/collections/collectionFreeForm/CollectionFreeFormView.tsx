@@ -289,7 +289,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    pan = (e: PointerEvent | React.Touch): void => {
+    pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // I think it makes sense for the marquee menu to go away when panned. -syip2
         MarqueeOptionsMenu.Instance.fadeOut(true);
 
@@ -329,8 +329,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (ranges[1][1] - dy < (this.panY() - panelDim[1] / 2)) y = ranges[1][0] - panelDim[1] / 2;
         }
         this.setPan(x - dx, y - dy);
-        this._lastX = e.pageX;
-        this._lastY = e.pageY;
+        this._lastX = e.clientX;
+        this._lastY = e.clientY;
     }
 
     @action
@@ -386,10 +386,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2));
                         let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                        let delta = dir * (d1 + d2);
-                        this.zoom(centerX, centerY, delta, 250);
+
+                        // calculate the raw delta value
+                        let rawDelta = (dir * (d1 + d2));
+
+                        // this floors and ceils the delta value to prevent jitteriness
+                        let delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 16);
+                        this.zoom(centerX, centerY, delta);
                         this.prevPoints.set(pt1.identifier, pt1);
                         this.prevPoints.set(pt2.identifier, pt2);
+                    }
+                    // this is not zooming. derive some form of panning from it.
+                    else {
+                        // use the centerx and centery as the "new mouse position"
+                        let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+                        let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                        this.pan({ clientX: centerX, clientY: centerY });
+                        this._lastX = centerX;
+                        this._lastY = centerY;
                     }
                 }
             }
@@ -406,7 +420,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    zoom = (pointX: number, pointY: number, deltaY: number, coefficient: number): void => {
+    zoom = (pointX: number, pointY: number, deltaY: number): void => {
+        console.log(deltaY);
         let deltaScale = deltaY > 0 ? (1 / 1.1) : 1.1;
         if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
             deltaScale = 1 / this.zoomScaling();
@@ -428,7 +443,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         else if (this.props.active()) {
             e.stopPropagation();
-            this.zoom(e.clientX, e.clientY, e.deltaY, 1)
+            this.zoom(e.clientX, e.clientY, e.deltaY)
         }
     }
 

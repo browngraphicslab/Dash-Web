@@ -28,13 +28,15 @@ export namespace InteractionUtils {
      * @param oldPoint2 - previous point 2
      */
     export function Pinching(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
-        const leniency = 10;
-        let dist1 = TwoPointEuclidist(oldPoint1, pt1) + leniency;
-        let dist2 = TwoPointEuclidist(oldPoint2, pt2) + leniency;
+        let threshold = 4;
+        let oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
+        let newDist = TwoPointEuclidist(pt1, pt2);
 
-        if (Math.sign(dist1) === Math.sign(dist2)) {
-            let oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
-            let newDist = TwoPointEuclidist(pt1, pt2);
+        /** if they have the same sign, then we are either pinching in or out.
+          * threshold it by 10 (it has to be pinching by at least threshold to be a valid pinch)
+          * so that it can still pan without freaking out
+          */
+        if (Math.sign(oldDist) === Math.sign(newDist) && Math.abs(oldDist - newDist) > threshold) {
             return Math.sign(oldDist - newDist);
         }
         return 0;
