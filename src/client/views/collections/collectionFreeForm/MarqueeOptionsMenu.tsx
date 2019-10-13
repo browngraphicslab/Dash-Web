@@ -25,25 +25,19 @@ export default class MarqueeOptionsMenu extends AntimodeMenu {
             <button
                 className="antimodeMenu-button"
                 title="Create a Collection"
-                onPointerDown={this.createCollection}
-                onPointerLeave={this.hideMarquee}
-                onPointerEnter={this.showMarquee}>
+                onPointerDown={this.createCollection}>
                 <FontAwesomeIcon icon="object-group" size="lg" />
             </button>,
             <button
                 className="antimodeMenu-button"
                 title="Summarize Documents"
-                onPointerDown={this.summarize}
-                onPointerLeave={this.hideMarquee}
-                onPointerEnter={this.showMarquee}>
+                onPointerDown={this.summarize}>
                 <FontAwesomeIcon icon="compress-arrows-alt" size="lg" />
             </button>,
             <button
                 className="antimodeMenu-button"
                 title="Delete Documents"
-                onPointerDown={this.delete}
-                onPointerLeave={this.hideMarquee}
-                onPointerEnter={this.showMarquee}>
+                onPointerDown={this.delete}>
                 <FontAwesomeIcon icon="trash-alt" size="lg" />
             </button>,
         ]

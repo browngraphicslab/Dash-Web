@@ -51,13 +51,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
-    cleanupInteractions = (all: boolean = false) => {
+    cleanupInteractions = (all: boolean = false, hideMarquee: boolean = true) => {
         if (all) {
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
         document.removeEventListener("keydown", this.marqueeCommand, true);
-        this._visible = false;
+        if (hideMarquee) {
+            this._visible = false;
+        }
     }
 
     @undoBatch
@@ -204,7 +206,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
         }
-        this.cleanupInteractions(true);
+        this.cleanupInteractions(true, this._commandExecuted);
+
+        let hideMarquee = () => {
+            this.hideMarquee();
+            MarqueeOptionsMenu.Instance.fadeOut(true);
+            document.removeEventListener("pointerdown", hideMarquee);
+        }
+        document.addEventListener("pointerdown", hideMarquee)
 
         if (e.altKey) {
             e.preventDefault();
@@ -283,6 +292,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         SelectionManager.DeselectAll();
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
     }
 
     getCollection = (selected: Doc[]) => {
@@ -321,6 +331,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
         dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
         this.marqueeInkDelete(inkData);
+        this.hideMarquee();
         return newCollection;
     }
 
@@ -341,6 +352,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this.props.addDocument(newCollection, false);
         this.props.selectDocuments([newCollection]);
         MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
     }
 
     @action

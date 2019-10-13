@@ -26,6 +26,9 @@
 }
 
 .collectionfreeformview-container {
+    // touch action none means that the browser will handle none of the touch actions. this allows us to implement our own actions.
+    touch-action: none;
+
     .collectionfreeformview>.jsx-parser {
         position: inherit;
         height: 100%;
