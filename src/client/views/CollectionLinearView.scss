@@ -1,8 +1,13 @@
 @import "globalCssVariables";
 @import "nodeModuleOverrides";
 
+.collectionLinearView-outer{
+    overflow: hidden;
+    height:100%;
+    padding:5px;
+}
 .collectionLinearView {
-
+    display:flex;
     >label {
         background: $dark-color;
         color: $light-color;
@@ -18,6 +23,8 @@
 
     label p {
         padding-left: 10.5px;
+        width: 500px;
+        height: 500px;
     }
 
     label:hover {
@@ -41,18 +48,14 @@
     .collectionLinearView-content {
         display: flex;
         opacity: 1;
-        margin: 0;
         padding: 0;
         position: relative;
-        float: right;
         .collectionFreeFormDocumentView-container {
             position: relative;
         } 
         .collectionLinearView-docBtn {
             position:relative;
             margin-right: 10px;
-            width: 35px;
-            height: 35px;
         }
         .collectionLinearView-round-button {
             width: 36px;

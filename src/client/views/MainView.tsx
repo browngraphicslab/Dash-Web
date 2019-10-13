@@ -441,10 +441,42 @@ export class MainView extends React.Component {
         }}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
+    addButtonDoc = (doc: Doc) => {
+        Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc);
+        return true;
+    }
+    remButtonDoc = (doc: Doc) => {
+        Doc.RemoveDocFromList(CurrentUserUtils.UserDocument, "docButtons", doc);
+        return true;
+    }
     @computed get docButtons() {
         return <div className="mainView-docButtons" style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20 }} >
             <MainViewNotifs />
-            <CollectionLinearView Document={CurrentUserUtils.UserDocument} fieldKey={"docButtons"} />
+            <CollectionLinearView Document={CurrentUserUtils.UserDocument} DataDoc={undefined}
+                fieldKey={"docButtons"}
+                fieldExt={""}
+                showHiddenControls={true}
+                select={emptyFunction}
+                chromeCollapsed={true}
+                active={returnFalse}
+                isSelected={returnFalse}
+                moveDocument={returnFalse}
+                CollectionView={undefined}
+                addDocument={this.addButtonDoc}
+                addDocTab={this.addDocTabFunc}
+                pinToPres={emptyFunction}
+                removeDocument={this.remButtonDoc}
+                ruleProvider={undefined}
+                onClick={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={this.flyoutWidthFunc}
+                PanelHeight={this.getContentsHeight}
+                renderDepth={0}
+                focus={emptyFunction}
+                whenActiveChanged={emptyFunction}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined} />
         </div>;
     }
 

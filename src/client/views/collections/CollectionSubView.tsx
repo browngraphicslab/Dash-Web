@@ -33,6 +33,7 @@ export interface CollectionViewProps extends FieldViewProps {
     VisibleHeight?: () => number;
     chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    showHiddenControls?: boolean; // hack for showing the undo/redo/ink controls in a linear view -- needs to be redone
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {

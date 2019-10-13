@@ -37,7 +37,9 @@ export class CurrentUserUtils {
         doc.gridGap = 5;
         doc.xMargin = 5;
         doc.yMargin = 5;
+        doc.height = 42;
         doc.boxShadow = "0 0";
+        doc.convertToButtons = true; // for CollectionLinearView used as the docButton layout 
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
         return doc;
     }
