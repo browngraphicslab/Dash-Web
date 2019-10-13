@@ -334,6 +334,7 @@ export class MainView extends React.Component {
             return CollectionDockingView.AddRightSplit(doc, undefined);
         }
     }
+    mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
     @computed
     get flyout() {
         let sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
@@ -379,7 +380,7 @@ export class MainView extends React.Component {
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
                     onClick={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
+                    ScreenToLocalTransform={this.mainContainerXf}
                     ContentScaling={returnOne}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}

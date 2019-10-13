@@ -16,6 +16,6 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     public static LayoutString() { return FieldView.LayoutString(FontIconBox); }
 
     render() {
-        return <div className="fontIconBox-outerDiv" >  <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} size="lg" color="white" />  </div>;
+        return <button className="fontIconBox-outerDiv" >  <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} size="sm" color="white" />  </button>;
     }
 }

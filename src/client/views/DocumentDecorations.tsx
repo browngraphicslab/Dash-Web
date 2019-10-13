@@ -547,10 +547,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     TextBar: HTMLDivElement | undefined;
-    setTextBar = (ele: HTMLDivElement) => {
+    private setTextBar = (ele: HTMLDivElement) => {
         if (ele) {
             this.TextBar = ele;
-            TooltipTextMenu.Toolbar && Array.from(ele.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && ele.appendChild(TooltipTextMenu.Toolbar);
+        }
+    }
+    public showTextBar = () => {
+        if (this.TextBar) {
+            TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && this.TextBar.appendChild(TooltipTextMenu.Toolbar);
         }
     }
     render() {

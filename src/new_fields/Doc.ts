@@ -14,6 +14,7 @@ import { ComputedField } from "./ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
+import { UndoManager } from "../client/util/UndoManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -734,3 +735,5 @@ Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return Doc.Make
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
+Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
+Scripting.addGlobal(function redo() { return UndoManager.Redo(); });

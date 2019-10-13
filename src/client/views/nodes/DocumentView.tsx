@@ -185,7 +185,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
-            if (this._doubleTap && this.props.renderDepth) {
+            if (this._doubleTap && this.props.renderDepth && (!this.onClickHandler || !this.onClickHandler.script)) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
                 if (layoutNative && fullScreenAlias.layout === layoutNative.layout) {

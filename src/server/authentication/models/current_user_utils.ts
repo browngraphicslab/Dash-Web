@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs } from "../../../client/documents/Documents";
@@ -13,6 +13,8 @@ import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
 import { ScriptField } from "../../../new_fields/ScriptField";
+import { ButtonBox } from "../../../client/views/nodes/ButtonBox";
+import { UndoManager } from "../../../client/util/UndoManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -32,7 +34,6 @@ export class CurrentUserUtils {
         doc.viewType = CollectionViewType.Tree;
         doc.layout = CollectionView.LayoutString();
         doc.title = Doc.CurrentUserEmail;
-        this.updateUserDocument(doc);
         doc.data = new List<Doc>();
         doc.gridGap = 5;
         doc.xMargin = 5;
@@ -41,11 +42,21 @@ export class CurrentUserUtils {
         doc.boxShadow = "0 0";
         doc.convertToButtons = true; // for CollectionLinearView used as the docButton layout 
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
-        return doc;
+        return this.updateUserDocument(doc);// this should be the last 
     }
 
     static updateUserDocument(doc: Doc) {
 
+        if (doc.undoBtn === undefined) {
+            doc.undoBtn = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Collection", icon: "undo-alt" });
+            (doc.undoBtn as Doc).onClick = ScriptField.MakeScript('undo()');
+            Doc.AddDocToList(doc, "docButtons", doc.undoBtn as Doc);
+        }
+        if (doc.redoBtn === undefined) {
+            doc.redoBtn = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, title: "Collection", icon: "redo-alt" });
+            (doc.redoBtn as Doc).onClick = ScriptField.MakeScript('redo()');
+            Doc.AddDocToList(doc, "docButtons", doc.redoBtn as Doc);
+        }
         // setup workspaces library item
         if (doc.workspaces === undefined) {
             const workspaces = Docs.Create.TreeDocument([], { title: "WORKSPACES", height: 100 });
@@ -181,6 +192,10 @@ export class CurrentUserUtils {
         doc.preventTreeViewOpen = true;
         doc.forceActive = true;
         doc.lockedPosition = true;
+        doc.undoBtn && reaction(() => UndoManager.undoStack.slice(), () => (doc.undoBtn as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
+        doc.redoBtn && reaction(() => UndoManager.redoStack.slice(), () => (doc.redoBtn as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
+
+        return doc;
     }
 
     public static loadCurrentUser() {
