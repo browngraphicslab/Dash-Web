@@ -26,7 +26,6 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { MainView } from '../MainView';
 import { OverlayView } from '../OverlayView';
 import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
@@ -39,6 +38,7 @@ import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../../new_fields/URLField';
 import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
+import { DictationOverlay } from '../DictationOverlay';
 
 library.add(fa.faEdit);
 library.add(fa.faTrash);
@@ -423,10 +423,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
             continuous: { indefinite: true },
             interimHandler: (results: string) => {
-                let main = MainView.Instance;
-                main.dictationSuccess = true;
-                main.dictatedPhrase = results;
-                main.isListening = { interim: true };
+                DictationOverlay.Instance.dictationSuccess = true;
+                DictationOverlay.Instance.dictatedPhrase = results;
+                DictationOverlay.Instance.isListening = { interim: true };
             }
         });
     }

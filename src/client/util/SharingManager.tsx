@@ -18,6 +18,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { SelectionManager } from "./SelectionManager";
 import { DocumentManager } from "./DocumentManager";
 import { CollectionView } from "../views/collections/CollectionView";
+import { DictationOverlay } from "../views/DictationOverlay";
 
 library.add(fa.faCopy);
 
@@ -71,7 +72,7 @@ export default class SharingManager extends React.Component<{}> {
         this.populateUsers().then(action(() => {
             this.targetDocView = target;
             this.targetDoc = target.props.Document;
-            MainView.Instance.hasActiveModal = true;
+            DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = true;
             if (!this.sharingDoc) {
                 this.sharingDoc = new Doc;
@@ -84,7 +85,7 @@ export default class SharingManager extends React.Component<{}> {
         this.users = [];
         setTimeout(action(() => {
             this.copied = false;
-            MainView.Instance.hasActiveModal = false;
+            DictationOverlay.Instance.hasActiveModal = false;
             this.targetDoc = undefined;
         }), 500);
     });

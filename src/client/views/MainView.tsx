@@ -8,32 +8,26 @@ import * as React from 'react';
 import Measure from 'react-measure';
 import { Doc, DocListCast, Field, FieldResult, Opt } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
-import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
-import { ObjectField } from '../../new_fields/ObjectField';
 import { listSpec } from '../../new_fields/Schema';
-import { ScriptField } from '../../new_fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from '../../new_fields/Types';
+import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
-import { DictationManager } from '../util/DictationManager';
-import { DragManager } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
-import { UndoManager } from '../util/UndoManager';
+import { CollectionLinearView } from './CollectionLinearView';
 import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
+import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
 import KeyManager from './GlobalKeyHandler';
-import { InkingControl } from './InkingControl';
-import "./Main.scss";
-import MainViewModal from './MainViewModal';
+import "./MainView.scss";
 import { MainViewNotifs } from './MainViewNotifs';
 import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
@@ -46,59 +40,17 @@ export class MainView extends React.Component {
     private _buttonBarHeight = 75;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
-    private _dropDisposer?: DragManager.DragDropDisposer;
-
-    @observable private _dictationState = DictationManager.placeholder;
-    @observable private _dictationSuccessState: boolean | undefined = undefined;
-    @observable private _dictationDisplayState = false;
-    @observable private _dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
-    @observable public addMenuToggle = React.createRef<HTMLInputElement>();
     @observable public flyoutWidth: number = 250;
 
-    public hasActiveModal = false;
-    public isPointerDown = false;
-    public overlayTimeout: NodeJS.Timeout | undefined;
-
-    private set mainContainer(doc: Opt<Doc>) {
-        if (doc) {
-            !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
-            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
-        }
-    }
-
-    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
+    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
 
-    public initiateDictationFade = () => {
-        let duration = DictationManager.Commands.dictationFadeDuration;
-        this.overlayTimeout = setTimeout(() => {
-            this.dictationOverlayVisible = false;
-            this.dictationSuccess = undefined;
-            this.hasActiveModal = false;
-            setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
-        }, duration);
-    }
-    public cancelDictationFade = () => {
-        if (this.overlayTimeout) {
-            clearTimeout(this.overlayTimeout);
-            this.overlayTimeout = undefined;
-        }
-    }
-
-    @computed public get dictatedPhrase() { return this._dictationState; }
-    @computed public get dictationSuccess() { return this._dictationSuccessState; }
-    @computed public get dictationOverlayVisible() { return this._dictationDisplayState; }
-    @computed public get isListening() { return this._dictationListeningState; }
-
-    public set dictatedPhrase(value: string) { runInAction(() => this._dictationState = value); }
-    public set dictationSuccess(value: boolean | undefined) { runInAction(() => this._dictationSuccessState = value); }
-    public set dictationOverlayVisible(value: boolean) { runInAction(() => this._dictationDisplayState = value); }
-    public set isListening(value: DictationManager.Controls.ListeningUIStatus) { runInAction(() => this._dictationListeningState = value); }
+    public isPointerDown = false;
 
     componentWillMount() {
         var tag = document.createElement('script');
@@ -112,10 +64,8 @@ export class MainView extends React.Component {
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
-        //close presentation 
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
-        this._dropDisposer && this._dropDisposer();
     }
 
     constructor(props: Readonly<{}>) {
@@ -183,7 +133,6 @@ export class MainView extends React.Component {
     globalPointerUp = () => this.isPointerDown = false;
 
     initEventListeners = () => {
-        // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
@@ -202,24 +151,16 @@ export class MainView extends React.Component {
             );
         } else {
             if (received && this._urlState.sharing) {
-                reaction(
-                    () => {
-                        let docking = CollectionDockingView.Instance;
-                        return docking && docking.initialized;
-                    },
-                    initialized => {
-                        if (initialized && received) {
-                            DocServer.GetRefField(received).then(field => {
-                                if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
-                                    CollectionDockingView.AddRightSplit(field, undefined);
-                                }
-                            });
+                reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
+                    initialized => initialized && received && DocServer.GetRefField(received).then(field => {
+                        if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
+                            CollectionDockingView.AddRightSplit(field, undefined);
                         }
-                    },
+                    }),
                 );
             }
-            let doc: Opt<Doc>;
-            if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
+            let doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
+            if (doc) {
                 this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
@@ -250,17 +191,17 @@ export class MainView extends React.Component {
             mainDoc.title = `Workspace ${DocListCast(workspaces.data).length}`;
         }
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => {
-            this.openWorkspace(mainDoc);
-            // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
-            // mainDoc.optionalRightCollection = pendingDocument;
-        }, 0);
+        setTimeout(() => this.openWorkspace(mainDoc), 0);
     }
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
-        this.mainContainer = doc;
+
+        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
+            !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
+            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
+        }
         let state = this._urlState;
         if (state.sharing === true && !this.userDoc) {
             DocServer.Control.makeReadOnly();
@@ -280,7 +221,7 @@ export class MainView extends React.Component {
                 }
                 CollectionBaseView.SetSafeMode(true);
             } else if (state.nro || state.nro === null || state.readonly === false) {
-            } else if (BoolCast(doc.readOnly)) {
+            } else if (doc.readOnly) {
                 DocServer.Control.makeReadOnly();
             } else {
                 DocServer.Control.makeEditable();
@@ -293,19 +234,6 @@ export class MainView extends React.Component {
         }, 100);
         return true;
     }
-
-    drop = action((e: Event, de: DragManager.DropEvent) => {
-        (de.data as DragManager.DocumentDragData).draggedDocuments.map(doc => {
-            if (!doc.onDragStart) {
-                let dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: "bolt" });
-                dbox.dragFactory = doc;
-                dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
-                dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
-                doc = dbox;
-            }
-            Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc);
-        });
-    });
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -323,14 +251,12 @@ export class MainView extends React.Component {
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
     @computed get dockingContent() {
+        const mainContainer = this.mainContainer;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div" style={{
-                    width: `calc(100% - ${this._flyoutTranslate || 0}px`,
-                    transform: `translate(${this._flyoutTranslate || 0}px, 0px)`
-                }} onDrop={this.onDrop}>
-                    {!this.mainContainer ? (null) :
-                        <DocumentView Document={this.mainContainer}
+                <div ref={measureRef} className="mainView-mainDiv" onDrop={this.onDrop}>
+                    {!mainContainer ? (null) :
+                        <DocumentView Document={mainContainer}
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={this.addDocTabFunc}
@@ -391,8 +317,7 @@ export class MainView extends React.Component {
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4) {
-            if (this.flyoutWidth < 5) this.flyoutWidth = 250;
-            else this.flyoutWidth = 0;
+            this.flyoutWidth = this.flyoutWidth < 5 ? 250 : 0;
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -418,7 +343,7 @@ export class MainView extends React.Component {
         let libraryButtonDoc = Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc;
         libraryButtonDoc.columnWidth = this.flyoutWidth / 3 - 30;
         return <div className="mainView-flyoutContainer">
-            <div style={{ position: "relative", height: `${this._buttonBarHeight}px`, width: "100%" }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
                 <DocumentView
                     Document={libraryButtonDoc}
                     DataDoc={undefined}
@@ -479,8 +404,8 @@ export class MainView extends React.Component {
     get mainContent() {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
-            <div className="mainContent" >
-                <div onPointerLeave={this.pointerLeaveDragger}>
+            <div className="mainView-mainContent" >
+                <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger}>
                     <div className="mainView-libraryHandle"
                         style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                         onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>
@@ -508,7 +433,7 @@ export class MainView extends React.Component {
     }
 
     @computed get expandButton() {
-        return !this._flyoutTranslate ? (<div className="expandFlyoutButton" title="Re-attach sidebar" onPointerDown={() => {
+        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={() => {
             runInAction(() => {
                 this.flyoutWidth = 250;
                 this._flyoutTranslate = true;
@@ -516,126 +441,25 @@ export class MainView extends React.Component {
         }}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
-    selected = (tool: InkTool) => {
-        if (!InkingControl.Instance || InkingControl.Instance.selectedTool === InkTool.None) return { display: "none" };
-        if (InkingControl.Instance.selectedTool === tool) {
-            return { color: "#61aaa3", fontSize: "50%" };
-        }
-        return { fontSize: "50%" };
-    }
-
-    setWriteMode = (mode: DocServer.WriteMode) => {
-        console.log(DocServer.WriteMode[mode]);
-        const mode1 = mode;
-        const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-        DocServer.setFieldWriteMode("x", mode1);
-        DocServer.setFieldWriteMode("y", mode1);
-        DocServer.setFieldWriteMode("width", mode1);
-        DocServer.setFieldWriteMode("height", mode1);
-
-        DocServer.setFieldWriteMode("panX", mode2);
-        DocServer.setFieldWriteMode("panY", mode2);
-        DocServer.setFieldWriteMode("scale", mode2);
-        DocServer.setFieldWriteMode("viewType", mode2);
-    }
-
-    protected createDropTarget = (ele: HTMLLabelElement) => { //used for stacking and masonry view
-        this._dropDisposer && this._dropDisposer();
-        if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
-        }
-    }
-
-    /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
-    nodesMenu() {
-        // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
-        // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
-
-        // let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
-
-        return < div id="add-nodes-menu" style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, bottom: 20 }} >
-
+    @computed get docButtons() {
+        return <div className="mainView-docButtons" style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20 }} >
             <MainViewNotifs />
-            <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
-            <label htmlFor="add-menu-toggle" ref={this.createDropTarget} title="Close Menu"><p>+</p></label>
-
-            <div id="add-options-content">
-                <button key="undo" className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
-                <button key="redo" className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
-
-                {DocListCast(CurrentUserUtils.UserDocument.docButtons).map(doc => <div className="mainView-docBtn" key={StrCast(doc.title)} >
-                    <DocumentView
-                        Document={doc}
-                        DataDoc={undefined}
-                        addDocument={undefined}
-                        addDocTab={this.addDocTabFunc}
-                        pinToPres={emptyFunction}
-                        removeDocument={(doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument, "docButtons", doc)}
-                        ruleProvider={undefined}
-                        onClick={undefined}
-                        ScreenToLocalTransform={Transform.Identity}
-                        ContentScaling={() => 35 / NumCast(doc.nativeWidth, 35)}
-                        PanelWidth={() => 35}
-                        PanelHeight={() => 35}
-                        renderDepth={0}
-                        focus={emptyFunction}
-                        backgroundColor={returnEmptyString}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}>
-                    </DocumentView>
-                </div>)}
-                {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
-
-                <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button>
-                <button key="pen" onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} title="Pen" style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" /></button>
-                <button key="marker" onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button>
-                <button key="eraser" onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button>
-                <InkingControl key="inkControls" />
-            </div>
-        </div >;
-    }
-
-    @computed private get dictationOverlay() {
-        let success = this.dictationSuccess;
-        let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
-        let dialogueBoxStyle = {
-            background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
-            borderColor: this.isListening ? "red" : "black",
-            fontStyle: "italic"
-        };
-        let overlayStyle = {
-            backgroundColor: this.isListening ? "red" : "darkslategrey"
-        };
-        return (
-            <MainViewModal
-                contents={result}
-                isDisplayed={this.dictationOverlayVisible}
-                interactive={false}
-                dialogueBoxStyle={dialogueBoxStyle}
-                overlayStyle={overlayStyle}
-            />
-        );
+            <CollectionLinearView Document={CurrentUserUtils.UserDocument} fieldKey={"docButtons"} />
+        </div>;
     }
 
     render() {
-        return (
-            <div id="main-div">
-                {this.dictationOverlay}
-                <SharingManager />
-                <GoogleAuthenticationManager />
-                <DocumentDecorations />
-                {this.mainContent}
-                <PreviewCursor />
-                <ContextMenu />
-                {this.nodesMenu()}
-                <PDFMenu />
-                <OverlayView />
-            </div >
-        );
+        return (<div className="mainView-container">
+            <DictationOverlay />
+            <SharingManager />
+            <GoogleAuthenticationManager />
+            <DocumentDecorations />
+            {this.mainContent}
+            <PreviewCursor />
+            <ContextMenu />
+            {this.docButtons}
+            <PDFMenu />
+            <OverlayView />
+        </div >);
     }
 }

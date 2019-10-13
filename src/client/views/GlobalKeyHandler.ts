@@ -122,10 +122,10 @@ export default class KeyManager {
         let preventDefault = true;
 
         switch (keyname) {
-            case "n":
-                let toggle = MainView.Instance.addMenuToggle.current!;
-                toggle.checked = !toggle.checked;
-                break;
+            // case "n":
+            //     let toggle = MainView.Instance.addMenuToggle.current!;
+            //     toggle.checked = !toggle.checked;
+            //     break;
         }
 
         return {
