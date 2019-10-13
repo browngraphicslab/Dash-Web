@@ -3,6 +3,10 @@ import { observer } from "mobx-react";
 import { observable, action } from "mobx";
 import "./AntimodeMenu.scss";
 
+/**
+ * This is an abstract class that serves as the base for a PDF-style or Marquee-style
+ * menu. To use this class, look at PDFMenu.tsx or MarqueeOptionsMenu.tsx for an example.
+ */
 export default abstract class AntimodeMenu extends React.Component {
     protected _offsetY: number = 0;
     protected _offsetX: number = 0;
@@ -18,6 +22,12 @@ export default abstract class AntimodeMenu extends React.Component {
     @observable public Pinned: boolean = false;
 
     @action
+    /**
+     * @param x
+     * @param y
+     * @param forceJump: If the menu is pinned down, do you want to force it to jump to the new location?
+     * Called when you want the menu to show up at a location
+     */
     public jumpTo = (x: number, y: number, forceJump: boolean = false) => {
         if (!this.Pinned || forceJump) {
             this._transition = this._transitionDelay = "";
@@ -28,6 +38,10 @@ export default abstract class AntimodeMenu extends React.Component {
     }
 
     @action
+    /**
+     * @param forceOut: Do you want the menu to disappear immediately or to slowly fadeout?
+     * Called when you want the menu to disappear
+     */
     public fadeOut = (forceOut: boolean) => {
         if (!this.Pinned) {
             if (this._opacity === 0.2) {

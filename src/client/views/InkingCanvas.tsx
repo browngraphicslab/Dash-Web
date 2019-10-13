@@ -183,7 +183,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None && !this.props.Document.isBackground ? "canSelect" : "noSelect";
         return (
             <div className="inkingCanvas">
-                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
+                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={(e) => e.stopPropagation()} />
                 {this.props.children()}
                 {this.drawnPaths}
             </div >
