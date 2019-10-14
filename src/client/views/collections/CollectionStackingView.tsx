@@ -49,7 +49,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
     }
-    @computed get NodeWidth() { return this.props.PanelWidth(); }
+    @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
     childDocHeight(child: Doc) { return this.getDocHeight(Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, child).layout); }
 
@@ -119,7 +119,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)), 0);
                 } else {
                     let sum = Array.from(this._heightMap.values()).reduce((acc: number, curr: number) => acc += curr, 0);
-                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 85 : -22));
+                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 85 : -15));
                 }
             }
             return -1;

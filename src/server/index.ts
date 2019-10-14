@@ -142,7 +142,7 @@ function addSecureRoute(initializer: RouteInitializer) {
         const { user, originalUrl: target } = req;
         if (user || isSharedDocAccess(target)) {
             try {
-                await onValidation(user, req, res);
+                await onValidation(user as any, req, res);
             } catch (e) {
                 if (onError) {
                     onError(req, res, e);

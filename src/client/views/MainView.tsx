@@ -436,12 +436,10 @@ export class MainView extends React.Component {
     }
 
     @computed get expandButton() {
-        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={() => {
-            runInAction(() => {
-                this.flyoutWidth = 250;
-                this._flyoutTranslate = true;
-            });
-        }}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
+        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={action(() => {
+            this.flyoutWidth = 250;
+            this._flyoutTranslate = true;
+        })}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
     addButtonDoc = (doc: Doc) => {
