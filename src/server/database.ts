@@ -4,6 +4,7 @@ import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
+import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 
 export namespace Database {
 
@@ -259,8 +260,8 @@ export namespace Database {
                 return SanitizedSingletonQuery<StoredCredentials>({ userId }, GoogleAuthentication, removeId);
             };
 
-            export const Write = async (userId: string, token: any) => {
-                return Instance.insert({ userId, canAccess: [], ...token }, GoogleAuthentication);
+            export const Write = async (userId: string, enrichedCredentials: GoogleApiServerUtils.EnrichedCredentials) => {
+                return Instance.insert({ userId, canAccess: [], ...enrichedCredentials }, GoogleAuthentication);
             };
 
             export const Update = async (userId: string, access_token: string, expiry_date: number) => {

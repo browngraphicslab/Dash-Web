@@ -126,7 +126,9 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             }
         }, { fireImmediately: true });
 
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => (this.props.isSelected() && SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(), { fireImmediately: true });
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
+            () => (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(),
+            { fireImmediately: true });
         this._reactionDisposer = reaction(
             () => this.props.Document.scrollY,
             (scrollY) => {
@@ -655,7 +657,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     marqueeing = () => this._marqueeing;
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     render() {
-        return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
+        return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")}
+            onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
             {this.pdfViewerDiv}
             {this.annotationLayer}
             {this.standinViews}

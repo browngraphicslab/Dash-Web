@@ -335,11 +335,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
-        let chromeStatus = this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus;
+        let chromeStatus = this.props.parent.props.Document.chromeStatus;
         return (
             <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
-                {headingView}
+                {this.props.parent.Document.hideHeadings ? (null) : headingView}
                 {
                     this.collapsed ? (null) :
                         <div>

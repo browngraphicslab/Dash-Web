@@ -353,7 +353,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             </div > : (null);
         const background = this._background; //to account for observables in Measure
         const collapsed = this.collapsed;
-        let chromeStatus = this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus;
+        let chromeStatus = this.props.parent.props.Document.chromeStatus;
         return (
             <Measure offset onResize={this.handleResize}>
                 {({ measureRef }) => {

@@ -37,7 +37,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
-import { DragBox } from "../views/nodes/DragBox";
+import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField } from "../../new_fields/ScriptField";
@@ -45,6 +45,8 @@ import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { QueryBox } from "../views/nodes/QueryBox";
+import { ColorBox } from "../views/nodes/ColorBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -62,25 +64,31 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
+    fitWidth?: boolean;
     layout?: string | Doc;
     isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    ignoreClick?: boolean;
+    lockedPosition?: boolean;
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
+    columnWidth?: number;
     fontSize?: number;
     curPage?: number;
     currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
+    boxShadow?: string;
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
     dbDoc?: Doc;
+    icon?: string;
     // [key: string]: Opt<Field>;
 }
 
@@ -118,6 +126,14 @@ export namespace Docs {
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
                 options: { height: 300, backgroundColor: "black" }
+            }],
+            [DocumentType.QUERY, {
+                layout: { view: QueryBox },
+                options: { width: 400 }
+            }],
+            [DocumentType.COLOR, {
+                layout: { view: ColorBox },
+                options: { nativeWidth: 220, nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, ext: anno },
@@ -169,8 +185,8 @@ export namespace Docs {
                 layout: { view: PresBox },
                 options: {}
             }],
-            [DocumentType.DRAGBOX, {
-                layout: { view: DragBox },
+            [DocumentType.FONTICONBOX, {
+                layout: { view: FontIconBox },
                 options: { width: 40, height: 40 },
             }],
             [DocumentType.LINKFOLLOW, {
@@ -374,6 +390,14 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
         }
 
+        export function QueryDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        }
+
+        export function ColorDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
+        }
+
         export function TextDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
@@ -454,8 +478,8 @@ export namespace Docs {
         }
 
 
-        export function DragboxDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
+        export function FontIconDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICONBOX), undefined, { ...(options || {}) });
         }
 
         export function LinkFollowBoxDocument(options?: DocumentOptions) {

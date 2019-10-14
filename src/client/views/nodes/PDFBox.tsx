@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable, runInAction } from 'mobx';
+import { action, observable, runInAction, reaction, IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -36,20 +36,34 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     private _searchString: string = "";
     private _everActive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
+    private _searchRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _valueRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _scriptRef: React.RefObject<HTMLInputElement> = React.createRef();
+    private _selectReaction: IReactionDisposer | undefined;
 
     @observable private _searching: boolean = false;
     @observable private _flyout: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
     @observable private _pageControls = false;
 
+    componentWillUnmount() {
+        this._selectReaction && this._selectReaction();
+    }
     componentDidMount() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
+        this._selectReaction = reaction(() => this.props.isSelected(),
+            () => {
+                if (this.props.isSelected()) {
+                    document.removeEventListener("keydown", this.onKeyDown);
+                    document.addEventListener("keydown", this.onKeyDown);
+                } else {
+                    document.removeEventListener("keydown", this.onKeyDown);
+                }
+            }, { fireImmediately: true });
     }
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
@@ -64,6 +78,22 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
     public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
+
+    @undoBatch
+    onKeyDown = action((e: KeyboardEvent) => {
+        if (e.key === "f" && e.ctrlKey) {
+            this._searching = true;
+            setTimeout(() => this._searchRef.current && this._searchRef.current.focus(), 100);
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") {
+            this.forwardPage();
+        }
+        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") {
+            this.backPage();
+        }
+    });
 
     @undoBatch
     @action
@@ -109,7 +139,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
-                    <input className="pdfBox-searchBar" placeholder="Search" onChange={this.searchStringChanged} onKeyDown={e => e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey)} />
+                    <input className="pdfBox-searchBar" placeholder="Search" autoFocus={true} ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
+                        e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey);
+                    }} />
                     <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
                     <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={e => this.prevAnnotation()} >

@@ -9,6 +9,10 @@
     pointer-events: none;
 }
 
+.imageBox-container {
+    border-radius: inherit;
+}
+
 .imageBox-cont-interactive {
     pointer-events: all;
 }

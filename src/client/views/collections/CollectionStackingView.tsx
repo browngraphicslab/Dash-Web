@@ -119,8 +119,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)), 0);
                 } else {
                     let sum = Array.from(this._heightMap.values()).reduce((acc: number, curr: number) => acc += curr, 0);
-                    sum += 30;
-                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 50 : 0));
+                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 85 : -22));
                 }
             }
             return -1;
@@ -197,7 +196,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
             return wid * aspect;
         }
-        return d.fitWidth ? Math.min(wid * NumCast(d.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : d[HeightSym]();
+        return d.fitWidth ? !d.nativeHeight ? this.props.PanelHeight() - 2 * this.yMargin : Math.min(wid * NumCast(d.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : d[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
@@ -399,13 +398,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     {sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]))}
                     {!this.showAddAGroup ? (null) :
                         <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
-                            style={{ width: this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
+                            style={{ width: !this.isStackingView ? "100%" : this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                             <EditableView {...editableViewProps} />
                         </div>}
-                    {this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled' ? <Switch
+                    {this.props.Document.chromeStatus !== 'disabled' ? <Switch
                         onChange={this.onToggle}
                         onClick={this.onToggle}
-                        defaultChecked={this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode'}
+                        defaultChecked={this.props.Document.chromeStatus !== 'view-mode'}
                         checkedChildren="edit"
                         unCheckedChildren="view"
                     /> : null}

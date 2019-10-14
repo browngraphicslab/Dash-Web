@@ -38,11 +38,6 @@ let swapDocs = async () => {
     if (info.id !== "__guest__") {
         // a guest will not have an id registered
         await CurrentUserUtils.loadUserDocument(info);
-        // updates old user documents to prevent chrome on tree view.
-        (await Cast(CurrentUserUtils.UserDocument.workspaces, Doc))!.chromeStatus = "disabled";
-        (await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))!.chromeStatus = "disabled";
-        (await Cast(CurrentUserUtils.UserDocument.sidebar, Doc))!.chromeStatus = "disabled";
-        CurrentUserUtils.UserDocument.chromeStatus = "disabled";
         await swapDocs();
     }
     document.getElementById('root')!.addEventListener('wheel', event => {

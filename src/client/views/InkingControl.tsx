@@ -18,7 +18,7 @@ library.add(faPen, faHighlighter, faEraser, faBan);
 
 @observer
 export class InkingControl extends React.Component {
-    static Instance: InkingControl = new InkingControl({});
+    @observable static Instance: InkingControl;
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "5";
@@ -26,7 +26,7 @@ export class InkingControl extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
-        InkingControl.Instance = this;
+        runInAction(() => InkingControl.Instance = this);
     }
 
     @action
@@ -45,7 +45,6 @@ export class InkingControl extends React.Component {
     switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
         if (InkingControl.Instance.selectedTool === InkTool.None) {
-            // if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);

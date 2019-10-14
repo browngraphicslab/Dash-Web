@@ -257,7 +257,6 @@ const solrURL = "http://localhost:8983/solr/#/dash";
 
 app.get("/textsearch", async (req, res) => {
     let q = req.query.q;
-    console.log("TEXTSEARCH " + q);
     if (q === undefined) {
         res.send([]);
         return;
@@ -1017,9 +1016,9 @@ addSecureRoute({
     method: Method.POST,
     subscribers: RouteStore.writeGoogleAccessToken,
     onValidation: async (user, req, res) => {
-        const information = { credentialsPath, userId: user.id };
-        const { token } = await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode);
-        res.send(token.access_token);
+        const userId = user.id;
+        const information = { credentialsPath, userId };
+        res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
     }
 });
 

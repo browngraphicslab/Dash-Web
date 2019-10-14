@@ -16,7 +16,7 @@ import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
-import { DragBox } from "./DragBox";
+import { FontIconBox } from "./FontIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
@@ -24,6 +24,8 @@ import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
+import { QueryBox } from "./QueryBox";
+import { ColorBox } from "./ColorBox";
 import { PresElementBox } from "../presentationview/PresElementBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
@@ -99,7 +101,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox }}
+            components={{
+                FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
+                CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
+                PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox, ColorBox
+            }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}
