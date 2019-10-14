@@ -6,6 +6,13 @@
     width:100%;
     height:100%;
 }
+.marqueeView {
+    overflow: hidden;
+}
+
+.marqueeView:focus-within {
+    overflow: hidden;
+}
 .marquee {
     border-style: dashed;
     box-sizing: border-box;

@@ -17,6 +17,10 @@ export enum DocumentType {
     TEMPLATE = "template",
     EXTENSION = "extension",
     YOUTUBE = "youtube",
-    DRAGBOX = "dragbox",
+    FONTICONBOX = "fonticonbox",
     PRES = "presentation",
+    LINKFOLLOW = "linkfollow",
+    PRESELEMENT = "preselement",
+    QUERY = "search",
+    COLOR = "color",
 }

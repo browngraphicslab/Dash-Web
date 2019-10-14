@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
@@ -6,7 +6,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { BoolCast, Cast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -18,10 +18,11 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
-import { CollectionPDFView } from "./CollectionPDFView";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+var path = require('path');
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: AddDocumentFunction;
@@ -29,55 +30,63 @@ export interface CollectionViewProps extends FieldViewProps {
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    VisibleHeight?: () => number;
     chromeCollapsed: boolean;
+    setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    showHiddenControls?: boolean; // hack for showing the undo/redo/ink controls in a linear view -- needs to be redone
 }
 
 export type AddDocumentFunction = (document: Doc, allowDuplicates?: boolean) => boolean;
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView: Opt<CollectionView>;
+    ruleProvider: Doc | undefined;
+    children?: never | (() => JSX.Element[]) | React.ReactNode;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
-        protected createDropTarget = (ele: HTMLDivElement) => {
+        private _childLayoutDisposer?: IReactionDisposer;
+        protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
         }
-        protected CreateDropTarget(ele: HTMLDivElement) {
+        protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
             this.createDropTarget(ele);
         }
 
-        @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+        componentDidMount() {
+            this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
+                async (args) => args[1] instanceof Doc &&
+                    this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc))));
+
+        }
+        componentWillUnmount() {
+            this._childLayoutDisposer && this._childLayoutDisposer();
+        }
+
+        // The data field for rendeing this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
+        // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
+        // to its children which may be templates.
+        // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
+        @computed get dataField() {
+            return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+        }
 
 
-        get childDocs() {
-            let self = this;
-            //TODO tfs: This might not be what we want?
-            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            let docs = DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
-            let viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            if (viewSpecScript) {
-                let script = viewSpecScript.script;
-                docs = docs.filter(d => {
-                    let res = script.run({ doc: d });
-                    if (res.success) {
-                        return res.result;
-                    }
-                    else {
-                        console.log(res.error);
-                    }
-                });
-            }
-            return docs;
+        get childLayoutPairs() {
+            return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
         }
         get childDocList() {
-            //TODO tfs: This might not be what we want?
-            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
+            return Cast(this.dataField, listSpec(Doc));
+        }
+        get childDocs() {
+            let docs = DocListCast(this.dataField);
+            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         }
 
         @action
@@ -118,7 +127,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc)
                     );
                     e.stopPropagation();
                     return true;
@@ -127,9 +136,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (de.data.dropAction || de.data.userDropAction) {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
-                    added = movedDocs.reduce((added: boolean, d) =>
-                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
+                    let movedDocs = de.data.draggedDocuments;// de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    // note that it's possible the drag function might create a drop document that's not the same as the
+                    // original dragged document.  So we explicitly call addDocument() with a droppedDocument and 
+                    added = movedDocs.reduce((added: boolean, d, i) =>
+                        de.data.moveDocument(d, this.props.Document, (doc: Doc) => this.props.addDocument(de.data.droppedDocuments[i])) || added, false);
                 } else {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
@@ -152,7 +163,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Doc[] | Doc) => void) {
+        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Doc[] | Doc) => void) {
             let newlyCreated: Doc[] | Doc;
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
@@ -195,6 +206,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
                     this.tryMutateAndAdd(doc, mutateDoc);
+                    ImageUtils.ExtractExif(doc);
                     return;
                 } else {
                     let path = window.location.origin + "/doc/";
@@ -222,12 +234,18 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
                 let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
                 let proto = newBox.proto!;
-                proto.autoHeight = true;
-                proto[GoogleRef] = matches[2];
+                const documentId = matches[2];
+                proto[GoogleRef] = documentId;
                 proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
-                this.tryMutateAndAdd(newBox, mutateDoc)
+                this.tryMutateAndAdd(newBox, mutateDoc);
                 return;
+            }
+            if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                const albums = await GooglePhotos.Transactions.ListAlbums();
+                const albumId = matches[3];
+                const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                console.log(mediaItems);
             }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
@@ -265,9 +283,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let path = Utils.prepend(file);
-                            Docs.Get.DocumentFromType(type, path, full).then(doc => {
+                            let pathname = Utils.prepend(file.path);
+                            Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 if (doc) {
+                                    Doc.GetProto(doc).fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
                                     (newlyCreated as Doc[]).push(doc);
                                     this.tryMutateAndAdd(doc, mutateDoc);
                                 }
@@ -276,6 +295,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     });
                     promises.push(prom);
                 }
+            }
+            if (text) {
+                this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                return;
             }
 
             if (promises.length) {

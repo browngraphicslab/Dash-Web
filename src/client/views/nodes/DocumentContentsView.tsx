@@ -1,35 +1,35 @@
-import { computed, trace } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
+import { Doc } from "../../../new_fields/Doc";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { Cast } from "../../../new_fields/Types";
+import { OmitKeys, Without } from "../../../Utils";
+import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
+import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
+import { LinkFollowBox } from "../linking/LinkFollowBox";
+import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
+import { ButtonBox } from "./ButtonBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
+import { FontIconBox } from "./FontIconBox";
+import { FieldView, FieldViewProps } from "./FieldView";
 import { FormattedTextBox } from "./FormattedTextBox";
-import { ImageBox } from "./ImageBox";
-import { DragBox } from "./DragBox";
-import { ButtonBox } from "./ButtonBox";
-import { PresBox } from "./PresBox";
 import { IconBox } from "./IconBox";
+import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
+import { PresBox } from "./PresBox";
+import { QueryBox } from "./QueryBox";
+import { ColorBox } from "./ColorBox";
+import { PresElementBox } from "../presentationview/PresElementBox";
 import { VideoBox } from "./VideoBox";
-import { FieldView } from "./FieldView";
 import { WebBox } from "./WebBox";
-import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
-import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
-import { FieldViewProps } from "./FieldView";
-import { Without, OmitKeys } from "../../../Utils";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { Doc } from "../../../new_fields/Doc";
-import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
-import { ScriptField } from "../../../new_fields/ScriptField";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -91,13 +91,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return { props: list };
     }
 
-    @computed get templates(): List<string> {
-        let field = this.props.Document.templates;
-        if (field && field instanceof List) {
-            return field;
-        }
-        return new List<string>();
-    }
     @computed get finalLayout() {
         return this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
     }
@@ -105,10 +98,14 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     render() {
         let self = this;
         if (this.props.renderDepth > 7) return (null);
-        if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
+        if (!this.layout && this.props.layoutKey !== "overlayLayout") return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox }}
+            components={{
+                FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
+                CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
+                PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox, ColorBox
+            }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

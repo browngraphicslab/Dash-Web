@@ -73,8 +73,8 @@ export namespace UndoManager {
     }
     type UndoBatch = UndoEvent[];
 
-    let undoStack: UndoBatch[] = observable([]);
-    let redoStack: UndoBatch[] = observable([]);
+    export let undoStack: UndoBatch[] = observable([]);
+    export let redoStack: UndoBatch[] = observable([]);
     let currentBatch: UndoBatch | undefined;
     let batchCounter = 0;
     let undoing = false;
@@ -127,7 +127,7 @@ export namespace UndoManager {
 
     export function StartBatch(batchName: string): Batch {
         batchCounter++;
-        if (batchCounter > 0) {
+        if (batchCounter > 0 && currentBatch === undefined) {
             currentBatch = [];
         }
         return new Batch(batchName);

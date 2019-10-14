@@ -1,25 +1,25 @@
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction, flow, computed } from 'mobx';
-import "./SearchBox.scss";
-import "./FilterBox.scss";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { SetupDrag } from '../../util/DragManager';
-import { Docs } from '../../documents/Documents';
-import { NumCast, Cast } from '../../../new_fields/Types';
-import { Doc } from '../../../new_fields/Doc';
-import { SearchItem } from './SearchItem';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable, runInAction } from 'mobx';
+import { observer } from 'mobx-react';
+import * as React from 'react';
 import * as rp from 'request-promise';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { SearchUtil } from '../../util/SearchUtil';
+import { Cast, NumCast } from '../../../new_fields/Types';
 import { RouteStore } from '../../../server/RouteStore';
-import { FilterBox } from './FilterBox';
-import { ReadStream } from 'fs';
-import * as $ from 'jquery';
-import { MainView } from '../MainView';
 import { Utils } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
+import { SetupDrag } from '../../util/DragManager';
+import { SearchUtil } from '../../util/SearchUtil';
+import { MainView } from '../MainView';
+import { FilterBox } from './FilterBox';
+import "./FilterBox.scss";
+import "./SearchBox.scss";
+import { SearchItem } from './SearchItem';
+import { IconBar } from './IconBar';
+import { string } from 'prop-types';
 
 library.add(faTimes);
 
@@ -29,7 +29,7 @@ export class SearchBox extends React.Component {
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
-    @observable private _results: [Doc, string[]][] = [];
+    @observable private _results: [Doc, string[], string[]][] = [];
     private _resultsSet = new Map<Doc, number>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
@@ -141,7 +141,7 @@ export class SearchBox extends React.Component {
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
         const includeDeleted = FilterBox.Instance.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
     }
 
 
@@ -161,6 +161,8 @@ export class SearchBox extends React.Component {
 
                     const highlighting = res.highlighting || {};
                     const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
+                    const lines = new Map<string, string[]>();
+                    res.docs.map((doc, i) => lines.set(doc[Id], res.lines[i]));
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
@@ -170,12 +172,14 @@ export class SearchBox extends React.Component {
                         filteredDocs.forEach(doc => {
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
+                            const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
                             if (index === undefined) {
                                 this._resultsSet.set(doc, this._results.length);
-                                this._results.push([doc, hlights]);
+                                this._results.push([doc, hlights, line]);
                             } else {
                                 this._results[index][1].push(...hlights);
+                                this._results[index][2].push(...line);
                             }
                         });
                     });
@@ -222,7 +226,6 @@ export class SearchBox extends React.Component {
                 doc.width = size;
                 doc.height = size;
             }
-            doc.zoomBasis = 1;
             x += 250;
             if (x > 1000) {
                 x = 0;
@@ -234,7 +237,7 @@ export class SearchBox extends React.Component {
     }
 
     @action.bound
-    openSearch(e: React.PointerEvent) {
+    openSearch(e: React.SyntheticEvent) {
         e.stopPropagation();
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
@@ -299,19 +302,21 @@ export class SearchBox extends React.Component {
             }
             else {
                 if (this._isSearch[i] !== "search") {
-                    let result: [Doc, string[]] | undefined = undefined;
+                    let result: [Doc, string[], string[]] | undefined = undefined;
                     if (i >= this._results.length) {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
+                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
                     }
                     else {
                         result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
+                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
                     }
@@ -338,12 +343,14 @@ export class SearchBox extends React.Component {
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
-                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
+                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
-                    <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
-                    <button className="searchBox-barChild searchBox-close" title={"Close Search Bar"} onPointerDown={MainView.Instance.toggleSearch}><FontAwesomeIcon icon={faTimes} size="lg" /></button>
+                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
+                {(this._numTotalResults > 0 || !this._searchbarOpen) ? (null) :
+                    (<div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
+                        <div className="filter-panel"><IconBar /></div>
+                    </div>)}
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "560px" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"

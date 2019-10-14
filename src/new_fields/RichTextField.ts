@@ -6,6 +6,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 
 export const ToPlainText = Symbol("PlainText");
 export const FromPlainText = Symbol("PlainText");
+
 const delimiter = "\n";
 const joiner = "";
 

@@ -4,6 +4,7 @@ import { observable, action, trace } from 'mobx';
 import "./EditableView.scss";
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
+import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 
 export interface EditableProps {
     /**
@@ -28,7 +29,8 @@ export interface EditableProps {
     contents: any;
     fontStyle?: string;
     fontSize?: number;
-    height?: number;
+    height?: number | "auto";
+    maxHeight?: number;
     display?: string;
     autosuggestProps?: {
         resetValue: () => void;
@@ -41,6 +43,10 @@ export interface EditableProps {
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
+    HeadingObject?: SchemaHeaderField | undefined;
+    HeadingsHack?: number;
+    toggle?: () => void;
+    color?: string | undefined;
 }
 
 /**
@@ -51,6 +57,7 @@ export interface EditableProps {
 @observer
 export class EditableView extends React.Component<EditableProps> {
     @observable _editing: boolean = false;
+    @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
         super(props);
@@ -145,7 +152,7 @@ export class EditableView extends React.Component<EditableProps> {
             if (this.props.autosuggestProps) this.props.autosuggestProps.resetValue();
             return (
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
-                    style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
+                    style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick}>
                     <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{this.props.contents}</span>
                 </div>

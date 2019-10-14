@@ -1,31 +1,21 @@
 import React = require("react");
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { action, computed, observable, untracked, runInAction, IReactionDisposer, reaction, isObservableArray, } from "mobx";
-import { Doc, DocListCast, Field, FieldResult, DocListCastAsync, Opt, HeightSym, WidthSym, } from "../../../new_fields/Doc";
-import { NumCast, Cast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { emptyFunction, Utils, returnOne, returnEmptyString } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentView } from "../nodes/DocumentView";
-import "./CollectionTimelineView.scss";
-import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DateField } from "../../../new_fields/DateField";
+import { Doc, DocListCast, Field, FieldResult, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
-import { Transform } from "../../util/Transform";
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faBell } from '@fortawesome/free-solid-svg-icons';
-import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
-import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../../new_fields/URLField";
-import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { Docs, DocUtils } from "../../documents/Documents";
-import { ProxyField } from "../../../new_fields/Proxy";
-import Measure from "react-measure";
-import { EditableView } from "../EditableView";
+import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
-import { anchorPoints, Flyout } from "../DocumentDecorations";
-import { Thumbnail, NodeProps } from "./CollectionTimeLineViewNode";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { thisExpression, throwStatement } from "babel-types";
-import { SetupDrag, DragManager } from "../../util/DragManager";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { AudioField, ImageField, PdfField, VideoField, WebField } from "../../../new_fields/URLField";
+import { Utils } from "../../../Utils";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
+import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
+import "./CollectionTimelineView.scss";
+import { Thumbnail } from "./CollectionTimeLineViewNode";
 
 
 
@@ -66,7 +56,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     @action
-    onDrop = (e: React.DragEvent): void => {
+    onDrop = (e: React.DragEvent): Promise<void> => {
         const { pageX, pageY } = e;
         var pt = this.props.ScreenToLocalTransform().transformPoint(pageX, pageY);
         const mutator = (input: Doc | Doc[]) => {
@@ -83,7 +73,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 input[this.sortstate] = fieldval;
             }
         };
-        super.onDrop(e, { x: pt[0], y: pt[1] }, undefined, mutator);
+        return super.onDrop(e, { x: pt[0], y: pt[1] }, undefined, mutator);
     }
 
 
@@ -527,7 +517,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 for (let d of this.thumbnailbools) {
                     if (d === docs[i]) {
                         select = true;
-                        console.log("YUH")
+                        console.log("YUH");
                     }
                 }
             }
@@ -598,6 +588,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             //     }
             // }
         }
+    }
 
     private tickrefs: React.RefObject<HTMLDivElement>[] = [];
 
@@ -876,7 +867,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let leftval = 0;
         if (this.screenref.current) {
 
-            leftval = (e.pageX - this.screenref.current.getBoundingClientRect().x);
+            leftval = (e.pageX - this.screenref.current.getBoundingClientRect().left);
         }
         let mintick: React.RefObject<HTMLDivElement>;
 
@@ -952,7 +943,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let posInfo = this.marqueeref.current.getBoundingClientRect();
             let offset = this.screenref.current!.getBoundingClientRect().left;
             let offsety = this.screenref.current!.getBoundingClientRect().top;
-            let newselects = [];
+            let newselects: Doc[] | undefined = [];
             for (let thumbnails of this.thumbnails) {
                 let thumbnailinfoleft = thumbnails.leftval + offset;
                 let thumbnailinforight = thumbnails.leftval + this.rowscale + offset;
@@ -1164,10 +1155,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     appenddoc(doc: Doc) {
-        if (this.thumbnailbools.includes(doc)) {
+        if (this.thumbnailbools && this.thumbnailbools.includes(doc)) {
             this.thumbnailbools.splice(this.thumbnailbools.indexOf(doc), 1);
         }
-        else {
+        else if (this.thumbnailbools) {
             this.thumbnailbools.push(doc);
         }
     }
@@ -1221,6 +1212,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             <Thumbnail
                                 scale={this.rowscale}
                                 scrollTop={document.body.scrollTop}
+                                renderDepth={this.props.renderDepth}
                                 CollectionView={this.props.CollectionView}
                                 active={this.props.active}
                                 whenActiveChanged={this.props.whenActiveChanged}
@@ -1240,7 +1232,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             </Thumbnail>)
 
                         }
-                        {this.markerDocs.map(d => this.createmarker(d))}
+                        {this.markerDocs.map(d => this.createmarker(d as Doc))}
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
                             position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
                         }}>

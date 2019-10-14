@@ -6,6 +6,10 @@ import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
+import SharingManager from "../util/SharingManager";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { Cast, PromiseValue } from "../../new_fields/Types";
+import { ScriptField } from "../../new_fields/ScriptField";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -30,7 +34,7 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key.toLowerCase();
+        let keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
@@ -69,9 +73,9 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
-                main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
+                SharingManager.Instance.close();
                 break;
             case "delete":
             case "backspace":
@@ -88,9 +92,6 @@ export default class KeyManager {
                     });
                 }, "delete");
                 break;
-            case "enter":
-                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
-                break;
         }
 
         return {
@@ -105,7 +106,7 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                DictationManager.Controls.listen({ tryExecute: true });
+                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
         }
@@ -121,10 +122,10 @@ export default class KeyManager {
         let preventDefault = true;
 
         switch (keyname) {
-            case "n":
-                let toggle = MainView.Instance.addMenuToggle.current!;
-                toggle.checked = !toggle.checked;
-                break;
+            // case "n":
+            //     let toggle = MainView.Instance.addMenuToggle.current!;
+            //     toggle.checked = !toggle.checked;
+            //     break;
         }
 
         return {
@@ -144,7 +145,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
                 if (document.activeElement) {
@@ -152,7 +153,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "backspace":
                 if (document.activeElement) {
@@ -161,12 +162,33 @@ export default class KeyManager {
                     }
                 }
                 break;
+            case "c":
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 240) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 240;
+                }
+                break;
+            case "l":
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 250) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 250;
+                }
+                break;
             case "f":
-                MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 400) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 400;
+                }
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];
-                target && target.fullScreenClicked();
+                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
                 break;
             case "r":
                 preventDefault = false;

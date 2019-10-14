@@ -9,15 +9,16 @@ import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { undoBatch, UndoManager } from "../util/UndoManager";
-import { StrCast } from "../../new_fields/Types";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
-import { MainOverlayTextBox } from "./MainOverlayTextBox";
+import { StrCast, NumCast, Cast } from "../../new_fields/Types";
+import { listSpec } from "../../new_fields/Schema";
+import { List } from "../../new_fields/List";
+import { Utils } from "../../Utils";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
 @observer
 export class InkingControl extends React.Component {
-    static Instance: InkingControl = new InkingControl({});
+    @observable static Instance: InkingControl;
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "5";
@@ -25,7 +26,7 @@ export class InkingControl extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
-        InkingControl.Instance = this;
+        runInAction(() => InkingControl.Instance = this);
     }
 
     @action
@@ -44,12 +45,40 @@ export class InkingControl extends React.Component {
     switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
         if (InkingControl.Instance.selectedTool === InkTool.None) {
-            if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
-                targetDoc.backgroundColor = this._selectedColor;
+                let matchedColor = this._selectedColor;
+                const cvd = view.props.ContainingCollectionDoc;
+                let ruleProvider = view.props.ruleProvider;
+                if (cvd) {
+                    if (!cvd.colorPalette) {
+                        let defaultPalette = ["rg(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                            "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+                        let colorPalette = Cast(cvd.colorPalette, listSpec("string"));
+                        if (!colorPalette) cvd.colorPalette = new List<string>(defaultPalette);
+                    }
+                    let cp = Cast(cvd.colorPalette, listSpec("string")) as string[];
+                    let closest = 0;
+                    let dist = 10000000;
+                    let ccol = Utils.fromRGBAstr(StrCast(targetDoc.backgroundColor));
+                    for (let i = 0; i < cp.length; i++) {
+                        let cpcol = Utils.fromRGBAstr(cp[i]);
+                        let d = Math.sqrt((ccol.r - cpcol.r) * (ccol.r - cpcol.r) + (ccol.b - cpcol.b) * (ccol.b - cpcol.b) + (ccol.g - cpcol.g) * (ccol.g - cpcol.g));
+                        if (d < dist) {
+                            dist = d;
+                            closest = i;
+                        }
+                    }
+                    cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
+                    cvd.colorPalette = new List(cp);
+                    matchedColor = cp[closest];
+                    ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
+                    ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
+                }
+                !ruleProvider && (targetDoc.backgroundColor = matchedColor);
+
                 return {
                     target: targetDoc,
                     previous: oldColor
@@ -62,7 +91,6 @@ export class InkingControl extends React.Component {
             });
         }
     });
-
     @action
     switchWidth = (width: string): void => {
         this._selectedWidth = width;

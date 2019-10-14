@@ -1,24 +1,19 @@
-import { observable, action, runInAction, computed } from "mobx";
-import React = require("react");
-import "./CollectionTimelineView.scss";
-import { Doc, DocListCast, Field, FieldResult, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Transform } from "../../util/Transform";
-import { NumCast, Cast, StrCast, } from "../../../new_fields/Types";
-import { DocumentView } from "../nodes/DocumentView";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
-import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../../new_fields/URLField";
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faBell } from '@fortawesome/free-solid-svg-icons';
-import { ProxyField } from "../../../new_fields/Proxy";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { EditableView } from "../EditableView";
-import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
-import { emptyFunction, Utils, returnOne, returnEmptyString } from "../../../Utils";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { CollectionView } from "../collections/CollectionView";
+import { faBell, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { ellipsis } from "prosemirror-inputrules";
+import { Doc, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { ProxyField } from "../../../new_fields/Proxy";
+import { RichTextField, ToPlainText } from "../../../new_fields/RichTextField";
+import { Cast, NumCast } from "../../../new_fields/Types";
+import { AudioField, ImageField, PdfField, VideoField, WebField } from "../../../new_fields/URLField";
+import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
+import { Transform } from "../../util/Transform";
+import { CollectionView } from "../collections/CollectionView";
+import { DocumentView } from "../nodes/DocumentView";
+import "./CollectionTimelineView.scss";
+import React = require("react");
 
 
 @observer
@@ -53,20 +48,22 @@ export class Thumbnail extends React.Component<NodeProps> {
                 <DocumentView
                     pinToPres={this.props.pinToPres}
                     Document={d}
-                    selectOnLoad={false}
+                    ruleProvider={undefined}
                     ScreenToLocalTransform={getTransform}
+                    renderDepth={this.props.renderDepth + 1}
+                    PanelWidth={d[WidthSym]}
+                    PanelHeight={d[HeightSym]}
                     ContentScaling={contentScaling}
-                    PanelWidth={() => width} PanelHeight={() => height}
                     ContainingCollectionView={this.props.CollectionView}
+                    ContainingCollectionDoc={this.props.doc}
                     focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
                     parentActive={this.props.active}
-                    whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={emptyFunction}
+                    whenActiveChanged={this.props.whenActiveChanged}
                     addDocTab={this.props.addDocTab}
-                    renderDepth={0}
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
-                    backgroundColor={returnEmptyString}
                 />
             </div>);
     }
@@ -107,7 +104,7 @@ export class Thumbnail extends React.Component<NodeProps> {
 
     @action
     adjust = (e: PointerEvent): void => {
-        this.props.doc[this.props.sortstate] += e.movementX / this.props.range;
+        this.props.doc[this.props.sortstate] = NumCast(this.props.doc[this.props.sortstate]) + e.movementX / this.props.range;
     }
 
     onPointerUp = (e: PointerEvent): void => {
@@ -203,11 +200,12 @@ export interface NodeProps {
     doc: Doc;
     top: number;
     timelinetop: number;
+    renderDepth: number;
     createportal: () => void;
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     scrollTop: number;
     transition: boolean;

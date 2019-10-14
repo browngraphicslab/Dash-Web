@@ -88,7 +88,6 @@ def write_collection(parse_results, display_fields, storage_key, viewType=2):
             "height": 600,
             "panX": 0,
             "panY": 0,
-            "zoomBasis": 1,
             "zIndex": 2,
             "libraryBrush": False,
             "viewType": viewType

@@ -4,7 +4,6 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { NumCast, StrCast } from "../../new_fields/Types";
 import { InkingControl } from "../views/InkingControl";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 export namespace SelectionManager {
 
@@ -25,6 +24,9 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.push(docView);
                 // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
+            } else if (!ctrlPressed && manager.SelectedDocuments.length > 1) {
+                manager.SelectedDocuments.map(dv => dv !== docView && dv.props.whenActiveChanged(false));
+                manager.SelectedDocuments = [docView];
             }
         }
         @action
@@ -39,7 +41,6 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
-            FormattedTextBox.InputBoxOverlay = undefined;
         }
     }
 
@@ -84,21 +85,5 @@ export namespace SelectionManager {
 
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments.slice();
-    }
-    export function ViewsSortedHorizontally(): DocumentView[] {
-        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
-            if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
-            if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-            return 0;
-        });
-        return sorted;
-    }
-    export function ViewsSortedVertically(): DocumentView[] {
-        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
-            if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
-            if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;
-            return 0;
-        });
-        return sorted;
     }
 }

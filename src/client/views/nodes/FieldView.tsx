@@ -8,8 +8,6 @@ import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
 import { Transform } from "../../util/Transform";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { FormattedTextBox } from "./FormattedTextBox";
@@ -29,16 +27,17 @@ export interface FieldViewProps {
     fieldExt: string;
     leaveNativeSize?: boolean;
     fitToBox?: boolean;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView>;
+    ContainingCollectionDoc: Opt<Doc>;
+    ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;
     onClick?: ScriptField;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
-    selectOnLoad: boolean;
-    addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocument?: (document: Doc) => boolean;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
@@ -49,7 +48,6 @@ export interface FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     setVideoBox?: (player: VideoBox) => void;
-    setPdfBox?: (player: PDFBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;
 }
@@ -95,7 +93,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title}</b></p>;
+            return <p><b>{field.title && field.title.toString()}</b></p>;
             //return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (
@@ -108,7 +106,6 @@ export class FieldView extends React.Component<FieldViewProps> {
             //         PanelWidth={returnHundred}
             //         PanelHeight={returnHundred}
             //         renderDepth={0} //TODO Why is renderDepth reset?
-            //         selectOnLoad={false}
             //         focus={emptyFunction}
             //         isSelected={this.props.isSelected}
             //         select={returnFalse}

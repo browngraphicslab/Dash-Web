@@ -13,17 +13,13 @@ import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../globalCssVariables.s
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
-import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
 import { undoBatch } from "../../util/UndoManager";
@@ -34,12 +30,12 @@ export interface CellProps {
     row: number;
     col: number;
     rowProps: CellInfo;
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
-    ContainingCollection: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
+    ContainingCollection: Opt<CollectionView>;
     Document: Doc;
     fieldKey: string;
     renderDepth: number;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
@@ -149,11 +145,12 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
             fieldExt: "",
+            ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
             active: returnFalse,
@@ -172,7 +169,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         let onItemDown = (e: React.PointerEvent) => {
             if (fieldIsDoc) {
                 SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
+                    this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
             }
         };
         let onPointerEnter = (e: React.PointerEvent): void => {
@@ -215,7 +213,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents}
-                            height={Number(MAX_ROW_HEIGHT)}
+                            height={"auto"}
+                            maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
                                 let field = props.Document[props.fieldKey];
                                 if (Field.IsField(field)) {
@@ -235,13 +234,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
                             }}
                             OnFillDown={async (value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                if (!script.compiled) {
-                                    return;
+                                const script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                if (script.compiled) {
+                                    DocListCast(this.props.Document[this.props.fieldKey]).
+                                        forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, script.run));
                                 }
-                                const run = script.run;
-                                const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                                val && val.forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, run));
                             }}
                         />
                     </div >
@@ -300,7 +297,7 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     render() {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView.props.isSelected() ? undefined :
+            (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
                 SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         return (
