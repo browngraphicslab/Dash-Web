@@ -252,9 +252,11 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         const mainContainer = this.mainContainer;
+        let flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
+        let flyoutTranslate = this._flyoutTranslate;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} className="mainView-mainDiv" onDrop={this.onDrop}>
+                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutTranslate ? flyoutWidth : 0}px`, transform: `translate(${flyoutTranslate ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
                     {!mainContainer ? (null) :
                         <DocumentView Document={mainContainer}
                             DataDoc={undefined}
