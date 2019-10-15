@@ -24,7 +24,7 @@ interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
     container: CollectionFreeFormView;
-    addDocument: (doc: Doc, allowDuplicates: false) => boolean;
+    addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
     selectDocuments: (docs: Doc[]) => void;
     removeDocument: (doc: Doc) => boolean;
@@ -83,7 +83,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 ns.map(line => {
                     let indent = line.search(/\S|$/);
                     let newBox = Docs.Create.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
-                    this.props.addDocument(newBox, false);
+                    this.props.addDocument(newBox);
                     y += 40 * this.props.getTransform().Scale;
                 });
             })();
@@ -92,7 +92,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
                 } else {
                     this.pasteTable(ns, x, y);
                 }
@@ -146,7 +146,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group", "#f1efeb")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c, "#f1efeb"))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
-            this.props.addDocument(newCol, false);
+            this.props.addDocument(newCol);
         }
     }
     @action
@@ -202,7 +202,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
     }
 
-    setPreviewCursor = (x: number, y: number, drag: boolean) => {
+    setPreviewCursor = action((x: number, y: number, drag: boolean) => {
         if (drag) {
             this._downX = this._lastX = x;
             this._downY = this._lastY = y;
@@ -217,7 +217,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._downY = y;
             PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
         }
-    }
+    });
 
     @action
     onClick = (e: React.MouseEvent): void => {
@@ -285,7 +285,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
+                    d.displayTimecode = undefined;
                     return d;
                 });
             }
@@ -350,7 +350,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
             }
             else {
-                this.props.addDocument(newCollection, false);
+                this.props.addDocument(newCollection);
                 this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);
@@ -442,8 +442,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     render() {
         let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} onScroll={(e) => e.currentTarget.scrollLeft = 0}  >
                 {this._visible ? this.marqueeDiv : null}
                 <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
                     {this.props.children}

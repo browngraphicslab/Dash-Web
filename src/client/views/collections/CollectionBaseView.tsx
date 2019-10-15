@@ -1,17 +1,18 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from '../../../new_fields/Types';
 import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
 import { DateField } from '../../../new_fields/DateField';
+import { ImageField } from '../../../new_fields/URLField';
 
 export enum CollectionViewType {
     Invalid,
@@ -22,6 +23,7 @@ export enum CollectionViewType {
     Stacking,
     Masonry,
     Pivot,
+    Linear,
 }
 
 export namespace CollectionViewType {
@@ -34,7 +36,8 @@ export namespace CollectionViewType {
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
-        ["pivot", CollectionViewType.Pivot]
+        ["pivot", CollectionViewType.Pivot],
+        ["linear", CollectionViewType.Linear]
     ]);
 
     export const valueOf = (value: string) => {
@@ -44,7 +47,7 @@ export namespace CollectionViewType {
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
@@ -99,22 +102,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
-    addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        var curPage = NumCast(this.props.Document.curPage, -1);
-        Doc.GetProto(doc).page = curPage;
+    addDocument(doc: Doc): boolean {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
         let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
-        const value = Cast(targetDataDoc[targetField], listSpec(Doc));
-        if (value !== undefined) {
-            if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
-                value.push(doc);
-            }
-        } else {
-            Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
-        }
+        Doc.AddDocToList(targetDataDoc, targetField, doc);
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
@@ -129,8 +123,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
-            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
+            if (Doc.AreProtosEqual(annotationOn, FieldValue(Cast(this.dataDoc.extendsDoc, Doc)))) {
+                Doc.GetProto(doc).annotationOn = undefined;
+            }
+        });
 
         if (index !== -1) {
             value.splice(index, 1);
@@ -154,6 +151,21 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
+    showIsTagged = () => {
+        const children = DocListCast(this.props.Document.data);
+        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        if (allTagged) {
+            return (
+                <img
+                    id={"google-tags"}
+                    src={"/assets/google_tags.png"}
+                />
+            );
+        }
+        return (null);
+    }
+
     render() {
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
@@ -167,10 +179,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             <div id="collectionBaseView"
                 style={{
                     pointerEvents: this.props.Document.isBackground ? "none" : "all",
-                    boxShadow: this.props.Document.isBackground ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                    boxShadow: this.props.Document.isBackground || viewtype === CollectionViewType.Linear ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+                {this.showIsTagged()}
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

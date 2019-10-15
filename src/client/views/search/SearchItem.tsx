@@ -4,13 +4,10 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { RichTextField } from "../../../new_fields/RichTextField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../../Utils";
-import { DocServer } from "../../DocServer";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
@@ -30,6 +27,7 @@ export interface SearchItemProps {
     doc: Doc;
     query: string;
     highlighting: string[];
+    lines: string[];
 }
 
 library.add(faCaretUp);
@@ -215,18 +213,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @computed
     get linkCount() { return LinkManager.Instance.getAllRelatedLinks(this.props.doc).length; }
 
-    @computed
-    get linkString(): string {
-        let num = this.linkCount;
-        if (num === 1) {
-            return num.toString() + " link";
-        }
-        return num.toString() + " links";
-    }
-
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
+    nextHighlight = (e: React.PointerEvent) => {
+        e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e);
+        let sstring = StrCast(this.props.doc.search_string);
+        this.props.doc.search_string = "";
+        setTimeout(() => this.props.doc.search_string = sstring, 0);
+    }
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
@@ -239,6 +234,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         } else {
             Doc.BrushDoc(this.props.doc);
         }
+        e.stopPropagation();
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
@@ -282,22 +278,23 @@ export class SearchItem extends React.Component<SearchItemProps> {
         const doc2 = Cast(this.props.doc.anchor2, Doc);
         return (
             <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
-                    onClick={this.onClick} onPointerDown={this.pointerDown} >
+                <div className="search-item" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
+                    onClick={this.onClick}>
                     <div className="main-search-info">
-                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" /> </div>
+                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" />
+                            <div className="link-container item">
+                                <div className="link-count" title={`${this.linkCount + " links"}`}>{this.linkCount}</div>
+                            </div>
+                        </div>
                         <div className="search-title-container">
                             <div className="search-title">{StrCast(this.props.doc.title)}</div>
-                            <div className="search-highlighting">Matched fields: {this.props.highlighting.join(", ")}</div>
+                            <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
+                            {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="search-highlighting">`${l}`</div>)}
                         </div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" title="Click to Preview">{this.DocumentIcon()}</div>
                                 <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
-                            </div>
-                            <div className="link-container item">
-                                <div className="link-count">{this.linkCount}</div>
-                                <div className="link-extended">{this.linkString}</div>
                             </div>
                         </div>
                     </div>

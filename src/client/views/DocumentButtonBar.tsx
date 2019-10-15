@@ -23,7 +23,6 @@ import React = require("react");
 import { DocumentView } from './nodes/DocumentView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { DocumentDecorations } from './DocumentDecorations';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -141,7 +140,6 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
             let selDoc = this.props.views[0];
             let container = selDoc.props.ContainingCollectionDoc ? selDoc.props.ContainingCollectionDoc.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
-            FormattedTextBox.InputBoxOverlay = undefined;
             this._linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
@@ -204,7 +202,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
     considerEmbed = () => {
         let thisDoc = this.props.views[0].props.Document;
         let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
-        if (!canEmbed) return (null);
+        // if (!canEmbed) return (null);
         return (
             <div className="linkButtonWrapper">
                 <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>

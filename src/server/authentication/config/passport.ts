@@ -1,7 +1,6 @@
 import * as passport from 'passport';
 import * as passportLocal from 'passport-local';
-import * as mongodb from 'mongodb';
-import * as _ from "lodash";
+import _ from "lodash";
 import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
 import { RouteStore } from '../../RouteStore';
@@ -42,11 +41,9 @@ export let isAuthenticated = (req: Request, res: Response, next: NextFunction) =
 export let isAuthorized = (req: Request, res: Response, next: NextFunction) => {
     const provider = req.path.split("/").slice(-1)[0];
 
-    if (req.user) {
-        if (_.find((req.user as any).tokens, { kind: provider })) {
-            next();
-        } else {
-            res.redirect(`/auth/${provider}`);
-        }
+    if (_.find((req.user as any).tokens, { kind: provider })) {
+        next();
+    } else {
+        res.redirect(`/auth/${provider}`);
     }
 };

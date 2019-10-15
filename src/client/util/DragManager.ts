@@ -1,6 +1,6 @@
 import { action, runInAction } from "mobx";
 import { Doc, Field } from "../../new_fields/Doc";
-import { Cast, StrCast } from "../../new_fields/Types";
+import { Cast, StrCast, ScriptCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -10,10 +10,10 @@ import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { Docs } from "../documents/Documents";
-import { CompileScript } from "./Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
+import { listSpec } from "../../new_fields/Schema";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -236,14 +236,16 @@ export namespace DragManager {
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
+        dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
-                (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
-                    dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
-                    dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
-                        dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-                        dragData.draggedDocuments
+                (dropData.droppedDocuments =
+                    dragData.draggedDocuments.map(d => ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
+                        dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
+                            dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
                 );
+                dropData.droppedDocuments.forEach((drop: Doc, i: number) =>
+                    Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => drop[prop] = undefined));
             });
     }
 
@@ -428,12 +430,13 @@ export namespace DragManager {
             }
             if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
+                finishDrag && finishDrag(dragData);
                 CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                }, docs);
+                }, dragData.droppedDocuments);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
             let moveX = e.pageX - lastX;

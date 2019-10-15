@@ -1,39 +1,30 @@
-import { observable, action, computed, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { ColorResult } from 'react-color';
-import React = require("react");
-import { observer } from "mobx-react";
-import "./InkingControl.scss";
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
-import { SelectionManager } from "../util/SelectionManager";
-import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
-import { undoBatch, UndoManager } from "../util/UndoManager";
-import { StrCast, NumCast, Cast } from "../../new_fields/Types";
-import { MainOverlayTextBox } from "./MainOverlayTextBox";
-import { listSpec } from "../../new_fields/Schema";
+import { InkTool } from "../../new_fields/InkField";
 import { List } from "../../new_fields/List";
+import { listSpec } from "../../new_fields/Schema";
+import { Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { Utils } from "../../Utils";
+import { Scripting } from "../util/Scripting";
+import { SelectionManager } from "../util/SelectionManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 
-library.add(faPen, faHighlighter, faEraser, faBan);
 
-@observer
-export class InkingControl extends React.Component {
-    static Instance: InkingControl = new InkingControl({});
+export class InkingControl {
+    @observable static Instance: InkingControl;
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "5";
     @observable public _open: boolean = false;
 
-    constructor(props: Readonly<{}>) {
-        super(props);
+    constructor() {
         InkingControl.Instance = this;
     }
 
-    @action
-    switchTool = (tool: InkTool): void => {
+    switchTool = action((tool: InkTool): void => {
         this._selectedTool = tool;
-    }
+    })
     decimalToHexString(number: number) {
         if (number < 0) {
             number = 0xFFFFFFFF + number + 1;
@@ -46,10 +37,17 @@ export class InkingControl extends React.Component {
     switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
         if (InkingControl.Instance.selectedTool === InkTool.None) {
-            if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let sel = window.getSelection();
+                if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
+                    targetDoc.color = this._selectedColor;
+                    return {
+                        target: targetDoc,
+                        previous: StrCast(targetDoc.color)
+                    };
+                }
                 let oldColor = StrCast(targetDoc.backgroundColor);
                 let matchedColor = this._selectedColor;
                 const cvd = view.props.ContainingCollectionDoc;
@@ -118,22 +116,10 @@ export class InkingControl extends React.Component {
         return this._selectedWidth;
     }
 
-    @action
-    toggleDisplay = () => {
-        this._open = !this._open;
-        this.switchTool(this._open ? InkTool.Pen : InkTool.None);
-    }
-    render() {
-        return (
-            <ul className="inking-control" style={this._open ? { display: "flex" } : { display: "none" }}>
-                <li className="ink-size ink-panel">
-                    <label htmlFor="stroke-width">SIZE: </label>
-                    <input type="text" min="1" max="100" value={this._selectedWidth} name="stroke-width"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
-                    <input type="range" min="1" max="100" value={this._selectedWidth} name="stroke-width"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
-                </li>
-            </ul >
-        );
-    }
 }
+Scripting.addGlobal(function activatePen(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Pen : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
+Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Highlighter : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
+Scripting.addGlobal(function activateEraser(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Eraser : InkTool.None); });
+Scripting.addGlobal(function deactivateInk() { return InkingControl.Instance.switchTool(InkTool.None); });
+Scripting.addGlobal(function setInkWidth(width: any) { return InkingControl.Instance.switchWidth(width); });
+Scripting.addGlobal(function setInkColor(color: any) { return InkingControl.Instance.updateSelectedColor(color); });

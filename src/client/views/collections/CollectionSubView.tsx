@@ -18,38 +18,40 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
-import { CollectionPDFView } from "./CollectionPDFView";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+var path = require('path');
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    VisibleHeight?: () => number;
     chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
     ruleProvider: Doc | undefined;
+    children?: never | (() => JSX.Element[]) | React.ReactNode;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
-
-        protected createDropTarget = (ele: HTMLDivElement) => {
+        protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
         }
-        protected CreateDropTarget(ele: HTMLDivElement) {
+        protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
             this.createDropTarget(ele);
         }
 
@@ -151,7 +153,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
+        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -173,14 +175,14 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.props.addDocument(f);
                             }
                         });
                     } else {
                         this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
                 }
                 return;
             }
@@ -191,7 +193,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (img) {
                     let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
-                    this.props.addDocument(doc, false);
+                    ImageUtils.ExtractExif(doc);
+                    this.props.addDocument(doc);
                     return;
                 } else {
                     let path = window.location.origin + "/doc/";
@@ -200,12 +203,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.props.addDocument(f);
                             }
                         });
                     } else {
                         let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                        this.props.addDocument(htmlDoc, false);
+                        this.props.addDocument(htmlDoc);
                     }
                     return;
                 }
@@ -219,12 +222,21 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
                 let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
                 let proto = newBox.proto!;
-                proto.autoHeight = true;
-                proto[GoogleRef] = matches[2];
+                const documentId = matches[2];
+                proto[GoogleRef] = documentId;
                 proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
                 this.props.addDocument(newBox);
+                // const parent = Docs.Create.StackingDocument([newBox], { title: `Google Doc Import (${documentId})` });
+                // CollectionDockingView.Instance.AddRightSplit(parent, undefined);
+                // proto.height = parent[HeightSym]();
                 return;
+            }
+            if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                const albums = await GooglePhotos.Transactions.ListAlbums();
+                const albumId = matches[3];
+                const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                console.log(mediaItems);
             }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
@@ -240,7 +252,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let type = result["content-type"];
                             if (type) {
                                 Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
-                                    .then(doc => doc && this.props.addDocument(doc, false));
+                                    .then(doc => doc && this.props.addDocument(doc));
                             }
                         });
                     promises.push(prom);
@@ -261,8 +273,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let path = Utils.prepend(file);
-                            Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
+                            let pathname = Utils.prepend(file.path);
+                            Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
+                                doc && (Doc.GetProto(doc).fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
+                                doc && this.props.addDocument(doc);
+                            });
                         }));
                     });
                     promises.push(prom);

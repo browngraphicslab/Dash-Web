@@ -1,8 +1,6 @@
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
-import { CollectionPDFView } from "../views/collections/CollectionPDFView";
-import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
 import { AudioBox } from "../views/nodes/AudioBox";
@@ -20,8 +18,8 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
+import { OmitKeys, JSONUtils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
-import { OmitKeys, JSONUtils, emptyFunction } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -39,15 +37,16 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
-import { DragBox } from "../views/nodes/DragBox";
+import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField } from "../../new_fields/ScriptField";
+import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
+import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { QueryBox } from "../views/nodes/QueryBox";
+import { ColorBox } from "../views/nodes/ColorBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -65,25 +64,48 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
+    fitWidth?: boolean;
+    forceActive?: boolean;
+    preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
+    hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    ignoreClick?: boolean;
+    lockedPosition?: boolean;
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
+    columnWidth?: number;
+    fontSize?: number;
     curPage?: number;
+    currentTimecode?: number;
     documentText?: string;
     borderRounding?: string;
+    boxShadow?: string;
+    sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
+    removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
     defaultLinkFollow?: string;
     savedLinkFollows?: List<string>;
+    unchecked?: ScriptField; // returns whether a check box is unchecked
+    activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
+    onClick?: ScriptField;
+    onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
+    icon?: string;
+    gridGap?: number; // gap between items in masonry view
+    xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
+    yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
+    panel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
+    targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
+    convertToButtons?: boolean; // whether documents dropped onto a collection should be converted to buttons that will construct the dropped document
     // [key: string]: Opt<Field>;
 }
 
@@ -122,12 +144,20 @@ export namespace Docs {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
                 options: { height: 300, backgroundColor: "black" }
             }],
+            [DocumentType.QUERY, {
+                layout: { view: QueryBox },
+                options: { width: 400 }
+            }],
+            [DocumentType.COLOR, {
+                layout: { view: ColorBox },
+                options: { nativeWidth: 220, nativeHeight: 300 }
+            }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
-                options: { curPage: 0 }
+                layout: { view: ImageBox, ext: anno },
+                options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
+                layout: { view: WebBox, ext: anno },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
@@ -139,8 +169,8 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
-                options: { curPage: 0 },
+                layout: { view: VideoBox, ext: anno },
+                options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
@@ -173,13 +203,16 @@ export namespace Docs {
                 layout: { view: PresBox },
                 options: {}
             }],
-            [DocumentType.DRAGBOX, {
-                layout: { view: DragBox },
+            [DocumentType.FONTICON, {
+                layout: { view: FontIconBox },
                 options: { width: 40, height: 40 },
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
-            }]
+            }],
+            [DocumentType.PRESELEMENT, {
+                layout: { view: PresElementBox }
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -256,7 +289,7 @@ export namespace Docs {
             let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
-            let options = { title: title, type: type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
+            let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             let primary = layout.view.LayoutString(layout.ext);
             let collectionView = layout.collectionView;
             if (collectionView) {
@@ -336,7 +369,13 @@ export namespace Docs {
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             let imgField = new ImageField(new URL(url));
             let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
-            requestImageSize(imgField.url.href)
+            let target = imgField.url.href;
+            if (new RegExp(window.location.origin).test(target)) {
+                let extension = path.extname(target);
+                target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
+            }
+            // if (target !== "http://www.cs.brown.edu/") {
+            requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {
@@ -346,6 +385,7 @@ export namespace Docs {
                     inst.proto!.height = NumCast(inst.proto!.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
+            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
@@ -366,6 +406,14 @@ export namespace Docs {
 
         export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
+        }
+
+        export function QueryDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        }
+
+        export function ColorDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
         export function TextDocument(options: DocumentOptions = {}) {
@@ -427,6 +475,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
 
+        export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Linear }, id);
+        }
+
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
@@ -448,12 +500,16 @@ export namespace Docs {
         }
 
 
-        export function DragboxDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
+        export function FontIconDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
         }
 
         export function LinkFollowBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
+        }
+
+        export function PresElementBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
@@ -510,10 +566,13 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
         export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
-            if (input === null || ![...primitives, "object"].includes(typeof input)) {
+            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
+            let parsed = input;
+            if (typeof input === "string") {
+                parsed = JSONUtils.tryParse(input);
+            }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
                 converted = convertObject(parsed, title);
@@ -579,6 +638,7 @@ export namespace Docs {
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
                 options.nativeWidth = 1200;
+                options.nativeHeight = 1200;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
@@ -640,35 +700,33 @@ export namespace DocUtils {
             }
         });
     }
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc, id?: string, anchored1?: boolean) {
-        let sv = DocumentManager.Instance.getDocumentView(source);
-        if (sv && sv.props.ContainingCollectionDoc === target) return;
-        if (target === CurrentUserUtils.UserDocument) return undefined;
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
+        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
         let linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
-            linkDocProto.targetContext = targetContext;
-            linkDocProto.sourceContext = sourceContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
             linkDocProto.defaultLinkFollow = "Pan to Document,none,false";
             linkDocProto.savedLinkFollows = new List<string>();
 
-            linkDocProto.anchor1 = source;
-            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1 = source.doc;
+            linkDocProto.anchor1Context = source.ctx;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor1Groups = new List<Doc>([]);
-            linkDocProto.anchor1anchored = anchored1;
-            linkDocProto.anchor2 = target;
-            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             LinkManager.Instance.addLink(linkDocProto);
 
-            Doc.GetProto(source).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target).links = ComputedField.MakeFunction("links(this)");
-
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
         }, "make link");
         return linkDocProto;
     }

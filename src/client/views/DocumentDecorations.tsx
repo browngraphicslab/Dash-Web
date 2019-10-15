@@ -24,6 +24,7 @@ import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
+import { TooltipTextMenu } from '../util/TooltipTextMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -48,7 +49,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
-    private _embedButton = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
@@ -68,6 +68,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public isAnimatingFetch = false;
+    @observable public isAnimatingPulse = false;
     @observable public openHover = false;
 
     constructor(props: Readonly<{}>) {
@@ -332,7 +333,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
         selected.length === 1 && (doc.minimizedDoc = iconDoc);
-        selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
+        selected[0].props.addDocument && selected[0].props.addDocument(iconDoc);
         return iconDoc;
     }
     @action
@@ -413,41 +414,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
 
-    onEmbedButtonDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-        document.addEventListener("pointermove", this.onEmbedButtonMoved);
-        document.removeEventListener("pointerup", this.onEmbedButtonUp);
-        document.addEventListener("pointerup", this.onEmbedButtonUp);
-    }
-
-
-
-    onEmbedButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-        document.removeEventListener("pointerup", this.onEmbedButtonUp);
-        e.stopPropagation();
-    }
-
-    @action
-    onEmbedButtonMoved = (e: PointerEvent): void => {
-        if (this._embedButton.current !== null) {
-            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-            document.removeEventListener("pointerup", this.onEmbedButtonUp);
-
-            let dragDocView = SelectionManager.SelectedDocuments()[0];
-            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
-
-            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
-                hideSource: false
-            });
-        }
-        e.stopPropagation();
-    }
-
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -501,7 +467,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        if (!this._resizing) runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
@@ -581,8 +546,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return "-unset-";
     }
 
-
-
+    TextBar: HTMLDivElement | undefined;
+    private setTextBar = (ele: HTMLDivElement) => {
+        if (ele) {
+            this.TextBar = ele;
+        }
+    }
+    public showTextBar = () => {
+        if (this.TextBar) {
+            TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && this.TextBar.appendChild(TooltipTextMenu.Toolbar);
+        }
+    }
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -615,7 +589,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div className="documentDecorations-container" style={{
+            <div className="documentDecorations-container" ref={this.setTextBar} style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight + 3) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
