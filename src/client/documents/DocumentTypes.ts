@@ -17,7 +17,7 @@ export enum DocumentType {
     TEMPLATE = "template",
     EXTENSION = "extension",
     YOUTUBE = "youtube",
-    FONTICONBOX = "fonticonbox",
+    FONTICON = "fonticonbox",
     PRES = "presentation",
     LINKFOLLOW = "linkfollow",
     PRESELEMENT = "preselement",

@@ -50,11 +50,11 @@
             padding: 0;
             position: relative;
 
-            .collectionLinearView-docBtn {
+            .collectionLinearView-docBtn, .collectionLinearView-docBtn-scalable {
                 position:relative;
                 margin-right: 10px;
             }
-            .collectionLinearView-docBtn:hover {
+            .collectionLinearView-docBtn-scalable:hover {
                 transform: scale(1.15);
             }
 

@@ -17,6 +17,7 @@ import { DocumentView, documentSchema } from './nodes/DocumentView';
 import "./CollectionLinearView.scss";
 import { makeInterface } from '../../new_fields/Schema';
 import { CollectionSubView } from './collections/CollectionSubView';
+import { DocumentType } from '../documents/DocumentTypes';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -87,7 +88,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
                 <div className="collectionLinearView-content">
                     {this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair =>
-                        <div className="collectionLinearView-docBtn" style={{ width: this.dimension(), height: this.dimension() }} key={StrCast(pair.layout.title)} >
+                        <div className={`collectionLinearView-docBtn` + (pair.layout.onClick ? "-scalable" : "")} style={{ width: this.dimension(), height: this.dimension() }} key={StrCast(pair.layout.title)} >
                             <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
