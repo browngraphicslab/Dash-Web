@@ -43,7 +43,6 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
-import { TextShadowProperty } from 'csstype';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -490,7 +489,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         );
 
         this._heightReactionDisposer = reaction(
-            () => this.props.Document[WidthSym](),
+            () => [this.props.Document[WidthSym](), this.props.Document.autoHeight],
             () => this.tryUpdateHeight()
         );
 
@@ -984,13 +983,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     tryUpdateHeight() {
-        const ChromeHeight = this.props.ChromeHeight;
-        let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0 && getComputedStyle(this._ref.current!.parentElement!).top === "0px") {
+        let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
+        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && scrollHeight !== 0 &&
+            getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
-            this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
-            this.dataDoc.nativeHeight = nh ? sh : undefined;
+            this.props.Document.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
+            this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;
         }
     }
 

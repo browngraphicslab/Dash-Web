@@ -1,10 +1,13 @@
-.colorBox-container {
+.colorBox-container, .colorBox-container-interactive {
      width:100%;
      height:100%;
      position: relative;
-     pointer-events:all;
+     pointer-events: none;
      
     .sketch-picker {
         margin:auto;
     }
+}
+.colorBox-container-interactive {
+    pointer-events:all;
 }

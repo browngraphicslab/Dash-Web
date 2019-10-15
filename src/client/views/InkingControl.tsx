@@ -48,6 +48,14 @@ export class InkingControl extends React.Component {
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let sel = window.getSelection();
+                if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
+                    targetDoc.color = this._selectedColor;
+                    return {
+                        target: targetDoc,
+                        previous: StrCast(targetDoc.color)
+                    };
+                }
                 let oldColor = StrCast(targetDoc.backgroundColor);
                 let matchedColor = this._selectedColor;
                 const cvd = view.props.ContainingCollectionDoc;

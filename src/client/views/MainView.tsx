@@ -343,12 +343,12 @@ export class MainView extends React.Component {
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        let libraryButtonDoc = Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc;
-        libraryButtonDoc.columnWidth = this.flyoutWidth / 3 - 30;
+        let sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
+        sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
         return <div className="mainView-flyoutContainer">
             <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
                 <DocumentView
-                    Document={libraryButtonDoc}
+                    Document={sidebarButtonsDoc}
                     DataDoc={undefined}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
@@ -443,18 +443,20 @@ export class MainView extends React.Component {
     }
 
     addButtonDoc = (doc: Doc) => {
-        Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc);
+        Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
         return true;
     }
     remButtonDoc = (doc: Doc) => {
-        Doc.RemoveDocFromList(CurrentUserUtils.UserDocument, "docButtons", doc);
+        Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
         return true;
     }
     @computed get docButtons() {
         return <div className="mainView-docButtons" style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20 }} >
             <MainViewNotifs />
-            <CollectionLinearView Document={CurrentUserUtils.UserDocument} DataDoc={undefined}
-                fieldKey={"docButtons"}
+            <CollectionLinearView 
+                Document={CurrentUserUtils.UserDocument.expandingButtons as Doc} 
+                DataDoc={undefined}
+                fieldKey={"data"}
                 fieldExt={""}
                 showHiddenControls={true}
                 select={emptyFunction}

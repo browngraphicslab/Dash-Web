@@ -1,10 +1,17 @@
 import * as React from 'react';
 import { Doc } from '../../new_fields/Doc';
 import { computed, action } from 'mobx';
-import { Cast } from '../../new_fields/Types';
+import { Cast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
+import { InkingControl } from './InkingControl';
+import { InkTool } from '../../new_fields/InkField';
 
-export function DocComponent<P extends { Document: Doc }, T>(schemaCtor: (doc: Doc) => T) {
+
+///  DocComponents returns a generic base class for React views of document fields that are not interactive
+interface DocComponentProps {
+    Document: Doc;
+}
+export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends React.Component<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed
@@ -15,6 +22,27 @@ export function DocComponent<P extends { Document: Doc }, T>(schemaCtor: (doc: D
     return Component;
 }
 
+
+///  DocStaticProps return a base class for React views of document fields that are interactive only when selected (e.g. ColorBox)
+interface DocStaticProps {
+    Document: Doc;
+    isSelected: () => boolean;
+    renderDepth: number;
+}
+export function DocStaticComponent<P extends DocStaticProps, T>(schemaCtor: (doc: Doc) => T) {
+    class Component extends React.Component<P> {
+        //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
+        @computed
+        get Document(): T {
+            return schemaCtor(this.props.Document);
+        }
+        active = () => (this.props.Document.forceActive || this.props.isSelected() || this.props.renderDepth === 0) && !InkingControl.Instance.selectedTool;
+    }
+    return Component;
+}
+
+
+///  DocAnnotatbleComponent return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
 interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
@@ -57,7 +85,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
             return Doc.AddDocToList(this.extensionDoc, this.props.fieldExt, doc);
         }
         whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
-        active = () => this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
+        active = () => (InkingControl.Instance.selectedTool === InkTool.None) && (BoolCast(this.props.Document.forceActive) || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0);
     }
     return Component;
 }
