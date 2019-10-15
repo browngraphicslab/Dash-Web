@@ -155,7 +155,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_LeftResize = (e: React.PointerEvent, doc: Doc): void => {
         if (e.button === 2) {
-            this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
+            this.markerDocs.splice(this.markerDocs.indexOf(doc), 1);
             this.selectedMarker = undefined;
             e.preventDefault();
             e.stopPropagation();
@@ -179,7 +179,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_RightResize = (e: React.PointerEvent, doc: Doc): void => {
         if (e.button === 2) {
-            this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
+            this.markerDocs.splice(this.markerDocs.indexOf(doc), 1);
             this.selectedMarker = undefined;
             e.preventDefault();
             e.stopPropagation();
