@@ -182,6 +182,7 @@ export class DocumentManager {
     }
 
     public async FollowLink(link: Doc | undefined, doc: Doc, focus: (doc: Doc, maxLocation: string) => void, zoom: boolean = false, reverse: boolean = false, currentContext?: Doc) {
+
         const linkDocs = link ? [link] : LinkManager.Instance.getAllRelatedLinks(doc);
         SelectionManager.DeselectAll();
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc));

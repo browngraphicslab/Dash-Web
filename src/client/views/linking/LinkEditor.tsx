@@ -376,7 +376,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     linkChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        console.log(StrCast(this.props.linkDoc.defaultLinkFollow));
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         this.props.linkDoc.defaultLinkFollow = e.target.value + "," + destination![Id] + ',false';
     }
@@ -392,9 +391,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (destination) {
             return (
                 <div className="linkEditor">
-                    <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                     <div className="linkEditor-info">
-                        <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                        <button className="linkEditor-button" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
+                        <p className="linkEditor-linkedTo">editing link to:<br /><b>{StrCast(destination.proto!.title).length > 15 ? StrCast(destination.proto!.title).substring(0, 12) + '...' : StrCast(destination.proto!.title)}</b></p>
                         <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                     </div>
                     <div className="linkEditor-linkType">
