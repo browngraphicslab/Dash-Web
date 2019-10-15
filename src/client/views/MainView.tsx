@@ -466,12 +466,12 @@ export class MainView extends React.Component {
     }
     _docBtnRef = React.createRef<HTMLDivElement>();
     @computed get docButtons() {
-        console.log("stuff = " + this.flyoutWidthFunc() + " " + this.getContentsHeight());
         if (CurrentUserUtils.UserDocument.expandingButtons instanceof Doc) {
-            return <div className="mainView-docButtons" ref={this._docBtnRef} style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: "42px" }} >
+            return <div className="mainView-docButtons" ref={this._docBtnRef}
+                style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
                 <CollectionLinearView
-                    Document={CurrentUserUtils.UserDocument.expandingButtons as Doc}
+                    Document={CurrentUserUtils.UserDocument.expandingButtons}
                     DataDoc={undefined}
                     fieldKey={"data"}
                     fieldExt={""}

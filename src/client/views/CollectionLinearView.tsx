@@ -48,7 +48,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     drop = action((e: Event, de: DragManager.DropEvent) => {
         (de.data as DragManager.DocumentDragData).draggedDocuments.map((doc, i) => {
             let dbox = doc;
-            if (!doc.onDragStart && this.props.Document.convertToButtons && doc.viewType !== CollectionViewType.Linear) {
+            if (!doc.onDragStart && !doc.onClick && this.props.Document.convertToButtons && doc.viewType !== CollectionViewType.Linear) {
                 dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: "bolt" });
                 dbox.dragFactory = doc;
                 dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
@@ -90,7 +90,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={StrCast(pair.layout.title)} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension(),
-                                height: nested ? pair.layout[HeightSym]() : this.dimension(),
+                                height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension(),
                                 transform: nested ? undefined : `translate(${deltaSize / 2}px, ${deltaSize / 2}px)`
                             }}  >
                             <DocumentView

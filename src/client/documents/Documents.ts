@@ -93,6 +93,8 @@ export interface DocumentOptions {
     autoHeight?: boolean;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
+    unchecked?: ScriptField; // returns whether a check box is unchecked
+    activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;

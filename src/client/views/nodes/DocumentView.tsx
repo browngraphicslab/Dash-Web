@@ -107,7 +107,7 @@ export const documentSchema = createSchema({
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
-    dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script
+    dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
     autoHeight: "boolean",      // whether the height of the document should be computed automatically based on its contents
     isTemplate: "boolean",      // whether this document acts as a template layout for describing how other documents should be displayed
@@ -676,6 +676,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
+        let highlighting = fullDegree && this.props.Document.type !== DocumentType.FONTICON && this.props.Document.viewType !== CollectionViewType.Linear
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -683,8 +684,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
                     pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.Document.color),
-                    outline: fullDegree && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                    border: fullDegree && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
+                    outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
+                    border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                     background: this.props.Document.type === DocumentType.FONTICON || this.props.Document.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
                     width: animwidth,
                     height: animheight,

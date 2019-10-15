@@ -927,16 +927,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onMouseUp = (e: React.MouseEvent): void => {
         e.stopPropagation();
 
-        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
-        if ((this._editorView as any).mouseDown) {
-            let originalUpHandler = (this._editorView as any).mouseDown.up;
-            (this._editorView as any).root.removeEventListener("mouseup", originalUpHandler);
-            (this._editorView as any).mouseDown.up = (e: MouseEvent) => {
+        let view = this._editorView as any;
+        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there 
+        // are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
+        if (view.mouseDown) {
+            let originalUpHandler = view.mouseDown.up;
+            view.root.removeEventListener("mouseup", originalUpHandler);
+            view.mouseDown.up = (e: MouseEvent) => {
                 !(e as any).formattedHandled && originalUpHandler(e);
-                e.stopPropagation();
+                // e.stopPropagation();
                 (e as any).formattedHandled = true;
             };
-            (this._editorView as any).root.addEventListener("mouseup", (this._editorView as any).mouseDown.up);
+            view.root.addEventListener("mouseup", view.mouseDown.up);
         }
     }
 

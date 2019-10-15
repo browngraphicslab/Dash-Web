@@ -8,7 +8,7 @@ import { UndoManager } from "../../../client/util/UndoManager";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
@@ -45,29 +45,32 @@ export class CurrentUserUtils {
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
-    static setupCreatorButtons() {
-        let docProtoData: { title: string, icon: string, drag?: string, click?: string }[] = [
+    static setupCreatorButtons(doc: Doc) {
+        doc.activePen = doc;
+        let docProtoData: { title: string, icon: string, drag?: string, click?: string, unchecked?: string, activePen?: Doc, backgroundColor?: string }[] = [
             { title: "collection", icon: "folder", drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
             { title: "web page", icon: "globe-asia", drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
             { title: "image", icon: "cat", drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
             { title: "button", icon: "bolt", drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
             { title: "import folder", icon: "cloud-upload-alt", drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
-            { title: "pen", icon: "pen-nib", click: 'activatePen(); setInkWidth(2);' },
-            { title: "highlighter", icon: "pen", click: 'activateBrush(); setInkWidth(20);' },
-            { title: "eraser", icon: "eraser", click: 'activateEraser();' },
-            { title: "none", icon: "pause", click: 'deactivateInk();' },
+            { title: "pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", unchecked: `!sameDocs(this.activePen.pen,  this)`, activePen: doc },
+            { title: "highlighter", icon: "pen", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
+            { title: "eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
+            { title: "none", icon: "pause", click: 'deactivateInk();this.activePen.pen = this;', unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
-            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "alias" : undefined,
-            title: data.title, icon: data.icon, onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined
+            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon,
+            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
+            unchecked: data.unchecked ? ComputedField.MakeFunction(data.unchecked) : undefined, activePen: data.activePen,
+            backgroundColor: data.backgroundColor
         }));
     }
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.  when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
-    static setupCreatePanel(sidebarContainer: Doc) {
+    static setupCreatePanel(sidebarContainer: Doc, doc: Doc) {
         // setup a masonry view of all he creators
-        const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(), {
+        const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
             width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons"
         });
         // setup a color picker
@@ -129,7 +132,7 @@ export class CurrentUserUtils {
         doc.sidebarContainer = new Doc();
         (doc.sidebarContainer as Doc).chromeStatus = "disabled";
 
-        doc.CreateBtn = this.setupCreatePanel(doc.sidebarContainer as Doc);
+        doc.CreateBtn = this.setupCreatePanel(doc.sidebarContainer as Doc, doc);
         doc.LibraryBtn = this.setupLibraryPanel(doc.sidebarContainer as Doc, doc);
         doc.SearchBtn = this.setupSearchPanel(doc.sidebarContainer as Doc);
 
@@ -143,9 +146,9 @@ export class CurrentUserUtils {
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupExpandingButtons(doc: Doc) {
         doc.undoBtn = Docs.Create.FontIconDocument(
-            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
+            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
         doc.redoBtn = Docs.Create.FontIconDocument(
-            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
+            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
 
         doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc], {
             title: "expanding buttons", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0",
