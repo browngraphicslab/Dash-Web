@@ -21,7 +21,7 @@ import { docs_v1 } from "googleapis";
 import { Utils } from "../../../Utils";
 import { Link } from "@react-pdf/renderer";
 
-enum FollowModes {
+export enum FollowModes {
     OPENTAB = "Open in Tab",
     OPENRIGHT = "Open in Right Split",
     OPENFULL = "Open Full Screen",
