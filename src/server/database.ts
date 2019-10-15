@@ -8,16 +8,19 @@ import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 
 export namespace Database {
 
+    const schema = 'Dash';
+    const port = 27017;
+    export const url = `mongodb://localhost:${port}/${schema}`;
+
     class Database {
         public static DocumentsCollection = 'documents';
         private MongoClient = mongodb.MongoClient;
-        private url = 'mongodb://localhost:27017/Dash';
         private currentWrites: { [id: string]: Promise<void> } = {};
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
         constructor() {
-            this.MongoClient.connect(this.url, (err, client) => {
+            this.MongoClient.connect(url, (_err, client) => {
                 this.db = client.db();
                 this.onConnect.forEach(fn => fn());
             });

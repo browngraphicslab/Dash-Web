@@ -9,6 +9,8 @@ import request = require('request-promise');
 import * as qs from 'query-string';
 import Photos = require('googlephotos');
 import { Database } from "../../database";
+const path = require("path");
+
 /**
  * Server side authentication for Google Api queries.
  */
@@ -76,22 +78,24 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    const RetrieveOAuthClient = async (information: CredentialInformation) => {
-        return new Promise<OAuth2Client>((resolve, reject) => {
-            readFile(information.credentialsPath, async (err, credentials) => {
+    let AuthorizationManager: OAuth2Client;
+
+    export const LoadOAuthClient = async () => {
+        return new Promise<void>((resolve, reject) => {
+            readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, credentials) => {
                 if (err) {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
                 const { client_secret, client_id, redirect_uris } = parseBuffer(credentials).installed;
-                resolve(new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]));
+                AuthorizationManager = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+                resolve();
             });
         });
     };
 
     export const GenerateAuthenticationUrl = async (information: CredentialInformation) => {
-        const client = await RetrieveOAuthClient(information);
-        return client.generateAuthUrl({
+        return AuthorizationManager.generateAuthUrl({
             access_type: 'offline',
             scope: SCOPES.map(relative => prefix + relative),
         });
@@ -103,14 +107,13 @@ export namespace GoogleApiServerUtils {
         name: string;
     }
     export const ProcessClientSideCode = async (information: CredentialInformation, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
-        const oAuth2Client = await RetrieveOAuthClient(information);
         return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
-            oAuth2Client.getToken(authenticationCode, async (err, token) => {
+            AuthorizationManager.getToken(authenticationCode, async (err, token) => {
                 if (err || !token) {
                     reject(err);
                     return console.error('Error retrieving access token', err);
                 }
-                oAuth2Client.setCredentials(token);
+                AuthorizationManager.setCredentials(token);
                 const enriched = injectUserInfo(token);
                 await Database.Auxiliary.GoogleAuthenticationToken.Write(information.userId, enriched);
                 const { given_name, picture } = enriched.userInfo;

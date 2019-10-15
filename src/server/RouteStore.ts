@@ -7,6 +7,7 @@ export enum RouteStore {
     corsProxy = "/corsProxy",
     delete = "/delete",
     deleteAll = "/deleteAll",
+    pull = "/pull",
 
     // UPLOAD AND STATIC FILE SERVING
     public = "/public",
