@@ -9,6 +9,7 @@ import { Utils } from "../../Utils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 
 export class InkingControl {
@@ -36,6 +37,7 @@ export class InkingControl {
     @undoBatch
     switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
@@ -89,6 +91,8 @@ export class InkingControl {
                 undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
                 redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
             });
+        } else {
+            CurrentUserUtils.UserDocument.activePen instanceof Doc && CurrentUserUtils.UserDocument.activePen.pen instanceof Doc && (CurrentUserUtils.UserDocument.activePen.pen.backgroundColor = this._selectedColor);
         }
     });
     @action
