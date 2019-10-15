@@ -115,7 +115,6 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
-    active = () => this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
@@ -205,7 +204,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     _initialScale: number | undefined;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live....
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
+        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
         if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;

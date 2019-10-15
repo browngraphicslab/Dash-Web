@@ -40,7 +40,7 @@ import { ButtonBox } from "../views/nodes/ButtonBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField } from "../../new_fields/ScriptField";
+import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
@@ -65,7 +65,10 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     fitWidth?: boolean;
+    forceActive?: boolean;
+    preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
+    hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplate?: boolean;
     templates?: List<string>;
     viewType?: number;
@@ -84,11 +87,23 @@ export interface DocumentOptions {
     documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
+    sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
+    removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
+    unchecked?: ScriptField; // returns whether a check box is unchecked
+    activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
+    onClick?: ScriptField;
+    onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
+    gridGap?: number; // gap between items in masonry view
+    xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
+    yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
+    panel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
+    targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
+    convertToButtons?: boolean; // whether documents dropped onto a collection should be converted to buttons that will construct the dropped document
     // [key: string]: Opt<Field>;
 }
 
@@ -185,7 +200,7 @@ export namespace Docs {
                 layout: { view: PresBox },
                 options: {}
             }],
-            [DocumentType.FONTICONBOX, {
+            [DocumentType.FONTICON, {
                 layout: { view: FontIconBox },
                 options: { width: 40, height: 40 },
             }],
@@ -457,6 +472,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
 
+        export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Linear }, id);
+        }
+
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
@@ -479,7 +498,7 @@ export namespace Docs {
 
 
         export function FontIconDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.FONTICONBOX), undefined, { ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
         }
 
         export function LinkFollowBoxDocument(options?: DocumentOptions) {

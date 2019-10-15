@@ -14,6 +14,7 @@ import { ComputedField } from "./ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
+import { UndoManager } from "../client/util/UndoManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -524,6 +525,7 @@ export namespace Doc {
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
         Object.keys(doc).forEach(key => {
+            let cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
                 if (doc[key] instanceof Doc) {
@@ -532,6 +534,8 @@ export namespace Doc {
             } else {
                 if (field instanceof RefField) {
                     copy[key] = field;
+                } else if (cfield instanceof ComputedField) {
+                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
@@ -734,3 +738,6 @@ Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return Doc.Make
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
+Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2) });
+Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
+Scripting.addGlobal(function redo() { return UndoManager.Redo(); });

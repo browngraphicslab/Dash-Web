@@ -234,9 +234,9 @@ export namespace DragManager {
 
     export let StartDragFunctions: (() => void)[] = [];
 
-    export async function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+    export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
-        await dragData.draggedDocuments.map(d => d.dragFactory);
+        dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments =
@@ -430,12 +430,13 @@ export namespace DragManager {
             }
             if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
+                finishDrag && finishDrag(dragData);
                 CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                }, docs);
+                }, dragData.droppedDocuments);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
             let moveX = e.pageX - lastX;

@@ -43,7 +43,6 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
-import { TextShadowProperty } from 'csstype';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -490,7 +489,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         );
 
         this._heightReactionDisposer = reaction(
-            () => this.props.Document[WidthSym](),
+            () => [this.props.Document[WidthSym](), this.props.Document.autoHeight],
             () => this.tryUpdateHeight()
         );
 
@@ -928,16 +927,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onMouseUp = (e: React.MouseEvent): void => {
         e.stopPropagation();
 
-        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
-        if ((this._editorView as any).mouseDown) {
-            let originalUpHandler = (this._editorView as any).mouseDown.up;
-            (this._editorView as any).root.removeEventListener("mouseup", originalUpHandler);
-            (this._editorView as any).mouseDown.up = (e: MouseEvent) => {
+        let view = this._editorView as any;
+        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there 
+        // are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
+        if (view.mouseDown) {
+            let originalUpHandler = view.mouseDown.up;
+            view.root.removeEventListener("mouseup", originalUpHandler);
+            view.mouseDown.up = (e: MouseEvent) => {
                 !(e as any).formattedHandled && originalUpHandler(e);
-                e.stopPropagation();
+                // e.stopPropagation();
                 (e as any).formattedHandled = true;
             };
-            (this._editorView as any).root.addEventListener("mouseup", (this._editorView as any).mouseDown.up);
+            view.root.addEventListener("mouseup", view.mouseDown.up);
         }
     }
 
@@ -984,13 +985,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     tryUpdateHeight() {
-        const ChromeHeight = this.props.ChromeHeight;
-        let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && sh !== 0 && getComputedStyle(this._ref.current!.parentElement!).top === "0px") {
+        let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
+        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && scrollHeight !== 0 &&
+            getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
-            this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
-            this.dataDoc.nativeHeight = nh ? sh : undefined;
+            this.props.Document.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
+            this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;
         }
     }
 
