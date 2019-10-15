@@ -5,6 +5,7 @@ import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
+import { StrCast } from '../../../new_fields/Types';
 const FontIconSchema = createSchema({
     icon: "string"
 });
@@ -16,6 +17,8 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     public static LayoutString() { return FieldView.LayoutString(FontIconBox); }
 
     render() {
-        return <button className="fontIconBox-outerDiv" >  <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} size="sm" color="white" />  </button>;
+        return <button className="fontIconBox-outerDiv" style={{ background: StrCast(this.props.Document.backgroundColor) }}>
+            <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} size="sm" color="white" />
+        </button>;
     }
 }

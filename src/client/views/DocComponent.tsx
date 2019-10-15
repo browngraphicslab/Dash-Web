@@ -36,7 +36,7 @@ export function DocStaticComponent<P extends DocStaticProps, T>(schemaCtor: (doc
         get Document(): T {
             return schemaCtor(this.props.Document);
         }
-        active = () => (this.props.Document.forceActive || this.props.isSelected() || this.props.renderDepth === 0) && !InkingControl.Instance.selectedTool;
+        active = () => (this.props.Document.forceActive || this.props.isSelected() || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
     }
     return Component;
 }

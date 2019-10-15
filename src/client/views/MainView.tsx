@@ -1,5 +1,8 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+    faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
+    faMusic, faObjectGroup, faPause, faPenNib, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -99,6 +102,8 @@ export class MainView extends React.Component {
         library.add(faGlobeAsia);
         library.add(faUndoAlt);
         library.add(faRedoAlt);
+        library.add(faPen);
+        library.add(faEraser);
         library.add(faPenNib);
         library.add(faFilm);
         library.add(faMusic);
@@ -450,37 +455,50 @@ export class MainView extends React.Component {
         Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
         return true;
     }
+    @action
+    moveButtonDoc = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean): boolean => {
+        return this.remButtonDoc(doc) && addDocument(doc);
+    }
+    buttonBarXf = () => {
+        if (!this._docBtnRef.current) return Transform.Identity();
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
+        return new Transform(-translateX, -translateY, 1 / scale);
+    }
+    _docBtnRef = React.createRef<HTMLDivElement>();
     @computed get docButtons() {
-        return <div className="mainView-docButtons" style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20 }} >
-            <MainViewNotifs />
-            <CollectionLinearView 
-                Document={CurrentUserUtils.UserDocument.expandingButtons as Doc} 
-                DataDoc={undefined}
-                fieldKey={"data"}
-                fieldExt={""}
-                showHiddenControls={true}
-                select={emptyFunction}
-                chromeCollapsed={true}
-                active={returnFalse}
-                isSelected={returnFalse}
-                moveDocument={returnFalse}
-                CollectionView={undefined}
-                addDocument={this.addButtonDoc}
-                addDocTab={this.addDocTabFunc}
-                pinToPres={emptyFunction}
-                removeDocument={this.remButtonDoc}
-                ruleProvider={undefined}
-                onClick={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={this.flyoutWidthFunc}
-                PanelHeight={this.getContentsHeight}
-                renderDepth={0}
-                focus={emptyFunction}
-                whenActiveChanged={emptyFunction}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
-        </div>;
+        console.log("stuff = " + this.flyoutWidthFunc() + " " + this.getContentsHeight());
+        if (CurrentUserUtils.UserDocument.expandingButtons instanceof Doc) {
+            return <div className="mainView-docButtons" ref={this._docBtnRef} style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: "42px" }} >
+                <MainViewNotifs />
+                <CollectionLinearView
+                    Document={CurrentUserUtils.UserDocument.expandingButtons as Doc}
+                    DataDoc={undefined}
+                    fieldKey={"data"}
+                    fieldExt={""}
+                    select={emptyFunction}
+                    chromeCollapsed={true}
+                    active={returnFalse}
+                    isSelected={returnFalse}
+                    moveDocument={this.moveButtonDoc}
+                    CollectionView={undefined}
+                    addDocument={this.addButtonDoc}
+                    addDocTab={this.addDocTabFunc}
+                    pinToPres={emptyFunction}
+                    removeDocument={this.remButtonDoc}
+                    ruleProvider={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={this.buttonBarXf}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getContentsHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    whenActiveChanged={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined} />
+            </div>;
+        }
+        return (null);
     }
 
     render() {

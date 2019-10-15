@@ -12,6 +12,7 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
+import { InkingControl } from "../../../client/views/InkingControl";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -45,17 +46,21 @@ export class CurrentUserUtils {
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons() {
-        let docProtoData = [
-            { title: "collection", icon: "folder", script: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
-            { title: "web page", icon: "globe-asia", script: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
-            { title: "image", icon: "cat", script: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
-            { title: "button", icon: "bolt", script: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
-            { title: "presentation", icon: "tv", script: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
-            { title: "import folder", icon: "cloud-upload-alt", script: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
+        let docProtoData: { title: string, icon: string, drag?: string, click?: string }[] = [
+            { title: "collection", icon: "folder", drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
+            { title: "web page", icon: "globe-asia", drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
+            { title: "image", icon: "cat", drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
+            { title: "button", icon: "bolt", drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
+            { title: "presentation", icon: "tv", drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
+            { title: "import folder", icon: "cloud-upload-alt", drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
+            { title: "pen", icon: "pen-nib", click: 'activatePen(); setInkWidth(2);' },
+            { title: "highlighter", icon: "pen", click: 'activateBrush(); setInkWidth(20);' },
+            { title: "eraser", icon: "eraser", click: 'activateEraser();' },
+            { title: "none", icon: "pause", click: 'deactivateInk();' },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
-            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100,
-            title: data.title, icon: data.icon, onDragStart: ScriptField.MakeFunction(data.script)
+            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "alias" : undefined,
+            title: data.title, icon: data.icon, onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined
         }));
     }
 
@@ -144,7 +149,7 @@ export class CurrentUserUtils {
 
         doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc], {
             title: "expanding buttons", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0",
-            backgroundColor: "#eeeeee", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, convertToButtons: true
+            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, convertToButtons: true
         });
     }
 
@@ -165,6 +170,7 @@ export class CurrentUserUtils {
     }
 
     static updateUserDocument(doc: Doc) {
+        new InkingControl();
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.noteTypes === undefined) && CurrentUserUtils.setupNoteTypes(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
