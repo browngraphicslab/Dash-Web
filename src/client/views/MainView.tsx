@@ -287,13 +287,15 @@ export class MainView extends React.Component {
     }
 
     onPointerDown = (e: React.PointerEvent) => {
-        this._flyoutSizeOnDown = e.clientX;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
-        e.preventDefault();
+        if (this._flyoutTranslate) {
+            this._flyoutSizeOnDown = e.clientX;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointerup", this.onPointerUp);
+            e.stopPropagation();
+            e.preventDefault();
+        }
     }
 
     @action
@@ -412,10 +414,10 @@ export class MainView extends React.Component {
                         style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                         onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>
                         <span title="library View Dragger" style={{
-                            width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "5vw",
-                            height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "30vh",
-                            position: "absolute",
-                            top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "-10vh"
+                            width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
+                            height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
+                            position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
+                            top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />
                     </div>
                     <div className="mainView-libraryFlyout" style={{
