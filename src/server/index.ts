@@ -776,6 +776,9 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+    Utils.AddServerHandler(socket, MessageStore.NotifyRoommates, message => HandleRoommateNotification(socket, message));
+
+
 });
 
 async function deleteFields() {
@@ -835,6 +838,11 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
         case YoutubeQueryType.VideoDetails:
             YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
     }
+}
+
+function HandleRoommateNotification(socket: Socket, message: String) {
+    socket.broadcast.emit('message', message);
+
 }
 
 const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
