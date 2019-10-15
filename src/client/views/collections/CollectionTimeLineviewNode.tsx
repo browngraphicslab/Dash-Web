@@ -147,6 +147,7 @@ export class Thumbnail extends React.Component<NodeProps> {
         else if (this.props.select === true) {
             return true;
         }
+   
         return this.newclass;
     }
 
@@ -160,7 +161,8 @@ export class Thumbnail extends React.Component<NodeProps> {
         this.maketransition();
         this.getCaption();
         this.tog();
-
+        console.log(this.props.select);
+        console.log(this.selectclass);
         return (
             <div>
                 <div onPointerDown={(e) => this.toggleSelection(e)} style={{ transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
@@ -182,7 +184,7 @@ export class Thumbnail extends React.Component<NodeProps> {
                             textOrientation: "mixed", borderLeft: "1px black solid"
                         }} />
                     < div style={{
-                        position: "absolute", width: this.props.scale, left: this.props.leftval - 30, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
+                        position: "absolute", width: this.props.scale, left: this.props.leftval - this.props.scale, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
                         textOrientation: "mixed",
                     }}>{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
                 </div>

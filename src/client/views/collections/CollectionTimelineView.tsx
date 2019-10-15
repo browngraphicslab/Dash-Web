@@ -2,7 +2,7 @@ import React = require("react");
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { DateField } from "../../../new_fields/DateField";
-import { Doc, DocListCast, Field, FieldResult, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, FieldResult, HeightSym, WidthSym, Opt } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
@@ -33,6 +33,13 @@ type MarkerUnit = {
     linkedthumbnail: Node | undefined;
 };
 
+type Tick = {
+    counter: number,
+    leftval: string,
+    val: number,
+    ref: React.RefObject<HTMLDivElement>;
+};
+
 type Node = {
     doc: Doc;
     select?: boolean;
@@ -53,6 +60,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable pendingThumbnailRefCount = 0;
     private marqueeref = React.createRef<HTMLDivElement>();
     private previewflag = true;
+    private disposer: Opt<IReactionDisposer>;
 
 
     @action
@@ -88,6 +96,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     constructor(props: SubCollectionViewProps) {
         super(props);
+        reaction(
+            () => this.props.Document.barwidth,
+            barwidth => {
+                const loaded = barwidth !== undefined && barwidth > 0;
+                if (!loaded) {
+                    return;
+                }
+                this.disposer && this.disposer();
+                this.disposer = reaction(
+                    () => this.props.Document.sortstate,
+                    this.createticks,
+                    { fireImmediately: true }
+                );
+            }
+        );
     }
 
     componentWillMount() {
@@ -96,15 +119,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.types[i] = true;
             }
         });
-        reaction(
-            () => this.rowscale,
-            scale => console.log("I've changed!", scale)
-        );
         this.initializeMarkers();
         this.thumbnailbools = [];
         this.updateWidth();
         this.createRows();
-        this.createticks();
+        // this.createticks();
         this.filtermenu();
         this.thumbnailloop();
         this.createdownbool();
@@ -113,6 +132,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     componentWillUnmount() {
         this.sortReactionDisposer && this.sortReactionDisposer();
+        this.disposer && this.disposer();
     }
 
 
@@ -460,7 +480,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 return undefined;
         }
     }
-
     thumbnailloop() {
         let arr: Doc[] = [];
         //Build an array of all nodes in dash document.
@@ -590,26 +609,41 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    private tickrefs: React.RefObject<HTMLDivElement>[] = [];
 
-    createticks() {
+
+    private tickrefs: React.RefObject<HTMLDivElement>[] = [];
+    @observable
+    private tickvals: Tick[] = [];
+    @action
+    createticks = () => {
         //Creates the array of tick marks.
+        console.log("CREATING TICKS!");
         let counter = 0;
+        this.tickvals = [];
         this.ticks = [];
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
             let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px");
             let tickref = React.createRef<HTMLDivElement>();
             this.tickrefs.push(tickref);
+            let val = 0;
             if (counter % 100 === 0) {
-                let val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0] - this._range * 0.05);
+                val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0] - this._range * 0.05);
+                let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                this.tickvals.push(t);
                 this.ticks.push(<div className="max" ref={tickref} style={{
                     position: "absolute", top: "0%", left: leftval, zIndex: -100, writingMode: "vertical-rl",
                     textOrientation: "mixed",
                 }
                 }> <div style={{ paddingTop: "10px" }}>{val}</div></div >);
             }
-            else if (counter % 50 === 0) { this.ticks.push(<div className="max2" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
-            else if (counter % 10 === 0) { this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
+            else if (counter % 50 === 0) {
+                this.ticks.push(<div className="max2" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                this.tickvals.push(t);
+            }
+            else if (counter % 10 === 0) {
+                this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                this.tickvals.push(t);
+            }
             counter++;
         }
     }
@@ -723,7 +757,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private get barwidth() {
         let doc = this.props.Document;
-        doc.barwidth = (this.barref.current ? this.barref.current.getBoundingClientRect().width : (952));
+        const { current } = this.barref;
+        if (current) {
+            doc.barwidth = current.getBoundingClientRect().width;
+        }
         return NumCast(doc.barwidth);
     }
 
@@ -811,7 +848,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     @action annotationUpdate = (newValue: string) => {
-        this.selectedMarker!.document.annotation = newValue;
+        if (newValue !== "") {
+            this.selectedMarker!.document.annotation = newValue;
+        }
+        if (this.selectedMarker!.document.annotation === "") {
+            this.selectedMarker!.document.annotation = "Edit me!";
+        }
         return true;
     }
 
@@ -894,7 +936,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.initialWidth = 10;
             d.initialMapLeft = (((leftval / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
             d.initialMapWidth = 10;
-            d.annotation = "hi";
+            d.annotation = "Edit me!";
             d.color = this.selectedColor;
             d.sortstate = this.sortstate;
             this.markerDocs.push(d);
@@ -1167,7 +1209,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0] - this._range * 0.05;
         // this.updateWidth();
-        this.createticks();
+        // this.createticks();
         this.filtermenu();
         this.thumbnailloop();
         this.createdownbool();
@@ -1236,7 +1278,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
                             position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
                         }}>
-                            {this.ticks.map(tick => this.bugfix ? tick : tick)}
+                            {this.tickvals.map(function (t) {
+                                if (t.counter % 100 === 0) {
+                                    return (<div className="max" ref={t.ref} style={{
+                                        position: "absolute", top: "0%", left: t.leftval, zIndex: -100, writingMode: "vertical-rl",
+                                        textOrientation: "mixed",
+                                    }
+                                    }> <div style={{ paddingTop: "10px" }}>{t.val}</div></div>);
+                                }
+                                else if (t.counter % 50 === 0) {
+                                    return (<div className="max2" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: -100 }} />);
+                                }
+                                else if (t.counter % 10 === 0) {
+                                    return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: -100 }} />);
+                                }
+                            })}
                         </div>
 
                     </div>

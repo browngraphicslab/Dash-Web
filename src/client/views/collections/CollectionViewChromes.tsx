@@ -856,24 +856,24 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         console.log("update");
         if (e.key === "Enter") {
             this._currentKey = "";
-            let props = this.props.CollectionView.props.Document;
+            let collection = this.props.CollectionView.props.Document;
 
-            var thing = (parseFloat(this.searchString2!) - NumCast(props.minvalue)) * NumCast(props.barwidth) / NumCast(props._range);
+            var thing = (parseFloat(this.searchString2!) - NumCast(collection.minvalue)) * NumCast(collection.barwidth) / NumCast(collection._range);
             if (!isNaN(thing)) {
                 if (thing < 0) {
-                    props.leftbound = 0;
+                    collection.leftbound = 0;
                 }
-                else if (thing >= NumCast(props.barwidth) - NumCast(props.rightbound)) {
-                    props.leftbound = (NumCast(props.barwidth) - NumCast(props.rightbound) - 1);
+                else if (thing >= NumCast(collection.barwidth) - NumCast(collection.rightbound)) {
+                    collection.leftbound = (NumCast(collection.barwidth) - NumCast(collection.rightbound) - 1);
                 }
                 else {
-                    props.leftbound = thing;
+                    collection.leftbound = thing;
                 }
             }
             this.props.CollectionView.props.Document.bugfix = !BoolCast(this.props.CollectionView.props.Document.bugfix);
             console.log(this.props.CollectionView.props.Document.bugfix);
-            props.transtate = true;
-            props.sortstate = this.searchString3;
+            collection.transtate = true;
+            collection.sortstate = this.searchString3;
         }
         if (e.keyCode === 9) {
             e.preventDefault;
