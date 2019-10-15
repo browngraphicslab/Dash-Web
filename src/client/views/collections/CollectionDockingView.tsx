@@ -426,15 +426,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span title="Drag as document" onPointerDown={
-                    e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
-                            handlers: { dragComplete: emptyFunction },
-                            hideSource: false
-                        });
-                    }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                ReactDOM.render(<span title="Drag as document"
+                    className="collectionDockingView-dragAsDocument"
+                    onPointerDown={
+                        e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
+                                handlers: { dragComplete: emptyFunction },
+                                hideSource: false
+                            });
+                        }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
                 ReactDOM.render(<ButtonSelector Document={doc} Stack={stack} />, gearSpan);
                 // ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, data, where) => {
                 //     where === "onRight" ? CollectionDockingView.AddRightSplit(doc, dataDoc) : CollectionDockingView.Instance.AddTab(stack, doc, dataDoc);

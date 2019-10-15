@@ -198,7 +198,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
-        if (!this._commandExecuted) {
+        if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
             MarqueeOptionsMenu.Instance.summarize = this.summary;
@@ -213,7 +213,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             MarqueeOptionsMenu.Instance.fadeOut(true);
             document.removeEventListener("pointerdown", hideMarquee);
         }
-        document.addEventListener("pointerdown", hideMarquee)
+        document.addEventListener("pointerdown", hideMarquee);
 
         if (e.altKey) {
             e.preventDefault();

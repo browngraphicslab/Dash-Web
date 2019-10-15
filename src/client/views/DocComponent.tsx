@@ -7,18 +7,13 @@ import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
 import { InkTool } from '../../new_fields/InkField';
 
-<<<<<<< HEAD
-export function DocComponent<P extends { Document: Doc }, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends Touchable<P> {
-=======
 
 ///  DocComponents returns a generic base class for React views of document fields that are not interactive
 interface DocComponentProps {
     Document: Doc;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
->>>>>>> 33811c112c7e479813908ba10f72813954a3e289
+    class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed
         get Document(): T {
