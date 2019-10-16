@@ -7,8 +7,8 @@ import * as cookieParser from 'cookie-parser';
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import { Database } from './database';
+import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 const MongoStore = require('connect-mongo')(session);
-import mongoose, { ConnectionStates } from 'mongoose';
 import { RouteStore } from './RouteStore';
 import RouteManager from './RouteManager';
 import * as webpack from 'webpack';
@@ -25,47 +25,26 @@ export interface InitializationOptions {
 
 export default async function InitializeServer(options: InitializationOptions) {
     const { listenAtPort, routeSetter } = options;
-    const server = injectMiddleware(express());
-    const { url } = Database;
-    try {
-        await connectToDatabase(url);
-    } catch (e) {
-        console.error(`Mongoose FAILED to establish default connection at ${url}`);
-        console.error(e);
-        console.log('Since a valid database connection is required to use Dash, killing the server process.\nPlease try again later.');
-        process.exit(1);
-    }
-
-    // static file serving
-    server.use(express.static(__dirname + RouteStore.public));
-    server.use(RouteStore.images, express.static(__dirname + RouteStore.public));
+    const server = buildWithMiddleware(express());
 
     routeSetter(new RouteManager(server, determineEnvironment()));
+
+    server.use(express.static(__dirname + RouteStore.public));
+    server.use(RouteStore.images, express.static(__dirname + RouteStore.public));
 
     server.use(wdm(compiler, { publicPath: config.output.publicPath }));
     server.use(whm(compiler));
     server.listen(listenAtPort, () => console.log(`server started at http://localhost:${listenAtPort}`));
 
+    registerAuthenticationRoutes(server);
+
     return server;
-}
-
-function determineEnvironment() {
-    const isRelease = process.env.RELEASE === "true";
-
-    console.log(`running server in ${isRelease ? 'release' : 'debug'} mode`);
-    console.log(process.env.PWD);
-
-    let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
-    clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(isRelease))}`;
-    fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
-
-    return isRelease;
 }
 
 const week = 7 * 24 * 60 * 60 * 1000;
 const secret = "64d6866242d3b5a5503c675b32c9605e4e90478e9b77bcf2bc";
 
-function injectMiddleware(server: express.Express) {
+function buildWithMiddleware(server: express.Express) {
     [
         cookieParser(),
         session({
@@ -90,21 +69,31 @@ function injectMiddleware(server: express.Express) {
     return server;
 }
 
-async function connectToDatabase(url: string) {
-    const { connection } = mongoose;
-    process.on('SIGINT', () => {
-        connection.close(() => {
-            console.log('Mongoose default connection disconnected through app termination');
-            process.exit(0);
-        });
-    });
-    if (connection.readyState === ConnectionStates.disconnected) {
-        return new Promise<void>((resolve, reject) => {
-            connection.on('error', reject);
-            connection.on('connected', () => {
-                console.log(`Mongoose established default connection at ${url}`);
-                resolve();
-            });
-        });
-    }
+function determineEnvironment() {
+    const isRelease = process.env.RELEASE === "true";
+
+    console.log(`running server in ${isRelease ? 'release' : 'debug'} mode`);
+    console.log(process.env.PWD);
+
+    let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
+    clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(isRelease))}`;
+    fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
+
+    return isRelease;
+}
+
+function registerAuthenticationRoutes(server: express.Express) {
+    server.get(RouteStore.signup, getSignup);
+    server.post(RouteStore.signup, postSignup);
+
+    server.get(RouteStore.login, getLogin);
+    server.post(RouteStore.login, postLogin);
+
+    server.get(RouteStore.logout, getLogout);
+
+    server.get(RouteStore.forgot, getForgot);
+    server.post(RouteStore.forgot, postForgot);
+
+    server.get(RouteStore.reset, getReset);
+    server.post(RouteStore.reset, postReset);
 }

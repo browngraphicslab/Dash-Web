@@ -11,7 +11,6 @@ import * as request from 'request';
 import io from 'socket.io';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
-import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 import { Client } from './Client';
 import { Database } from './database';
 import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
@@ -27,7 +26,6 @@ import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 const probe = require("probe-image-size");
 const pdf = require('pdf-parse');
-var findInFiles = require('find-in-files');
 import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 import { Opt } from '../new_fields/Doc';
 import { DashUploadUtils } from './DashUploadUtils';
@@ -38,6 +36,7 @@ import RouteSubscriber from './RouteSubscriber';
 import InitializeServer from './Initialization';
 import { Method, _success, _permission_denied, _error, _invalid } from './RouteManager';
 import { command_line, read_text_file } from './ActionUtilities';
+var findInFiles = require('find-in-files');
 
 let youtubeApiKey: string;
 
@@ -51,10 +50,22 @@ export interface NewMediaItem {
     };
 }
 
-(async () => {
-    YoutubeApi.readApiKey((apiKey: string) => youtubeApiKey = apiKey);
-    await GoogleApiServerUtils.LoadOAuthClient();
+const pngTypes = [".png", ".PNG"];
+const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
+const uploadDirectory = __dirname + "/public/files/";
+const pdfDirectory = uploadDirectory + "text";
+const solrURL = "http://localhost:8983/solr/#/dash";
 
+YoutubeApi.readApiKey((apiKey: string) => youtubeApiKey = apiKey);
+
+async function PreliminaryFunctions() {
+    await GoogleApiServerUtils.LoadOAuthClient();
+    await DashUploadUtils.createIfNotExists(pdfDirectory);
+    await Database.tryInitializeConnection();
+}
+
+(async () => {
+    await PreliminaryFunctions();
     await InitializeServer({
         listenAtPort: 1050,
         routeSetter: router => {
@@ -70,6 +81,26 @@ export interface NewMediaItem {
                         }
                         res.redirect("/");
                     });
+                }
+            });
+
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: "/textsearch",
+                onValidation: async (_user, req, res) => {
+                    let q = req.query.q;
+                    if (q === undefined) {
+                        res.send([]);
+                        return;
+                    }
+                    let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDirectory + "text", ".txt$");
+                    let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
+                    for (var result in results) {
+                        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+                        resObj.lines.push(results[result].line);
+                        resObj.numFound++;
+                    }
+                    res.send(resObj);
                 }
             });
 
@@ -101,36 +132,19 @@ export interface NewMediaItem {
                 }
             });
 
-            // SEARCH
-            const solrURL = "http://localhost:8983/solr/#/dash";
-
-            // GETTERS
-
-            DashServer.get("/textsearch", async (req, res) => {
-                let q = req.query.q;
-                if (q === undefined) {
-                    res.send([]);
-                    return;
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: "/search",
+                onValidation: async (_user, req, res) => {
+                    const solrQuery: any = {};
+                    ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+                    if (solrQuery.q === undefined) {
+                        res.send([]);
+                        return;
+                    }
+                    let results = await Search.Instance.search(solrQuery);
+                    res.send(results);
                 }
-                let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDirectory + "text", ".txt$");
-                let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
-                for (var result in results) {
-                    resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
-                    resObj.lines.push(results[result].line);
-                    resObj.numFound++;
-                }
-                res.send(resObj);
-            });
-
-            DashServer.get("/search", async (req, res) => {
-                const solrQuery: any = {};
-                ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
-                if (solrQuery.q === undefined) {
-                    res.send([]);
-                    return;
-                }
-                let results = await Search.Instance.search(solrQuery);
-                res.send(results);
             });
 
             function msToTime(duration: number) {
@@ -210,9 +224,14 @@ export interface NewMediaItem {
                 await Database.Instance.visit([id], fn);
                 return { id, docs, files };
             }
-            DashServer.get("/serializeDoc/:docId", async (req, res) => {
-                const { docs, files } = await getDocs(req.params.docId);
-                res.send({ docs, files: Array.from(files) });
+
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: new RouteSubscriber("/serializeDoc").add("docId"),
+                onValidation: async (_user, req, res) => {
+                    const { docs, files } = await getDocs(req.params.docId);
+                    res.send({ docs, files: Array.from(files) });
+                }
             });
 
             router.addSupervisedRoute({
@@ -554,12 +573,6 @@ export interface NewMediaItem {
                 }
             }
 
-            const pngTypes = [".png", ".PNG"];
-            const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-            const uploadDirectory = __dirname + "/public/files/";
-            const pdfDirectory = uploadDirectory + "text";
-            DashUploadUtils.createIfNotExists(pdfDirectory);
-
             interface ImageFileResponse {
                 name: string;
                 path: string;
@@ -656,27 +669,6 @@ export interface NewMediaItem {
                     });
                 }
             });
-
-            // AUTHENTICATION
-
-            // Sign Up
-            DashServer.get(RouteStore.signup, getSignup);
-            DashServer.post(RouteStore.signup, postSignup);
-
-            // Log In
-            DashServer.get(RouteStore.login, getLogin);
-            DashServer.post(RouteStore.login, postLogin);
-
-            // Log Out
-            DashServer.get(RouteStore.logout, getLogout);
-
-            // FORGOT PASSWORD EMAIL HANDLING
-            DashServer.get(RouteStore.forgot, getForgot);
-            DashServer.post(RouteStore.forgot, postForgot);
-
-            // RESET PASSWORD EMAIL HANDLING
-            DashServer.get(RouteStore.reset, getReset);
-            DashServer.post(RouteStore.reset, postReset);
 
             const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
             DashServer.use(RouteStore.corsProxy, (req, res) => {

@@ -5,12 +5,39 @@ import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
+import mongoose, { ConnectionStates } from 'mongoose';
 
 export namespace Database {
 
     const schema = 'Dash';
     const port = 27017;
     export const url = `mongodb://localhost:${port}/${schema}`;
+
+    export async function tryInitializeConnection() {
+        try {
+            const { connection } = mongoose;
+            process.on('SIGINT', () => {
+                connection.close(() => {
+                    console.log('Mongoose default connection disconnected through app termination');
+                    process.exit(0);
+                });
+            });
+            if (connection.readyState === ConnectionStates.disconnected) {
+                await new Promise<void>((resolve, reject) => {
+                    connection.on('error', reject);
+                    connection.on('connected', () => {
+                        console.log(`Mongoose established default connection at ${url}`);
+                        resolve();
+                    });
+                });
+            }
+        } catch (e) {
+            console.error(`Mongoose FAILED to establish default connection at ${url} with the following error:`);
+            console.error(e);
+            console.log('Since a valid database connection is required to use Dash, the server process will now exit.\nPlease try again later.');
+            process.exit(1);
+        }
+    }
 
     class Database {
         public static DocumentsCollection = 'documents';
