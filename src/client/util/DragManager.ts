@@ -211,6 +211,7 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
+        forceUserDropAction: dropActionType;
         moveDocument?: MoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
         applyAsTemplate?: boolean;
@@ -305,17 +306,6 @@ export namespace DragManager {
         [id: string]: any;
     }
 
-    export class EmbedDragData {
-        constructor(embeddableSourceDoc: Doc) {
-            this.embeddableSourceDoc = embeddableSourceDoc;
-            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
-        }
-        embeddableSourceDoc: Doc;
-        embeddedDoc?: Doc;
-        urlField?: URLField;
-        [id: string]: any;
-    }
-
     // for column dragging in schema view
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -326,10 +316,6 @@ export namespace DragManager {
     }
 
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
-        StartDrag([ele], dragData, downX, downY, options);
-    }
-
-    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
@@ -428,7 +414,7 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
-                dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
+                dragData.userDropAction = dragData.forceUserDropAction ? dragData.forceUserDropAction : e.ctrlKey || e.altKey ? "alias" : undefined;
             }
             if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();

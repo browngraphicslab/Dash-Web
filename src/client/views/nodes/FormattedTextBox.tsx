@@ -249,8 +249,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.EmbedDragData || (de.data instanceof DragManager.DocumentDragData && de.data.userDropAction)) {
-            let target = de.data instanceof DragManager.DocumentDragData ? de.data.droppedDocuments[0] : Doc.MakeAlias(de.data.embeddableSourceDoc);
+        if (de.data instanceof DragManager.DocumentDragData && de.data.userDropAction) {
+            let target = de.data.droppedDocuments[0];
             const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
             target.fitToBox = true;
             let node = schema.nodes.dashDoc.create({
