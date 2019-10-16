@@ -249,16 +249,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        // We're dealing with a link to a document
-        if (de.data instanceof DragManager.EmbedDragData) {
-            let target = de.data.embeddableSourceDoc;
-            // We're dealing with an internal document drop
-            const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
-            let alias = Doc.MakeAlias(target);
-            alias.fitToBox = true;
+        if (de.data instanceof DragManager.EmbedDragData || (de.data instanceof DragManager.DocumentDragData && de.data.userDropAction)) {
+            let target = de.data instanceof DragManager.DocumentDragData ? de.data.droppedDocuments[0] : Doc.MakeAlias(de.data.embeddableSourceDoc);
+            const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
+            target.fitToBox = true;
             let node = schema.nodes.dashDoc.create({
                 width: target[WidthSym](), height: target[HeightSym](),
-                title: "dashDoc", docid: alias[Id],
+                title: "dashDoc", docid: target[Id],
                 float: "right"
             });
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });

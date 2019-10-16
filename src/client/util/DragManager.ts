@@ -311,6 +311,7 @@ export namespace DragManager {
             this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
         }
         embeddableSourceDoc: Doc;
+        embeddedDoc?: Doc;
         urlField?: URLField;
         [id: string]: any;
     }

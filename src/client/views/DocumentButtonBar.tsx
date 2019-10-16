@@ -164,8 +164,12 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
 
             let dragDocView = this.props.views[0];
             let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
+            const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
+            dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.clientX - left, e.clientY - top);
 
             DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -199,17 +203,12 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         e.stopPropagation();
     }
 
-    considerEmbed = () => {
-        let thisDoc = this.props.views[0].props.Document;
-        let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
-        // if (!canEmbed) return (null);
-        return (
-            <div className="linkButtonWrapper">
-                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
-                </div>
+    embedDragger = () => {
+        return (<div className="linkButtonWrapper">
+            <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
             </div>
-        );
+        </div>);
     }
 
     private get targetDoc() {
@@ -353,7 +352,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
                 <TemplateMenu docs={this.props.views} templates={templates} />
             </div>
             {this.metadataMenu}
-            {this.considerEmbed()}
+            {this.embedDragger()}
             {this.considerGoogleDocsPush()}
             {this.considerGoogleDocsPull()}
             <ParentDocSelector Document={this.props.views[0].props.Document} addDocTab={(doc, data, where) => {

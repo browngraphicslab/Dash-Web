@@ -143,6 +143,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 e.stopPropagation();
                 return added;
             }
+            else if (de.data instanceof DragManager.EmbedDragData) {
+                return this.props.addDocument(de.data.embeddedDoc = Doc.MakeAlias(de.data.embeddableSourceDoc));
+            }
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 e.stopPropagation();
                 return this.props.addDocument(de.data.dropDocument);

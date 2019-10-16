@@ -153,6 +153,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     de.data.droppedDocuments.length === 1 && this.updateCluster(de.data.droppedDocuments[0]);
                 }
             }
+            else if (de.data instanceof DragManager.EmbedDragData && de.data.embeddedDoc) {
+                const d = de.data.embeddedDoc;
+                d.x = xp;
+                d.y = yp;
+                if (!NumCast(d.width)) {
+                    d.width = 300;
+                }
+                if (!NumCast(d.height)) {
+                    let nw = NumCast(d.nativeWidth);
+                    let nh = NumCast(d.nativeHeight);
+                    d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
+                }
+                this.bringToFront(d);
+                this.updateCluster(d);
+            }
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 if (de.data.dropDocument) {
                     let dragDoc = de.data.dropDocument;
