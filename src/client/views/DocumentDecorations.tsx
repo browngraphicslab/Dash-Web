@@ -202,6 +202,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
+        dragData.isSelectionMove = true;
         this.Interacting = true;
         this._hidden = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);

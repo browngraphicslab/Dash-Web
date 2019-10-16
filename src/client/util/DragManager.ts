@@ -212,6 +212,7 @@ export namespace DragManager {
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
+        isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
         applyAsTemplate?: boolean;
         [id: string]: any;
     }
@@ -240,7 +241,7 @@ export namespace DragManager {
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments =
-                    dragData.draggedDocuments.map(d => ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
+                    dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
                         dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
                             dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
                 );
