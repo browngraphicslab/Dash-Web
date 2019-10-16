@@ -35,20 +35,23 @@ export class CurrentUserUtils {
 
     // a default set of note types .. not being used yet...
     static setupNoteTypes(doc: Doc) {
-        let notes = [
+        return [
             Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplate: true }),
             Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplate: true }),
             Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true })
+            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true }),
+            Docs.Create.TextDocument({ title: "Todo", backgroundColor: "orange", isTemplate: true })
         ];
-        doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc) {
+        let notes = CurrentUserUtils.setupNoteTypes(doc);
+        doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
         doc.activePen = doc;
-        let docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, unchecked?: string, activePen?: Doc, backgroundColor?: string }[] = [
+        let docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, unchecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "collection", icon: "folder", ignoreClick: true, drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
+            { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
@@ -63,7 +66,7 @@ export class CurrentUserUtils {
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
             unchecked: data.unchecked ? ComputedField.MakeFunction(data.unchecked) : undefined, activePen: data.activePen,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"])
+            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory
         }));
     }
 
@@ -173,7 +176,6 @@ export class CurrentUserUtils {
     static updateUserDocument(doc: Doc) {
         new InkingControl();
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
-        (doc.noteTypes === undefined) && CurrentUserUtils.setupNoteTypes(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);

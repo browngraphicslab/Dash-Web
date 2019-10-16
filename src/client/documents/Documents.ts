@@ -96,6 +96,7 @@ export interface DocumentOptions {
     unchecked?: ScriptField; // returns whether a check box is unchecked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
     gridGap?: number; // gap between items in masonry view
