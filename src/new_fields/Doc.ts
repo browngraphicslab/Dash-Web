@@ -738,6 +738,6 @@ Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return Doc.Make
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
-Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2) });
+Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });

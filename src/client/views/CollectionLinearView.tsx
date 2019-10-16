@@ -25,6 +25,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     @observable public addMenuToggle = React.createRef<HTMLInputElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _heightDisposer?: IReactionDisposer;
+    private _spacing = 20;
 
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
@@ -69,8 +70,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         if (!ele.current) return Transform.Identity();
         let { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
         return new Transform(-translateX, -translateY, 1 / scale);
-    };
-    _spacing = 20;
+    }
     render() {
         let guid = Utils.GenerateGuid();
         return <div className="collectionLinearView-outer">
@@ -118,7 +118,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 zoomToScale={emptyFunction}
                                 getScale={returnOne}>
                             </DocumentView>
-                        </div>
+                        </div>;
                     })}
                     {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
 

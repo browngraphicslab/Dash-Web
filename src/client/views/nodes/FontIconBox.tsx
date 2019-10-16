@@ -6,6 +6,8 @@ import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
 import { StrCast } from '../../../new_fields/Types';
+import { Utils } from "../../../Utils";
+import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 const FontIconSchema = createSchema({
     icon: "string"
 });
@@ -15,10 +17,27 @@ const FontIconDocument = makeInterface(FontIconSchema);
 @observer
 export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(FontIconDocument) {
     public static LayoutString() { return FieldView.LayoutString(FontIconBox); }
-
+    @observable _foregroundColor = "white";
+    _ref: React.RefObject<HTMLButtonElement> = React.createRef();
+    _backgroundReaction: IReactionDisposer | undefined;
+    componentDidMount() {
+        this._backgroundReaction = reaction(() => this.props.Document.backgroundColor,
+            () => {
+                if (this._ref && this._ref.current) {
+                    let col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor!);
+                    let colsum = (col.r + col.g + col.b);
+                    if (colsum / col.a > 600 || col.a < 0.25) runInAction(() => this._foregroundColor = "black");
+                    else if (colsum / col.a <= 600 || col.a >= .25) runInAction(() => this._foregroundColor = "white");
+                }
+            }, { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        this._backgroundReaction && this._backgroundReaction();
+    }
     render() {
-        return <button className="fontIconBox-outerDiv" style={{ background: StrCast(this.props.Document.backgroundColor) }}>
-            <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} size="sm" opacity={this.props.Document.unchecked ? "0.5" : "1"} />
+        return <button className="fontIconBox-outerDiv" ref={this._ref}
+            style={{ background: StrCast(this.props.Document.backgroundColor), boxShadow: this.props.Document.unchecked ? undefined : `4px 4px 12px black` }}>
+            <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} color={this._foregroundColor} size="sm" />
         </button>;
     }
 }

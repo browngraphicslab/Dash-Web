@@ -25,7 +25,7 @@ export class InkingControl {
 
     switchTool = action((tool: InkTool): void => {
         this._selectedTool = tool;
-    })
+    });
     decimalToHexString(number: number) {
         if (number < 0) {
             number = 0xFFFFFFFF + number + 1;

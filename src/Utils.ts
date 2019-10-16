@@ -62,14 +62,14 @@ export namespace Utils {
     }
 
     export function fromRGBAstr(rgba: string) {
-        let rm = rgba.match(/rgb[a]?\(([0-9]+)/);
+        let rm = rgba.match(/rgb[a]?\(([ 0-9]+)/);
         let r = rm ? Number(rm[1]) : 0;
-        let gm = rgba.match(/rgb[a]?\([0-9]+,([0-9]+)/);
+        let gm = rgba.match(/rgb[a]?\([ 0-9]+,([ 0-9]+)/);
         let g = gm ? Number(gm[1]) : 0;
-        let bm = rgba.match(/rgb[a]?\([0-9]+,[0-9]+,([0-9]+)/);
+        let bm = rgba.match(/rgb[a]?\([ 0-9]+,[ 0-9]+,([ 0-9]+)/);
         let b = bm ? Number(bm[1]) : 0;
-        let am = rgba.match(/rgba?\([0-9]+,[0-9]+,[0-9]+,([0-9]+)/);
-        let a = am ? Number(am[1]) : 0;
+        let am = rgba.match(/rgba?\([ 0-9]+,[ 0-9]+,[ 0-9]+,([ .0-9]+)/);
+        let a = am ? Number(am[1]) : 1;
         return { r: r, g: g, b: b, a: a };
     }
 

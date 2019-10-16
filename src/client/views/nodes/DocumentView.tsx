@@ -676,7 +676,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
-        let highlighting = fullDegree && this.props.Document.type !== DocumentType.FONTICON && this.props.Document.viewType !== CollectionViewType.Linear
+        let highlighting = fullDegree && this.props.Document.type !== DocumentType.FONTICON && this.props.Document.viewType !== CollectionViewType.Linear;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
