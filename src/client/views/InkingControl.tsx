@@ -41,7 +41,9 @@ export class InkingControl {
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
-                let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :
+                    view.props.Document.layout instanceof Doc ? view.props.Document.layout :
+                        view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let sel = window.getSelection();
                 if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
                     targetDoc.color = this._selectedColor;
@@ -79,7 +81,10 @@ export class InkingControl {
                     ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
                     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
-                !ruleProvider && (targetDoc.backgroundColor = matchedColor);
+                if (!ruleProvider) {
+                    if (targetDoc)
+                        targetDoc.backgroundColor = matchedColor;
+                }
 
                 return {
                     target: targetDoc,

@@ -15,6 +15,7 @@ import { CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionSubView } from './collections/CollectionSubView';
 import { documentSchema, DocumentView } from './nodes/DocumentView';
 import { translate } from 'googleapis/build/src/apis/translate';
+import { DocumentType } from '../documents/DocumentTypes';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -50,8 +51,10 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         (de.data as DragManager.DocumentDragData).draggedDocuments.map((doc, i) => {
             let dbox = doc;
             if (!doc.onDragStart && !doc.onClick && this.props.Document.convertToButtons && doc.viewType !== CollectionViewType.Linear) {
-                dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: "bolt" });
-                dbox.dragFactory = doc;
+                let template = doc.layout instanceof Doc && doc.layout.isTemplate ? doc.layout : doc;
+                template.isTemplate = (template.type === DocumentType.TEXT || template.layout instanceof Doc) && de.data instanceof DragManager.DocumentDragData && !de.data.userDropAction;
+                dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: template.isTemplate ? "font" : "bolt" });
+                dbox.dragFactory = template;
                 dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
                 dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
             } else if (doc.viewType === CollectionViewType.Linear) {

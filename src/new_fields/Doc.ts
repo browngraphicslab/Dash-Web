@@ -563,7 +563,12 @@ export namespace Doc {
 
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
-        return !templateDoc ? undefined : ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), templateDoc.title + "(..." + _applyCount++ + ")");
+        if (templateDoc) {
+            let applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), templateDoc.title + "(..." + _applyCount++ + ")");
+            applied && (Doc.GetProto(applied).layout = applied.layout);
+            return applied;
+        }
+        return undefined;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, titleTarget: string | undefined = undefined) {
         if (!templateDoc) {
@@ -578,7 +583,7 @@ export namespace Doc {
         let layoutCustom = Doc.MakeTitled("layoutCustom");
         let layoutCustomLayout = Doc.MakeDelegate(templateDoc);
 
-        titleTarget && (target.title = titleTarget);
+        titleTarget && (Doc.GetProto(target).title = titleTarget);
         target.type = DocumentType.TEMPLATE;
         target.width = templateDoc.width;
         target.height = templateDoc.height;
@@ -734,7 +739,7 @@ export namespace Doc {
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
-Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return Doc.MakeCopy(doc, copyProto); });
+Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplate ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });

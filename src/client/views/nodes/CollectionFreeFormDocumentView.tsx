@@ -36,8 +36,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : this.Document.x || 0; }
     get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : this.Document.y || 0; }
-    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.props.Document[WidthSym](); }
-    get height() { return this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.props.Document[HeightSym](); }
+    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.layoutDoc[WidthSym](); }
+    get height() { return this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym](); }
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document, this.props.DataDoc) ? this.props.dataProvider(this.props.Document, this.props.DataDoc) : undefined; }
     @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }

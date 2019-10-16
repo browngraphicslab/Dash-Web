@@ -72,6 +72,8 @@ export class DocumentManager {
                         toReturn = view;
                     }
                 });
+            } else {
+                break;
             }
         }
 

@@ -211,7 +211,7 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
-        forceUserDropAction: dropActionType;
+        embedDoc?: boolean;
         moveDocument?: MoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
         applyAsTemplate?: boolean;
@@ -414,7 +414,7 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
-                dragData.userDropAction = dragData.forceUserDropAction ? dragData.forceUserDropAction : e.ctrlKey || e.altKey ? "alias" : undefined;
+                dragData.userDropAction = e.ctrlKey ? "alias" : undefined;
             }
             if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();

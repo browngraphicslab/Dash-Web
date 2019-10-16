@@ -30,7 +30,6 @@ import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { documentSchema, DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
-import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
 import { computePivotLayout, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
@@ -131,21 +130,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let z = NumCast(de.data.droppedDocuments[0].z);
+                    let firstLayoutDoc = de.data.droppedDocuments[0].layout instanceof Doc ? de.data.droppedDocuments[0].layout : de.data.droppedDocuments[0];
+                    let z = NumCast(firstLayoutDoc.z);
                     let x = (z ? xpo : xp) - de.data.offset[0];
                     let y = (z ? ypo : yp) - de.data.offset[1];
-                    let dropX = NumCast(de.data.droppedDocuments[0].x);
-                    let dropY = NumCast(de.data.droppedDocuments[0].y);
+                    let dropX = NumCast(firstLayoutDoc.x);
+                    let dropY = NumCast(firstLayoutDoc.y);
                     de.data.droppedDocuments.forEach(action((d: Doc) => {
-                        d.x = x + NumCast(d.x) - dropX;
-                        d.y = y + NumCast(d.y) - dropY;
-                        if (!NumCast(d.width)) {
-                            d.width = 300;
+                        let layoutDoc = d.layout instanceof Doc ? d.layout : d;
+                        layoutDoc.x = x + NumCast(layoutDoc.x) - dropX;
+                        layoutDoc.y = y + NumCast(layoutDoc.y) - dropY;
+                        if (!NumCast(layoutDoc.width)) {
+                            layoutDoc.width = 300;
                         }
                         if (!NumCast(d.height)) {
                             let nw = NumCast(d.nativeWidth);
                             let nh = NumCast(d.nativeHeight);
-                            d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
+                            layoutDoc.height = nw && nh ? nh / nw * NumCast(layoutDoc.width) : 300;
                         }
                         this.bringToFront(d);
                     }));
@@ -156,14 +157,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 if (de.data.dropDocument) {
                     let dragDoc = de.data.dropDocument;
+                    let layoutDoc = dragDoc.layout instanceof Doc ? dragDoc.layout : dragDoc;
                     let x = xp - de.data.offset[0];
                     let y = yp - de.data.offset[1];
-                    let dropX = NumCast(de.data.dropDocument.x);
-                    let dropY = NumCast(de.data.dropDocument.y);
-                    dragDoc.x = x + NumCast(dragDoc.x) - dropX;
-                    dragDoc.y = y + NumCast(dragDoc.y) - dropY;
-                    de.data.targetContext = this.props.Document;
-                    dragDoc.targetContext = this.props.Document;
+                    let dropX = NumCast(layoutDoc.x);
+                    let dropY = NumCast(layoutDoc.y);
+                    layoutDoc.x = x + NumCast(layoutDoc.x) - dropX;
+                    layoutDoc.y = y + NumCast(layoutDoc.y) - dropY;
+                    de.data.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
                     this.bringToFront(dragDoc);
                 }
             }
@@ -173,11 +174,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     pickCluster(probe: number[]) {
         return this.childLayoutPairs.map(pair => pair.layout).reduce((cluster, cd) => {
-            let cx = NumCast(cd.x) - this._clusterDistance;
-            let cy = NumCast(cd.y) - this._clusterDistance;
-            let cw = NumCast(cd.width) + 2 * this._clusterDistance;
-            let ch = NumCast(cd.height) + 2 * this._clusterDistance;
-            return !cd.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
+            let layoutDoc = cd.layout instanceof Doc ? cd.layout : cd;
+            let cx = NumCast(layoutDoc.x) - this._clusterDistance;
+            let cy = NumCast(layoutDoc.y) - this._clusterDistance;
+            let cw = NumCast(layoutDoc.width) + 2 * this._clusterDistance;
+            let ch = NumCast(layoutDoc.height) + 2 * this._clusterDistance;
+            return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
                 NumCast(cd.cluster) : cluster;
         }, -1);
     }
@@ -185,14 +187,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let cluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
         if (cluster !== -1) {
             let eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
-
-            // hacky way to get a list of DocumentViews in the current view given a list of Documents in the current view
-            let prevSelected = SelectionManager.SelectedDocuments();
-            this.selectDocuments(eles);
-            let clusterDocs = SelectionManager.SelectedDocuments();
-            SelectionManager.DeselectAll();
-            prevSelected.map(dv => SelectionManager.SelectDoc(dv, true));
-
+            let clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
             let de = new DragManager.DocumentDragData(eles);
             de.moveDocument = this.props.moveDocument;
             const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
@@ -223,8 +218,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
             let preferredInd = NumCast(doc.cluster);
             doc.cluster = -1;
+            let layoutDoc = doc.layout instanceof Doc ? doc.layout : doc;
             this._clusterSets.map((set, i) => set.map(member => {
-                if (doc.cluster === -1 && Doc.IndexOf(member, childLayouts) !== -1 && Doc.overlapping(doc, member, this._clusterDistance)) {
+                let memberLayout = member.layout instanceof Doc ? member.layout : member;
+                if (doc.cluster === -1 && Doc.IndexOf(member, childLayouts) !== -1 && Doc.overlapping(layoutDoc, memberLayout, this._clusterDistance)) {
                     doc.cluster = i;
                 }
             }));
@@ -296,10 +293,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             let x = this.Document.panX || 0;
             let y = this.Document.panY || 0;
-            let docs = this.childLayoutPairs.map(pair => pair.layout);
+            let docs = this.childLayoutPairs.map(pair => pair.layout.layout instanceof Doc ? pair.layout.layout : pair.layout);
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
-                PDFMenu.Instance.fadeOut(true);
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
                 let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;
@@ -549,7 +545,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
-            const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
+            let finalLayout = pair.layout.layout instanceof Doc ? pair.layout.layout : pair.layout;
+            const pos = this.getCalculatedPositions({ doc: finalLayout, index: i, collection: this.Document, docs: layoutDocs, state });
             state = pos.state === undefined ? state : pos.state;
             layoutPoolData.set(pair, pos);
         });
@@ -592,7 +589,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let i = 0;
             const width = Math.max(...docs.map(doc => NumCast(doc.width)));
             const height = Math.max(...docs.map(doc => NumCast(doc.height)));
-            for (const doc of docs) {
+            for (const doc of docs.map(d => d.layout instanceof Doc ? d.layout : d)) {
                 doc.x = x;
                 doc.y = y;
                 x += width + 20;

@@ -110,9 +110,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     componentDidMount() {
-        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
         this._heightDisposer = reaction(() => {
-            if (BoolCast(this.props.Document.autoHeight)) {
+            if (this.props.Document.autoHeight) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
                 if (this.isStackingView) {
                     return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
@@ -188,15 +187,17 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
+        let layoutDoc = d.layout instanceof Doc ? d.layout : d;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!d.ignoreAspect && !d.fitWidth && nw && nh) {
+        if (!layoutDoc.ignoreAspect && !layoutDoc.fitWidth && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
-            if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
+            if (!(d.nativeWidth && !layoutDoc.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(layoutDoc[WidthSym](), wid);
             return wid * aspect;
         }
-        return d.fitWidth ? !d.nativeHeight ? this.props.PanelHeight() - 2 * this.yMargin : Math.min(wid * NumCast(d.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : d[HeightSym]();
+        return layoutDoc.fitWidth ? !d.nativeHeight ? this.props.PanelHeight() - 2 * this.yMargin :
+            Math.min(wid * NumCast(layoutDoc.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : layoutDoc[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

@@ -281,7 +281,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let bounds = this.Bounds;
             let selected = this.marqueeSelect(false);
             if (e.key === "c") {
-                selected.map(d => {
+                selected.map(d => d.layout instanceof Doc ? d.layout : d).map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
@@ -325,7 +325,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.marqueeInkDelete(inkData);
 
             if (e.key === "s" || e.key === "S") {
-                selected.map(d => {
+                selected.map(d => d.layout instanceof Doc ? d.layout : d).map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
@@ -394,20 +394,22 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Doc[] = [];
         this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
-            var x = NumCast(doc.x);
-            var y = NumCast(doc.y);
-            var w = NumCast(doc.width);
-            var h = NumCast(doc.height);
+            let layoutDoc = doc.layout instanceof Doc ? doc.layout : doc;
+            var x = NumCast(layoutDoc.x);
+            var y = NumCast(layoutDoc.y);
+            var w = NumCast(layoutDoc.width);
+            var h = NumCast(layoutDoc.height);
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
         });
         if (!selection.length && selectBackgrounds) {
             this.props.activeDocuments().filter(doc => doc.z === undefined).map(doc => {
-                var x = NumCast(doc.x);
-                var y = NumCast(doc.y);
-                var w = NumCast(doc.width);
-                var h = NumCast(doc.height);
+                let layoutDoc = doc.layout instanceof Doc ? doc.layout : doc;
+                var x = NumCast(layoutDoc.x);
+                var y = NumCast(layoutDoc.y);
+                var w = NumCast(layoutDoc.width);
+                var h = NumCast(layoutDoc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                     selection.push(doc);
                 }
@@ -420,10 +422,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let size = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
             let otherBounds = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
             this.props.activeDocuments().filter(doc => doc.z !== undefined).map(doc => {
-                var x = NumCast(doc.x);
-                var y = NumCast(doc.y);
-                var w = NumCast(doc.width);
-                var h = NumCast(doc.height);
+                let layoutDoc = doc.layout instanceof Doc ? doc.layout : doc;
+                var x = NumCast(layoutDoc.x);
+                var y = NumCast(layoutDoc.y);
+                var w = NumCast(layoutDoc.width);
+                var h = NumCast(layoutDoc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
                     selection.push(doc);
                 }

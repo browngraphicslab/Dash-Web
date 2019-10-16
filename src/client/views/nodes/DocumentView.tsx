@@ -224,7 +224,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             maxLocation = this.Document.maximizeLocation = (!ctrlKey ? !altKey ? maxLocation : (maxLocation !== "inPlace" ? "inPlace" : "onRight") : (maxLocation !== "inPlace" ? "inPlace" : "inTab"));
             if (maxLocation === "inPlace") {
                 expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc));
-                let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
+                let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.layoutDoc.width) / 2, NumCast(this.layoutDoc.height) / 2);
                 DocumentManager.Instance.animateBetweenPoint(scrpt, expandedDocs);
             } else {
                 expandedDocs.forEach(maxDoc => (!this.props.addDocTab(maxDoc, undefined, "close") && this.props.addDocTab(maxDoc, undefined, maxLocation)));
@@ -392,7 +392,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!anchors.find(anchor2 => anchor2 && anchor2.title === this.Document.title + ".portal" ? true : false)) {
             let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
-                let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.Document.width || 0) + 10, height: this.Document.height || 0, title: portalID });
+                let portal = existingPortal instanceof Doc ? existingPortal : Docs.Create.FreeformDocument([], { width: (this.layoutDoc.width || 0) + 10, height: this.layoutDoc.height || 0, title: portalID });
                 DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, portalID, "portal link");
                 this.Document.isButton = true;
             });
@@ -491,7 +491,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc!), icon: "concierge-bell" });
         }
         layoutItems.push({ description: `${this.Document.chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document.chromeStatus = (this.Document.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        layoutItems.push({ description: `${this.Document.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.Document.autoHeight = !this.Document.autoHeight, icon: "plus" });
+        layoutItems.push({ description: `${this.Document.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
         layoutItems.push({ description: this.Document.ignoreAspect || !this.Document.nativeWidth || !this.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         layoutItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });

@@ -127,7 +127,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let view = this._editorView!;
         if (view.state.selection.from === view.state.selection.to) return false;
         if (view.state.selection.to - view.state.selection.from > view.state.doc.nodeSize - 3) {
-            this.props.Document.color = color;
+            this.layoutDoc.color = color;
         }
         let colorMark = view.state.schema.mark(view.state.schema.marks.pFontColor, { color: color });
         view.dispatch(view.state.tr.addMark(view.state.selection.from, view.state.selection.to, colorMark));
@@ -143,7 +143,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+
+    // the document containing the view layout information - will be the Document itself unless the Document has
+    // a layout field.  In that case, all layout information comes from there unless overriden by Document
+    @computed get layoutDoc(): Doc {
+        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+    }
 
     linkOnDeselect: Map<string, string> = new Map();
 
@@ -249,39 +255,41 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData && de.data.userDropAction) {
-            let target = de.data.droppedDocuments[0];
-            const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
-            target.fitToBox = true;
-            let node = schema.nodes.dashDoc.create({
-                width: target[WidthSym](), height: target[HeightSym](),
-                title: "dashDoc", docid: target[Id],
-                float: "right"
-            });
-            let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
-            link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, node));
-            this.tryUpdateHeight();
-            e.stopPropagation();
-        } else if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
-                if (de.mods === "AltKey") {
-                    if (draggedDoc.data instanceof RichTextField) {
-                        Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
-                        e.stopPropagation();
-                    }
-                } else if (de.mods === "CtrlKey") {
-                    draggedDoc.isTemplate = true;
-                    if (typeof (draggedDoc.layout) === "string") {
-                        let layoutDelegateToOverrideFieldKey = Doc.MakeDelegate(draggedDoc);
-                        layoutDelegateToOverrideFieldKey.layout = StrCast(layoutDelegateToOverrideFieldKey.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
-                        this.props.Document.layout = layoutDelegateToOverrideFieldKey;
-                    } else {
-                        this.props.Document.layout = draggedDoc.layout instanceof Doc ? draggedDoc.layout : draggedDoc;
-                    }
+            // replace text contents whend dragging with Alt
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "AltKey") {
+                if (draggedDoc.data instanceof RichTextField) {
+                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                    e.stopPropagation();
                 }
+                // apply as template when dragging with Meta
+            } else if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "MetaKey") {
+                draggedDoc.isTemplate = true;
+                let newLayout = draggedDoc.layout instanceof Doc ? draggedDoc.layout : draggedDoc;
+                if (typeof (draggedDoc.layout) === "string") {
+                    newLayout = Doc.MakeDelegate(draggedDoc);
+                    newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
+                }
+                this.props.Document.layout = newLayout;
                 e.stopPropagation();
-            }
+                // embed document when dragging with a userDropAction or an embedDoc flag set
+            } else if (de.data.userDropAction || de.data.embedDoc) {
+                let target = de.data.droppedDocuments[0];
+                const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
+                if (link) {
+                    target.fitToBox = true;
+                    let node = schema.nodes.dashDoc.create({
+                        width: target[WidthSym](), height: target[HeightSym](),
+                        title: "dashDoc", docid: target[Id],
+                        float: "right"
+                    });
+                    let view = this._editorView!;
+                    view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
+                    this.tryUpdateHeight();
+                    e.stopPropagation();
+                }
+            } // otherwise, fall through to outer collection to handle drop
         }
     }
 
@@ -486,7 +494,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         );
 
         this._heightReactionDisposer = reaction(
-            () => [this.props.Document[WidthSym](), this.props.Document.autoHeight],
+            () => [this.layoutDoc[WidthSym](), this.layoutDoc.autoHeight],
             () => this.tryUpdateHeight()
         );
 
@@ -505,7 +513,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
 
         this._searchReactionDisposer = reaction(() => {
-            return StrCast(this.props.Document.search_string);
+            return StrCast(this.layoutDoc.search_string);
         }, searchString => {
             if (searchString) {
                 this.highlightSearchTerms([searchString]);
@@ -518,7 +526,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         this._rulesReactionDisposer = reaction(() => {
             let ruleProvider = this.props.ruleProvider;
-            let heading = NumCast(this.props.Document.heading);
+            let heading = NumCast(this.layoutDoc.heading);
             if (ruleProvider instanceof Doc) {
                 return {
                     align: StrCast(ruleProvider["ruleAlign_" + heading], ""),
@@ -530,7 +538,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         },
             action((rules: any) => {
                 this._fontFamily = rules ? rules.font : "Arial";
-                this._fontSize = rules ? rules.size : NumCast(this.props.Document.fontSize, 13);
+                this._fontSize = rules ? rules.size : NumCast(this.layoutDoc.fontSize, 13);
                 rules && setTimeout(() => {
                     const view = this._editorView!;
                     if (this._proseRef) {
@@ -547,7 +555,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }), { fireImmediately: true }
         );
         this._scrollToRegionReactionDisposer = reaction(
-            () => StrCast(this.props.Document.scrollToLinkID),
+            () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
                 let findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
@@ -585,7 +593,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
                         setTimeout(() => this.unhighlightSearchTerms(), 2000);
                     }
-                    this.props.Document.scrollToLinkID = undefined;
+                    this.layoutDoc.scrollToLinkID = undefined;
                 }
 
             },
@@ -885,7 +893,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         });
                     }
                 } else {
-                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
+                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.layoutDoc.x, 0) + NumCast(this.layoutDoc.width, 0), y: NumCast(this.layoutDoc.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
                 }
                 e.stopPropagation();
@@ -983,19 +991,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @action
     tryUpdateHeight() {
         let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && scrollHeight !== 0 &&
+        if (!this.layoutDoc.isAnimating && this.layoutDoc.autoHeight && scrollHeight !== 0 &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
-            let dh = NumCast(this.props.Document.height, 0);
-            this.props.Document.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
+            let dh = NumCast(this.layoutDoc.height, 0);
+            this.layoutDoc.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;
         }
     }
 
     render() {
         let style = "hidden";
-        let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
+        let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
+        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         if (this.props.isSelected()) {
@@ -1004,8 +1012,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
-                    overflowY: this.props.Document.autoHeight ? "hidden" : "auto",
-                    height: this.props.Document.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
+                    overflowY: "auto",
+                    maxHeight: "100%",
+                    height: this.layoutDoc.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
