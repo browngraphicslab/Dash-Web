@@ -16,7 +16,6 @@ import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeF
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from "../DocComponent";
-import { InkingControl } from "../InkingControl";
 import { PDFViewer } from "../pdf/PDFViewer";
 import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -65,6 +64,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 }
             }, { fireImmediately: true });
     }
+
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
         this.Document.nativeWidth = nw * 96 / 72;
@@ -133,12 +133,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
-        return !this.props.active() ? (null) :
+        return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
-                    <input className="pdfBox-searchBar" placeholder="Search" autoFocus={true} ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
+                    <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
                         e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey);
                     }} />
                     <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>

@@ -56,7 +56,7 @@ export class CurrentUserUtils {
             { title: "import folder", icon: "cloud-upload-alt", drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
             { title: "pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", unchecked: `!sameDocs(this.activePen.pen,  this)`, activePen: doc },
             { title: "highlighter", icon: "pen", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
+            { title: "eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "none", icon: "pause", click: 'deactivateInk();this.activePen.pen = this;', unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({

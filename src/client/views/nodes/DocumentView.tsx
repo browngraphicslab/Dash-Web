@@ -176,7 +176,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: {
                     dragComplete: action((emptyFunction))
                 },
-                hideSource: !dropAction && !this.Document.onDragStart && !this.Document.onClick
+                hideSource: !dropAction && !this.Document.onDragStart
             });
         }
     }
