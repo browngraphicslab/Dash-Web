@@ -306,7 +306,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "dropAction", "forceActive"];
 
         /**
          * This function receives the relevant document prototype and uses

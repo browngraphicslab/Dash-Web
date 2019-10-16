@@ -63,7 +63,7 @@ export class CurrentUserUtils {
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
             unchecked: data.unchecked ? ComputedField.MakeFunction(data.unchecked) : undefined, activePen: data.activePen,
-            backgroundColor: data.backgroundColor
+            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"])
         }));
     }
 
@@ -75,10 +75,8 @@ export class CurrentUserUtils {
         });
         // setup a color picker
         const color = Docs.Create.ColorDocument({
-            title: "color picker", width: 400, removeDropProperties: new List<string>(["dropAction", "forceActive"])
+            title: "color picker", width: 400, dropAction: "alias", forceActive: true, removeDropProperties: new List<string>(["dropAction", "forceActive"])
         });
-        color.dropAction = "alias";  // these must be set on the view document so they can't be part of the creator above.
-        color.forceActive = true;
 
         return Docs.Create.ButtonDocument({
             width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create", targetContainer: sidebarContainer,
@@ -152,7 +150,7 @@ export class CurrentUserUtils {
 
         doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc], {
             title: "expanding buttons", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0",
-            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, convertToButtons: true
+            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, convertToButtons: true,
         });
     }
 
