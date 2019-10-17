@@ -8,7 +8,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { DragLinksAsDocuments } from "../../util/DragManager";
 import { DocComponent } from "../DocComponent";
 import { documentSchema } from "./DocumentView";
-import "./DocumentView.scss";
+import "./DocuLinkBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 
@@ -40,7 +40,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
             let bounds = cdiv.getBoundingClientRect();
             let pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
             let separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
-            let dragdist = Math.sqrt((pt[0] - this._downx) * (pt[0] - this._downx) + (pt[1] - this._downy) * (pt[1] - this._downy))
+            let dragdist = Math.sqrt((pt[0] - this._downx) * (pt[0] - this._downx) + (pt[1] - this._downy) * (pt[1] - this._downy));
             if (separation > 100) {
                 DragLinksAsDocuments(this._ref.current!, pt[0], pt[1], this.props.ContainingCollectionDoc as Doc, this.props.Document); // Containging collection is the document, not a collection... hack.
                 document.removeEventListener("pointermove", this.onPointerMove);
@@ -50,7 +50,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
                 this.props.Document[this.props.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
             }
         }
-    })
+    });
     onPointerUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -68,10 +68,10 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
         let c = StrCast(this.props.Document.backgroundColor, "lightblue");
-        return <div onPointerDown={this.onPointerDown} onClick={this.onClick} title={StrCast((this.props.Document[this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1"]! as Doc).title)} ref={this._ref} style={{
-            cursor: "default", position: "absolute", background: c, width: "25px", height: "25px", borderRadius: "20px", textAlign: "center", left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
-            pointerEvents: "all",
-            transform: `scale(${1 / this.props.ContentScaling()})`,
-        }} />
+        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={StrCast((this.props.Document[this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1"]! as Doc).title)}
+            ref={this._ref} style={{
+                background: c, width: "25px", left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
+                transform: `scale(${1 / this.props.ContentScaling()})`
+            }} />;
     }
 }

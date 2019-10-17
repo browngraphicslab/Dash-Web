@@ -1,10 +1,8 @@
-import { computed, IReactionDisposer, reaction } from "mobx";
+import { computed, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { List } from "../../../../new_fields/List";
-import { listSpec } from "../../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, FieldValue } from "../../../../new_fields/Types";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import { CollectionViewProps } from "../CollectionSubView";

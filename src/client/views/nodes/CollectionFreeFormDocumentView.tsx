@@ -34,8 +34,8 @@ export const PositionDocument = makeInterface(documentSchema, positionSchema);
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     _disposer: IReactionDisposer | undefined = undefined;
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
-    get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : this.Document.x || 0; }
-    get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : this.Document.y || 0; }
+    get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : NumCast(this.layoutDoc.x); }
+    get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : NumCast(this.layoutDoc.y); }
     get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.layoutDoc[WidthSym](); }
     get height() { return this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym](); }
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document, this.props.DataDoc) ? this.props.dataProvider(this.props.Document, this.props.DataDoc) : undefined; }
@@ -64,7 +64,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this._disposer = reaction(() => [this.props.Document.animateToPos, this.props.Document.isAnimating],
             () => {
                 const target = this.props.Document.animateToPos ? Array.from(Cast(this.props.Document.animateToPos, listSpec("number"))!) : undefined;
-                this._animPos = !target ? undefined : target[2] ? [this.Document.x || 0, this.Document.y || 0] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]);
+                this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]);
             }, { fireImmediately: true });
     }
 

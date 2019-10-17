@@ -408,8 +408,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 this.props.Document.scrollY = NumCast(doc.y) - offset;
             }
         } else {
-            const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
-            const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+            let layoutdoc = doc.layout instanceof Doc ? doc.layout : doc;
+            const newPanX = NumCast(layoutdoc.x) + NumCast(layoutdoc.width) / 2;
+            const newPanY = NumCast(layoutdoc.y) + NumCast(layoutdoc.height) / 2;
             const newState = HistoryUtil.getState();
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
@@ -420,7 +421,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             this.Document.panTransformType = "Ease";
             Doc.BrushDoc(this.props.Document);
             this.props.focus(this.props.Document);
-            willZoom && this.setScaleToZoom(doc, scale);
+            willZoom && this.setScaleToZoom(layoutdoc, scale);
 
             afterFocus && setTimeout(() => {
                 if (afterFocus && afterFocus()) {

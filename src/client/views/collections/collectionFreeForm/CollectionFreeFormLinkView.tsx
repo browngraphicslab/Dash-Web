@@ -37,8 +37,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
     render() {
         // let l = this.props.LinkDocs;
-        let a = this.props.A;
-        let b = this.props.B;
+        let a = this.props.A.layout instanceof Doc ? this.props.A.layout : this.props.A;
+        let b = this.props.B.layout instanceof Doc ? this.props.B.layout : this.props.B;
         let x1 = NumCast(a.x) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.width) / 2);
         let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.height) / 2);
         let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.width) / 2);
