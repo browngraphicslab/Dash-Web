@@ -87,12 +87,12 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     }
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc, singleLink?: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
     if (srcTarg) {
-        let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
+        let linkDocs = singleLink ? [singleLink] : LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
             draggedDocs = linkDocs.map(link => {
                 let opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);

@@ -81,18 +81,18 @@ export class InkingControl {
                     ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
                     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
-                (!ruleProvider && targetDoc) && (targetDoc.backgroundColor = matchedColor);
+                (!ruleProvider && targetDoc) && (view.setBackround(matchedColor));
 
                 return {
                     target: targetDoc,
                     previous: oldColor
                 };
             });
-            let captured = this._selectedColor;
-            UndoManager.AddEvent({
-                undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
-                redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
-            });
+            //let captured = this._selectedColor;
+            // UndoManager.AddEvent({
+            //     undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
+            //     redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
+            // });
         } else {
             CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
         }

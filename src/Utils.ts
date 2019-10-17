@@ -149,6 +149,29 @@ export namespace Utils {
     }
 
 
+    export function clamp(n: number, lower: number, upper: number) {
+        return Math.max(lower, Math.min(upper, n));
+    }
+
+    export function getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
+        var r = l + w,
+            b = t + h;
+
+        var x = clamp(x, l, r),
+            y = clamp(y, t, b);
+
+        var dl = Math.abs(x - l),
+            dr = Math.abs(x - r),
+            dt = Math.abs(y - t),
+            db = Math.abs(y - b);
+
+        var m = Math.min(dl, dr, dt, db);
+
+        return (m === dt) ? [x, t] :
+            (m === db) ? [x, b] :
+                (m === dl) ? [l, y] : [r, y];
+    }
+
     export function GetClipboardText(): string {
         var textArea = document.createElement("textarea");
         document.body.appendChild(textArea);

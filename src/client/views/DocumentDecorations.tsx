@@ -167,7 +167,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get Bounds(): { x: number, y: number, b: number, r: number } {
         let x = this._forceUpdate;
         this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
-            if (documentView.props.renderDepth === 0 ||
+            if (documentView._selectedLink !== -1 ||
+                documentView.props.renderDepth === 0 ||
                 Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }

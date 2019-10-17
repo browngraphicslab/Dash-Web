@@ -47,7 +47,6 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
     private _aliasButton = React.createRef<HTMLDivElement>();
     private _tooltipoff = React.createRef<HTMLDivElement>();
     private _textDoc?: Doc;
-    private _linkDrag?: UndoManager.Batch;
     public static Instance: DocumentButtonBar;
 
     constructor(props: { views: DocumentView[] }) {
@@ -139,15 +138,10 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
             let selDoc = this.props.views[0];
             let container = selDoc.props.ContainingCollectionDoc ? selDoc.props.ContainingCollectionDoc.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
-            this._linkDrag = UndoManager.StartBatch("Drag Link");
+            let _linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: () => {
-                        if (this._linkDrag) {
-                            this._linkDrag.end();
-                            this._linkDrag = undefined;
-                        }
-                    },
+                    dragComplete: () => _linkDrag && _linkDrag.end()
                 },
                 hideSource: false
             });
