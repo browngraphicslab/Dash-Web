@@ -553,7 +553,6 @@ async function PreliminaryFunctions() {
                 method: Method.GET,
                 subscription: RouteStore.getUserDocumentId,
                 onValidation: ({ res, user }) => res.send(user.userDocumentId),
-                onUnauthenticated: ({ res }) => _permission_denied(res)
             });
 
             router.addSupervisedRoute({
@@ -849,9 +848,6 @@ async function PreliminaryFunctions() {
                 method: Method.GET,
                 subscription: RouteStore.readGoogleAccessToken,
                 onValidation: async ({ user, res }) => {
-                    if (!user) {
-                        return res.send(undefined);
-                    }
                     const userId = user.id;
                     const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
                     const information = { credentialsPath, userId };
@@ -866,9 +862,6 @@ async function PreliminaryFunctions() {
                 method: Method.POST,
                 subscription: RouteStore.writeGoogleAccessToken,
                 onValidation: async ({ user, req, res }) => {
-                    if (!user) {
-                        return res.send(undefined);
-                    }
                     const userId = user.id;
                     const information = { credentialsPath, userId };
                     res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
@@ -884,9 +877,6 @@ async function PreliminaryFunctions() {
                 subscription: RouteStore.googlePhotosMediaUpload,
                 onValidation: async ({ user, req, res }) => {
                     const { media } = req.body;
-                    if (!user) {
-                        return res.send(undefined);
-                    }
                     const userId = user.id;
                     if (!userId) {
                         return _error(res, userIdError);
