@@ -55,10 +55,9 @@ export default class RouteManager {
         let supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
             const core = { req, res, isRelease };
-            const tryExecute = async <T>(target: (args: any) => T | Promise<T>, args: any) => {
+            const tryExecute = async (target: (args: any) => any | Promise<any>, args: any) => {
                 try {
-                    const result = await target(args);
-                    return result;
+                    await target(args);
                 } catch (e) {
                     if (onError) {
                         onError({ ...core, error: e });
@@ -71,16 +70,18 @@ export default class RouteManager {
                 await tryExecute(onValidation, { ...core, user: user as any });
             } else {
                 req.session!.target = target;
-                if (!onUnauthenticated) {
-                    res.redirect(RouteStore.login);
-                } else {
+                if (onUnauthenticated) {
                     await tryExecute(onUnauthenticated, core);
+                } else {
+                    res.redirect(RouteStore.login);
                 }
             }
-            const warning = `request to ${target} fell through - this is a fallback response`;
-            if (!res.headersSent) {
-                res.send({ warning });
-            }
+            setTimeout(() => {
+                if (!res.headersSent) {
+                    const warning = `request to ${target} fell through - this is a fallback response`;
+                    res.send({ warning });
+                }
+            }, 1000);
         };
         const subscribe = (subscriber: RouteSubscriber | string) => {
             let route: string;
