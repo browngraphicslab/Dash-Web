@@ -267,6 +267,7 @@ export namespace CognitiveServices {
             export async function vectorize(keyterms: any, dataDoc: Doc, mainDoc: boolean = false) {
                 console.log("vectorizing...");
                 //keyterms = ["father", "king"];
+
                 let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
                 await requestPromise.post(args).then(async (wordvecs) => {
                     if (wordvecs) {
