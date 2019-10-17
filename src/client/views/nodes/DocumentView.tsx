@@ -9,7 +9,7 @@ import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schem
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnTrue, Utils, returnTransparent } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ClientUtils } from '../../util/ClientUtils';
@@ -40,7 +40,6 @@ import SharingManager from '../../util/SharingManager';
 import { Scripting } from '../../util/Scripting';
 import { DictationOverlay } from '../DictationOverlay';
 import { CollectionViewType } from '../collections/CollectionBaseView';
-import { DocuLinkView } from './DocuLinkView';
 
 library.add(fa.faEdit);
 library.add(fa.faTrash);
@@ -93,6 +92,7 @@ export interface DocumentViewProps {
     getScale: () => number;
     animateBetweenIcon?: (maximize: boolean, target: number[]) => void;
     ChromeHeight?: () => number;
+    layoutKey?: string;
 }
 
 export const documentSchema = createSchema({
@@ -242,7 +242,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.nativeEvent.cancelBubble && e.button === 0) return;
-        runInAction(() => this._selectedLink = -1);
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitTemplateDrag = false;
@@ -625,27 +624,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             isSelected={this.isSelected}
             select={this.select}
             onClick={this.onClickHandler}
-            layoutKey="layout"
+            layoutKey={this.props.layoutKey || "layout"}
             DataDoc={this.props.DataDoc} />);
     }
-    linkEndpoint = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? "anchor1" : "anchor2";
-    linkOtherEndpoint = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? "anchor2" : "anchor1";
-    public setBackround(color: string) {
-        let selLink = this._selectedLink !== -1 && DocListCast(this.Document.links)[this._selectedLink];
-        if (selLink) {
-            let both = selLink["anchor1_background"] === selLink["anchor2_background"];
-            selLink[this.linkEndpoint(selLink) + "_background"] = color;
-            both && (selLink[this.linkOtherEndpoint(selLink) + "_background"] = color);
-        } else {
-            this.Document.backgroundColor = color;
-        }
-    }
-    @observable _selectedLink = -1;
-    selectLink = action((which: number) => {
-        SelectionManager.SelectDoc(this, false);
-        this._selectedLink = which;
-    })
-    selectedLink = () => this._selectedLink;
+    linkEndpoint = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2";
 
     render() {
         if (!this.props.Document) return (null);
@@ -717,10 +699,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
-                {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
-                    <DocuLinkView Document={this.props.Document} blacklist={this.props.ContainingCollectionDoc} anchor={this.linkEndpoint(d)} otherAnchor={this.linkOtherEndpoint(d)} addDocTab={this.props.addDocTab} contentDiv={this.ContentDiv}
-                        scale={this.props.ContentScaling}
-                        isSelected={this.isSelected} link={d} index={i} selectLink={this.selectLink} selectedLink={this.selectedLink} />)}
+                {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) => <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />)}
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">

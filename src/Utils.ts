@@ -289,6 +289,8 @@ export function percent2frac(percent: string) {
 
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
 
+export function returnTransparent() { return "transparent"; }
+
 export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }

@@ -47,6 +47,7 @@ import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
+import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -719,6 +720,10 @@ export namespace DocUtils {
             linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
+            linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
+            linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
+            linkDocProto.width = linkDocProto.height = 0;
+            linkDocProto.isBackground = true;
 
             LinkManager.Instance.addLink(linkDocProto);
 
