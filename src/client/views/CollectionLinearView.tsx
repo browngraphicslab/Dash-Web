@@ -1,7 +1,7 @@
 import { action, IReactionDisposer, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, HeightSym, WidthSym } from '../../new_fields/Doc';
+import { Doc, HeightSym, WidthSym, DocListCast } from '../../new_fields/Doc';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { makeInterface } from '../../new_fields/Schema';
 import { ScriptField } from '../../new_fields/ScriptField';
@@ -51,9 +51,19 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         (de.data as DragManager.DocumentDragData).draggedDocuments.map((doc, i) => {
             let dbox = doc;
             if (!doc.onDragStart && !doc.onClick && this.props.Document.convertToButtons && doc.viewType !== CollectionViewType.Linear) {
-                let template = doc.layout instanceof Doc && doc.layout.isTemplate ? doc.layout : doc;
-                template.isTemplate = (template.type === DocumentType.TEXT || template.layout instanceof Doc) && de.data instanceof DragManager.DocumentDragData && !de.data.userDropAction;
-                dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: template.isTemplate ? "font" : "bolt" });
+                let template = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
+                if (template.type === DocumentType.COL) {
+                    let layout = StrCast(template.layout).match(/fieldKey={"[^"]*"}/)![0];
+                    let fieldKey = layout.replace('fieldKey={"', "").replace(/"}$/, "");
+                    let docs = DocListCast(template[fieldKey]);
+                    docs.map(d => {
+                        Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(template));
+                    });
+                    template.isTemplateDoc = true;
+                } else {
+                    template.isTemplateDoc = (template.type === DocumentType.TEXT || template.layout instanceof Doc) && de.data instanceof DragManager.DocumentDragData && !de.data.userDropAction;
+                }
+                dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: template.isTemplateDoc ? "font" : "bolt" });
                 dbox.dragFactory = template;
                 dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
                 dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');

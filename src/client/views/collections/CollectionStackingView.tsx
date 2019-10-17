@@ -110,6 +110,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     componentDidMount() {
+        super.componentDidMount();
         this._heightDisposer = reaction(() => {
             if (this.props.Document.autoHeight) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
@@ -137,6 +138,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         );
     }
     componentWillUnmount() {
+        super.componentWillUnmount();
         this._heightDisposer && this._heightDisposer();
         this._sectionFilterDisposer && this._sectionFilterDisposer();
     }
@@ -167,7 +169,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             renderDepth={this.props.renderDepth}
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
             fitToBox={this.props.fitToBox}
-            onClick={layoutDoc.isTemplate ? this.onClickHandler : this.onChildClickHandler}
+            onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
             PanelWidth={width}
             PanelHeight={height}
             getTransform={finalDxf}

@@ -993,7 +993,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
         if (!this.layoutDoc.isAnimating && this.layoutDoc.autoHeight && scrollHeight !== 0 &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
+            let nh = this.props.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.layoutDoc.height, 0);
             this.layoutDoc.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;

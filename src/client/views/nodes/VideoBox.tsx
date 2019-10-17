@@ -323,7 +323,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         this._isResetClick < 10 && (this.props.Document.currentTimecode = 0);
     }
     @computed get fieldExtensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;

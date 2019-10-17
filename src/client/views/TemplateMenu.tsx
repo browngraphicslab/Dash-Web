@@ -100,7 +100,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     clearTemplates = (event: React.MouseEvent) => {
         Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
         ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
-            if (d.Document.isTemplate && d.props.DataDoc) {
+            if (d.Document.isTemplateDoc && d.props.DataDoc) {
                 d.Document[field] = undefined;
             } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
                 d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;

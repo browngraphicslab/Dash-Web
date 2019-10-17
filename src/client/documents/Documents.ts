@@ -70,6 +70,7 @@ export interface DocumentOptions {
     layout?: string | Doc;
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplate?: boolean;
+    isTemplateDoc?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;

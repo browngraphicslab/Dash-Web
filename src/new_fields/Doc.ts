@@ -453,7 +453,7 @@ export namespace Doc {
     // for individual layout properties to be overridden in the expanded layout.
     //
     export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
-        return BoolCast(layoutDoc.isTemplate) && dataDoc && layoutDoc !== dataDoc && !(layoutDoc.layout instanceof Doc);
+        return BoolCast(layoutDoc.isTemplateField) && dataDoc && layoutDoc !== dataDoc && !(layoutDoc.layout instanceof Doc);
     }
 
     //
@@ -490,7 +490,7 @@ export namespace Doc {
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
         let layoutDoc: Doc | undefined = childDocLayout;
-        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
+        let resolvedDataDoc = !doc.isTemplateField && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
             let fieldExtensionDoc = Doc.fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
@@ -739,7 +739,7 @@ export namespace Doc {
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
-Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplate ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
+Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });

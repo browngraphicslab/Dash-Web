@@ -627,7 +627,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
 
-        if (this.childDocs.some(d => BoolCast(d.isTemplate))) {
+        if (this.childDocs.some(d => BoolCast(d.isTemplateDoc))) {
             layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
         }
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });

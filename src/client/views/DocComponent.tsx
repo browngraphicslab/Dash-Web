@@ -68,7 +68,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
             return index !== -1 && value.splice(index, 1) ? true : false;
         }
 
-        @computed get dataDoc() { return (this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get dataDoc() { return (this.props.DataDoc && this.props.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
 
         @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 

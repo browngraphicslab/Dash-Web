@@ -380,7 +380,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
             usingRule = usingRule || (ruleProvider && heading ? true : false);
         });
-        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
@@ -481,7 +481,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let actualdH = Math.max(height + (dH * scale), 20);
                 layoutDoc.x = (layoutDoc.x || 0) + dX * (actualdW - width);
                 layoutDoc.y = (layoutDoc.y || 0) + dY * (actualdH - height);
-                let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
+                let proto = doc.isTemplateField ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
                 let fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
                 if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
                     layoutDoc.ignoreAspect = false;

@@ -36,11 +36,11 @@ export class CurrentUserUtils {
     // a default set of note types .. not being used yet...
     static setupNoteTypes(doc: Doc) {
         return [
-            Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Todo", backgroundColor: "orange", isTemplate: true })
+            Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
         ];
     }
 
@@ -98,17 +98,17 @@ export class CurrentUserUtils {
         });
 
         doc.documents = Docs.Create.TreeDocument([], {
-            title: "DOCUMENTS", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0", backgroundColor: "#eeeeee", preventTreeViewOpen: true, forceActive: true, lockedPosition: true
+            title: "DOCUMENTS", height: 42, forceActive: true, boxShadow: "0 0", preventTreeViewOpen: true, lockedPosition: true, backgroundColor: "#eeeeee"
         });
 
         // setup Recently Closed library item
         doc.recentlyClosed = Docs.Create.TreeDocument([], {
-            title: "Recently Closed".toUpperCase(), height: 75, boxShadow: "0 0", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, backgroundColor: "#eeeeee"
+            title: "RECENTLY CLOSED", height: 75, forceActive: true, boxShadow: "0 0", preventTreeViewOpen: true, lockedPosition: true, backgroundColor: "#eeeeee"
         });
 
         return Docs.Create.ButtonDocument({
             width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library",
-            panel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], {
+            panel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
                 title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
             }),
             targetContainer: sidebarContainer,

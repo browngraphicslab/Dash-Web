@@ -520,7 +520,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
-    @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplateField) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer && this.treedropDisposer();
@@ -530,6 +530,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
         this.treedropDisposer && this.treedropDisposer();
     }
 

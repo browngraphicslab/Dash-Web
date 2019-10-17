@@ -110,7 +110,7 @@ export const documentSchema = createSchema({
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
     autoHeight: "boolean",      // whether the height of the document should be computed automatically based on its contents
-    isTemplate: "boolean",      // whether this document acts as a template layout for describing how other documents should be displayed
+    isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     type: "string",             // enumerated type of document
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
@@ -196,7 +196,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
-                this.onClickHandler.script.run({ this: this.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+                this.onClickHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             } else if (this.props.Document.type === DocumentType.BUTTON) {
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.Document.isButton) {
@@ -376,7 +376,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
-        let proto = this.Document.isTemplate ? this.props.Document : Doc.GetProto(this.props.Document);
+        let proto = this.Document.isTemplateDoc ? this.props.Document : Doc.GetProto(this.props.Document);
         proto.autoHeight = this.Document.autoHeight = false;
         proto.ignoreAspect = !proto.ignoreAspect;
         if (!proto.ignoreAspect && !proto.nativeWidth) {

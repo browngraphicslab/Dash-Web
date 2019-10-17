@@ -57,8 +57,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         componentDidMount() {
             this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-                async (args) => args[1] instanceof Doc &&
-                    this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc))));
+                async (args) => {
+                    if (args[1] instanceof Doc) {
+                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc)));
+                    } else {
+                        this.childDocs.map(async doc => doc.layout = undefined);
+                    }
+                });
 
         }
         componentWillUnmount() {
@@ -70,7 +75,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
         @computed get dataField() {
-            return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+            return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
         }
 
 
