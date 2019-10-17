@@ -9,7 +9,7 @@ import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schem
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, returnTrue, Utils, returnTransparent } from "../../../Utils";
+import { emptyFunction, returnTrue, Utils, returnTransparent, returnOne } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ClientUtils } from '../../util/ClientUtils';
@@ -699,7 +699,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
-                {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) => <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />)}
+                {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
+                    <div style={{ position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}> <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} /> </div>)}
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">

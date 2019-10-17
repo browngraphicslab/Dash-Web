@@ -71,6 +71,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         return <div onPointerDown={this.onPointerDown} onClick={this.onClick} title={StrCast((this.props.Document[this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1"]! as Doc).title)} ref={this._ref} style={{
             cursor: "default", position: "absolute", background: c, width: "25px", height: "25px", borderRadius: "20px", textAlign: "center", left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
             pointerEvents: "all",
+            transform: `scale(${1 / this.props.ContentScaling()})`,
         }} />
     }
 }
