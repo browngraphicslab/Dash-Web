@@ -23,15 +23,10 @@ export class CurrentUserUtils {
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
     @computed public static get UserDocument() { return Doc.UserDoc(); }
+    @computed public static get ActivePen() { return Doc.UserDoc().activePen instanceof Doc && (Doc.UserDoc().activePen as Doc).pen as Doc; }
 
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestWorkspace: Doc | undefined;
-
-    private static createUserDocument(id: string): Doc {
-        let doc = new Doc(id, true);
-        doc.title = Doc.CurrentUserEmail;
-        return this.updateUserDocument(doc);// this should be the last 
-    }
 
     // a default set of note types .. not being used yet...
     static setupNoteTypes(doc: Doc) {
@@ -174,6 +169,7 @@ export class CurrentUserUtils {
     }
 
     static updateUserDocument(doc: Doc) {
+        doc.title = Doc.CurrentUserEmail;
         new InkingControl();
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
@@ -216,10 +212,8 @@ export class CurrentUserUtils {
         Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id && id !== "guest") {
-                return DocServer.GetRefField(id).then(async field => {
-                    let userDoc = field instanceof Doc ? await this.updateUserDocument(field) : this.createUserDocument(id);
-                    runInAction(() => Doc.SetUserDoc(userDoc));
-                });
+                return DocServer.GetRefField(id).then(async field =>
+                    Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(id, true))));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

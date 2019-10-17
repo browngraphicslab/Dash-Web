@@ -599,7 +599,7 @@ export namespace Doc {
         return target;
     }
 
-    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false) {
+    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false): boolean {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
@@ -613,7 +613,7 @@ export namespace Doc {
 
         fieldTemplate.templateField = metadataFieldName;
         fieldTemplate.title = metadataFieldName;
-        fieldTemplate.isTemplate = true;
+        fieldTemplate.isTemplateField = true;
         fieldTemplate.backgroundLayout = backgroundLayout;
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
@@ -636,6 +636,7 @@ export namespace Doc {
             if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
             fieldTemplate.proto = templateDataDoc;
         }), 0);
+        return true;
     }
 
     export function overlapping(doc: Doc, doc2: Doc, clusterDistance: number) {
@@ -735,9 +736,18 @@ export namespace Doc {
     export function UnBrushAllDocs() {
         manager.BrushedDoc.clear();
     }
+
+    export function setChildLayout(target: Doc, source?: Doc) {
+        target.childLayout = source && source.isTemplateDoc ? source : source &&
+            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
+            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
+    }
 }
+
+
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
+Scripting.addGlobal(function setChildLayout(target: any, source: any) { Doc.setChildLayout(target, source); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });

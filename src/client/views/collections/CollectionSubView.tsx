@@ -61,7 +61,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     if (args[1] instanceof Doc) {
                         this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc)));
                     } else {
-                        this.childDocs.map(async doc => doc.layout = undefined);
+                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layout = undefined);
                     }
                 });
 

@@ -94,7 +94,7 @@ export class InkingControl {
                 redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
             });
         } else {
-            CurrentUserUtils.UserDocument.activePen instanceof Doc && CurrentUserUtils.UserDocument.activePen.pen instanceof Doc && (CurrentUserUtils.UserDocument.activePen.pen.backgroundColor = this._selectedColor);
+            CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
         }
     });
     @action

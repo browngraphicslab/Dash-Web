@@ -25,9 +25,8 @@ export class ColorBox extends DocStaticComponent<FieldViewProps, ColorDocument>(
         this._selectedDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             action(() => this._startupColor = SelectionManager.SelectedDocuments().length ? StrCast(SelectionManager.SelectedDocuments()[0].Document.backgroundColor, "black") : "black"),
             { fireImmediately: true });
-        this._penDisposer = reaction(() => CurrentUserUtils.UserDocument.activePen instanceof Doc && CurrentUserUtils.UserDocument.activePen.pen,
-            action(() => this._startupColor = CurrentUserUtils.UserDocument.activePen instanceof Doc && CurrentUserUtils.UserDocument.activePen.pen instanceof Doc ?
-                StrCast(CurrentUserUtils.UserDocument.activePen.pen.backgroundColor, "black") : "black"),
+        this._penDisposer = reaction(() => CurrentUserUtils.ActivePen,
+            action(() => this._startupColor = CurrentUserUtils.ActivePen ? StrCast(CurrentUserUtils.ActivePen.backgroundColor, "black") : "black"),
             { fireImmediately: true });
 
         // compare to this reaction that used to be in Selection Manager
@@ -36,7 +35,7 @@ export class ColorBox extends DocStaticComponent<FieldViewProps, ColorDocument>(
         //     if (sel.length > 0) {
         //         let firstView = sel[0];
         //         let doc = firstView.props.Document;
-        //         let targetDoc = doc.isTemplate ? doc : Doc.GetProto(doc);
+        //         let targetDoc = doc.isTemplateField ? doc : Doc.GetProto(doc);
         //         let stored = StrCast(targetDoc.backgroundColor);
         //         stored.length > 0 && (targetColor = stored);
         //     }

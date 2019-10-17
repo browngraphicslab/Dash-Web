@@ -143,7 +143,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document
@@ -265,7 +265,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 }
                 // apply as template when dragging with Meta
             } else if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "MetaKey") {
-                draggedDoc.isTemplate = true;
+                draggedDoc.isTemplateDoc = true;
                 let newLayout = draggedDoc.layout instanceof Doc ? draggedDoc.layout : draggedDoc;
                 if (typeof (draggedDoc.layout) === "string") {
                     newLayout = Doc.MakeDelegate(draggedDoc);
