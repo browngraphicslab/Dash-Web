@@ -700,7 +700,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
                 {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
-                    <div style={{ position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}> <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} /> </div>)}
+                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}> <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} /> </div>)}
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">
