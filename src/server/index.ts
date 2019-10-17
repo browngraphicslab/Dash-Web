@@ -552,7 +552,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getUserDocumentId,
-                onValidation: ({ res, user }) => res.send(user.userDocumentId),
+                onValidation: ({ res, user }) => res.send(user.userDocumentId)
             });
 
             router.addSupervisedRoute({
