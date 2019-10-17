@@ -36,6 +36,8 @@ import InitializeServer from './Initialization';
 import { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
 import { command_line } from './ActionUtilities';
 var findInFiles = require('find-in-files');
+import * as qs from 'query-string';
+
 
 let youtubeApiKey: string;
 
@@ -537,21 +539,31 @@ async function PreliminaryFunctions() {
                 method: Method.GET,
                 subscription: [RouteStore.home, new RouteSubscriber("/doc").add("docId")],
                 onValidation: serve,
-                onGuestAccess: serve
+                onUnauthenticated: ({ req, ...remaining }) => {
+                    const { originalUrl: target } = req;
+                    const sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
+                    const docAccess = target.startsWith("/doc/");
+                    if (sharing && docAccess) {
+                        serve({ req, ...remaining });
+                    }
+                }
             });
 
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getUserDocumentId,
                 onValidation: ({ res, user }) => res.send(user.userDocumentId),
-                onRejection: ({ res }) => res.send(undefined)
+                onUnauthenticated: ({ res }) => _permission_denied(res)
             });
 
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getCurrUser,
                 onValidation: ({ res, user }) => { res.send(JSON.stringify(user)); },
-                onRejection: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
+                onUnauthenticated: ({ res }) => {
+                    res.send(JSON.stringify({ id: "__guest__", email: "" }))
+                    return true;
+                }
             });
 
             const ServicesApiKeyMap = new Map<string, string | undefined>([

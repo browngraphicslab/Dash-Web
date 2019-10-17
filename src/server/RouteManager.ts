@@ -2,7 +2,7 @@ import RouteSubscriber from "./RouteSubscriber";
 import { RouteStore } from "./RouteStore";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
-import * as qs from 'query-string';
+import { Opt } from "../new_fields/Doc";
 
 export enum Method {
     GET,
@@ -18,6 +18,14 @@ export interface CoreArguments {
 export type OnValidation = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
 export type OnUnauthenticated = (core: CoreArguments) => any | Promise<any>;
 export type OnError = (core: CoreArguments & { error: any }) => any | Promise<any>;
+
+export interface RouteInitializer {
+    method: Method;
+    subscription: string | RouteSubscriber | (string | RouteSubscriber)[];
+    onValidation: OnValidation;
+    onUnauthenticated?: OnUnauthenticated;
+    onError?: OnError;
+}
 
 export default class RouteManager {
     private server: express.Express;
@@ -42,14 +50,15 @@ export default class RouteManager {
      * @param subscribers the forward slash prepended path names (reference and add to RouteStore.ts) that will all invoke the given @param handler 
      */
     addSupervisedRoute(initializer: RouteInitializer) {
-        const { method, subscription, onValidation, onRejection, onError, onGuestAccess } = initializer;
+        const { method, subscription, onValidation, onUnauthenticated, onError } = initializer;
         const isRelease = this._isRelease;
         let supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
             const core = { req, res, isRelease };
-            const tryExecute = async (target: any, args: any) => {
+            const tryExecute = async <T>(target: (args: any) => T | Promise<T>, args: any) => {
                 try {
-                    await target(args);
+                    const result = await target(args);
+                    return result;
                 } catch (e) {
                     if (onError) {
                         onError({ ...core, error: e });
@@ -61,12 +70,16 @@ export default class RouteManager {
             if (user) {
                 await tryExecute(onValidation, { ...core, user: user as any });
             } else {
-                if (onGuestAccess && isGuestAccess(req)) {
-                    await tryExecute(onGuestAccess, core);
+                req.session!.target = target;
+                if (!onUnauthenticated) {
+                    res.redirect(RouteStore.login);
                 } else {
-                    req.session!.target = target;
-                    await tryExecute(onRejection || LoginRedirect, core);
+                    await tryExecute(onUnauthenticated, core);
                 }
+            }
+            const warning = `request to ${target} fell through - this is a fallback response`;
+            if (!res.headersSent) {
+                res.send({ warning });
             }
         };
         const subscribe = (subscriber: RouteSubscriber | string) => {
@@ -94,30 +107,6 @@ export default class RouteManager {
 
 }
 
-const LoginRedirect: OnUnauthenticated = ({ res }) => res.redirect(RouteStore.login);
-
-export interface RouteInitializer {
-    method: Method;
-    subscription: string | RouteSubscriber | (string | RouteSubscriber)[];
-    onValidation: OnValidation;
-    onRejection?: OnUnauthenticated;
-    onGuestAccess?: OnUnauthenticated;
-    onError?: OnError;
-}
-
-const isSharedDocAccess = (target: string) => {
-    const shared = qs.parse(qs.extract(target), { sort: false }).sharing === "true";
-    const docAccess = target.startsWith("/doc/");
-    return shared && docAccess;
-};
-
-const isGuestAccess = (req: express.Request) => {
-    if (isSharedDocAccess(req.originalUrl)) {
-        return true;
-    }
-    return false;
-}
-
 export const STATUS = {
     OK: 200,
     BAD_REQUEST: 400,
@@ -139,7 +128,9 @@ export function _invalid(res: express.Response, message: string) {
     res.status(STATUS.BAD_REQUEST).send();
 }
 
-export function _permission_denied(res: express.Response, message: string) {
-    res.statusMessage = message;
+export function _permission_denied(res: express.Response, message?: string) {
+    if (message) {
+        res.statusMessage = message;
+    }
     res.status(STATUS.BAD_REQUEST).send("Permission Denied!");
 }
