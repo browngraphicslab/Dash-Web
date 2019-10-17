@@ -322,7 +322,7 @@ async function PreliminaryFunctions() {
                     });
                     zip.finalize();
                 }
-            })
+            });
 
             router.addSupervisedRoute({
                 method: Method.POST,
@@ -427,7 +427,7 @@ async function PreliminaryFunctions() {
                         } catch (e) { console.log(e); }
                     });
                 }
-            })
+            });
 
             router.addSupervisedRoute({
                 method: Method.GET,
@@ -533,7 +533,7 @@ async function PreliminaryFunctions() {
                 let detector = new mobileDetect(req.headers['user-agent'] || "");
                 let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
                 res.sendFile(path.join(__dirname, '../../deploy/' + filename));
-            }
+            };
 
             router.addSupervisedRoute({
                 method: Method.GET,
@@ -559,11 +559,8 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getCurrUser,
-                onValidation: ({ res, user }) => { res.send(JSON.stringify(user)); },
-                onUnauthenticated: ({ res }) => {
-                    res.send(JSON.stringify({ id: "__guest__", email: "" }))
-                    return true;
-                }
+                onValidation: ({ res, user }) => res.send(JSON.stringify(user)),
+                onUnauthenticated: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
             });
 
             const ServicesApiKeyMap = new Map<string, string | undefined>([
@@ -951,7 +948,7 @@ async function PreliminaryFunctions() {
                     await Database.Auxiliary.DeleteAll();
                     res.redirect(RouteStore.delete);
                 }
-            })
+            });
 
             router.addSupervisedRoute({
                 method: Method.GET,
@@ -996,7 +993,7 @@ async function PreliminaryFunctions() {
                     }
                     _invalid(res, requestError);
                 }
-            })
+            });
 
             const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
                 "number": "_n",

@@ -10,8 +10,8 @@ export enum Method {
 }
 
 export interface CoreArguments {
-    req: express.Request,
-    res: express.Response,
+    req: express.Request;
+    res: express.Response;
     isRelease: boolean;
 }
 
@@ -65,9 +65,9 @@ export default class RouteManager {
                         _error(res, `The server encountered an internal error when serving ${target}.`, e);
                     }
                 }
-            }
+            };
             if (user) {
-                await tryExecute(onValidation, { ...core, user: user as any });
+                await tryExecute(onValidation, { ...core, user });
             } else {
                 req.session!.target = target;
                 if (onUnauthenticated) {
