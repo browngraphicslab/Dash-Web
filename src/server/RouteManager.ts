@@ -46,7 +46,7 @@ export default class RouteManager {
             if (user) {
                 await tryExecute(onValidation, { ...core, user: user as any });
             } else {
-                if (isGuestAccess(req) && onGuestAccess) {
+                if (onGuestAccess && isGuestAccess(req)) {
                     await tryExecute(onGuestAccess, core);
                 } else {
                     req.session!.target = target;
