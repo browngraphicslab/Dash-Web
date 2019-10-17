@@ -3,7 +3,6 @@ import { RouteStore } from "./RouteStore";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
 import * as qs from 'query-string';
-import { Opt } from "../new_fields/Doc";
 
 export default class RouteManager {
     private server: express.Express;
@@ -30,33 +29,28 @@ export default class RouteManager {
     addSupervisedRoute(initializer: RouteInitializer) {
         const { method, subscription, onValidation, onRejection, onError, onGuestAccess } = initializer;
         const isRelease = this._isRelease;
-        let abstracted = async (req: express.Request, res: express.Response) => {
+        let supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
             const core = { req, res, isRelease: isRelease };
-            if (user) {
+            const tryExecute = async (target: any, args: any) => {
                 try {
-                    await onValidation({ ...core, user: user as any });
+                    await target(args);
                 } catch (e) {
                     if (onError) {
                         onError({ ...core, error: e });
                     } else {
-                        _error(res, `The server encountered an internal error handling ${target}.`, e);
+                        _error(res, `The server encountered an internal error when serving ${target}.`, e);
                     }
                 }
+            }
+            if (user) {
+                await tryExecute(onValidation, { ...core, user: user as any });
             } else {
                 if (isGuestAccess(req) && onGuestAccess) {
-                    await onGuestAccess(core);
+                    await tryExecute(onGuestAccess, core);
                 } else {
                     req.session!.target = target;
-                    try {
-                        await (onRejection || LoginRedirect)(core);
-                    } catch (e) {
-                        if (onError) {
-                            onError({ ...core, error: e });
-                        } else {
-                            _error(res, `The server encountered an internal error when rejecting ${target}.`, e);
-                        }
-                    }
+                    await tryExecute(onRejection || LoginRedirect, core);
                 }
             }
         };
@@ -69,10 +63,10 @@ export default class RouteManager {
             }
             switch (method) {
                 case Method.GET:
-                    this.server.get(route, abstracted);
+                    this.server.get(route, supervised);
                     break;
                 case Method.POST:
-                    this.server.post(route, abstracted);
+                    this.server.post(route, supervised);
                     break;
             }
         };
