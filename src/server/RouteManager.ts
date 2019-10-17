@@ -4,6 +4,21 @@ import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
 import * as qs from 'query-string';
 
+export enum Method {
+    GET,
+    POST
+}
+
+export interface CoreArguments {
+    req: express.Request,
+    res: express.Response,
+    isRelease: boolean;
+}
+
+export type OnValidation = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
+export type OnUnauthenticated = (core: CoreArguments) => any | Promise<any>;
+export type OnError = (core: CoreArguments & { error: any }) => any | Promise<any>;
+
 export default class RouteManager {
     private server: express.Express;
     private _isRelease: boolean;
@@ -31,7 +46,7 @@ export default class RouteManager {
         const isRelease = this._isRelease;
         let supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
-            const core = { req, res, isRelease: isRelease };
+            const core = { req, res, isRelease };
             const tryExecute = async (target: any, args: any) => {
                 try {
                     await target(args);
@@ -78,21 +93,6 @@ export default class RouteManager {
     }
 
 }
-
-export enum Method {
-    GET,
-    POST
-}
-
-export interface CoreArguments {
-    req: express.Request,
-    res: express.Response,
-    isRelease: boolean;
-}
-
-export type OnValidation = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
-export type OnUnauthenticated = (core: CoreArguments) => any | Promise<any>;
-export type OnError = (core: CoreArguments & { error: any }) => any | Promise<any>;
 
 const LoginRedirect: OnUnauthenticated = ({ res }) => res.redirect(RouteStore.login);
 
