@@ -145,14 +145,17 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * Uses Cognitive Services to extract keywords from a document
      */
 
-    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false) {
+    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false, image: boolean = false) {
         let fielddata = Cast(dataDoc.data, RichTextField);
+        if (image && extDoc.generatedTags) {
+            console.log(StrCast(extDoc.generatedTags));
+        }
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";
         let converter = async (results: any, data: string) => {
             let keyterms = new List<string>(); // raw keywords
             // let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated. input to w2v
-            let kp_string: string = ""; // keywords concatenated into a string. input into TF
+            let kp_string: string = ""; // keywords*frequency concatenated into a string. input into TF
             let highKP: string[] = [""]; // most frequent keyphrase
             let high = 0;
             results.documents.forEach((doc: any) => {
@@ -190,7 +193,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             if (!internal) values = await this.sendRequest(highKP);
             return { keyterms: keyterms, external_recommendations: values, kp_string: [kp_string] };
         };
-        if (data != "") {
+        if (data !== "") {
             return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, isMainDoc, internal);
         }
         return;

@@ -589,16 +589,26 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ClientRecommender.Instance.reset_docs();
         //ClientRecommender.Instance.arxivrequest("electrons");
         await Promise.all(allDocs.map((doc: Doc) => {
-            let mainDoc: boolean = false;
+            let isMainDoc: boolean = false;
             const dataDoc = Doc.GetDataDoc(doc);
             if (doc.type === DocumentType.TEXT) {
                 if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
-                    mainDoc = true;
+                    isMainDoc = true;
                 }
                 if (!documents.includes(dataDoc)) {
                     documents.push(dataDoc);
                     const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, mainDoc);
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, isMainDoc);
+                }
+            }
+            if (doc.type === DocumentType.IMG) {
+                if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
+                    isMainDoc = true;
+                }
+                if (!documents.includes(dataDoc)) {
+                    documents.push(dataDoc);
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, isMainDoc, true);
                 }
             }
         }));
