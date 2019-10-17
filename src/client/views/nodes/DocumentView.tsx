@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction, trace } from "mobx";
+import { action, computed, runInAction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -103,6 +103,7 @@ export const documentSchema = createSchema({
     height: "number",           // "
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
+    //links: listSpec(Doc),       // computed (readonly) list of links associated with this document
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
@@ -695,6 +696,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
+                {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) => <DocuLink view={this} link={d} index={i} />)}
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">
@@ -717,6 +719,94 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         );
     }
 }
+
+
+interface DocuLinkProps {
+    view: DocumentView;
+    link: Doc;
+    index: number;
+}
+
+@observer
+export class DocuLink extends React.Component<DocuLinkProps> {
+    _downx = 0;
+    _downy = 0;
+    @observable _x = 0;
+    @observable _y = 0;
+
+    constructor(props: DocuLinkProps) {
+        super(props);
+    }
+
+    clamp(n: number, lower: number, upper: number) {
+        return Math.max(lower, Math.min(upper, n));
+    }
+
+    getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
+        var r = l + w,
+            b = t + h;
+
+        var x = this.clamp(x, l, r),
+            y = this.clamp(y, t, b);
+
+        var dl = Math.abs(x - l),
+            dr = Math.abs(x - r),
+            dt = Math.abs(y - t),
+            db = Math.abs(y - b);
+
+        var m = Math.min(dl, dr, dt, db);
+
+        return (m === dt) ? [x, t] :
+            (m === db) ? [x, b] :
+                (m === dl) ? [l, y] : [r, y];
+    }
+
+    get linkEndpoint() {
+        return Doc.AreProtosEqual(this.props.view.props.Document, Cast(this.props.link.anchor1, Doc) as Doc) ?
+            "anchor1" : "anchor2";
+    }
+    get linkOtherEndpoint() {
+        return !Doc.AreProtosEqual(this.props.view.props.Document, Cast(this.props.link.anchor1, Doc) as Doc) ?
+            "anchor1" : "anchor2";
+    }
+
+    onPointerDown = (e: React.PointerEvent) => {
+        this._downx = e.clientX;
+        this._downy = e.clientY;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+    }
+    onPointerMove = action((e: PointerEvent) => {
+        if (this.props.view.ContentDiv && (Math.abs(e.clientX - this._downx) > 3 || Math.abs(e.clientY - this._downy) > 3)) {
+            let bounds = this.props.view.ContentDiv.getBoundingClientRect();
+            let pt = this.getNearestPointInPerimeter(bounds.left - 25, bounds.top - 25, bounds.width, bounds.height, e.clientX, e.clientY);
+            this.props.link[this.linkEndpoint + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
+            this.props.link[this.linkEndpoint + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
+        }
+    })
+    onPointerUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+    onClick = (e: React.MouseEvent) => {
+        if (Math.abs(e.clientX - this._downx) < 3 && Math.abs(e.clientY - this._downy) < 3) {
+            DocumentManager.Instance.FollowLink(this.props.link, this.props.view.props.Document, document => this.props.view.props.addDocTab(document, undefined, "inTab"), false);
+        }
+        e.stopPropagation();
+    }
+    render() {
+        return <div onPointerDown={this.onPointerDown} title={StrCast((this.props.link[this.linkOtherEndpoint]! as Doc).title)} style={{
+            position: "absolute", background: "lightblue", width: "25px", height: "25px", borderRadius: "20px",
+            left: `${NumCast(this.props.link[this.linkEndpoint + "_x"], 100)}%`, top: `${NumCast(this.props.link[this.linkEndpoint + "_y"], 100)}%`
+        }} >
+            {this.props.index}
+        </div>
+    }
+}
+
 
 export async function swapViews(doc: Doc, newLayoutField: string, oldLayoutField: string, oldLayout?: Doc) {
     let oldLayoutExt = oldLayout || await Cast(doc[oldLayoutField], Doc);
