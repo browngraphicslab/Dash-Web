@@ -7,8 +7,7 @@ import * as Pdfjs from 'pdfjs-dist';
 const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
-import * as request from 'request';
-import io from 'socket.io';
+import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { Client } from './Client';
@@ -34,8 +33,8 @@ import { ParsedPDF } from "./PdfTypes";
 import { reject } from 'bluebird';
 import RouteSubscriber from './RouteSubscriber';
 import InitializeServer from './Initialization';
-import { Method, _success, _permission_denied, _error, _invalid } from './RouteManager';
-import { command_line, read_text_file } from './ActionUtilities';
+import { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
+import { command_line } from './ActionUtilities';
 var findInFiles = require('find-in-files');
 
 let youtubeApiKey: string;
@@ -73,7 +72,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: "/pull",
-                onValidation: (_user, _req, res) => {
+                onValidation: ({ res }) => {
                     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', err => {
                         if (err) {
                             res.send(err.message);
@@ -87,7 +86,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: "/textsearch",
-                onValidation: async (_user, req, res) => {
+                onValidation: async ({ req, res }) => {
                     let q = req.query.q;
                     if (q === undefined) {
                         res.send([]);
@@ -107,7 +106,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: "/buxton",
-                onValidation: (_user, _req, res) => {
+                onValidation: ({ res }) => {
                     let cwd = '../scraping/buxton';
 
                     let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
@@ -121,7 +120,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: "/version",
-                onValidation: (_user, _req, res) => {
+                onValidation: ({ res }) => {
                     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout) => {
                         if (err) {
                             res.send(err.message);
@@ -135,7 +134,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: "/search",
-                onValidation: async (_user, req, res) => {
+                onValidation: async ({ req, res }) => {
                     const solrQuery: any = {};
                     ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
                     if (solrQuery.q === undefined) {
@@ -228,7 +227,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: new RouteSubscriber("/serializeDoc").add("docId"),
-                onValidation: async (_user, req, res) => {
+                onValidation: async ({ req, res }) => {
                     const { docs, files } = await getDocs(req.params.docId);
                     res.send({ docs, files: Array.from(files) });
                 }
@@ -237,7 +236,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: new RouteSubscriber(RouteStore.imageHierarchyExport).add('docId'),
-                onValidation: async (_user, req, res) => {
+                onValidation: async ({ req, res }) => {
                     const id = req.params.docId;
                     const hierarchy: Hierarchy = {};
                     await targetedVisitorRecursive(id, hierarchy);
@@ -305,154 +304,171 @@ async function PreliminaryFunctions() {
                 }
             };
 
-            DashServer.get("/downloadId/:docId", async (req, res) => {
-                res.set('Content-disposition', `attachment;`);
-                res.set('Content-Type', "application/zip");
-                const { id, docs, files } = await getDocs(req.params.docId);
-                const docString = JSON.stringify({ id, docs });
-                const zip = Archiver('zip');
-                zip.pipe(res);
-                zip.append(docString, { name: "doc.json" });
-                files.forEach(val => {
-                    zip.file(__dirname + RouteStore.public + val, { name: val.substring(1) });
-                });
-                zip.finalize();
-            });
-
-            DashServer.post("/uploadDoc", (req, res) => {
-                let form = new formidable.IncomingForm();
-                form.keepExtensions = true;
-                // let path = req.body.path;
-                const ids: { [id: string]: string } = {};
-                let remap = true;
-                const getId = (id: string): string => {
-                    if (!remap) return id;
-                    if (id.endsWith("Proto")) return id;
-                    if (id in ids) {
-                        return ids[id];
-                    } else {
-                        return ids[id] = v4();
-                    }
-                };
-                const mapFn = (doc: any) => {
-                    if (doc.id) {
-                        doc.id = getId(doc.id);
-                    }
-                    for (const key in doc.fields) {
-                        if (!doc.fields.hasOwnProperty(key)) {
-                            continue;
-                        }
-                        const field = doc.fields[key];
-                        if (field === undefined || field === null) {
-                            continue;
-                        }
-
-                        if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
-                            field.fieldId = getId(field.fieldId);
-                        } else if (field.__type === "script" || field.__type === "computed") {
-                            if (field.captures) {
-                                field.captures.fieldId = getId(field.captures.fieldId);
-                            }
-                        } else if (field.__type === "list") {
-                            mapFn(field);
-                        } else if (typeof field === "string") {
-                            const re = /("(?:dataD|d)ocumentId"\s*:\s*")([\w\-]*)"/g;
-                            doc.fields[key] = (field as any).replace(re, (match: any, p1: string, p2: string) => {
-                                return `${p1}${getId(p2)}"`;
-                            });
-                        } else if (field.__type === "RichTextField") {
-                            const re = /("href"\s*:\s*")(.*?)"/g;
-                            field.Data = field.Data.replace(re, (match: any, p1: string, p2: string) => {
-                                return `${p1}${getId(p2)}"`;
-                            });
-                        }
-                    }
-                };
-                form.parse(req, async (err, fields, files) => {
-                    remap = fields.remap !== "false";
-                    let id: string = "";
-                    try {
-                        for (const name in files) {
-                            const path_2 = files[name].path;
-                            const zip = new AdmZip(path_2);
-                            zip.getEntries().forEach((entry: any) => {
-                                if (!entry.entryName.startsWith("files/")) return;
-                                let dirname = path.dirname(entry.entryName) + "/";
-                                let extname = path.extname(entry.entryName);
-                                let basename = path.basename(entry.entryName).split(".")[0];
-                                // zip.extractEntryTo(dirname + basename + "_o" + extname, __dirname + RouteStore.public, true, false);
-                                // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
-                                // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
-                                // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
-                                try {
-                                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
-                                    dirname = "/" + dirname;
-
-                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
-                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
-                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
-                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
-                                } catch (e) {
-                                    console.log(e);
-                                }
-                            });
-                            const json = zip.getEntry("doc.json");
-                            let docs: any;
-                            try {
-                                let data = JSON.parse(json.getData().toString("utf8"));
-                                docs = data.docs;
-                                id = data.id;
-                                docs = Object.keys(docs).map(key => docs[key]);
-                                docs.forEach(mapFn);
-                                await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
-                                    err && console.log(err);
-                                    res();
-                                }, true, "newDocuments"))));
-                            } catch (e) { console.log(e); }
-                            fs.unlink(path_2, () => { });
-                        }
-                        if (id) {
-                            res.send(JSON.stringify(getId(id)));
-                        } else {
-                            res.send(JSON.stringify("error"));
-                        }
-                    } catch (e) { console.log(e); }
-                });
-            });
-
-            DashServer.get("/whosOnline", (req, res) => {
-                let users: any = { active: {}, inactive: {} };
-                const now = Date.now();
-
-                for (const user in timeMap) {
-                    const time = timeMap[user];
-                    const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
-                    users[key][user] = `Last active ${msToTime(now - time)} ago`;
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: new RouteSubscriber("/downloadId").add("docId"),
+                onValidation: async ({ req, res }) => {
+                    res.set('Content-disposition', `attachment;`);
+                    res.set('Content-Type', "application/zip");
+                    const { id, docs, files } = await getDocs(req.params.docId);
+                    const docString = JSON.stringify({ id, docs });
+                    const zip = Archiver('zip');
+                    zip.pipe(res);
+                    zip.append(docString, { name: "doc.json" });
+                    files.forEach(val => {
+                        zip.file(__dirname + RouteStore.public + val, { name: val.substring(1) });
+                    });
+                    zip.finalize();
                 }
+            })
 
-                res.send(users);
-            });
-            DashServer.get("/thumbnail/:filename", (req, res) => {
-                let filename = req.params.filename;
-                let noExt = filename.substring(0, filename.length - ".png".length);
-                let pagenumber = parseInt(noExt.split('-')[1]);
-                fs.exists(uploadDirectory + filename, (exists: boolean) => {
-                    console.log(`${uploadDirectory + filename} ${exists ? "exists" : "does not exist"}`);
-                    if (exists) {
-                        let input = fs.createReadStream(uploadDirectory + filename);
-                        probe(input, (err: any, result: any) => {
-                            if (err) {
-                                console.log(err);
-                                console.log(`error on ${filename}`);
-                                return;
+            router.addSupervisedRoute({
+                method: Method.POST,
+                subscription: "/uploadDoc",
+                onValidation: ({ req, res }) => {
+                    let form = new formidable.IncomingForm();
+                    form.keepExtensions = true;
+                    // let path = req.body.path;
+                    const ids: { [id: string]: string } = {};
+                    let remap = true;
+                    const getId = (id: string): string => {
+                        if (!remap) return id;
+                        if (id.endsWith("Proto")) return id;
+                        if (id in ids) {
+                            return ids[id];
+                        } else {
+                            return ids[id] = v4();
+                        }
+                    };
+                    const mapFn = (doc: any) => {
+                        if (doc.id) {
+                            doc.id = getId(doc.id);
+                        }
+                        for (const key in doc.fields) {
+                            if (!doc.fields.hasOwnProperty(key)) {
+                                continue;
                             }
-                            res.send({ path: "/files/" + filename, width: result.width, height: result.height });
-                        });
+                            const field = doc.fields[key];
+                            if (field === undefined || field === null) {
+                                continue;
+                            }
+
+                            if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
+                                field.fieldId = getId(field.fieldId);
+                            } else if (field.__type === "script" || field.__type === "computed") {
+                                if (field.captures) {
+                                    field.captures.fieldId = getId(field.captures.fieldId);
+                                }
+                            } else if (field.__type === "list") {
+                                mapFn(field);
+                            } else if (typeof field === "string") {
+                                const re = /("(?:dataD|d)ocumentId"\s*:\s*")([\w\-]*)"/g;
+                                doc.fields[key] = (field as any).replace(re, (match: any, p1: string, p2: string) => {
+                                    return `${p1}${getId(p2)}"`;
+                                });
+                            } else if (field.__type === "RichTextField") {
+                                const re = /("href"\s*:\s*")(.*?)"/g;
+                                field.Data = field.Data.replace(re, (match: any, p1: string, p2: string) => {
+                                    return `${p1}${getId(p2)}"`;
+                                });
+                            }
+                        }
+                    };
+                    form.parse(req, async (err, fields, files) => {
+                        remap = fields.remap !== "false";
+                        let id: string = "";
+                        try {
+                            for (const name in files) {
+                                const path_2 = files[name].path;
+                                const zip = new AdmZip(path_2);
+                                zip.getEntries().forEach((entry: any) => {
+                                    if (!entry.entryName.startsWith("files/")) return;
+                                    let dirname = path.dirname(entry.entryName) + "/";
+                                    let extname = path.extname(entry.entryName);
+                                    let basename = path.basename(entry.entryName).split(".")[0];
+                                    // zip.extractEntryTo(dirname + basename + "_o" + extname, __dirname + RouteStore.public, true, false);
+                                    // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
+                                    // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
+                                    // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
+                                    try {
+                                        zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                                        dirname = "/" + dirname;
+
+                                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                                    } catch (e) {
+                                        console.log(e);
+                                    }
+                                });
+                                const json = zip.getEntry("doc.json");
+                                let docs: any;
+                                try {
+                                    let data = JSON.parse(json.getData().toString("utf8"));
+                                    docs = data.docs;
+                                    id = data.id;
+                                    docs = Object.keys(docs).map(key => docs[key]);
+                                    docs.forEach(mapFn);
+                                    await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
+                                        err && console.log(err);
+                                        res();
+                                    }, true, "newDocuments"))));
+                                } catch (e) { console.log(e); }
+                                fs.unlink(path_2, () => { });
+                            }
+                            if (id) {
+                                res.send(JSON.stringify(getId(id)));
+                            } else {
+                                res.send(JSON.stringify("error"));
+                            }
+                        } catch (e) { console.log(e); }
+                    });
+                }
+            })
+
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: "/whosOnline",
+                onValidation: ({ res }) => {
+                    let users: any = { active: {}, inactive: {} };
+                    const now = Date.now();
+
+                    for (const user in timeMap) {
+                        const time = timeMap[user];
+                        const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
+                        users[key][user] = `Last active ${msToTime(now - time)} ago`;
                     }
-                    else {
-                        LoadPage(uploadDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
-                    }
-                });
+
+                    res.send(users);
+                }
+            });
+
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: new RouteSubscriber("/thumbnail").add("filename"),
+                onValidation: ({ req, res }) => {
+                    let filename = req.params.filename;
+                    let noExt = filename.substring(0, filename.length - ".png".length);
+                    let pagenumber = parseInt(noExt.split('-')[1]);
+                    fs.exists(uploadDirectory + filename, (exists: boolean) => {
+                        console.log(`${uploadDirectory + filename} ${exists ? "exists" : "does not exist"}`);
+                        if (exists) {
+                            let input = fs.createReadStream(uploadDirectory + filename);
+                            probe(input, (err: any, result: any) => {
+                                if (err) {
+                                    console.log(err);
+                                    console.log(`error on ${filename}`);
+                                    return;
+                                }
+                                res.send({ path: "/files/" + filename, width: result.width, height: result.height });
+                            });
+                        }
+                        else {
+                            LoadPage(uploadDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
+                        }
+                    });
+                }
             });
 
             function LoadPage(file: string, pageNumber: number, res: Response) {
@@ -498,41 +514,44 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.root,
-                onValidation: (_user, _req, res) => res.redirect(RouteStore.home)
+                onValidation: ({ res }) => res.redirect(RouteStore.home)
             });
 
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getUsers,
-                onValidation: async (_user, _req, res) => {
+                onValidation: async ({ res }) => {
                     const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
                     const results = await cursor.toArray();
                     res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
-                },
+                }
             });
+
+            const serve: OnUnauthenticated = ({ req, res }) => {
+                let detector = new mobileDetect(req.headers['user-agent'] || "");
+                let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
+                res.sendFile(path.join(__dirname, '../../deploy/' + filename));
+            }
 
             router.addSupervisedRoute({
                 method: Method.GET,
-                subscription: [RouteStore.home, RouteStore.openDocumentWithId],
-                onValidation: (_user, req, res) => {
-                    let detector = new mobileDetect(req.headers['user-agent'] || "");
-                    let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
-                    res.sendFile(path.join(__dirname, '../../deploy/' + filename));
-                },
+                subscription: [RouteStore.home, new RouteSubscriber("/doc").add("docId")],
+                onValidation: serve,
+                onGuestAccess: serve
             });
 
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getUserDocumentId,
-                onValidation: (user, _req, res) => res.send(user.userDocumentId),
-                onRejection: (_req, res) => res.send(undefined)
+                onValidation: ({ res, user }) => res.send(user.userDocumentId),
+                onRejection: ({ res }) => res.send(undefined)
             });
 
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.getCurrUser,
-                onValidation: (user, _req, res) => { res.send(JSON.stringify(user)); },
-                onRejection: (_req, res) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
+                onValidation: ({ res, user }) => { res.send(JSON.stringify(user)); },
+                onRejection: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
             });
 
             const ServicesApiKeyMap = new Map<string, string | undefined>([
@@ -544,7 +563,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: new RouteSubscriber(RouteStore.cognitiveServices).add('requestedservice'),
-                onValidation: (_user, req, res) => {
+                onValidation: ({ req, res }) => {
                     let service = req.params.requestedservice;
                     res.send(ServicesApiKeyMap.get(service));
                 }
@@ -583,7 +602,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.POST,
                 subscription: RouteStore.upload,
-                onValidation: (_user, req, res) => {
+                onValidation: ({ req, res }) => {
                     let form = new formidable.IncomingForm();
                     form.uploadDir = uploadDirectory;
                     form.keepExtensions = true;
@@ -621,7 +640,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.POST,
                 subscription: RouteStore.inspectImage,
-                onValidation: async (_user, req, res) => {
+                onValidation: async ({ req, res }) => {
                     const { source } = req.body;
                     if (typeof source === "string") {
                         const uploadInformation = await DashUploadUtils.UploadImage(source);
@@ -634,7 +653,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.POST,
                 subscription: RouteStore.dataUriToImage,
-                onValidation: (_user, req, res) => {
+                onValidation: ({ req, res }) => {
                     const uri = req.body.uri;
                     const filename = req.body.name;
                     if (!uri || !filename) {
@@ -670,27 +689,10 @@ async function PreliminaryFunctions() {
                 }
             });
 
-            const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
-            DashServer.use(RouteStore.corsProxy, (req, res) => {
-                req.pipe(request(decodeURIComponent(req.url.substring(1)))).on("response", res => {
-                    const headers = Object.keys(res.headers);
-                    headers.forEach(headerName => {
-                        const header = res.headers[headerName];
-                        if (Array.isArray(header)) {
-                            res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
-                        } else if (header) {
-                            if (headerCharRegex.test(header as any)) {
-                                delete res.headers[headerName];
-                            }
-                        }
-                    });
-                }).pipe(res);
-            });
-
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.delete,
-                onValidation: (_user, _req, res, isRelease) => {
+                onValidation: ({ res, isRelease }) => {
                     if (isRelease) {
                         return _permission_denied(res, deletionPermissionError);
                     }
@@ -701,7 +703,7 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.deleteAll,
-                onValidation: (_user, _req, res, isRelease) => {
+                onValidation: ({ res, isRelease }) => {
                     if (isRelease) {
                         return _permission_denied(res, deletionPermissionError);
                     }
@@ -813,27 +815,34 @@ async function PreliminaryFunctions() {
                 ["update", (api, params) => api.batchUpdate(params)],
             ]);
 
-            DashServer.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
-                let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
-                let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
-                GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.headers.userId as string }).then(endpoint => {
-                    let handler = EndpointHandlerMap.get(action);
-                    if (endpoint && handler) {
-                        let execute = handler(endpoint, req.body).then(
-                            response => res.send(response.data),
-                            rejection => res.send(rejection)
-                        );
-                        execute.catch(exception => res.send(exception));
-                        return;
-                    }
-                    res.send(undefined);
-                });
+            router.addSupervisedRoute({
+                method: Method.POST,
+                subscription: new RouteSubscriber(RouteStore.googleDocs).add("sector", "action"),
+                onValidation: ({ req, res }) => {
+                    let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
+                    let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
+                    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.headers.userId as string }).then(endpoint => {
+                        let handler = EndpointHandlerMap.get(action);
+                        if (endpoint && handler) {
+                            let execute = handler(endpoint, req.body).then(
+                                response => res.send(response.data),
+                                rejection => res.send(rejection)
+                            );
+                            execute.catch(exception => res.send(exception));
+                            return;
+                        }
+                        res.send(undefined);
+                    });
+                }
             });
 
             router.addSupervisedRoute({
                 method: Method.GET,
                 subscription: RouteStore.readGoogleAccessToken,
-                onValidation: async (user, _req, res) => {
+                onValidation: async ({ user, res }) => {
+                    if (!user) {
+                        return res.send(undefined);
+                    }
                     const userId = user.id;
                     const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
                     const information = { credentialsPath, userId };
@@ -847,7 +856,10 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.POST,
                 subscription: RouteStore.writeGoogleAccessToken,
-                onValidation: async (user, req, res) => {
+                onValidation: async ({ user, req, res }) => {
+                    if (!user) {
+                        return res.send(undefined);
+                    }
                     const userId = user.id;
                     const information = { credentialsPath, userId };
                     res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
@@ -861,8 +873,11 @@ async function PreliminaryFunctions() {
             router.addSupervisedRoute({
                 method: Method.POST,
                 subscription: RouteStore.googlePhotosMediaUpload,
-                onValidation: async (user, req, res) => {
+                onValidation: async ({ user, req, res }) => {
                     const { media } = req.body;
+                    if (!user) {
+                        return res.send(undefined);
+                    }
                     const userId = user.id;
                     if (!userId) {
                         return _error(res, userIdError);
@@ -914,50 +929,62 @@ async function PreliminaryFunctions() {
             const requestError = "Unable to execute download: the body's media items were malformed.";
             const deletionPermissionError = "Cannot perform specialized delete outside of the development environment!";
 
-            DashServer.get("/deleteWithAux", async (_req, res) => {
-                if (release) {
-                    return _permission_denied(res, deletionPermissionError);
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: "/deleteWithAux",
+                onValidation: async ({ res, isRelease }) => {
+                    if (isRelease) {
+                        return _permission_denied(res, deletionPermissionError);
+                    }
+                    await Database.Auxiliary.DeleteAll();
+                    res.redirect(RouteStore.delete);
                 }
-                await Database.Auxiliary.DeleteAll();
-                res.redirect(RouteStore.delete);
-            });
+            })
 
-            DashServer.get("/deleteWithGoogleCredentials", async (req, res) => {
-                if (release) {
-                    return _permission_denied(res, deletionPermissionError);
+            router.addSupervisedRoute({
+                method: Method.GET,
+                subscription: "/deleteWithGoogleCredentials",
+                onValidation: async ({ res, isRelease }) => {
+                    if (isRelease) {
+                        return _permission_denied(res, deletionPermissionError);
+                    }
+                    await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
+                    res.redirect(RouteStore.delete);
                 }
-                await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
-                res.redirect(RouteStore.delete);
             });
 
             const UploadError = (count: number) => `Unable to upload ${count} images to Dash's server`;
-            DashServer.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
-                const contents: { mediaItems: MediaItem[] } = req.body;
-                let failed = 0;
-                if (contents) {
-                    const completed: Opt<DashUploadUtils.UploadInformation>[] = [];
-                    for (let item of contents.mediaItems) {
-                        const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
-                        const found: Opt<DashUploadUtils.UploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
-                        if (!found) {
-                            const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
-                            if (upload) {
-                                completed.push(upload);
-                                await Database.Auxiliary.LogUpload(upload);
+            router.addSupervisedRoute({
+                method: Method.POST,
+                subscription: RouteStore.googlePhotosMediaDownload,
+                onValidation: async ({ req, res }) => {
+                    const contents: { mediaItems: MediaItem[] } = req.body;
+                    let failed = 0;
+                    if (contents) {
+                        const completed: Opt<DashUploadUtils.UploadInformation>[] = [];
+                        for (let item of contents.mediaItems) {
+                            const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
+                            const found: Opt<DashUploadUtils.UploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
+                            if (!found) {
+                                const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
+                                if (upload) {
+                                    completed.push(upload);
+                                    await Database.Auxiliary.LogUpload(upload);
+                                } else {
+                                    failed++;
+                                }
                             } else {
-                                failed++;
+                                completed.push(found);
                             }
-                        } else {
-                            completed.push(found);
                         }
+                        if (failed) {
+                            return _error(res, UploadError(failed));
+                        }
+                        return _success(res, completed);
                     }
-                    if (failed) {
-                        return _error(res, UploadError(failed));
-                    }
-                    return _success(res, completed);
+                    _invalid(res, requestError);
                 }
-                _invalid(res, requestError);
-            });
+            })
 
             const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
                 "number": "_n",

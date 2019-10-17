@@ -3,6 +3,7 @@ import { RouteStore } from "./RouteStore";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
 import * as qs from 'query-string';
+import { Opt } from "../new_fields/Doc";
 
 export default class RouteManager {
     private server: express.Express;
@@ -27,29 +28,34 @@ export default class RouteManager {
      * @param subscribers the forward slash prepended path names (reference and add to RouteStore.ts) that will all invoke the given @param handler 
      */
     addSupervisedRoute(initializer: RouteInitializer) {
-        const { method, subscription, onValidation, onRejection, onError } = initializer;
-        const release = this._isRelease;
+        const { method, subscription, onValidation, onRejection, onError, onGuestAccess } = initializer;
+        const isRelease = this._isRelease;
         let abstracted = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
-            if (user || isSharedDocAccess(target)) {
+            const core = { req, res, isRelease: isRelease };
+            if (user) {
                 try {
-                    await onValidation(user, req, res, release);
+                    await onValidation({ ...core, user: user as any });
                 } catch (e) {
                     if (onError) {
-                        onError(req, res, e, release);
+                        onError({ ...core, error: e });
                     } else {
                         _error(res, `The server encountered an internal error handling ${target}.`, e);
                     }
                 }
             } else {
-                req.session!.target = target;
-                try {
-                    await (onRejection || LoginRedirect)(req, res, release);
-                } catch (e) {
-                    if (onError) {
-                        onError(req, res, e, this._isRelease);
-                    } else {
-                        _error(res, `The server encountered an internal error when rejecting ${target}.`, e);
+                if (isGuestAccess(req) && onGuestAccess) {
+                    await onGuestAccess(core);
+                } else {
+                    req.session!.target = target;
+                    try {
+                        await (onRejection || LoginRedirect)(core);
+                    } catch (e) {
+                        if (onError) {
+                            onError({ ...core, error: e });
+                        } else {
+                            _error(res, `The server encountered an internal error when rejecting ${target}.`, e);
+                        }
                     }
                 }
             }
@@ -84,18 +90,25 @@ export enum Method {
     POST
 }
 
-export type ValidationHandler = (user: DashUserModel, req: express.Request, res: express.Response, isRelease: boolean) => any | Promise<any>;
-export type RejectionHandler = (req: express.Request, res: express.Response, isRelease: boolean) => any | Promise<any>;
-export type ErrorHandler = (req: express.Request, res: express.Response, error: any, isRelease: boolean) => any | Promise<any>;
+export interface CoreArguments {
+    req: express.Request,
+    res: express.Response,
+    isRelease: boolean;
+}
 
-const LoginRedirect: RejectionHandler = (_req, res) => res.redirect(RouteStore.login);
+export type OnValidation = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
+export type OnUnauthenticated = (core: CoreArguments) => any | Promise<any>;
+export type OnError = (core: CoreArguments & { error: any }) => any | Promise<any>;
+
+const LoginRedirect: OnUnauthenticated = ({ res }) => res.redirect(RouteStore.login);
 
 export interface RouteInitializer {
     method: Method;
     subscription: string | RouteSubscriber | (string | RouteSubscriber)[];
-    onValidation: ValidationHandler;
-    onRejection?: RejectionHandler;
-    onError?: ErrorHandler;
+    onValidation: OnValidation;
+    onRejection?: OnUnauthenticated;
+    onGuestAccess?: OnUnauthenticated;
+    onError?: OnError;
 }
 
 const isSharedDocAccess = (target: string) => {
@@ -103,6 +116,13 @@ const isSharedDocAccess = (target: string) => {
     const docAccess = target.startsWith("/doc/");
     return shared && docAccess;
 };
+
+const isGuestAccess = (req: express.Request) => {
+    if (isSharedDocAccess(req.originalUrl)) {
+        return true;
+    }
+    return false;
+}
 
 export const STATUS = {
     OK: 200,

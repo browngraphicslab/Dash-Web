@@ -5,13 +5,21 @@ import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
-import mongoose, { ConnectionStates } from 'mongoose';
+import * as mongoose from 'mongoose';
 
 export namespace Database {
 
     const schema = 'Dash';
     const port = 27017;
     export const url = `mongodb://localhost:${port}/${schema}`;
+
+    enum ConnectionStates {
+        disconnected = 0,
+        connected = 1,
+        connecting = 2,
+        disconnecting = 3,
+        uninitialized = 99,
+    }
 
     export async function tryInitializeConnection() {
         try {
@@ -25,10 +33,14 @@ export namespace Database {
             if (connection.readyState === ConnectionStates.disconnected) {
                 await new Promise<void>((resolve, reject) => {
                     connection.on('error', reject);
+                    connection.on('disconnected', () => {
+                        console.log(`Mongoose connection at ${url} now closed`);
+                    });
                     connection.on('connected', () => {
                         console.log(`Mongoose established default connection at ${url}`);
                         resolve();
                     });
+                    mongoose.connect(url, { useNewUrlParser: true });
                 });
             }
         } catch (e) {

@@ -54,7 +54,10 @@ export namespace SelectionManager {
             let stored = StrCast(targetDoc.backgroundColor);
             stored.length > 0 && (targetColor = stored);
         }
-        InkingControl.Instance.updateSelectedColor(targetColor);
+        const { Instance } = InkingControl;
+        if (Instance) {
+            Instance.updateSelectedColor(targetColor);
+        }
     }, { fireImmediately: true });
 
     export function DeselectDoc(docView: DocumentView): void {

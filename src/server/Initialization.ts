@@ -17,6 +17,7 @@ const compiler = webpack(config);
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as fs from 'fs';
+import * as request from 'request';
 
 export interface InitializationOptions {
     listenAtPort: number;
@@ -27,18 +28,18 @@ export default async function InitializeServer(options: InitializationOptions) {
     const { listenAtPort, routeSetter } = options;
     const server = buildWithMiddleware(express());
 
-    routeSetter(new RouteManager(server, determineEnvironment()));
-
     server.use(express.static(__dirname + RouteStore.public));
     server.use(RouteStore.images, express.static(__dirname + RouteStore.public));
 
     server.use(wdm(compiler, { publicPath: config.output.publicPath }));
     server.use(whm(compiler));
-    server.listen(listenAtPort, () => console.log(`server started at http://localhost:${listenAtPort}`));
 
     registerAuthenticationRoutes(server);
+    registerCorsProxy(server);
 
-    return server;
+    routeSetter(new RouteManager(server, determineEnvironment()));
+
+    server.listen(listenAtPort, () => console.log(`server started at http://localhost:${listenAtPort}`));
 }
 
 const week = 7 * 24 * 60 * 60 * 1000;
@@ -96,4 +97,23 @@ function registerAuthenticationRoutes(server: express.Express) {
 
     server.get(RouteStore.reset, getReset);
     server.post(RouteStore.reset, postReset);
+}
+
+function registerCorsProxy(server: express.Express) {
+    const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
+    server.use(RouteStore.corsProxy, (req, res) => {
+        req.pipe(request(decodeURIComponent(req.url.substring(1)))).on("response", res => {
+            const headers = Object.keys(res.headers);
+            headers.forEach(headerName => {
+                const header = res.headers[headerName];
+                if (Array.isArray(header)) {
+                    res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
+                } else if (header) {
+                    if (headerCharRegex.test(header as any)) {
+                        delete res.headers[headerName];
+                    }
+                }
+            });
+        }).pipe(res);
+    });
 }
