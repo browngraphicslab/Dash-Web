@@ -26,7 +26,7 @@ export namespace Database {
             const { connection } = mongoose;
             process.on('SIGINT', () => {
                 connection.close(() => {
-                    console.log('Mongoose default connection disconnected through app termination');
+                    console.log(`SIGINT closed mongoose connection at ${url}`);
                     process.exit(0);
                 });
             });
@@ -34,10 +34,10 @@ export namespace Database {
                 await new Promise<void>((resolve, reject) => {
                     connection.on('error', reject);
                     connection.on('disconnected', () => {
-                        console.log(`Mongoose connection at ${url} now closed`);
+                        console.log(`disconnecting mongoose connection at ${url}`);
                     });
                     connection.on('connected', () => {
-                        console.log(`Mongoose established default connection at ${url}`);
+                        console.log(`mongoose established default connection at ${url}`);
                         resolve();
                     });
                     mongoose.connect(url, { useNewUrlParser: true });
