@@ -203,7 +203,7 @@ export namespace Docs {
             }],
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox },
-                options: { width: 40, height: 40 },
+                options: { width: 40, height: 40, borderRounding: "100%" },
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
