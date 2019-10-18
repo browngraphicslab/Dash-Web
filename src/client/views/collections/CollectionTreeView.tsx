@@ -82,7 +82,7 @@ class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
-    get defaultExpandedView() { return this.childDocs ? this.fieldKey : this.props.document.defaultExpandedView ? StrCast(this.props.document.defaultExpandedView) : ""; }
+    get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.props.document.defaultExpandedView, "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     @computed get treeViewOpen() { return (BoolCast(this.props.document.treeViewOpen) && !this.props.preventTreeViewOpen) || this._overrideTreeViewOpen; }
     set treeViewOpen(c: boolean) { if (this.props.preventTreeViewOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = c; }
@@ -600,7 +600,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform,
-                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth, () => this.props.Document.chromeStatus !== "disabled",
+                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth, () => !this.props.Document.hideHeaderFields,
                             BoolCast(this.props.Document.preventTreeViewOpen), [])
                     }
                 </ul>
