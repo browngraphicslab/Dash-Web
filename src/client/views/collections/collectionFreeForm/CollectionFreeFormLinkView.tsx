@@ -31,7 +31,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             setTimeout(this.rerender, 50);
             this._alive++;
         }
-    })
+    });
 
     render() {
         let y = this._alive;

@@ -14,6 +14,8 @@ import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
 import { listSpec } from "../../new_fields/Schema";
+import { Scripting } from "./Scripting";
+import { convertDropDataToButtons } from "./DropConverter";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -497,3 +499,4 @@ export namespace DragManager {
         }
     }
 }
+Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); });

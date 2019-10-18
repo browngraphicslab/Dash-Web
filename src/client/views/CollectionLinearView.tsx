@@ -47,46 +47,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         }
     }
 
-    makeTemplate = (doc: Doc): boolean => {
-        let layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
-        let layout = StrCast(layoutDoc.layout).match(/fieldKey={"[^"]*"}/)![0];
-        let fieldKey = layout.replace('fieldKey={"', "").replace(/"}$/, "");
-        let docs = DocListCast(layoutDoc[fieldKey]);
-        let any = false;
-        docs.map(d => {
-            if (!StrCast(d.title).startsWith("-")) {
-                any = true;
-                return Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
-            }
-            if (d.type === DocumentType.COL) return this.makeTemplate(d);
-            return false;
-        });
-        return any;
-    }
-
-    drop = action((e: Event, de: DragManager.DropEvent) => {
-        (de.data as DragManager.DocumentDragData).draggedDocuments.map((doc, i) => {
-            let dbox = doc;
-            if (!doc.onDragStart && !doc.onClick && this.props.Document.convertToButtons && doc.viewType !== CollectionViewType.Linear) {
-                let layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
-                if (layoutDoc.type === DocumentType.COL) {
-                    layoutDoc.isTemplateDoc = this.makeTemplate(layoutDoc);
-                } else {
-                    layoutDoc.isTemplateDoc = (layoutDoc.type === DocumentType.TEXT || layoutDoc.layout instanceof Doc) && de.data instanceof DragManager.DocumentDragData && !de.data.userDropAction;
-                }
-                dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
-                dbox.dragFactory = layoutDoc;
-                dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
-                dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
-            } else if (doc.viewType === CollectionViewType.Linear) {
-                dbox.ignoreClick = true;
-            }
-            (de.data as DragManager.DocumentDragData).droppedDocuments[i] = dbox;
-        });
-        e.stopPropagation();
-        return super.drop(e, de);
-    });
-
     public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     dimension = () => NumCast(this.props.Document.height); // 2 * the padding

@@ -6,7 +6,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -23,6 +23,8 @@ import React = require("react");
 var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { CollectionViewType } from "./CollectionBaseView";
+import { ObjectField } from "../../../new_fields/ObjectField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -126,6 +128,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
+            (this.props.Document.dropConverter instanceof ScriptField) &&
+                this.props.Document.dropConverter.script.run({ dragData: de.data });
             if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>

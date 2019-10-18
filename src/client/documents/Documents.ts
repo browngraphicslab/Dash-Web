@@ -105,7 +105,7 @@ export interface DocumentOptions {
     yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     panel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
-    convertToButtons?: boolean; // whether documents dropped onto a collection should be converted to buttons that will construct the dropped document
+    dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     // [key: string]: Opt<Field>;
 }
 

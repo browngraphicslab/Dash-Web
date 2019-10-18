@@ -13,6 +13,7 @@ import { Cast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { DragManager } from "../../../client/util/DragManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -61,7 +62,7 @@ export class CurrentUserUtils {
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
             unchecked: data.unchecked ? ComputedField.MakeFunction(data.unchecked) : undefined, activePen: data.activePen,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory
+            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
         }));
     }
 
@@ -69,7 +70,8 @@ export class CurrentUserUtils {
     static setupCreatePanel(sidebarContainer: Doc, doc: Doc) {
         // setup a masonry view of all he creators
         const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
-            width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons"
+            width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons",
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), yMargin: 0
         });
         // setup a color picker
         const color = Docs.Create.ColorDocument({
@@ -81,7 +83,7 @@ export class CurrentUserUtils {
             panel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, chromeStatus: "disabled", title: "creator stack"
             }),
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel"),
         });
     }
 
@@ -148,7 +150,8 @@ export class CurrentUserUtils {
 
         doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc], {
             title: "expanding buttons", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0",
-            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, convertToButtons: true,
+            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true,
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         });
     }
 

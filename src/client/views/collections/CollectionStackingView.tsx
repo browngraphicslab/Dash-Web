@@ -65,7 +65,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             let style = this.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(pair.layout as Doc, pair.data, dxf, width)}
+                {pair.layout instanceof Doc && this.getDisplayDoc(pair.layout, pair.data, dxf, width)}
             </div>;
         });
     }
