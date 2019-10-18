@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import _ from "lodash";
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -43,6 +43,8 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { siteVerification } from 'googleapis/build/src/apis/siteVerification';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -369,7 +371,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Dictate", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -384,6 +386,27 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }));
 
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: funcs, icon: "asterisk" });
+    }
+
+    @observable _recording = false;
+
+    recordDictation = () => {
+        //this._editorView!.focus();
+        if (this._recording) return;
+        runInAction(() => this._recording = true);
+        DictationManager.Controls.listen({
+            interimHandler: this.setCurrentBulletContent,
+            continuous: { indefinite: false },
+        }).then(results => {
+            if (results && [DictationManager.Controls.Infringed].includes(results)) {
+                DictationManager.Controls.stop();
+            }
+            this._editorView!.focus();
+        });
+    }
+    stopDictation = (abort: boolean) => {
+        runInAction(() => this._recording = false);
+        DictationManager.Controls.stop(!abort);
     }
 
     recordBullet = async () => {
@@ -902,6 +925,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey);
+        if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
@@ -965,7 +989,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
     onBlur = (e: any) => {
-        DictationManager.Controls.stop(false);
+        //DictationManager.Controls.stop(false);
         if (this._undoTyping) {
             this._undoTyping.end();
             this._undoTyping = undefined;
@@ -986,6 +1010,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
+        if (this._recording) { this.stopDictation(true); setTimeout(() => this.recordDictation(), 250); }
     }
 
     @action
@@ -1001,7 +1026,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     render() {
-        let style = "hidden";
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground
             ? "none" : "all";
@@ -1010,10 +1034,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         }
         return (
-            <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
+            <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    overflowY: "auto",
-                    maxHeight: "100%",
                     height: this.layoutDoc.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
@@ -1035,6 +1057,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerLeave={action(() => this._entered = false)}
             >
                 <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.props.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+
+                <div className="formattedTextBox-dictation"
+                    onClick={e => {
+                        this._recording ? this.stopDictation(true) : this.recordDictation();
+                        setTimeout(() => this._editorView!.focus(), 500);
+                        e.stopPropagation();
+                    }} >
+                    <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.2 }} icon={"file-audio"} size="sm" />
+                </div>
             </div>
         );
     }

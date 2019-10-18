@@ -64,7 +64,7 @@ export namespace DictationManager {
         const intraSession = ". ";
         const interSession = " ... ";
 
-        let isListening = false;
+        export let isListening = false;
         let isManuallyStopped = false;
 
         let current: string | undefined = undefined;
@@ -200,6 +200,7 @@ export namespace DictationManager {
             if (!isListening || !recognizer) {
                 return;
             }
+            isListening = false;
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
             // let main = MainView.Instance;
