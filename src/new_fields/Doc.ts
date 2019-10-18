@@ -592,7 +592,6 @@ export namespace Doc {
         target.ignoreAspect = templateDoc.nativeWidth ? true : false;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
         target.layout = layoutCustomLayout;
-        target.backgroundLayout = layoutCustomLayout.backgroundLayout;
 
         target.layoutNative = Cast(templateDoc.layoutNative, Doc) as Doc;
         target.layoutCustom = layoutCustom;
@@ -602,19 +601,14 @@ export namespace Doc {
     export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false): boolean {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
-        let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
         if (fieldTemplate.layout instanceof Doc) {
             fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
-        }
-        if (backgroundLayout) {
-            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
         }
 
         fieldTemplate.templateField = metadataFieldName;
         fieldTemplate.title = metadataFieldName;
         fieldTemplate.isTemplateField = true;
-        fieldTemplate.backgroundLayout = backgroundLayout;
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
         */

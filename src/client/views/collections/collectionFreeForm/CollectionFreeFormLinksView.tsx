@@ -68,9 +68,7 @@ export class CollectionFreeFormLinksView extends React.Component {
         //     });
     }
     componentWillUnmount() {
-        if (this._brushReactionDisposer) {
-            this._brushReactionDisposer();
-        }
+        this._brushReactionDisposer && this._brushReactionDisposer();
     }
     @computed
     get uniqueConnections() {

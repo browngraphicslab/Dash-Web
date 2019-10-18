@@ -111,7 +111,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         Doc.GetProto(docTemplate).layoutNative = layoutNative;
                         swapViews(fieldTemplate, "", "layoutNative", layoutNative);
                         layoutNative.layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                        layoutNative.backgroundLayout = StrCast(fieldTemplateView.props.Document.backgroundLayout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                     }
                 }
             }
@@ -343,7 +342,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
 
         if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
-            const layout = StrCast(doc.backgroundLayout, StrCast(doc.layout, FieldView.LayoutString(DocumentView)));
+            const layout = StrCast(doc.layout, FieldView.LayoutString(DocumentView));
             iconDoc = this.createIcon([docView], layout);
         }
         return iconDoc;

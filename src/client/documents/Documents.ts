@@ -80,7 +80,6 @@ export interface DocumentOptions {
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
-    backgroundLayout?: string;
     chromeStatus?: string;
     columnWidth?: number;
     fontSize?: number;
@@ -127,7 +126,6 @@ export namespace Docs {
             layout: {
                 view: LayoutSource,
                 ext?: string, // optional extension field for layout source
-                collectionView?: CollectionViewType
             },
             options?: Partial<DocumentOptions>
         };
@@ -142,7 +140,7 @@ export namespace Docs {
                 options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
+                layout: { view: HistogramBox },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.QUERY, {
@@ -290,15 +288,8 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            let primary = layout.view.LayoutString(layout.ext);
-            let collectionView = layout.collectionView;
-            if (collectionView) {
-                options.layout = collectionView[0].LayoutString(collectionView[1], collectionView[2]);
-                options.backgroundLayout = primary;
-            } else {
-                options.layout = primary;
-            }
-            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: primary });
+            options.layout = layout.view.LayoutString(layout.ext);
+            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
         }
 
     }

@@ -467,22 +467,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             getScale: this.getScale
         };
     }
-    getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
-        return {
-            ...this.props,
-            ScreenToLocalTransform: this.getTransform,
-            PanelWidth: layoutDoc[WidthSym],
-            PanelHeight: layoutDoc[HeightSym],
-            ContentScaling: returnOne,
-            ContainingCollectionView: this.props.ContainingCollectionView,
-            focus: this.focusDocument,
-            backgroundColor: returnEmptyString,
-            parentActive: this.props.active,
-            bringToFront: this.bringToFront,
-            zoomToScale: this.zoomToScale,
-            getScale: this.getScale
-        };
-    }
 
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
         const script = this.Document.arrangeScript;
@@ -682,7 +666,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private childViews = () => {
         let children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
         return [
-            <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
             ...children,
             ...this.views,
         ];
@@ -712,26 +695,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
                 {this.overlayViews}
-                <CollectionFreeFormOverlayView  {...this.props} {...this.getDocumentViewProps(this.props.Document)} />
             </div>
         );
-    }
-}
-
-@observer
-class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
-    render() {
-        return <DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
-            renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />;
-    }
-}
-
-@observer
-class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
-    render() {
-        return !this.props.Document.backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-                renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
 }
 

@@ -1,5 +1,5 @@
 import { action, computed, observable } from 'mobx';
-import { Doc, DocListCastAsync } from '../../new_fields/Doc';
+import { Doc, DocListCastAsync, DocListCast } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { List } from '../../new_fields/List';
 import { Cast, NumCast, StrCast } from '../../new_fields/Types';
@@ -100,7 +100,13 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)).reduce((pairs, dv) => {
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)
+            || DocumentManager.Instance.DocumentViews.some(dv2 => {
+                let init = dv2.isSelected() || Doc.IsBrushed(dv2.props.Document);
+                let rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));
+                return init && rest;
+            })
+        ).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 let linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
@@ -111,7 +117,6 @@ export class DocumentManager {
                 });
                 return pairs;
             }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
 

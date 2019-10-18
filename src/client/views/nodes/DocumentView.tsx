@@ -163,6 +163,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
+        Doc.UnBrushDoc(this.props.Document);
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
@@ -697,11 +698,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     opacity: this.Document.opacity
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-                onPointerEnter={() => {
-                    Doc.UnBrushAllDocs();
-                    DocListCast(this.props.Document.links).map(Doc.BrushDoc);
-                    Doc.BrushDoc(this.props.Document);
-                }} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
+                onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
                 {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
                     <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
@@ -739,7 +736,6 @@ export async function swapViews(doc: Doc, newLayoutField: string, oldLayoutField
         oldLayoutExt.nativeWidth = doc.nativeWidth;
         oldLayoutExt.nativeHeight = doc.nativeHeight;
         oldLayoutExt.ignoreAspect = doc.ignoreAspect;
-        oldLayoutExt.backgroundLayout = doc.backgroundLayout;
         oldLayoutExt.type = doc.type;
         oldLayoutExt.layout = doc.layout;
     }
@@ -752,7 +748,6 @@ export async function swapViews(doc: Doc, newLayoutField: string, oldLayoutField
         doc.nativeWidth = newLayoutExt.nativeWidth;
         doc.nativeHeight = newLayoutExt.nativeHeight;
         doc.ignoreAspect = newLayoutExt.ignoreAspect;
-        doc.backgroundLayout = newLayoutExt.backgroundLayout;
         doc.type = newLayoutExt.type;
         doc.layout = await newLayoutExt.layout;
     }
