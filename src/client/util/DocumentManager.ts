@@ -42,8 +42,8 @@ export class DocumentManager {
         if (toReturn.length === 0) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
-                if (doc && doc[Id]) {
-                    if (doc[Id] === id) { toReturn.push(view); }
+                if (doc && doc[Id] && doc[Id] === id) {
+                    toReturn.push(view);
                 }
             });
         }
@@ -90,42 +90,25 @@ export class DocumentManager {
         return views.length ? views[0] : undefined;
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
-
         let toReturn: DocumentView[] = [];
 
-        //gets document view that is in a freeform canvas collection
-        DocumentManager.Instance.DocumentViews.map(view => {
-            let doc = view.props.Document;
-
-            if (doc === toFind) {
-                toReturn.push(view);
-            } else {
-                if (Doc.AreProtosEqual(doc, toFind)) {
-                    toReturn.push(view);
-                }
-            }
-        });
+        DocumentManager.Instance.DocumentViews.map(view =>
+            Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }
 
     @computed
     public get LinkedDocumentViews() {
-        console.log("START");
         let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)).reduce((pairs, dv) => {
-            console.log("DOC = " + dv.props.Document.title + " " + dv.props.Document.layout);
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
-                if (link) {
-                    let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                    if (linkToDoc) {
-                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                            if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
-                                pairs.push({ a: dv, b: docView1, l: link });
-                            }
-                        });
+                let linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                    if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
+                        pairs.push({ a: dv, b: docView1, l: link });
                     }
-                }
+                });
                 return pairs;
             }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
             // }
@@ -134,8 +117,6 @@ export class DocumentManager {
 
         return pairs;
     }
-
-
 
     public jumpToDocument = async (targetDoc: Doc, willZoom: boolean, dockFunc?: (doc: Doc) => void, docContext?: Doc, linkId?: string, closeContextIfNotFound: boolean = false): Promise<void> => {
         let highlight = () => {

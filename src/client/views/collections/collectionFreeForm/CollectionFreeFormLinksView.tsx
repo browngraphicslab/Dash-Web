@@ -9,6 +9,7 @@ import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
 import { Utils } from "../../../../Utils";
 import { SelectionManager } from "../../../util/SelectionManager";
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
@@ -74,27 +75,21 @@ export class CollectionFreeFormLinksView extends React.Component {
     @computed
     get uniqueConnections() {
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
-            let srcViews = [connection.a];
-            let targetViews = [connection.b];
-
-            let possiblePairs: { a: DocumentView, b: DocumentView, }[] = [];
-            srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv, b: tv })));
-            possiblePairs.map(possiblePair => {
-                if (!drawnPairs.reduce((found, drawnPair) => {
-                    let match1 = (Doc.AreProtosEqual(possiblePair.a.props.Document, drawnPair.a.props.Document) && Doc.AreProtosEqual(possiblePair.b.props.Document, drawnPair.b.props.Document));
-                    let match2 = (Doc.AreProtosEqual(possiblePair.a.props.Document, drawnPair.b.props.Document) && Doc.AreProtosEqual(possiblePair.b.props.Document, drawnPair.a.props.Document));
-                    let match = match1 || match2;
-                    if (match && !drawnPair.l.reduce((found, link) => found || link[Id] === connection.l[Id], false)) {
-                        drawnPair.l.push(connection.l);
-                    }
-                    return match || found;
-                }, false)) {
-                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
+            if (!drawnPairs.reduce((found, drawnPair) => {
+                let match1 = (connection.a === drawnPair.a && connection.b === drawnPair.b);
+                let match2 = (connection.a === drawnPair.b && connection.b === drawnPair.a);
+                let match = match1 || match2;
+                if (match && !drawnPair.l.reduce((found, link) => found || link[Id] === connection.l[Id], false)) {
+                    drawnPair.l.push(connection.l);
                 }
-            });
+                return match || found;
+            }, false)) {
+                drawnPairs.push({ a: connection.a, b: connection.b, l: [connection.l] });
+            }
             return drawnPairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
-        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.filter(c => c.a.props.Document.type === DocumentType.LINK) // get rid of the filter to show links to documents in addition to document anchors
+            .map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {

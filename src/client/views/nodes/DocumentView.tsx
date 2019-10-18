@@ -697,10 +697,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     opacity: this.Document.opacity
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-                onPointerEnter={() => { Doc.UnBrushAllDocs(); Doc.BrushDoc(this.props.Document); }} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
+                onPointerEnter={() => {
+                    Doc.UnBrushAllDocs();
+                    DocListCast(this.props.Document.links).map(Doc.BrushDoc);
+                    Doc.BrushDoc(this.props.Document);
+                }} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
                 {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
-                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}> <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} /> </div>)}
+                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
+                        <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />
+                    </div>)}
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
                         (<div className="documentView-searchWrapper">
