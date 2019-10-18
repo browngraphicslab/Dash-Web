@@ -6,6 +6,7 @@ import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
+import { observable, action } from "mobx";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -15,8 +16,25 @@ export interface CollectionFreeFormLinkViewProps {
 
 @observer
 export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFormLinkViewProps> {
+    @observable _alive: number = 0;
+    @action
+    componentDidMount() {
+        this._alive = 1;
+        setTimeout(this.rerender, 50);
+    }
+    @action
+    componentWillUnmount() {
+        this._alive = 0;
+    }
+    rerender = action(() => {
+        if (this._alive) {
+            setTimeout(this.rerender, 50);
+            this._alive++;
+        }
+    })
 
     render() {
+        let y = this._alive;
         let acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
         let bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
         let a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
