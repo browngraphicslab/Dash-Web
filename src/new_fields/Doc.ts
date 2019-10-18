@@ -734,7 +734,7 @@ export namespace Doc {
 
     }
     export function UnBrushAllDocs() {
-        manager.BrushedDoc.clear();
+        brushManager.BrushedDoc.clear();
     }
 
     export function setChildLayout(target: Doc, source?: Doc) {

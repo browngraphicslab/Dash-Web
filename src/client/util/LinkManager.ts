@@ -79,7 +79,7 @@ export class LinkManager {
         let related = LinkManager.Instance.getAllLinks().filter(link => {
             let protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, null));
             let protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
-            return protomatch1 || protomatch2;
+            return protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor);
         });
         return related;
     }
@@ -244,8 +244,10 @@ export class LinkManager {
     public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
             return Cast(linkDoc.anchor2, Doc, null);
-        } else {
+        } else if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor2, Doc, null))) {
             return Cast(linkDoc.anchor1, Doc, null);
+        } else if (Doc.AreProtosEqual(anchor, linkDoc)) {
+            return linkDoc;
         }
     }
 }

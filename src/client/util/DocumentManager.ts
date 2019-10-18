@@ -9,6 +9,7 @@ import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
+import { DocumentType } from '../documents/DocumentTypes';
 
 
 export class DocumentManager {
@@ -110,14 +111,18 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
+        console.log("START");
         let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)).reduce((pairs, dv) => {
+            console.log("DOC = " + dv.props.Document.title + " " + dv.props.Document.layout);
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
                     let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
                     if (linkToDoc) {
                         DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                            pairs.push({ a: dv, b: docView1, l: link });
+                            if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
+                                pairs.push({ a: dv, b: docView1, l: link });
+                            }
                         });
                     }
                 }

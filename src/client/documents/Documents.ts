@@ -724,6 +724,7 @@ export namespace DocUtils {
             linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
             linkDocProto.width = linkDocProto.height = 0;
             linkDocProto.isBackground = true;
+            linkDocProto.isButton = true;
 
             LinkManager.Instance.addLink(linkDocProto);
 

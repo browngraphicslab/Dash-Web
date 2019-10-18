@@ -1,17 +1,17 @@
 import { computed, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../../new_fields/Doc";
+import { Doc } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { Cast, FieldValue } from "../../../../new_fields/Types";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
-import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
+import { Utils } from "../../../../Utils";
+import { SelectionManager } from "../../../util/SelectionManager";
 
 @observer
-export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {
+export class CollectionFreeFormLinksView extends React.Component {
 
     _brushReactionDisposer?: IReactionDisposer;
     componentDidMount() {
@@ -71,35 +71,18 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             this._brushReactionDisposer();
         }
     }
-    documentAnchors(view: DocumentView) {
-        let equalViews = [view];
-        let containerDoc = FieldValue(Cast(view.props.Document.annotationOn, Doc));
-        if (containerDoc) {
-            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.proto!);
-        }
-        if (view.props.ContainingCollectionDoc) {
-            let collid = view.props.ContainingCollectionDoc[Id];
-            DocListCast(this.props.Document[this.props.fieldKey]).
-                filter(child =>
-                    child[Id] === collid).map(view =>
-                        DocumentManager.Instance.getDocumentViews(view).map(view =>
-                            equalViews.push(view)));
-        }
-        return equalViews.filter(sv => sv.props.ContainingCollectionDoc === this.props.Document);
-    }
-
     @computed
     get uniqueConnections() {
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
-            let srcViews = this.documentAnchors(connection.a);
-            let targetViews = this.documentAnchors(connection.b);
+            let srcViews = [connection.a];
+            let targetViews = [connection.b];
 
-            let possiblePairs: { a: Doc, b: Doc, }[] = [];
-            srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
+            let possiblePairs: { a: DocumentView, b: DocumentView, }[] = [];
+            srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv, b: tv })));
             possiblePairs.map(possiblePair => {
                 if (!drawnPairs.reduce((found, drawnPair) => {
-                    let match1 = (Doc.AreProtosEqual(possiblePair.a, drawnPair.a) && Doc.AreProtosEqual(possiblePair.b, drawnPair.b));
-                    let match2 = (Doc.AreProtosEqual(possiblePair.a, drawnPair.b) && Doc.AreProtosEqual(possiblePair.b, drawnPair.a));
+                    let match1 = (Doc.AreProtosEqual(possiblePair.a.props.Document, drawnPair.a.props.Document) && Doc.AreProtosEqual(possiblePair.b.props.Document, drawnPair.b.props.Document));
+                    let match2 = (Doc.AreProtosEqual(possiblePair.a.props.Document, drawnPair.b.props.Document) && Doc.AreProtosEqual(possiblePair.b.props.Document, drawnPair.a.props.Document));
                     let match = match1 || match2;
                     if (match && !drawnPair.l.reduce((found, link) => found || link[Id] === connection.l[Id], false)) {
                         drawnPair.l.push(connection.l);
@@ -110,16 +93,15 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                 }
             });
             return drawnPairs;
-        }, [] as { a: Doc, b: Doc, l: Doc[] }[]);
-        return connections.map(c => <CollectionFreeFormLinkView key={c.l.reduce((p, l) => p + l[Id], "")} A={c.a} B={c.b} LinkDocs={c.l}
-            removeDocument={this.props.removeDocument} addDocument={this.props.addDocument} />);
+        }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
+        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {
         return (
             <div className="collectionfreeformlinksview-container">
                 <svg className="collectionfreeformlinksview-svgCanvas">
-                    {this.uniqueConnections}
+                    {SelectionManager.GetIsDragging() ? (null) : this.uniqueConnections}
                 </svg>
                 {this.props.children}
             </div>
