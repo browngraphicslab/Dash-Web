@@ -23,5 +23,6 @@ export enum DocumentType {
     PRESELEMENT = "preselement",
     QUERY = "search",
     COLOR = "color",
-    DOCULINK = "doculink"
+    DOCULINK = "doculink",
+    PDFANNO = "pdfanno"
 }

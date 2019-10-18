@@ -183,7 +183,8 @@ export class MainView extends React.Component {
             y: 400,
             width: this._panelWidth * .7,
             height: this._panelHeight,
-            title: "My Blank Collection"
+            title: "My Blank Collection",
+            backgroundColor: "white"
         };
         let workspaces: FieldResult<Doc>;
         let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);

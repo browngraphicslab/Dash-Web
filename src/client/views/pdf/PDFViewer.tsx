@@ -25,6 +25,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
 import { DocAnnotatableComponent } from "../DocComponent";
 import { documentSchema } from "../nodes/DocumentView";
+import { DocumentType } from "../../documents/DocumentTypes";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -249,6 +250,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
         let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
         let annoDocs: Doc[] = [];
+        let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
         if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             let anno = this._savedAnnotations.values()[0][0];
@@ -262,6 +264,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             annoDocs.push(annoDoc);
             anno.remove();
             mainAnnoDoc = annoDoc;
+            mainAnnoDocProto.type = DocumentType.COL;
             mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
             mainAnnoDocProto.y = annoDoc.y;
         } else {
@@ -276,9 +279,12 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 annoDocs.push(annoDoc);
                 anno.remove();
                 (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
+                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc.width), maxX));
             }));
 
             mainAnnoDocProto.y = Math.max(minY, 0);
+            mainAnnoDocProto.x = Math.max(maxX, 0);
+            mainAnnoDocProto.type = DocumentType.PDFANNO;
             mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         }
         mainAnnoDocProto.title = "Annotation on " + StrCast(this.props.Document.title);

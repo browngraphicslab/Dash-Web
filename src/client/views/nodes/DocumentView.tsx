@@ -629,6 +629,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DataDoc={this.props.DataDoc} />);
     }
     linkEndpoint = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2";
+    linkEndpointDoc = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? Cast(linkDoc.anchor1, Doc) as Doc : Cast(linkDoc.anchor2, Doc) as Doc;
 
     render() {
         if (!this.props.Document) return (null);
@@ -701,6 +702,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
                 {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
+                    //this.linkEndpointDoc(d).type === DocumentType.PDFANNO ? (null) :
                     <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
                         <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />
                     </div>)}

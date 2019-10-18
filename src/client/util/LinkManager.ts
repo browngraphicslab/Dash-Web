@@ -1,10 +1,7 @@
-import { observable, action } from "mobx";
-import { StrCast, Cast, FieldValue } from "../../new_fields/Types";
 import { Doc, DocListCast } from "../../new_fields/Doc";
-import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
-import { Id } from "../../new_fields/FieldSymbols";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { listSpec } from "../../new_fields/Schema";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
 import { Scripting } from "./Scripting";
 
@@ -242,13 +239,11 @@ export class LinkManager {
     //TODO This should probably return undefined if there isn't an opposite anchor
     //TODO This should also await the return value of the anchor so we don't filter out promises
     public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
-        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
-            return Cast(linkDoc.anchor2, Doc, null);
-        } else if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor2, Doc, null))) {
-            return Cast(linkDoc.anchor1, Doc, null);
-        } else if (Doc.AreProtosEqual(anchor, linkDoc)) {
-            return linkDoc;
-        }
+        let a1 = Cast(linkDoc.anchor1, Doc, null);
+        let a2 = Cast(linkDoc.anchor2, Doc, null);
+        if (Doc.AreProtosEqual(anchor, a1)) return a2;
+        if (Doc.AreProtosEqual(anchor, a2)) return a1;
+        if (Doc.AreProtosEqual(anchor, linkDoc)) return linkDoc;
     }
 }
 Scripting.addGlobal(function links(doc: any) {

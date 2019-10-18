@@ -100,10 +100,11 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)
-            || DocumentManager.Instance.DocumentViews.some(dv2 => {
-                let init = dv2.isSelected() || Doc.IsBrushed(dv2.props.Document);
-                let rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv =>
+            dv.isSelected() || Doc.IsBrushed(dv.props.Document)  // draw links from DocumentViews that are selected or brushed OR
+            || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
+                let rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
+                let init = dv2.isSelected() || Doc.IsBrushed(dv2.props.Document);                                    // on a view that is selected or brushed
                 return init && rest;
             })
         ).reduce((pairs, dv) => {

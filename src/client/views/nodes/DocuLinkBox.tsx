@@ -2,7 +2,7 @@ import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Utils } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragLinksAsDocuments } from "../../util/DragManager";
@@ -11,6 +11,7 @@ import { documentSchema } from "./DocumentView";
 import "./DocuLinkBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
+import { DocumentType } from "../../documents/DocumentTypes";
 
 type DocLinkSchema = makeInterface<[typeof documentSchema]>;
 const DocLinkDocument = makeInterface(documentSchema);
@@ -65,13 +66,15 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         e.stopPropagation();
     }
     render() {
+        let anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
+        let hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;
         let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
         let c = StrCast(this.props.Document.backgroundColor, "lightblue");
         return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={StrCast((this.props.Document[this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1"]! as Doc).title)}
             ref={this._ref} style={{
                 background: c, width: "25px", left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
-                transform: `scale(${1 / this.props.ContentScaling()})`
+                transform: `scale(${hasAnchor ? 0.333 : 1 / this.props.ContentScaling()})`
             }} />;
     }
 }
