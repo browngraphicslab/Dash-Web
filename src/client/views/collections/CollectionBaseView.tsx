@@ -25,6 +25,7 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
+    Staff
 }
 
 export namespace CollectionViewType {

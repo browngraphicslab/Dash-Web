@@ -125,6 +125,7 @@ export class MainView extends React.Component {
         library.add(faBolt);
         library.add(faChevronRight);
         library.add(faEllipsisV);
+        library.add(faMusic);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
