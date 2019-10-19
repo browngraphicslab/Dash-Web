@@ -12,6 +12,7 @@ import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
 import { RichTextField } from "../new_fields/RichTextField";
 import { ToPlainText } from "../new_fields/FieldSymbols";
+import { listSpec } from "../new_fields/Schema";
 
 export interface RecommenderProps {
     title: string;
@@ -148,7 +149,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false, image: boolean = false) {
         let fielddata = Cast(dataDoc.data, RichTextField);
         if (image && extDoc.generatedTags) {
-            console.log(StrCast(extDoc.generatedTags));
+            console.log(Cast(extDoc.generatedTags, listSpec("string")));
         }
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";

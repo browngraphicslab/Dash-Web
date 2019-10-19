@@ -31,7 +31,7 @@ import { WebBox } from "./WebBox";
 import React = require("react");
 import { Without, OmitKeys } from "../../../Utils";
 import { Cast } from "../../../new_fields/Types";
-import { RecommendationsBox } from "../../views/Recommendations";
+import { RecommendationsBox } from "../RecommendationsBox";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -96,7 +96,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 components={{
                     FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox, ColorBox, DocuLinkBox
+                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox, ColorBox, DocuLinkBox, RecommendationsBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

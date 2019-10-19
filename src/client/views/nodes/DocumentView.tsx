@@ -34,7 +34,7 @@ import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import requestPromise = require('request-promise');
-import { RecommendationsBox } from '../Recommendations';
+import { RecommendationsBox } from '../RecommendationsBox';
 import { SearchUtil } from '../../util/SearchUtil';
 import { ClientRecommender } from '../../ClientRecommender';
 import { DocumentType } from '../../documents/DocumentTypes';

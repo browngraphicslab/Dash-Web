@@ -6,7 +6,7 @@ import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
-import { RecommendationsBox } from "./Recommendations";
+import { RecommendationsBox } from "./RecommendationsBox";
 import SharingManager from "../util/SharingManager";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Cast, PromiseValue } from "../../new_fields/Types";

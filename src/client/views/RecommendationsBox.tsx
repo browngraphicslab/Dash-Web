@@ -2,7 +2,7 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action } from "mobx";
 import Measure from "react-measure";
-import "./Recommendations.scss";
+import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { DocumentIcon } from "./nodes/DocumentIcon";
 import { StrCast, NumCast } from "../../new_fields/Types";
