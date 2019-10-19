@@ -117,13 +117,13 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleChrome = (): void => {
         this.props.docs.map(dv => {
-            let layout = dv.Document.layout instanceof Doc ? dv.Document.layout : dv.Document;
+            let layout = Doc.Layout(dv.Document);
             layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
 
     render() {
-        let layout = this.props.docs[0].Document.layout instanceof Doc ? this.props.docs[0].Document.layout : this.props.docs[0].Document;
+        let layout = Doc.Layout(this.props.docs[0].Document);
         let templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));

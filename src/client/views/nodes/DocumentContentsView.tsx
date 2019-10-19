@@ -77,11 +77,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         }
         return this.props.DataDoc;
     }
-    get layoutDoc() {
-        // if this document's layout field contains a document (ie, a rendering template), then we will use that
-        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
-        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
-    }
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
 
     CreateBindings(): JsxBindings {
         let list = {

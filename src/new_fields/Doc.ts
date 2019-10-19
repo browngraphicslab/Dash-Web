@@ -624,7 +624,7 @@ export namespace Doc {
         setTimeout(action(() => {
             !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
             let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
-            let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
+            let layoutDelegate = Doc.Layout(fieldTemplate);
             layoutDelegate.layout = layout;
             fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
             if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
@@ -633,16 +633,18 @@ export namespace Doc {
         return true;
     }
 
-    export function overlapping(doc: Doc, doc2: Doc, clusterDistance: number) {
+    export function overlapping(doc1: Doc, doc2: Doc, clusterDistance: number) {
+        let doc2Layout = Doc.Layout(doc2);
+        let doc1Layout = Doc.Layout(doc1);
         var x2 = NumCast(doc2.x) - clusterDistance;
         var y2 = NumCast(doc2.y) - clusterDistance;
-        var w2 = NumCast(doc2.width) + clusterDistance;
-        var h2 = NumCast(doc2.height) + clusterDistance;
-        var x = NumCast(doc.x) - clusterDistance;
-        var y = NumCast(doc.y) - clusterDistance;
-        var w = NumCast(doc.width) + clusterDistance;
-        var h = NumCast(doc.height) + clusterDistance;
-        return doc.z === doc2.z && intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 });
+        var w2 = NumCast(doc2Layout.width) + clusterDistance;
+        var h2 = NumCast(doc2Layout.height) + clusterDistance;
+        var x = NumCast(doc1.x) - clusterDistance;
+        var y = NumCast(doc1.y) - clusterDistance;
+        var w = NumCast(doc1Layout.width) + clusterDistance;
+        var h = NumCast(doc1Layout.height) + clusterDistance;
+        return doc1.z === doc2.z && intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 });
     }
 
     export function isBrushedHighlightedDegree(doc: Doc) {
@@ -663,6 +665,10 @@ export namespace Doc {
         @observable _user_doc: Doc = undefined!;
         @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
+
+    // if this document's layout field contains a document (ie, a rendering template), then we will use that
+    // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
+    export function Layout(doc: Doc) { return doc.layout instanceof Doc ? doc.layout : doc; }
     const manager = new DocData();
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }

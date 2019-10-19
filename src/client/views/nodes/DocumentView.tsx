@@ -144,8 +144,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active() { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
-    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    @computed get nativeWidth() { return this.layoutDoc.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
     @action
@@ -287,8 +287,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
-    @undoBatch
-    static makeNativeViewClicked = async (doc: Doc): Promise<void> => swapViews(doc, "layoutNative", "layoutCustom")
+    static makeNativeViewClicked = async (doc: Doc): Promise<void> => {
+        undoBatch(() => swapViews(doc, "layoutNative", "layoutCustom"))();
+    }
 
     static makeCustomViewClicked = async (doc: Doc, dataDoc: Opt<Doc>) => {
         const batch = UndoManager.StartBatch("CustomViewClicked");
@@ -580,7 +581,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document
     get layoutDoc(): Document {
-        return Document(this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document);
+        return Document(Doc.Layout(this.props.Document));
     }
 
     // does Document set a layout prop 

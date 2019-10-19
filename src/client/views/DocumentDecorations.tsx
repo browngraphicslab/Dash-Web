@@ -470,7 +470,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(element => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
-                let layoutDoc = PositionDocument(element.props.Document.layout instanceof Doc ? element.props.Document.layout : element.props.Document);
+                let layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
                 let width = (layoutDoc.width || 0);
@@ -478,8 +478,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
-                layoutDoc.x = (layoutDoc.x || 0) + dX * (actualdW - width);
-                layoutDoc.y = (layoutDoc.y || 0) + dY * (actualdH - height);
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplateField ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
                 let fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
                 if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {

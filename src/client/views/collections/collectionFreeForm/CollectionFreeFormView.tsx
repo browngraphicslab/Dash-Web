@@ -130,22 +130,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let firstLayoutDoc = de.data.droppedDocuments[0].layout instanceof Doc ? de.data.droppedDocuments[0].layout : de.data.droppedDocuments[0];
-                    let z = NumCast(firstLayoutDoc.z);
+                    let firstDoc = de.data.droppedDocuments[0];
+                    let z = NumCast(firstDoc.z);
                     let x = (z ? xpo : xp) - de.data.offset[0];
                     let y = (z ? ypo : yp) - de.data.offset[1];
-                    let dropX = NumCast(firstLayoutDoc.x);
-                    let dropY = NumCast(firstLayoutDoc.y);
+                    let dropX = NumCast(firstDoc.x);
+                    let dropY = NumCast(firstDoc.y);
                     de.data.droppedDocuments.forEach(action((d: Doc) => {
-                        let layoutDoc = d.layout instanceof Doc ? d.layout : d;
-                        layoutDoc.x = x + NumCast(layoutDoc.x) - dropX;
-                        layoutDoc.y = y + NumCast(layoutDoc.y) - dropY;
+                        let layoutDoc = Doc.Layout(d);
+                        d.x = x + NumCast(d.x) - dropX;
+                        d.y = y + NumCast(d.y) - dropY;
                         if (!NumCast(layoutDoc.width)) {
                             layoutDoc.width = 300;
                         }
-                        if (!NumCast(d.height)) {
-                            let nw = NumCast(d.nativeWidth);
-                            let nh = NumCast(d.nativeHeight);
+                        if (!NumCast(layoutDoc.height)) {
+                            let nw = NumCast(layoutDoc.nativeWidth);
+                            let nh = NumCast(layoutDoc.nativeHeight);
                             layoutDoc.height = nw && nh ? nh / nw * NumCast(layoutDoc.width) : 300;
                         }
                         this.bringToFront(d);
@@ -157,13 +157,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 if (de.data.dropDocument) {
                     let dragDoc = de.data.dropDocument;
-                    let layoutDoc = dragDoc.layout instanceof Doc ? dragDoc.layout : dragDoc;
                     let x = xp - de.data.offset[0];
                     let y = yp - de.data.offset[1];
-                    let dropX = NumCast(layoutDoc.x);
-                    let dropY = NumCast(layoutDoc.y);
-                    layoutDoc.x = x + NumCast(layoutDoc.x) - dropX;
-                    layoutDoc.y = y + NumCast(layoutDoc.y) - dropY;
+                    let dropX = NumCast(dragDoc.x);
+                    let dropY = NumCast(dragDoc.y);
+                    dragDoc.x = x + NumCast(dragDoc.x) - dropX;
+                    dragDoc.y = y + NumCast(dragDoc.y) - dropY;
                     de.data.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
                     this.bringToFront(dragDoc);
                 }
@@ -174,9 +173,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     pickCluster(probe: number[]) {
         return this.childLayoutPairs.map(pair => pair.layout).reduce((cluster, cd) => {
-            let layoutDoc = cd.layout instanceof Doc ? cd.layout : cd;
-            let cx = NumCast(layoutDoc.x) - this._clusterDistance;
-            let cy = NumCast(layoutDoc.y) - this._clusterDistance;
+            let layoutDoc = Doc.Layout(cd);
+            let cx = NumCast(cd.x) - this._clusterDistance;
+            let cy = NumCast(cd.y) - this._clusterDistance;
             let cw = NumCast(layoutDoc.width) + 2 * this._clusterDistance;
             let ch = NumCast(layoutDoc.height) + 2 * this._clusterDistance;
             return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
@@ -218,10 +217,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
             let preferredInd = NumCast(doc.cluster);
             doc.cluster = -1;
-            let layoutDoc = doc.layout instanceof Doc ? doc.layout : doc;
             this._clusterSets.map((set, i) => set.map(member => {
-                let memberLayout = member.layout instanceof Doc ? member.layout : member;
-                if (doc.cluster === -1 && Doc.IndexOf(member, childLayouts) !== -1 && Doc.overlapping(layoutDoc, memberLayout, this._clusterDistance)) {
+                if (doc.cluster === -1 && Doc.IndexOf(member, childLayouts) !== -1 && Doc.overlapping(doc, member, this._clusterDistance)) {
                     doc.cluster = i;
                 }
             }));
@@ -293,18 +290,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             let x = this.Document.panX || 0;
             let y = this.Document.panY || 0;
-            let docs = this.childLayoutPairs.map(pair => pair.layout.layout instanceof Doc ? pair.layout.layout : pair.layout);
+            let docs = this.childLayoutPairs.map(pair => pair.layout);
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
-                let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
+                let maxx = docs.length ? NumCast(Doc.Layout(docs[0]).width) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;
-                let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+                let maxy = docs.length ? NumCast(Doc.Layout(docs[0]).height) + miny : miny;
                 let ranges = docs.filter(doc => doc).reduce((range, doc) => {
+                    let layoutDoc = Doc.Layout(doc);
                     let x = NumCast(doc.x);
-                    let xe = x + NumCast(doc.width);
+                    let xe = x + NumCast(layoutDoc.width);
                     let y = NumCast(doc.y);
-                    let ye = y + NumCast(doc.height);
+                    let ye = y + NumCast(layoutDoc.height);
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
@@ -408,9 +406,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 this.props.Document.scrollY = NumCast(doc.y) - offset;
             }
         } else {
-            let layoutdoc = doc.layout instanceof Doc ? doc.layout : doc;
-            const newPanX = NumCast(layoutdoc.x) + NumCast(layoutdoc.width) / 2;
-            const newPanY = NumCast(layoutdoc.y) + NumCast(layoutdoc.height) / 2;
+            let layoutdoc = Doc.Layout(doc);
+            const newPanX = NumCast(doc.x) + NumCast(layoutdoc.width) / 2;
+            const newPanY = NumCast(doc.y) + NumCast(layoutdoc.height) / 2;
             const newState = HistoryUtil.getState();
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
@@ -471,10 +469,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
         const script = this.Document.arrangeScript;
         const result = script && script.script.run(params, console.log);
+        const layoutDoc = Doc.Layout(params.doc);
         if (result && result.success) {
             return { ...result, transition: "transform 1s" };
         }
-        return { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(params.doc.width, "number"), height: Cast(params.doc.height, "number") };
+        return { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(layoutDoc.width, "number"), height: Cast(layoutDoc.height, "number") };
     }
 
     viewDefsToJSX = (views: any[]) => {
@@ -530,8 +529,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
-            let finalLayout = pair.layout.layout instanceof Doc ? pair.layout.layout : pair.layout;
-            const pos = this.getCalculatedPositions({ doc: finalLayout, index: i, collection: this.Document, docs: layoutDocs, state });
+            const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
             state = pos.state === undefined ? state : pos.state;
             layoutPoolData.set(pair, pos);
         });
@@ -574,7 +572,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let i = 0;
             const width = Math.max(...docs.map(doc => NumCast(doc.width)));
             const height = Math.max(...docs.map(doc => NumCast(doc.height)));
-            for (const doc of docs.map(d => d.layout instanceof Doc ? d.layout : d)) {
+            for (const doc of docs) {
                 doc.x = x;
                 doc.y = y;
                 x += width + 20;
@@ -592,7 +590,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // find rule colorations when rule providing is turned on by looking at each document to see if it has a coloring -- if so, use it's color as the rule for its associated heading.
         this.Document.isRuleProvider && this.childLayoutPairs.map(pair =>
             // iterate over the children of a displayed document (or if the displayed document is a template, iterate over the children of that template)
-            DocListCast(pair.layout.layout instanceof Doc ? pair.layout.layout.data : pair.layout.data).map(heading => {
+            DocListCast(Doc.Layout(pair.layout).data).map(heading => {
                 let headingPair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, heading);
                 let headingLayout = headingPair.layout && (pair.layout.data_ext instanceof Doc) && (pair.layout.data_ext[`Layout[${headingPair.layout[Id]}]`] as Doc) || headingPair.layout;
                 if (headingLayout && NumCast(headingLayout.heading) > 0 && headingLayout.backgroundColor !== headingLayout.defaultBackgroundColor) {

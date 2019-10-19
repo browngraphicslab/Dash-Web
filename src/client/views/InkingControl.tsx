@@ -81,7 +81,7 @@ export class InkingControl {
                     ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
                     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
-                (!ruleProvider && targetDoc) && (view.props.Document.backgroundColor = matchedColor);
+                (!ruleProvider && targetDoc) && (Doc.Layout(view.props.Document).backgroundColor = matchedColor);
 
                 return {
                     target: targetDoc,

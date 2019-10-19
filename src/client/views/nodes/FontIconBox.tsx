@@ -37,7 +37,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
     render() {
         let referenceDoc = (this.props.Document.dragFactory instanceof Doc ? this.props.Document.dragFactory : this.props.Document);
-        let referenceLayout = referenceDoc.layout instanceof Doc ? referenceDoc.layout : referenceDoc;
+        let referenceLayout = Doc.Layout(referenceDoc);
         return <button className="fontIconBox-outerDiv" title={StrCast(this.props.Document.title)} ref={this._ref}
             style={{ background: StrCast(referenceLayout.backgroundColor), boxShadow: this.props.Document.unchecked ? undefined : `4px 4px 12px black` }}>
             <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} color={this._foregroundColor} size="sm" />

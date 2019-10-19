@@ -74,11 +74,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this._heightMap.set(key, sectionHeight);
     }
 
-    get layoutDoc() {
-        // if this document's layout field contains a document (ie, a rendering template), then we will use that
-        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
-        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
-    }
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
 
     get Sections() {
         if (!this.sectionFilter || this.sectionHeaders instanceof Promise) return new Map<SchemaHeaderField, Doc[]>();
@@ -189,7 +185,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
-        let layoutDoc = d.layout instanceof Doc ? d.layout : d;
+        let layoutDoc = Doc.Layout(d);
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
