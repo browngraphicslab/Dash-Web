@@ -401,7 +401,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
+        let interactive = this.active() ? "-interactive" : "";// InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;

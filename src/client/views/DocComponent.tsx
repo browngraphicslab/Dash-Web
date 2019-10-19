@@ -36,7 +36,7 @@ export function DocStaticComponent<P extends DocStaticProps, T>(schemaCtor: (doc
         get Document(): T {
             return schemaCtor(this.props.Document);
         }
-        active = () => (this.props.Document.forceActive || this.props.isSelected() || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        active = () => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected() || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
     }
     return Component;
 }
@@ -85,7 +85,8 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
             return Doc.AddDocToList(this.extensionDoc, this.props.fieldExt, doc);
         }
         whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
-        active = () => (InkingControl.Instance.selectedTool === InkTool.None) && (BoolCast(this.props.Document.forceActive) || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0);
+        active = () => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
+            (this.props.Document.forceActive || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;
 }

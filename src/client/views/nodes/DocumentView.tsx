@@ -311,6 +311,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 case DocumentType.VID:
                     fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
                     break;
+                case DocumentType.AUDIO:
+                    fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+                    break;
                 default:
                     fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
             }
