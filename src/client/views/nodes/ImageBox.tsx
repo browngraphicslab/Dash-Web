@@ -157,7 +157,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     body: formData
                 });
                 const files = await res.json();
-                const url = Utils.prepend(files[0]);
+                const url = Utils.prepend(files[0].path);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.treeViewExpandedView = "layout";

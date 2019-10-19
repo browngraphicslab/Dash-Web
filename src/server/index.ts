@@ -745,6 +745,10 @@ addSecureRoute({
                             }
                         });
                     });
+                } else if (type.indexOf("audio") !== -1) {
+                    if (location !== uploadDirectory + filename) {
+                        fs.createReadStream(uploadDirectory + filename).pipe(fs.createWriteStream(location));
+                    }
                 } else {
                     uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
                 }
