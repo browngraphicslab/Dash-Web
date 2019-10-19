@@ -13,7 +13,6 @@ import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { thisTypeAnnotation } from "babel-types";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -167,6 +166,7 @@ export class Keyframe extends React.Component<IProps> {
             (fadeOut.key! as Doc).opacity = 1;
             (start.key! as Doc).opacity = 0.1;
             (finish.key! as Doc).opacity = 0.1;
+            this.forceUpdate(); 
         }); 
     }
 
@@ -315,6 +315,7 @@ export class Keyframe extends React.Component<IProps> {
         this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration; 
     }
 
+
     @action
     createKeyframe = async (clientX:number) => {
         this._mouseToggled = true; 
@@ -327,7 +328,7 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
-
+    
     @action
     moveKeyframe = async (e: React.MouseEvent, kf: Doc) => {
         e.preventDefault();
@@ -346,12 +347,13 @@ export class Keyframe extends React.Component<IProps> {
     @action 
     makeKeyframeMenu = (kf :Doc, e:MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
-        runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
-            CollectionDockingView.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
-        }), 
+            runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
+                CollectionDockingView.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
+            }), 
         TimelineMenu.Instance.addItem("button", "Delete", () => {
             runInAction(() => {
                 (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
+                this.forceUpdate(); 
             });         
         }), 
         TimelineMenu.Instance.addItem("input", "Move", (val) => {
@@ -381,7 +383,10 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.addItem("button", "Add Path", () => {
             this.onContainerDown(kf, "path");
         }),         
-        TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{this.regions.splice(this.regions.indexOf(this.regiondata), 1);}),
+        TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{
+            runInAction(() => {
+            this.regions.splice(this.regions.indexOf(this.regiondata), 1);}
+        );}),
         TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
             runInAction(() => {
                 if (this.checkInput(val)){
@@ -554,9 +559,9 @@ export class Keyframe extends React.Component<IProps> {
     }
 
     @action
-    drawKeyframes = () => {
+    drawKeyframes =  () => {
         let keyframeDivs:JSX.Element[] = []; 
-        this.keyframes.forEach( kf => {
+        DocListCast(this.regiondata.keyframes).forEach( kf => {
             if (kf.type as KeyframeFunc.KeyframeType === KeyframeFunc.KeyframeType.default) {
                 keyframeDivs.push(
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
@@ -581,9 +586,9 @@ export class Keyframe extends React.Component<IProps> {
     }
 
     @action 
-    drawKeyframeDividers = () => {
+    drawKeyframeDividers = () =>  {
         let keyframeDividers:JSX.Element[] = []; 
-        this.keyframes.forEach(kf => {
+        DocListCast(this.regiondata.keyframes).forEach(kf => {
             if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
                 let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
                 let bodyRef = React.createRef<HTMLDivElement>(); 

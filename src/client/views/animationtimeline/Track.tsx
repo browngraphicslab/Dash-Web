@@ -270,6 +270,7 @@ export class Track extends React.Component<IProps> {
         let inner = this._inner.current!;
         let offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
         this.createRegion(KeyframeFunc.convertPixelTime(offsetX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+        this.forceUpdate(); 
     }
 
     createRegion = (position: number) => {

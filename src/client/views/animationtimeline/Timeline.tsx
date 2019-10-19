@@ -155,7 +155,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         let scrubberbox = this._infoContainer.current!;
         let left = scrubberbox.getBoundingClientRect().left;
         let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
-        this.changeCurrentBarX(offsetX);
+        this.changeCurrentBarX(offsetX + this._visibleStart);
     }
 
     @action
@@ -201,6 +201,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         let infoContainer = this._infoContainer.current!;
         infoContainer.scrollLeft = pixel;
         this._visibleStart = infoContainer.scrollLeft;
+        console.log(infoContainer.scrollLeft); 
+        console.log(this._totalLength); 
+        console.log(this._visibleLength); 
     }
 
     @action
@@ -317,15 +320,14 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
             roundToggleContainer.style.animationName = "turnoff";
-            timelineContainer.style.transform = `translate(0px, ${0}px)`;
-            setTimeout(() => {
-                this.props.Document.isAnimating = false;
-            }, 500);
+            timelineContainer.style.top = `${-this._containerHeight}px`;
+            this.props.Document.isAnimating = false;
+        
         } else {
             roundToggle.style.transform = "translate(45px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
-            timelineContainer.style.transform = `translate(0px, ${this._containerHeight}px)`;
+            timelineContainer.style.top = "0px"; 
             this.props.Document.isAnimating = true;
         }
     }
@@ -334,7 +336,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             <div>
                 <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
                     <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isAnimating && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
-                        <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `-${this._containerHeight}px` }}>
+                        <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
                             <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
                                 {this.drawTicks()}
                                 <div key="timeline_scrubber" className="scrubber" onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
