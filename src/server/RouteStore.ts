@@ -13,6 +13,8 @@ export enum RouteStore {
     upload = "/upload",
     dataUriToImage = "/uploadURI",
     images = "/images",
+    inspectImage = "/inspectImage",
+    imageHierarchyExport = "/imageHierarchyExport",
 
     // USER AND WORKSPACES
     getCurrUser = "/getCurrentUser",
@@ -32,7 +34,8 @@ export enum RouteStore {
     // APIS
     cognitiveServices = "/cognitiveservices",
     googleDocs = "/googleDocs",
-    googlePhotosAccessToken = "/googlePhotosAccessToken",
+    readGoogleAccessToken = "/readGoogleAccessToken",
+    writeGoogleAccessToken = "/writeGoogleAccessToken",
     googlePhotosMediaUpload = "/googlePhotosMediaUpload",
     googlePhotosMediaDownload = "/googlePhotosMediaDownload",
     googleDocsGet = "/googleDocsGet"

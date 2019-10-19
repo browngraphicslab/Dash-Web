@@ -1,24 +1,24 @@
+import { action, observable, runInAction, reaction, IReactionDisposer } from "mobx";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { EditorState, TextSelection, NodeSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection, Plugin } from "prosemirror-state";
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
-import { Doc } from "../../new_fields/Doc";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import * as ReactDOM from 'react-dom';
+import { Doc, WidthSym, HeightSym } from "../../new_fields/Doc";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
+import { DocumentView } from "../views/nodes/DocumentView";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
-import React = require("react");
-import { action, Lambda, observable, reaction, computed, runInAction, trace } from "mobx";
-import { observer } from "mobx-react";
-import * as ReactDOM from 'react-dom';
-import { DocumentView } from "../views/nodes/DocumentView";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../Utils";
 import { Transform } from "./Transform";
-import { NumCast } from "../../new_fields/Types";
+import React = require("react");
+import { BoolCast, NumCast } from "../../new_fields/Types";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -169,7 +169,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             width: { default: 200 },
             height: { default: 100 },
             title: { default: null },
-            float: { default: "left" },
+            float: { default: "right" },
             location: { default: "onRight" },
             docid: { default: "" }
         },
@@ -235,6 +235,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
             setFontSize: { default: undefined },
+            setFontFamily: { default: undefined },
             inheritedFontSize: { default: undefined },
             visibility: { default: true }
         },
@@ -244,8 +245,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
             let fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
-            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;font-size: ${fsize}` }, 0] :
-                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}` }];
+            let ffam = node.attrs.setFontFamily;
+            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }, 0] :
+                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }];
         }
     },
 
@@ -426,10 +428,13 @@ export const marks: { [index: string]: MarkSpec } = {
     },
 
     search_highlight: {
+        attrs: {
+            selected: { default: false }
+        },
         parseDOM: [{ style: 'background: yellow' }],
-        toDOM() {
+        toDOM(node: any) {
             return ['span', {
-                style: 'background: yellow'
+                style: `background: ${node.attrs.selected ? "orange" : "yellow"}`
             }];
         }
     },
@@ -438,20 +443,35 @@ export const marks: { [index: string]: MarkSpec } = {
     user_mark: {
         attrs: {
             userid: { default: "" },
-            hide_users: { default: [] },
             opened: { default: true },
-            modified: { default: "when?" }
+            modified: { default: "when?" }, // 5 second intervals since 1970
         },
         group: "inline",
         toDOM(node: any) {
-            let hideUsers = node.attrs.hide_users;
-            let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
-            return hidden ?
-                (node.attrs.opened ?
-                    ['span', { class: "userMarkOpen" }, 0] :
-                    ['span', { class: "userMark" }, ['span', 0]]
-                ) :
-                ['span', 0];
+            let uid = node.attrs.userid.replace(".", "").replace("@", "");
+            let min = Math.round(node.attrs.modified / 12);
+            let hr = Math.round(min / 60);
+            let day = Math.round(hr / 60 / 24);
+            let remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
+            return node.attrs.opened ?
+                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
+                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
+        }
+    },
+    // the id of the user who entered the text
+    user_tag: {
+        attrs: {
+            userid: { default: "" },
+            opened: { default: true },
+            modified: { default: "when?" }, // 5 second intervals since 1970
+            tag: { default: "" }
+        },
+        group: "inline",
+        toDOM(node: any) {
+            let uid = node.attrs.userid.replace(".", "").replace("@", "");
+            return node.attrs.opened ?
+                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0] :
+                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, ['span', 0]];
         }
     },
 
@@ -713,11 +733,19 @@ export class ImageResizeView {
 }
 
 export class DashDocView {
-    _handle: HTMLElement;
     _dashSpan: HTMLDivElement;
     _outer: HTMLElement;
-    constructor(node: any, view: any, getPos: any, addDocTab: any) {
-        this._handle = document.createElement("span");
+    _dashDoc: Doc | undefined;
+    _reactionDisposer: IReactionDisposer | undefined;
+    _textBox: FormattedTextBox;
+
+    getDocTransform = () => {
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
+        return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
+    }
+    contentScaling = () => NumCast(this._dashDoc!.nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!.nativeWidth) : 1;
+    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._textBox = tbox;
         this._dashSpan = document.createElement("div");
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
@@ -731,29 +759,35 @@ export class DashDocView {
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
-        this._handle.style.position = "absolute";
-        this._handle.style.width = "20px";
-        this._handle.style.height = "20px";
-        this._handle.style.backgroundColor = "blue";
-        this._handle.style.borderRadius = "15px";
-        this._handle.style.display = "none";
-        this._handle.style.bottom = "-10px";
-        this._handle.style.right = "-10px";
+        let removeDoc = () => {
+            let pos = getPos();
+            let ns = new NodeSelection(view.state.doc.resolve(pos));
+            view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
+            return true;
+        };
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
-                let scale = () => 100 / NumCast(dashDoc.nativeWidth, 100);
+                self._dashDoc = dashDoc;
+                if (node.attrs.width !== dashDoc.width + "px" || node.attrs.height !== dashDoc.height + "px") {
+                    view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc.width + "px", height: dashDoc.height + "px" }));
+                }
+                this._reactionDisposer && this._reactionDisposer();
+                this._reactionDisposer = reaction(() => dashDoc[HeightSym]() + dashDoc[WidthSym](), () => {
+                    this._dashSpan.style.height = this._outer.style.height = dashDoc[HeightSym]() + "px";
+                    this._dashSpan.style.width = this._outer.style.width = dashDoc[WidthSym]() + "px";
+                });
                 ReactDOM.render(<DocumentView
-                    fitToBox={true}
+                    fitToBox={BoolCast(dashDoc.fitToBox)}
                     Document={dashDoc}
                     addDocument={returnFalse}
-                    removeDocument={returnFalse}
+                    removeDocument={removeDoc}
                     ruleProvider={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
-                    addDocTab={returnFalse}
+                    ScreenToLocalTransform={this.getDocTransform}
+                    addDocTab={self._textBox.props.addDocTab}
                     pinToPres={returnFalse}
                     renderDepth={1}
-                    PanelWidth={() => 100}
-                    PanelHeight={() => 100}
+                    PanelWidth={self._dashDoc[WidthSym]}
+                    PanelHeight={self._dashDoc[HeightSym]}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
                     parentActive={returnFalse}
@@ -763,59 +797,20 @@ export class DashDocView {
                     getScale={returnOne}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    ContentScaling={scale}
-                ></DocumentView>, this._dashSpan);
+                    ContentScaling={this.contentScaling}
+                />, this._dashSpan);
             }
         });
         let self = this;
-        this._dashSpan.onclick = function (e: any) {
-            FormattedTextBox.firstTarget && FormattedTextBox.firstTarget();
-            e.stopPropagation();
-        };
         this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._dashSpan.onwheel = function (e: any) { e.preventDefault(); };
         this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };
-        this._handle.onpointerdown = function (e: any) {
-            e.preventDefault();
-            e.stopPropagation();
-            const startX = e.pageX;
-            const startY = e.pageY;
-            const startWidth = parseFloat(node.attrs.width);
-            const startHeight = parseFloat(node.attrs.height);
-            const onpointermove = (e: any) => {
-                const diffInPx = e.pageX - startX;
-                const diffInPy = e.pageY - startY;
-                self._outer.style.width = `${startWidth + diffInPx}`;
-                self._outer.style.height = `${startHeight + diffInPy}`;
-            };
-
-            const onpointerup = () => {
-                document.removeEventListener("pointermove", onpointermove);
-                document.removeEventListener("pointerup", onpointerup);
-                let pos = view.state.selection.from;
-                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: self._outer.style.width, height: self._outer.style.height }));
-                view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(pos))));
-            };
-
-            document.addEventListener("pointermove", onpointermove);
-            document.addEventListener("pointerup", onpointerup);
-        };
-
         this._outer.appendChild(this._dashSpan);
-        this._outer.appendChild(this._handle);
         (this as any).dom = this._outer;
     }
-
-    selectNode() {
-        this._dashSpan.classList.add("ProseMirror-selectednode");
-
-        this._handle.style.display = "";
-    }
-
-    deselectNode() {
-        this._dashSpan.classList.remove("ProseMirror-selectednode");
-
-        this._handle.style.display = "none";
+    destroy() {
+        this._reactionDisposer && this._reactionDisposer();
     }
 }
 
@@ -871,7 +866,14 @@ export class FootnoteView {
                     "Mod-z": () => undo(this.outerView.state, this.outerView.dispatch),
                     "Mod-y": () => redo(this.outerView.state, this.outerView.dispatch),
                     "Mod-b": toggleMark(schema.marks.strong)
-                })]
+                }),
+                new Plugin({
+                    view(newView) {
+                        return FormattedTextBox.getToolTip(newView);
+                    }
+                })
+                ],
+
             }),
             // This is the magic part
             dispatchTransaction: this.dispatchInner.bind(this),

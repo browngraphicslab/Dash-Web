@@ -278,7 +278,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     alias.width = width;
                     alias.height = height;
 
-                    this.sourceView.props.addDocument(alias, false);
+                    this.sourceView.props.addDocument(alias);
                 }
             }
 

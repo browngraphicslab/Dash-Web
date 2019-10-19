@@ -11,7 +11,7 @@ import "./Annotation.scss";
 
 interface IAnnotationProps {
     anno: Doc;
-    fieldExtensionDoc: Doc;
+    extensionDoc: Doc;
     addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     focus: (doc: Doc) => void;
@@ -29,7 +29,7 @@ interface IRegionAnnotationProps {
     y: number;
     width: number;
     height: number;
-    fieldExtensionDoc: Doc;
+    extensionDoc: Doc;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
@@ -66,12 +66,12 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     deleteAnnotation = () => {
-        let annotation = DocListCast(this.props.fieldExtensionDoc.annotations);
+        let annotation = DocListCast(this.props.extensionDoc.annotations);
         let group = FieldValue(Cast(this.props.document.group, Doc));
         if (group) {
             if (annotation.indexOf(group) !== -1) {
                 let newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
-                this.props.fieldExtensionDoc.annotations = new List<Doc>(newAnnotations);
+                this.props.extensionDoc.annotations = new List<Doc>(newAnnotations);
             }
 
             DocListCast(group.annotations).forEach(anno => anno.delete = true);
@@ -100,7 +100,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             let annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
                 DocumentManager.Instance.FollowLink(undefined, annoGroup,
-                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "onRight" : "inTab"),
+                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"),
                     false, false, undefined);
             }
         }

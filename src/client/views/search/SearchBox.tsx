@@ -141,7 +141,7 @@ export class SearchBox extends React.Component {
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
         const includeDeleted = FilterBox.Instance.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
     }
 
 
@@ -346,8 +346,6 @@ export class SearchBox extends React.Component {
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
-                    <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
-                    <button className="searchBox-barChild searchBox-close" title={"Close Search Bar"} onPointerDown={MainView.Instance.toggleSearch}><FontAwesomeIcon icon={faTimes} size="lg" /></button>
                 </div>
                 {(this._numTotalResults > 0 || !this._searchbarOpen) ? (null) :
                     (<div className="searchBox-quickFilter" onPointerDown={this.openSearch}>

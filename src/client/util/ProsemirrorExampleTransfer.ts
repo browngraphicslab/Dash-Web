@@ -11,7 +11,7 @@ const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : 
 
 export type KeyMap = { [key: string]: any };
 
-export let updateBullets = (tx2: Transaction, schema: Schema) => {
+export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string) => {
     let fontSize: number | undefined = undefined;
     tx2.doc.descendants((node: any, offset: any, index: any) => {
         if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
@@ -20,7 +20,7 @@ export let updateBullets = (tx2: Transaction, schema: Schema) => {
             if (node.type === schema.nodes.ordered_list) depth++;
             fontSize = depth === 1 && node.attrs.setFontSize ? Number(node.attrs.setFontSize) : fontSize;
             let fsize = fontSize && node.type === schema.nodes.ordered_list ? Math.max(6, fontSize - (depth - 1) * 4) : undefined;
-            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: node.attrs.mapStyle, bulletStyle: depth, inheritedFontSize: fsize }, node.marks);
+            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle ? mapStyle : node.attrs.mapStyle, bulletStyle: depth, inheritedFontSize: fsize }, node.marks);
         }
     });
     return tx2;

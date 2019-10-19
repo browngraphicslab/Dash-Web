@@ -2,19 +2,27 @@
 
 .search-overview {
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: reverse;
     justify-content: flex-end;
     z-index: 0;
+}
+.link-count {
+     background: black;
+    border-radius: 20px;
+    color: white;
+    width: 15px;
+    text-align: center;
+    margin-top: 5px;
 }
 
 .searchBox-placeholder,
 .search-overview .search-item {
-    width: 500px;
+    width: 100%;
     background: $light-color-secondary;
     border-color: $intermediate-color;
     border-bottom-style: solid;
     padding: 10px;
-    min-height: 70px;
+    min-height: 50px;
     max-height: 150px;
     height: auto;
     z-index: 0;
@@ -61,16 +69,6 @@
                 overflow: hidden;
                 position: relative;
 
-                .link-count {
-                    opacity: 1;
-                    position: absolute;
-                    z-index: 1000;
-                    text-align: center;
-                    -webkit-transition: opacity 0.2s ease-in-out;
-                    -moz-transition: opacity 0.2s ease-in-out;
-                    -o-transition: opacity 0.2s ease-in-out;
-                    transition: opacity 0.2s ease-in-out;
-                }
 
                 .link-extended {
                     // display: none;
@@ -112,7 +110,7 @@
 
             .icon-icons,
             .icon-live {
-                height: 50px;
+                height: auto;
                 margin: auto;
                 overflow: hidden;
 
@@ -174,9 +172,7 @@
 .searchBox-instances:active {
     opacity: 1;
     background: $lighter-alt-accent;
-    -webkit-transform: scale(1);
-    -ms-transform: scale(1);
-    transform: scale(1);
+    width:150px
 }
 
 .search-item:hover {
@@ -193,13 +189,10 @@
 .searchBox-instances {
     float: left;
     opacity: 1;
-    width: 150px;
+    width: 0px;
     transition: all 0.2s ease;
     color: black;
-    transform-origin: top right;
-    -webkit-transform: scale(0);
-    -ms-transform: scale(0);
-    transform: scale(0);
+    overflow: hidden;
 }
 
 
@@ -208,7 +201,7 @@
 }
 
 .searchBox-placeholder {
-    min-height: 70px;
+    min-height: 50px;
     margin-left: 150px;
     text-transform: uppercase;
     text-align: left;

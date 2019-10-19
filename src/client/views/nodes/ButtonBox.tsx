@@ -32,7 +32,11 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     public static LayoutString() { return FieldView.LayoutString(ButtonBox); }
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() {
+        return this.props.DataDoc &&
+            (BoolCast(this.props.Document.isTemplateField) || BoolCast(this.props.DataDoc.isTemplateField) ||
+                this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document);
+    }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -70,7 +74,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         let missingParams = params && params.filter(p => this.props.Document[p] === undefined);
         params && params.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
-            <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+            <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
+                style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
                 <div className="buttonBox-mainButton" style={{ background: StrCast(this.props.Document.backgroundColor), color: StrCast(this.props.Document.color, "black") }} >
                     <div className="buttonBox-mainButtonCenter">
                         {(this.Document.text || this.Document.title)}

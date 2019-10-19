@@ -25,7 +25,8 @@ export namespace GoogleApiServerUtils {
         'drive.file',
         'photoslibrary',
         'photoslibrary.appendonly',
-        'photoslibrary.sharing'
+        'photoslibrary.sharing',
+        'userinfo.profile'
     ];
 
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
@@ -75,6 +76,82 @@ export namespace GoogleApiServerUtils {
         });
     };
 
+    const RetrieveOAuthClient = async (information: CredentialInformation) => {
+        return new Promise<OAuth2Client>((resolve, reject) => {
+            readFile(information.credentialsPath, async (err, credentials) => {
+                if (err) {
+                    reject(err);
+                    return console.log('Error loading client secret file:', err);
+                }
+                const { client_secret, client_id, redirect_uris } = parseBuffer(credentials).installed;
+                resolve(new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]));
+            });
+        });
+    };
+
+    export const GenerateAuthenticationUrl = async (information: CredentialInformation) => {
+        const client = await RetrieveOAuthClient(information);
+        return client.generateAuthUrl({
+            access_type: 'offline',
+            scope: SCOPES.map(relative => prefix + relative),
+        });
+    };
+
+    export interface GoogleAuthenticationResult {
+        access_token: string;
+        avatar: string;
+        name: string;
+    }
+    export const ProcessClientSideCode = async (information: CredentialInformation, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
+        const oAuth2Client = await RetrieveOAuthClient(information);
+        return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
+            oAuth2Client.getToken(authenticationCode, async (err, token) => {
+                if (err || !token) {
+                    reject(err);
+                    return console.error('Error retrieving access token', err);
+                }
+                oAuth2Client.setCredentials(token);
+                const enriched = injectUserInfo(token);
+                await Database.Auxiliary.GoogleAuthenticationToken.Write(information.userId, enriched);
+                const { given_name, picture } = enriched.userInfo;
+                resolve({
+                    access_token: enriched.access_token!,
+                    avatar: picture,
+                    name: given_name
+                });
+            });
+        });
+    };
+
+    /**
+     * It's pretty cool: the credentials id_token is split into thirds by periods.
+     * The middle third contains a base64-encoded JSON string with all the
+     * user info contained in the interface below. So, we isolate that middle third,
+     * base64 decode with atob and parse the JSON. 
+     * @param credentials the client credentials returned from OAuth after the user
+     * has executed the authentication routine
+     */
+    const injectUserInfo = (credentials: Credentials): EnrichedCredentials => {
+        const userInfo = JSON.parse(atob(credentials.id_token!.split(".")[1]));
+        return { ...credentials, userInfo };
+    };
+
+    export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
+    export interface UserInfo {
+        at_hash: string;
+        aud: string;
+        azp: string;
+        exp: number;
+        family_name: string;
+        given_name: string;
+        iat: number;
+        iss: string;
+        locale: string;
+        name: string;
+        picture: string;
+        sub: string;
+    }
+
     export const RetrieveCredentials = (information: CredentialInformation) => {
         return new Promise<TokenResult>((resolve, reject) => {
             readFile(information.credentialsPath, async (err, credentials) => {
@@ -107,17 +184,13 @@ export namespace GoogleApiServerUtils {
         return new Promise<TokenResult>((resolve, reject) => {
             // Attempting to authorize user (${userId})
             Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(token => {
-                if (!token) {
-                    // No token registered, so awaiting input from user
-                    return getNewToken(oAuth2Client, userId).then(resolve, reject);
-                }
-                if (token.expiry_date! < new Date().getTime()) {
+                if (token!.expiry_date! < new Date().getTime()) {
                     // Token has expired, so submitting a request for a refreshed access token
-                    return refreshToken(token, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
+                    return refreshToken(token!, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
                 }
                 // Authentication successful!
-                oAuth2Client.setCredentials(token);
-                resolve({ token, client: oAuth2Client });
+                oAuth2Client.setCredentials(token!);
+                resolve({ token: token!, client: oAuth2Client });
             });
         });
     }
@@ -145,35 +218,4 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    /**
-     * Get and store new token after prompting for user authorization, and then
-     * execute the given callback with the authorized OAuth2 client.
-     * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
-     * @param {getEventsCallback} callback The callback for the authorized client.
-     */
-    function getNewToken(oAuth2Client: OAuth2Client, userId: string) {
-        return new Promise<TokenResult>((resolve, reject) => {
-            const authUrl = oAuth2Client.generateAuthUrl({
-                access_type: 'offline',
-                scope: SCOPES.map(relative => prefix + relative),
-            });
-            console.log('Authorize this app by visiting this url:', authUrl);
-            const rl = createInterface({
-                input: process.stdin,
-                output: process.stdout,
-            });
-            rl.question('Enter the code from that page here: ', (code) => {
-                rl.close();
-                oAuth2Client.getToken(code, async (err, token) => {
-                    if (err || !token) {
-                        reject(err);
-                        return console.error('Error retrieving access token', err);
-                    }
-                    oAuth2Client.setCredentials(token);
-                    await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, token);
-                    resolve({ token, client: oAuth2Client });
-                });
-            });
-        });
-    }
 }

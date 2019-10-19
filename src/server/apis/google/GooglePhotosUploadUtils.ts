@@ -4,6 +4,7 @@ import * as path from 'path';
 import { MediaItemCreationResult } from './SharedTypes';
 import { NewMediaItem } from "../../index";
 import { BatchedArray, TimeUnit } from 'array-batcher';
+import { DashUploadUtils } from '../../DashUploadUtils';
 
 export namespace GooglePhotosUploadUtils {
 
@@ -32,6 +33,9 @@ export namespace GooglePhotosUploadUtils {
     };
 
     export const DispatchGooglePhotosUpload = async (url: string) => {
+        if (!DashUploadUtils.imageFormats.includes(path.extname(url))) {
+            return undefined;
+        }
         const body = await request(url, { encoding: null });
         const parameters = {
             method: 'POST',

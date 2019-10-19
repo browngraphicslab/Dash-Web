@@ -1,6 +1,15 @@
 @import "../globalCssVariables";
 @import "./NaviconButton.scss";
 
+.searchBox-container {
+    display: flex;
+    flex-direction: column;
+    width:100%;
+    height:100%;
+    position: absolute;
+    font-size: 10px;
+    line-height: 1;
+}
 .searchBox-bar {
     height: 32px;
     display: flex;
@@ -49,17 +58,17 @@
 }
 
 .searchBox-quickFilter {
-    width: 500px;
-    margin-left: 25px;
+    width: 100%;
+    height: 40px;
     margin-top: 10px;
 }
 
 .searchBox-results {
-    margin-right: 136px;
+    display:flex;
+    flex-direction: column;
     top: 300px;
     display: flex;
     flex-direction: column;
-    margin-right: 72px;
     // height: 560px;
     height: 100%;
     // overflow: hidden;

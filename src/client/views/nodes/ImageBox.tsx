@@ -13,14 +13,14 @@ import { ComputedField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { RouteStore } from '../../../server/RouteStore';
-import { Utils } from '../../../Utils';
+import { Utils, returnOne, emptyFunction } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DocComponent } from '../DocComponent';
+import { DocAnnotatableComponent } from '../DocComponent';
 import { InkingControl } from '../InkingControl';
 import { documentSchema } from './DocumentView';
 import FaceRectangles from './FaceRectangles';
@@ -29,6 +29,7 @@ import "./ImageBox.scss";
 import React = require("react");
 import { SearchUtil } from '../../util/SearchUtil';
 import { ClientRecommender } from '../../ClientRecommender';
+import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -56,9 +57,10 @@ type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
 @observer
-export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
+export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
 
-    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
+    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(ImageBox, "data", fieldExt); }
+    @observable static _showControls: boolean;
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _downX: number = 0;
     private _downY: number = 0;
@@ -66,10 +68,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
     @observable private hoverActive = false;
-
-    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -161,7 +159,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     body: formData
                 });
                 const files = await res.json();
-                const url = Utils.prepend(files[0]);
+                const url = Utils.prepend(files[0].path);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
@@ -384,7 +382,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         return (null);
     }
 
-    render() {
+    @computed
+    get content() {
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         // var [sptX, sptY] = transform.transformPoint(0, 0);
@@ -396,7 +395,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
-        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         let alts = DocListCast(this.extensionDoc.Alternates);
         let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];
@@ -406,7 +404,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
+        let interactive = this.active() ? "-interactive" : "";// InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
@@ -450,5 +448,31 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 {/* {this.lightbox(paths)} */}
                 <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
+    }
+
+    render() {
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
+        return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}>
+            <CollectionFreeFormView {...this.props}
+                PanelHeight={this.props.PanelHeight}
+                PanelWidth={this.props.PanelWidth}
+                focus={this.props.focus}
+                isSelected={this.props.isSelected}
+                select={emptyFunction}
+                active={this.active}
+                ContentScaling={returnOne}
+                whenActiveChanged={this.whenActiveChanged}
+                removeDocument={this.removeDocument}
+                moveDocument={this.moveDocument}
+                addDocument={this.addDocument}
+                CollectionView={undefined}
+                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                ruleProvider={undefined}
+                renderDepth={this.props.renderDepth + 1}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                chromeCollapsed={true}>
+                {() => [this.content]}
+            </CollectionFreeFormView>
+        </div >);
     }
 }

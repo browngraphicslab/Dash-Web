@@ -7,6 +7,7 @@ import { schema } from "../../util/RichTextSchema";
 import { DocServer } from "../../DocServer";
 import { Utils } from "../../../Utils";
 import { StrCast } from "../../../new_fields/Types";
+import { FormattedTextBox } from "./FormattedTextBox";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -49,7 +50,7 @@ export class FormattedTextBoxComment {
     static end: number;
     static mark: Mark;
     static opened: boolean;
-    static textBox: any;
+    static textBox: FormattedTextBox | undefined;
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
             const root = document.getElementById("root");
@@ -62,9 +63,9 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
             FormattedTextBoxComment.tooltip.appendChild(input);
             FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
-                let keep = e.target && (e.target as any).type === "checkbox";
+                let keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 FormattedTextBoxComment.opened = keep || !FormattedTextBoxComment.opened;
-                FormattedTextBoxComment.textBox && FormattedTextBoxComment.textBox.setAnnotation(
+                FormattedTextBoxComment.textBox && FormattedTextBoxComment.start !== undefined && FormattedTextBoxComment.textBox.setAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark,
                     FormattedTextBoxComment.opened, keep);
             };
@@ -92,8 +93,9 @@ export class FormattedTextBoxComment {
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;
 
+        if (!FormattedTextBoxComment.textBox || !FormattedTextBoxComment.textBox.props || !FormattedTextBoxComment.textBox.props.isSelected()) return;
         let set = "none";
-        if (state.selection.$from) {
+        if (FormattedTextBoxComment.textBox && state.selection.$from) {
             let nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
             let naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
             const spos = state.selection.$from.pos - nbef;

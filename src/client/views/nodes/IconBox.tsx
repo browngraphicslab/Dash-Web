@@ -26,6 +26,8 @@ library.add(faFilm, faTag, faTextHeight);
 export class IconBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(IconBox); }
 
+    @observable _panelWidth: number = 0;
+    @observable _panelHeight: number = 0;
     @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
 
@@ -69,8 +71,6 @@ export class IconBox extends React.Component<FieldViewProps> {
             cm.addItem({ description: "Use Target Title", event: () => IconBox.AutomaticTitle(this.props.Document), icon: "text-height" });
         }
     }
-    @observable _panelWidth: number = 0;
-    @observable _panelHeight: number = 0;
     render() {
         let label = this.props.Document.hideLabel ? "" : this.props.Document.title;
         return (

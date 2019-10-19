@@ -23,6 +23,7 @@ export enum CollectionViewType {
     Stacking,
     Masonry,
     Pivot,
+    Linear,
 }
 
 export namespace CollectionViewType {
@@ -35,7 +36,8 @@ export namespace CollectionViewType {
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
-        ["pivot", CollectionViewType.Pivot]
+        ["pivot", CollectionViewType.Pivot],
+        ["linear", CollectionViewType.Linear]
     ]);
 
     export const valueOf = (value: string) => {
@@ -45,7 +47,7 @@ export namespace CollectionViewType {
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
@@ -82,7 +84,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get dataDoc() { return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
     @computed get dataField() { return this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey; }
 
     active = (): boolean => {
@@ -100,22 +102,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
-    addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        var curTime = NumCast(this.props.Document.currentTimecode, -1);
-        curTime !== -1 && (doc.displayTimecode = curTime);
+    addDocument(doc: Doc): boolean {
         if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
-        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
-        let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
-        const value = Cast(targetDataDoc[targetField], listSpec(Doc));
-        if (value !== undefined) {
-            if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
-                value.push(doc);
-            }
-        } else {
-            Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
-        }
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplateField ? this.extensionDoc : this.props.Document;
+        let targetField = (this.props.fieldExt || this.props.Document.isTemplateField) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        Doc.AddDocToList(targetDataDoc, targetField, doc);
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
@@ -125,8 +118,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         //TODO This won't create the field if it doesn't already exist
-        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
-        let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplateField ? this.extensionDoc : this.props.Document;
+        let targetField = (this.props.fieldExt || this.props.Document.isTemplateField) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
@@ -186,7 +179,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             <div id="collectionBaseView"
                 style={{
                     pointerEvents: this.props.Document.isBackground ? "none" : "all",
-                    boxShadow: this.props.Document.isBackground ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                    boxShadow: this.props.Document.isBackground || viewtype === CollectionViewType.Linear ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>

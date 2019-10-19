@@ -62,14 +62,14 @@ export namespace Utils {
     }
 
     export function fromRGBAstr(rgba: string) {
-        let rm = rgba.match(/rgb[a]?\(([0-9]+)/);
+        let rm = rgba.match(/rgb[a]?\(([ 0-9]+)/);
         let r = rm ? Number(rm[1]) : 0;
-        let gm = rgba.match(/rgb[a]?\([0-9]+,([0-9]+)/);
+        let gm = rgba.match(/rgb[a]?\([ 0-9]+,([ 0-9]+)/);
         let g = gm ? Number(gm[1]) : 0;
-        let bm = rgba.match(/rgb[a]?\([0-9]+,[0-9]+,([0-9]+)/);
+        let bm = rgba.match(/rgb[a]?\([ 0-9]+,[ 0-9]+,([ 0-9]+)/);
         let b = bm ? Number(bm[1]) : 0;
-        let am = rgba.match(/rgba?\([0-9]+,[0-9]+,[0-9]+,([0-9]+)/);
-        let a = am ? Number(am[1]) : 0;
+        let am = rgba.match(/rgba?\([ 0-9]+,[ 0-9]+,[ 0-9]+,([ .0-9]+)/);
+        let a = am ? Number(am[1]) : 1;
         return { r: r, g: g, b: b, a: a };
     }
 
@@ -148,6 +148,29 @@ export namespace Utils {
         return { h: h, s: s, l: l };
     }
 
+
+    export function clamp(n: number, lower: number, upper: number) {
+        return Math.max(lower, Math.min(upper, n));
+    }
+
+    export function getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
+        var r = l + w,
+            b = t + h;
+
+        var x = clamp(x, l, r),
+            y = clamp(y, t, b);
+
+        var dl = Math.abs(x - l),
+            dr = Math.abs(x - r),
+            dt = Math.abs(y - t),
+            db = Math.abs(y - b);
+
+        var m = Math.min(dl, dr, dt, db);
+
+        return (m === dt) ? [x, t] :
+            (m === db) ? [x, b] :
+                (m === dl) ? [l, y] : [r, y];
+    }
 
     export function GetClipboardText(): string {
         var textArea = document.createElement("textarea");
@@ -266,6 +289,8 @@ export function percent2frac(percent: string) {
 
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
 
+export function returnTransparent() { return "transparent"; }
+
 export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }
@@ -320,7 +345,7 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
     return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
 };
 
-export default function smoothScroll(duration: number, element: HTMLElement, to: number) {
+export function smoothScroll(duration: number, element: HTMLElement, to: number) {
     const start = element.scrollTop;
     const change = to - start;
     const startDate = new Date().getTime();
@@ -337,4 +362,28 @@ export default function smoothScroll(duration: number, element: HTMLElement, to:
         }
     };
     animateScroll();
+}
+export function addStyleSheet(styleType: string = "text/css") {
+    let style = document.createElement("style");
+    style.type = styleType;
+    var sheets = document.head.appendChild(style);
+    return (sheets as any).sheet;
+}
+export function addStyleSheetRule(sheet: any, selector: any, css: any) {
+    var propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
+    return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
+}
+export function removeStyleSheetRule(sheet: any, rule: number) {
+    if (sheet.rules.length) {
+        sheet.removeRule(rule);
+        return true;
+    }
+    return false;
+}
+export function clearStyleSheetRules(sheet: any) {
+    if (sheet.rules.length) {
+        numberRange(sheet.rules.length).map(n => sheet.removeRule(0));
+        return true;
+    }
+    return false;
 }

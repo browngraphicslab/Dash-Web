@@ -1,15 +1,15 @@
-import { computed, action, observable, reaction, IReactionDisposer, trace } from "mobx";
+import { random } from "animejs";
+import { computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
+import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { percent2frac } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
-import { percent2frac } from "../../../Utils";
-import { DocumentView, DocumentViewProps, documentSchema } from "./DocumentView";
 import "./CollectionFreeFormDocumentView.scss";
+import { documentSchema, DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
-import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
-import { random } from "animejs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, dataDoc?: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
@@ -34,13 +34,13 @@ export const PositionDocument = makeInterface(documentSchema, positionSchema);
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     _disposer: IReactionDisposer | undefined = undefined;
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
-    get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : this.Document.x || 0; }
-    get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : this.Document.y || 0; }
-    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.props.Document[WidthSym](); }
-    get height() { return this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.props.Document[HeightSym](); }
+    get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
+    get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
+    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.layoutDoc[WidthSym](); }
+    get height() { return this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym](); }
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document, this.props.DataDoc) ? this.props.dataProvider(this.props.Document, this.props.DataDoc) : undefined; }
-    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc.nativeWidth); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc.nativeHeight); }
 
     @computed get renderScriptDim() {
         if (this.Document.renderScript) {
@@ -64,7 +64,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this._disposer = reaction(() => [this.props.Document.animateToPos, this.props.Document.isAnimating],
             () => {
                 const target = this.props.Document.animateToPos ? Array.from(Cast(this.props.Document.animateToPos, listSpec("number"))!) : undefined;
-                this._animPos = !target ? undefined : target[2] ? [this.Document.x || 0, this.Document.y || 0] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]);
+                this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]);
             }, { fireImmediately: true });
     }
 
@@ -92,11 +92,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     clusterColorFunc = (doc: Doc) => this.clusterColor;
 
-    get layoutDoc() {
-        // if this document's layout field contains a document (ie, a rendering template), then we will use that
-        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
-        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
-    }
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
 
     @observable _animPos: number[] | undefined = undefined;
 

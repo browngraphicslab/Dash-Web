@@ -6,7 +6,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
@@ -18,15 +18,16 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
-import { CollectionPDFView } from "./CollectionPDFView";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { CollectionViewType } from "./CollectionBaseView";
+import { ObjectField } from "../../../new_fields/ObjectField";
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
@@ -37,29 +38,34 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
     ruleProvider: Doc | undefined;
+    children?: never | (() => JSX.Element[]) | React.ReactNode;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
-
-        protected createDropTarget = (ele: HTMLDivElement) => {
+        protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
         }
-        protected CreateDropTarget(ele: HTMLDivElement) {
+        protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
             this.createDropTarget(ele);
         }
 
         componentDidMount() {
             this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-                async (args) => args[1] instanceof Doc &&
-                    this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc))));
+                async (args) => {
+                    if (args[1] instanceof Doc) {
+                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc)));
+                    } else {
+                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layout = undefined);
+                    }
+                });
 
         }
         componentWillUnmount() {
@@ -71,7 +77,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
         @computed get dataField() {
-            return Doc.fieldExtensionDoc(this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+            return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
         }
 
 
@@ -122,6 +128,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
+            (this.props.Document.dropConverter instanceof ScriptField) &&
+                this.props.Document.dropConverter.script.run({ dragData: de.data });
             if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
@@ -134,11 +142,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (de.data.dropAction || de.data.userDropAction) {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    let movedDocs = de.data.draggedDocuments;// de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
-                    // note that it's possible the drag function might create a drop document that's not the same as the
-                    // original dragged document.  So we explicitly call addDocument() with a droppedDocument and 
+                    let movedDocs = de.data.draggedDocuments;
                     added = movedDocs.reduce((added: boolean, d, i) =>
-                        de.data.moveDocument(d, this.props.Document, (doc: Doc) => this.props.addDocument(de.data.droppedDocuments[i])) || added, false);
+                        de.data.droppedDocuments[i] !== d ? this.props.addDocument(de.data.droppedDocuments[i]) :
+                            de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
@@ -176,14 +183,14 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.props.addDocument(f);
                             }
                         });
                     } else {
                         this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
                 }
                 return;
             }
@@ -194,7 +201,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (img) {
                     let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
-                    this.props.addDocument(doc, false);
+                    ImageUtils.ExtractExif(doc);
+                    this.props.addDocument(doc);
                     return;
                 } else {
                     let path = window.location.origin + "/doc/";
@@ -203,12 +211,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f, false);
+                                (f instanceof Doc) && this.props.addDocument(f);
                             }
                         });
                     } else {
                         let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                        this.props.addDocument(htmlDoc, false);
+                        this.props.addDocument(htmlDoc);
                     }
                     return;
                 }
@@ -252,7 +260,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let type = result["content-type"];
                             if (type) {
                                 Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
-                                    .then(doc => doc && this.props.addDocument(doc, false));
+                                    .then(doc => doc && this.props.addDocument(doc));
                             }
                         });
                     promises.push(prom);
@@ -275,7 +283,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
                             let pathname = Utils.prepend(file.path);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
-                                doc && (doc.fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
+                                doc && (Doc.GetProto(doc).fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
                                 doc && this.props.addDocument(doc);
                             });
                         }));

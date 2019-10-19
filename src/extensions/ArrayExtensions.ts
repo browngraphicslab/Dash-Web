@@ -1,4 +1,3 @@
-
 export default class ArrayExtension {
     private readonly property: string;
     private readonly body: <T>(this: Array<T>) => any;
