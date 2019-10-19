@@ -746,9 +746,7 @@ addSecureRoute({
                         });
                     });
                 } else if (type.indexOf("audio") !== -1) {
-                    if (location !== uploadDirectory + filename) {
-                        fs.createReadStream(uploadDirectory + filename).pipe(fs.createWriteStream(location));
-                    }
+                    // nothing to be done yet-- although transcribing the audio a la pdfs would make sense.
                 } else {
                     uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
                 }
