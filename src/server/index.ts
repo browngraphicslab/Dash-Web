@@ -24,7 +24,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput, RoomMessage } from "./Message";
 import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
@@ -777,6 +777,10 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
     Utils.AddServerHandler(socket, MessageStore.NotifyRoommates, message => HandleRoommateNotification(socket, message));
+    Utils.AddServerHandler(socket, MessageStore.HangUpCall, message => HandleHangUp(socket, message));
+    Utils.AddRoomHandler(socket, "create or join", HandleCreateOrJoin);
+
+
 
 
 });
@@ -840,9 +844,45 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
     }
 }
 
-function HandleRoommateNotification(socket: Socket, message: String) {
-    socket.broadcast.emit('message', message);
+function HandleRoommateNotification(socket: Socket, message: RoomMessage) {
+    //socket.broadcast.emit('message', message);
+    server.sockets.in(message.room).emit('message', message.message);
 
+}
+
+function HandleCreateOrJoin(socket: io.Socket, room: string) {
+    console.log("Received request to create or join room " + room);
+
+
+    let clientsInRoom = server.sockets.adapter.rooms[room];
+    let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
+    console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
+
+
+    if (numClients === 0) {
+        socket.join(room);
+        console.log('Client ID ' + socket.id + ' created room ' + room);
+        socket.emit('created', room, socket.id);
+
+    } else if (numClients === 1) {
+        console.log('Client ID ' + socket.id + ' joined room ' + room);
+        server.sockets.in(room).emit('join', room);
+        socket.join(room);
+        socket.emit('joined', room, socket.id);
+        server.sockets.in(room).emit('ready');
+
+    } else {
+        socket.emit('full', room);
+    }
+
+
+
+
+
+}
+
+function HandleHangUp(socket: io.Socket, message: string) {
+    console.log("Receive bye from someone");
 }
 
 const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
