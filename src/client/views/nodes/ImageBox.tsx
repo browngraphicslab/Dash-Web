@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { faAsterisk, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction } from 'mobx';
+import { action, computed, observable, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -13,7 +13,7 @@ import { ComputedField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { RouteStore } from '../../../server/RouteStore';
-import { Utils, returnOne, emptyFunction } from '../../../Utils';
+import { Utils, returnOne, emptyFunction, OmitKeys } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
@@ -159,7 +159,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 const files = await res.json();
                 const url = Utils.prepend(files[0].path);
                 // upload to server with known URL 
-                let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
+                let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", width: 200, height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
                 let audioAnnos = Cast(self.extensionDoc.audioAnnotations, listSpec(Doc));
                 if (audioAnnos === undefined) {
@@ -178,18 +178,18 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         });
     }
 
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
     @undoBatch
     rotate = action(() => {
-        let proto = Doc.GetProto(this.props.Document);
-        let nw = this.props.Document.nativeWidth;
-        let nh = this.props.Document.nativeHeight;
-        let w = this.props.Document.width;
-        let h = this.props.Document.height;
-        proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
-        proto.nativeWidth = nh;
-        proto.nativeHeight = nw;
-        this.props.Document.width = h;
-        this.props.Document.height = w;
+        let nw = this.layoutDoc.nativeWidth;
+        let nh = this.layoutDoc.nativeHeight;
+        let w = this.layoutDoc.width;
+        let h = this.layoutDoc.height;
+        this.layoutDoc.rotation = (NumCast(this.layoutDoc.rotation) + 90) % 360;
+        this.layoutDoc.nativeWidth = nh;
+        this.layoutDoc.nativeHeight = nw;
+        this.layoutDoc.width = h;
+        this.layoutDoc.height = w;
     });
 
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -251,7 +251,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     dots(paths: string[]) {
-        let nativeWidth = FieldValue(this.Document.nativeWidth, 1);
+        let nativeWidth = NumCast(this.layoutDoc.nativeWidth, 1);
         let dist = Math.min(nativeWidth / paths.length, 40);
         let left = (nativeWidth - paths.length * dist) / 2;
         return paths.map((p, i) =>
@@ -379,16 +379,17 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return (null);
     }
 
-    @computed
-    get content() {
+    content(layoutDoc: Doc) {
+        if (!layoutDoc) return (null);
+        console.log("REDOING IMAGE CONTENT");
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         // var [sptX, sptY] = transform.transformPoint(0, 0);
         // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         // let w = bptX - sptX;
 
-        let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
-        let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
+        let nativeWidth = NumCast(layoutDoc.nativeWidth, pw);
+        let nativeHeight = NumCast(layoutDoc.nativeHeight, 0);
         let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
@@ -401,14 +402,14 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = this.active() ? "-interactive" : "";// InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
-        let rotation = NumCast(this.dataDoc.rotation, 0);
-        let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
+        let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
+        let rotation = NumCast(layoutDoc.rotation, 0);
+        let aspect = (rotation % 180) ? layoutDoc[HeightSym]() / layoutDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length - 1, this.Document.curPage || 0)];
+        let srcpath = paths[Math.min(paths.length - 1, NumCast(layoutDoc.curPage))];
         let fadepath = paths[Math.min(paths.length - 1, 1)];
 
-        if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
+        (!layoutDoc.ignoreAspect && !this.props.leaveNativeSize) && this.resize(srcpath, layoutDoc);
 
         return (
             <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
@@ -448,7 +449,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     render() {
-        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
+        trace();
+        if (!Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey)) return (null);
         return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
@@ -468,7 +470,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 chromeCollapsed={true}>
-                {() => [this.content]}
+                {() => [this.content(this.layoutDoc)]}
             </CollectionFreeFormView>
         </div >);
     }

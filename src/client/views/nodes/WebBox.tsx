@@ -34,17 +34,18 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
+    get layoutDoc() {return Doc.Layout(this.props.Document); }
     componentWillMount() {
 
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field && field.url.href.indexOf("youtube") !== -1) {
             let youtubeaspect = 400 / 315;
-            var nativeWidth = NumCast(this.props.Document.nativeWidth, 0);
-            var nativeHeight = NumCast(this.props.Document.nativeHeight, 0);
+            var nativeWidth = NumCast(this.layoutDoc.nativeWidth);
+            var nativeHeight = NumCast(this.layoutDoc.nativeHeight);
             if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                if (!nativeWidth) this.props.Document.nativeWidth = 600;
-                this.props.Document.nativeHeight = NumCast(this.props.Document.nativeWidth) / youtubeaspect;
-                this.props.Document.height = NumCast(this.props.Document.width) / youtubeaspect;
+                if (!nativeWidth) this.layoutDoc.nativeWidth = 600;
+                this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / youtubeaspect;
+                this.layoutDoc.height = NumCast(this.layoutDoc.width) / youtubeaspect;
             }
         }
 

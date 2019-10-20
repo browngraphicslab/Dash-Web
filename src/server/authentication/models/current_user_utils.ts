@@ -71,7 +71,7 @@ export class CurrentUserUtils {
         // setup a masonry view of all he creators
         const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
             width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons",
-            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), yMargin: 0
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), yMargin: 5
         });
         // setup a color picker
         const color = Docs.Create.ColorDocument({

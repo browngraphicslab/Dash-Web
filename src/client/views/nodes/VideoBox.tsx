@@ -55,14 +55,15 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         return this._videoRef;
     }
 
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
     videoLoad = () => {
         let aspect = this.player!.videoWidth / this.player!.videoHeight;
-        var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
-        var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
+        var nativeWidth = NumCast(this.layoutDoc.nativeWidth, 0);
+        var nativeHeight = NumCast(this.layoutDoc.nativeHeight, 0);
         if (!nativeWidth || !nativeHeight) {
-            if (!this.Document.nativeWidth) this.Document.nativeWidth = this.player!.videoWidth;
-            this.Document.nativeHeight = this.Document.nativeWidth / aspect;
-            this.Document.height = FieldValue(this.Document.width, 0) / aspect;
+            if (!this.layoutDoc.nativeWidth) this.layoutDoc.nativeWidth = this.player!.videoWidth;
+            this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / aspect;
+            this.layoutDoc.height = NumCast(this.layoutDoc.width, 0) / aspect;
         }
         if (!this.Document.duration) this.Document.duration = this.player!.duration;
     }
@@ -107,7 +108,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         let height = this.Document.height || 0;
         var canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
+        canvas.height = 640 * NumCast (this.layoutDoc.nativeHeight) / NumCast(this.layoutDoc.nativeWidth,1);
         var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             ctx.rect(0, 0, canvas.width, canvas.height);
@@ -153,12 +154,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
         if (this.youtubeVideoId) {
             let youtubeaspect = 400 / 315;
-            var nativeWidth = (this.Document.nativeWidth || 0);
-            var nativeHeight = (this.Document.nativeHeight || 0);
+            var nativeWidth = NumCast(this.layoutDoc.nativeWidth);
+            var nativeHeight =  NumCast(this.layoutDoc.nativeHeight);
             if (!nativeWidth || !nativeHeight) {
-                if (!this.Document.nativeWidth) this.Document.nativeWidth = 600;
-                this.Document.nativeHeight = this.Document.nativeWidth / youtubeaspect;
-                this.Document.height = (this.Document.width || 0) / youtubeaspect;
+                if (!this.layoutDoc.nativeWidth) this.layoutDoc.nativeWidth = 600;
+                this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / youtubeaspect;
+                this.layoutDoc.height = NumCast(this.layoutDoc.width) / youtubeaspect;
             }
         }
     }
@@ -264,7 +265,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     }
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
-        let curTime = NumCast(this.props.Document.currentTimecode);
+        let curTime = NumCast(this.layoutDoc.currentTimecode);
         return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling})` }}>
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
@@ -312,7 +313,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @action
     onResetMove = (e: PointerEvent) => {
         this._isResetClick += Math.abs(e.movementX) + Math.abs(e.movementY);
-        this.Seek(Math.max(0, NumCast(this.props.Document.currentTimecode, 0) + Math.sign(e.movementX) * 0.0333));
+        this.Seek(Math.max(0, NumCast(this.layoutDoc.currentTimecode, 0) + Math.sign(e.movementX) * 0.0333));
         e.stopImmediatePropagation();
     }
     @action
@@ -320,10 +321,10 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         document.removeEventListener("pointermove", this.onResetMove, true);
         document.removeEventListener("pointerup", this.onResetUp, true);
         InkingControl.Instance.switchTool(InkTool.None);
-        this._isResetClick < 10 && (this.props.Document.currentTimecode = 0);
+        this._isResetClick < 10 && (this.layoutDoc.currentTimecode = 0);
     }
     @computed get fieldExtensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.layoutDoc.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
@@ -331,14 +332,14 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
         let start = untracked(() => Math.round(this.Document.currentTimecode || 0));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
-            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.Document.nativeWidth || 640)} height={(this.Document.nativeHeight || 390)}
+            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={NumCast(this.layoutDoc.nativeWidth, 640)} height={NumCast(this.layoutDoc.nativeHeigh, 390)}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
     }
 
     @action.bound
     addDocumentWithTimestamp(doc: Doc): boolean {
         Doc.GetProto(doc).annotationOn = this.props.Document;
-        var curTime = NumCast(this.props.Document.currentTimecode, -1);
+        var curTime = NumCast(this.layoutDoc.currentTimecode, -1);
         curTime !== -1 && (doc.displayTimecode = curTime);
         return Doc.AddDocToList(this.fieldExtensionDoc, this.props.fieldExt, doc);
     }

@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import 'react-image-lightbox/style.css';
-import { Opt, WidthSym } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { Cast } from "../../../new_fields/Types";
@@ -65,11 +65,13 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
             }, { fireImmediately: true });
     }
 
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
+
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
-        this.Document.nativeWidth = nw * 96 / 72;
-        this.Document.nativeHeight = nh * 96 / 72;
-        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
+        this.layoutDoc.nativeWidth = nw * 96 / 72;
+        this.layoutDoc.nativeHeight = nh * 96 / 72;
+        !this.layoutDoc.fitWidth && !this.layoutDoc.ignoreAspect && (this.layoutDoc.height = this.layoutDoc[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }

@@ -300,7 +300,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "dropAction", "forceActive"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "forceActive", "fitWidth"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -369,11 +369,11 @@ export namespace Docs {
             requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
-                    if (!inst.proto!.nativeWidth) {
-                        inst.proto!.nativeWidth = size.width;
+                    if (!inst.nativeWidth) {
+                        inst.nativeWidth = size.width;
                     }
-                    inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                    inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                    inst.nativeHeight = NumCast(inst.nativeWidth) * aspect;
+                    inst.height = NumCast(inst.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
             // }

@@ -150,7 +150,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (!this._useIcons) {
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
+            let scale = () => returnXDimension() / NumCast(Doc.Layout(this.props.doc).nativeWidth, returnXDimension());
             const docview = <div
                 onPointerDown={action(() => {
                     this._useIcons = !this._useIcons;

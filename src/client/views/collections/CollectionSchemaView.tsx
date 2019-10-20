@@ -922,8 +922,9 @@ interface CollectionSchemaPreviewProps {
 export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
     private dropDisposer?: DragManager.DragDropDisposer;
     _mainCont?: HTMLDivElement;
-    private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.PanelWidth()); }
-    private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.PanelHeight()); }
+    private get layoutDoc() { return this.props.Document && Doc.Layout(this.props.Document); }
+    private get nativeWidth() { return NumCast(this.layoutDoc!.nativeWidth, this.props.PanelWidth()); }
+    private get nativeHeight() { return NumCast(this.layoutDoc!.nativeHeight, this.props.PanelHeight()); }
     private contentScaling = () => {
         let wscale = this.props.PanelWidth() / (this.nativeWidth ? this.nativeWidth : this.props.PanelWidth());
         if (wscale * this.nativeHeight > this.props.PanelHeight()) {
@@ -947,10 +948,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         if (de.data instanceof DragManager.DocumentDragData) {
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
                 let target = Doc.GetProto(otherdoc);
-                let layoutNative = Doc.MakeTitled("layoutNative");
-                layoutNative.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layoutNative = layoutNative;
-                target.layoutCUstom = target.layout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
+                target.layout = ComputedField.MakeFunction("this.image_data[0]");
+                target.layoutCustom = Doc.MakeDelegate(de.data.draggedDocuments[0]);
             });
             e.stopPropagation();
         }
@@ -968,7 +967,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         let br = StrCast(this.props.Document!.borderRounding);
         if (br.endsWith("%")) {
             let percent = Number(br.substr(0, br.length - 1)) / 100;
-            let nativeDim = Math.min(NumCast(this.props.Document!.nativeWidth), NumCast(this.props.Document!.nativeHeight));
+            let nativeDim = Math.min(NumCast(this.layoutDoc!.nativeWidth), NumCast(this.layoutDoc!.nativeHeight));
             let minDim = percent * (nativeDim ? nativeDim : Math.min(this.PanelWidth(), this.PanelHeight()));
             return minDim;
         }

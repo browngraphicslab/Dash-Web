@@ -61,11 +61,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
                 async (args) => {
                     if (args[1] instanceof Doc) {
-                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc)));
+                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), "layoutFromParent"));
                     }
-                    // else if (!(args[1] instanceof Promise)) {
-                    //     this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layout = undefined);
-                    // }
+                    else if (!(args[1] instanceof Promise)) {
+                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
+                    }
                 });
 
         }
@@ -134,8 +134,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc)
-                    );
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, "layoutFromParent"));
                     e.stopPropagation();
                     return true;
                 }

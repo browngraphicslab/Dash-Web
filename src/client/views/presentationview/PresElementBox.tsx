@@ -151,6 +151,7 @@ export class PresElementBox extends React.Component<FieldViewProps> {
      */
     ScreenToLocalListTransform = (xCord: number, yCord: number) => [xCord, yCord];
 
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
     /**
      * The function that is responsible for rendering the a preview or not for this
      * presentation element.
@@ -160,12 +161,12 @@ export class PresElementBox extends React.Component<FieldViewProps> {
             return (null);
         }
 
-        let propDocWidth = NumCast(this.props.Document.nativeWidth);
-        let propDocHeight = NumCast(this.props.Document.nativeHeight);
-        let scale = () => 175 / NumCast(this.props.Document.nativeWidth, 175);
+        let propDocWidth = NumCast(this.layoutDoc.nativeWidth);
+        let propDocHeight = NumCast(this.layoutDoc.nativeHeight);
+        let scale = () => 175 / NumCast(this.layoutDoc.nativeWidth, 175);
         return (
             <div className="presElementBox-embedded" style={{
-                height: propDocHeight === 0 ? NumCast(this.props.Document.height) - NumCast(this.props.Document.collapsedHeight) : propDocHeight * scale(),
+                height: propDocHeight === 0 ? NumCast(this.layoutDoc.height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <CollectionSchemaPreview

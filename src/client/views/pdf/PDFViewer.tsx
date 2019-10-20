@@ -113,7 +113,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     componentDidMount = async () => {
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
-        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
+        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.layoutDoc.curPage, 1)}.PNG`)));
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._searchReactionDisposer = reaction(() => StrCast(this.props.Document.search_string), searchString => {
@@ -131,14 +131,14 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             () => (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(),
             { fireImmediately: true });
         this._reactionDisposer = reaction(
-            () => this.props.Document.scrollY,
+            () => this.layoutDoc.scrollY,
             (scrollY) => {
                 if (scrollY !== undefined) {
                     if (this._showCover || this._showWaiting) {
                         this.setupPdfJsViewer();
                     }
-                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, NumCast(this.props.Document.scrollY) || 0);
-                    this.props.Document.scrollY = undefined;
+                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, NumCast(this.layoutDoc.scrollY) || 0);
+                    this.layoutDoc.scrollY = undefined;
                 }
             },
             { fireImmediately: true }
@@ -179,7 +179,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                     i === this.props.pdf.numPages - 1 && this.props.loaded((page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
                         (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]), i);
                 }))));
-            Doc.GetProto(this.props.Document).scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
+                this.layoutDoc.scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
         }
     }
 
@@ -197,7 +197,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             { fireImmediately: true });
 
         this._filterReactionDisposer = reaction(
-            () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
+            () => ({ scriptField: Cast(this.layoutDoc.filterScript, ScriptField), annos: this._annotations.slice() }),
             action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
                 let oldScript = this._script.originalScript;
                 this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
@@ -224,7 +224,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         document.addEventListener("copy", this.copy);
         document.addEventListener("pagesinit", action(() => {
             this._pdfViewer.currentScaleValue = this._zoomed = 1;
-            this.gotoPage(NumCast(this.props.Document.curPage, 1));
+            this.gotoPage(NumCast(this.layoutDoc.curPage, 1));
         }));
         document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
@@ -335,7 +335,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
         this._scrollTop = this._mainCont.current!.scrollTop;
-        this._pdfViewer && (this.props.Document.curPage = this._pdfViewer.currentPageNumber);
+        this._pdfViewer && (this.layoutDoc.curPage = this._pdfViewer.currentPageNumber);
     }
 
     // get the page index that the vertical offset passed in is on
@@ -403,7 +403,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this._downX = e.clientX;
         this._downY = e.clientY;
         addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
-        if (NumCast(this.props.Document.scale, 1) !== 1) return;
+        if (NumCast(this.layoutDoc.scale, 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active()) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
         }
@@ -568,16 +568,18 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         }
     }
 
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
+
     createSnippet = (marquee: { left: number, top: number, width: number, height: number }): void => {
         let view = Doc.MakeAlias(this.props.Document);
         let data = Doc.MakeDelegate(Doc.GetProto(this.props.Document));
         data.title = StrCast(data.title) + "_snippet";
         view.proto = data;
         view.nativeHeight = marquee.height;
-        view.height = (this.props.Document[WidthSym]() / NumCast(this.props.Document.nativeWidth)) * marquee.height;
-        view.nativeWidth = this.props.Document.nativeWidth;
+        view.height = (this.layoutDoc[WidthSym]() / NumCast(this.layoutDoc.nativeWidth)) * marquee.height;
+        view.nativeWidth = this.layoutDoc.nativeWidth;
         view.startY = marquee.top;
-        view.width = this.props.Document[WidthSym]();
+        view.width = this.layoutDoc[WidthSym]();
         DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view]), 0, 0);
     }
 
@@ -598,12 +600,12 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     getCoverImage = () => {
         if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
             setTimeout((() => {
-                this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-                this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+                this.layoutDoc.height = this.layoutDoc[WidthSym]() * this._coverPath.height / this._coverPath.width;
+                this.layoutDoc.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
             }).bind(this), 0);
         }
-        let nativeWidth = NumCast(this.props.Document.nativeWidth);
-        let nativeHeight = NumCast(this.props.Document.nativeHeight);
+        let nativeWidth = NumCast(this.layoutDoc.nativeWidth);
+        let nativeHeight = NumCast(this.layoutDoc.nativeHeight);
         return <img key={this._coverPath.path} src={this._coverPath.path} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
@@ -619,14 +621,14 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     @computed get annotationLayer() {
-        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
+        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.layoutDoc.nativeHeight) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                 <Annotation {...this.props} focus={this.props.focus} anno={anno} key={`${anno[Id]}-annotation`} />)}
             <div className="pdfViewer-overlay" id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
                 <CollectionFreeFormView {...this.props}
                     setPreviewCursor={this.setPreviewCursor}
-                    PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
-                    PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
+                    PanelHeight={() => NumCast(this.layoutDoc.scrollHeight, NumCast(this.layoutDoc.nativeHeight))}
+                    PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.layoutDoc.nativeWidth)}
                     VisibleHeight={this.visibleHeight}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

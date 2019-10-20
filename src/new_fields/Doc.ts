@@ -424,12 +424,16 @@ export namespace Doc {
     export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string, immediate: boolean = false) {
         let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
         if (docExtensionForField === undefined) {
-            if (immediate) CreateDocumentExtensionForField(doc, fieldKey);
-            else setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-        } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
-            docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);
-            docExtensionForField.type === undefined && setTimeout(() => docExtensionForField.type = DocumentType.EXTENSION, 0);
+            if (immediate) {
+                CreateDocumentExtensionForField(doc, fieldKey);
+                return true;
+            }
+            else {
+                setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
+                return false;
+            }
         }
+        return true;
     }
     export function MakeTitled(title: string) {
         let doc = new Doc();
@@ -453,7 +457,7 @@ export namespace Doc {
     // for individual layout properties to be overridden in the expanded layout.
     //
     export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
-        return BoolCast(layoutDoc.isTemplateField) && dataDoc && layoutDoc !== dataDoc && !(layoutDoc.layout instanceof Doc);
+        return BoolCast(layoutDoc.isTemplateField) && dataDoc && layoutDoc !== dataDoc && !(layoutDoc[StrCast(layoutDoc.layoutKey, "layout")] instanceof Doc);
     }
 
     //
@@ -564,13 +568,13 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            let applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), templateDoc.title + "(..." + _applyCount++ + ")");
+            let applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), "layoutCustom", templateDoc.title + "(..." + _applyCount++ + ")");
             applied && (Doc.GetProto(applied).layout = applied.layout);
             return applied;
         }
         return undefined;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, titleTarget: string | undefined = undefined) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined = undefined) {
         if (!templateDoc) {
             target.layout = undefined;
             target.nativeWidth = undefined;
@@ -580,21 +584,14 @@ export namespace Doc {
             return;
         }
 
-        let layoutCustom = Doc.MakeTitled("layoutCustom");
         let layoutCustomLayout = Doc.MakeDelegate(templateDoc);
 
         titleTarget && (Doc.GetProto(target).title = titleTarget);
         target.type = DocumentType.TEMPLATE;
-        target.width = templateDoc.width;
-        target.height = templateDoc.height;
-        target.nativeWidth = templateDoc.nativeWidth ? templateDoc.nativeWidth : 0;
-        target.nativeHeight = templateDoc.nativeHeight ? templateDoc.nativeHeight : 0;
-        target.ignoreAspect = templateDoc.nativeWidth ? true : false;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-        target.layout = layoutCustomLayout;
 
-        target.layoutNative = Cast(templateDoc.layoutNative, Doc) as Doc;
-        target.layoutCustom = layoutCustom;
+        Doc.GetProto(target)[targetKey] = layoutCustomLayout;
+        target.layoutKey = targetKey;
         return target;
     }
 
@@ -666,9 +663,9 @@ export namespace Doc {
         @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
 
-    // if this document's layout field contains a document (ie, a rendering template), then we will use that
-    // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
-    export function Layout(doc: Doc) { return doc.layout instanceof Doc ? doc.layout : doc; }
+    // returns the active layout document for 'doc'.  
+    export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? doc[StrCast(doc.layoutKey, "layout")] as Doc : doc; }
+    export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     const manager = new DocData();
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }

@@ -191,9 +191,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let preventDefault = true;
             if (this._doubleTap && this.props.renderDepth && (!this.onClickHandler || !this.onClickHandler.script)) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                let layoutNative = await PromiseValue(Cast(this.props.Document.layoutNative, Doc));
-                if (layoutNative && fullScreenAlias.layout === layoutNative.layout) {
-                    await swapViews(fullScreenAlias, "layoutCustom", "layoutNative");
+                if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias["layoutCustom"] !== undefined) {
+                    fullScreenAlias.layoutKey = "layoutCustom";
                 }
                 this.props.addDocTab(fullScreenAlias, undefined, "inTab");
                 SelectionManager.DeselectAll();
@@ -287,16 +286,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
-    static makeNativeViewClicked = async (doc: Doc): Promise<void> => {
-        undoBatch(() => swapViews(doc, "layoutNative", "layoutCustom"))();
+    static makeNativeViewClicked = (doc: Doc) => {
+        undoBatch(() => doc.layoutKey = "layout")();
     }
 
-    static makeCustomViewClicked = async (doc: Doc, dataDoc: Opt<Doc>) => {
+    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>) => {
         const batch = UndoManager.StartBatch("CustomViewClicked");
         if (doc.layoutCustom === undefined) {
-            Doc.GetProto(dataDoc || doc).layoutNative = Doc.MakeTitled("layoutNative");
-            await swapViews(doc, "", "layoutNative");
-
             const width = NumCast(doc.width);
             const height = NumCast(doc.height);
             const options = { title: "data", width, x: -width / 2, y: - height / 2, };
@@ -326,10 +322,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: doc.title + "_layout", width: width + 20, height: Math.max(100, height + 45) });
 
             Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate), true);
-            Doc.ApplyTemplateTo(docTemplate, doc, undefined);
-            Doc.GetProto(dataDoc || doc).layoutCustom = Doc.MakeTitled("layoutCustom");
+            Doc.ApplyTemplateTo(docTemplate, dataDoc || doc, "layoutCustom", undefined);
         } else {
-            await swapViews(doc, "layoutCustom", "layoutNative");
+            doc.layoutKey = "layoutCustom";
         }
         batch.end();
     }
@@ -356,7 +351,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DocUtils.MakeLink({ doc: de.data.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `Link from ${StrCast(de.data.annotationDocument.title)}`);
         }
         if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document);
+            Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document, "layoutCustom");
             e.stopPropagation();
         }
         if (de.data instanceof DragManager.LinkDragData) {
@@ -383,12 +378,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
-        let proto = this.Document.isTemplateDoc ? this.props.Document : Doc.GetProto(this.props.Document);
-        proto.autoHeight = this.Document.autoHeight = false;
-        proto.ignoreAspect = !proto.ignoreAspect;
-        if (!proto.ignoreAspect && !proto.nativeWidth) {
-            proto.nativeWidth = this.props.PanelWidth();
-            proto.nativeHeight = this.props.PanelHeight();
+        this.layoutDoc.autoHeight = this.layoutDoc.autoHeight = false;
+        this.layoutDoc.ignoreAspect = !this.layoutDoc.ignoreAspect;
+        if (!this.layoutDoc.ignoreAspect && !this.layoutDoc.nativeWidth) {
+            this.layoutDoc.nativeWidth = this.props.PanelWidth();
+            this.layoutDoc.nativeHeight = this.props.PanelHeight();
         }
     }
 
@@ -505,7 +499,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
             layoutItems.push({ description: "Use Custom Layout", event: () => DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-        } else if (this.props.Document.layoutNative) {
+        } else {
             layoutItems.push({ description: "Use Native Layout", event: () => DocumentView.makeNativeViewClicked(this.props.Document), icon: "concierge-bell" });
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
@@ -599,7 +593,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (showTitle ? 25 : 0) + 1;
     }
 
-    childScaling = () => (this.props.Document.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
+    childScaling = () => (this.layoutDoc.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
@@ -646,8 +640,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
-        const nativeWidth = this.props.Document.fitWidth ? this.props.PanelWidth() - 2 : this.nativeWidth > 0 && !this.Document.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.props.Document.fitWidth ? this.props.PanelHeight() - 2 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const nativeWidth = this.layoutDoc.fitWidth ? this.props.PanelWidth() - 2 : this.nativeWidth > 0 && !this.layoutDoc.ignoreAspect ? `${this.nativeWidth}px` : "100%";
+        const nativeHeight = this.layoutDoc.fitWidth ? this.props.PanelHeight() - 2 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
@@ -686,7 +680,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
-        let highlighting = fullDegree && this.props.Document.type !== DocumentType.FONTICON && this.props.Document.viewType !== CollectionViewType.Linear;
+        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -696,10 +690,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     color: StrCast(this.Document.color),
                     outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                     border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                    background: this.props.Document.type === DocumentType.FONTICON || this.props.Document.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
+                    background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
                     width: animwidth,
                     height: animheight,
-                    transform: `scale(${this.props.Document.fitWidth ? 1 : this.props.ContentScaling()})`,
+                    transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
                     opacity: this.Document.opacity
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
@@ -707,7 +701,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             >
                 {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
                     //this.linkEndpointDoc(d).type === DocumentType.PDFANNO ? (null) :
-                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.props.Document.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
+                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
                         <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />
                     </div>)}
                 {!showTitle && !showCaption ?
@@ -733,33 +727,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-export async function swapViews(doc: Doc, newLayoutField: string, oldLayoutField: string, oldLayout?: Doc) {
-    let oldLayoutExt = oldLayout || await Cast(doc[oldLayoutField], Doc);
-    if (oldLayoutExt) {
-        oldLayoutExt.autoHeight = doc.autoHeight;
-        oldLayoutExt.width = doc.width;
-        oldLayoutExt.height = doc.height;
-        oldLayoutExt.nativeWidth = doc.nativeWidth;
-        oldLayoutExt.nativeHeight = doc.nativeHeight;
-        oldLayoutExt.ignoreAspect = doc.ignoreAspect;
-        oldLayoutExt.type = doc.type;
-        oldLayoutExt.layout = doc.layout;
-    }
-
-    let newLayoutExt = newLayoutField && await Cast(doc[newLayoutField], Doc);
-    if (newLayoutExt) {
-        doc.autoHeight = newLayoutExt.autoHeight;
-        doc.width = newLayoutExt.width;
-        doc.height = newLayoutExt.height;
-        doc.nativeWidth = newLayoutExt.nativeWidth;
-        doc.nativeHeight = newLayoutExt.nativeHeight;
-        doc.ignoreAspect = newLayoutExt.ignoreAspect;
-        doc.type = newLayoutExt.type;
-        doc.layout = await newLayoutExt.layout;
-    }
-}
-
 Scripting.addGlobal(function toggleDetail(doc: any) {
-    let native = typeof doc.layout === "string";
-    swapViews(doc, native ? "layoutCustom" : "layoutNative", native ? "layoutNative" : "layoutCustom");
+    doc.layoutKey = StrCast(doc.layoutKey, "layout") === "layout" ? "layoutCustom" : "layout";
 });

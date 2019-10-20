@@ -271,7 +271,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     newLayout = Doc.MakeDelegate(draggedDoc);
                     newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
                 }
-                this.props.Document.layout = newLayout;
+                this.props.Document.layoutCustom = newLayout;
+                this.props.Document.layoutKey = "layoutCustom";
                 e.stopPropagation();
                 // embed document when dragging with a userDropAction or an embedDoc flag set
             } else if (de.data.userDropAction || de.data.embedDoc) {

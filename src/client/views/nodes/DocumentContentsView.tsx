@@ -2,7 +2,7 @@ import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Without } from "../../../Utils";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
@@ -69,10 +69,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     get dataDoc() {
-        if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
-            // if there is no dataDoc (ie, we're not rendering a template layout), but this document
-            // has a template layout document, then we will render the template layout but use 
-            // this document as the data document for the layout.
+        if (this.props.DataDoc === undefined && (Doc.LayoutField(this.props.Document) instanceof Doc || this.props.Document instanceof Promise)) {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
+            // then we render the layout document as a template and use this document as the data context for the template layout.
             return this.props.Document;
         }
         return this.props.DataDoc;
@@ -83,7 +82,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         let list = {
             ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
             Document: this.layoutDoc,
-            DataDoc: this.dataDoc
+            DataDoc: this.dataDoc,
         };
         return { props: list };
     }
