@@ -82,7 +82,7 @@ class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
-    get defaultExpandedView() { return this.childDocs ? this.fieldKey : this.props.document.defaultExpandedView ? StrCast(this.props.document.defaultExpandedView) : ""; }
+    get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.props.document.defaultExpandedView, "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     @computed get treeViewOpen() { return (BoolCast(this.props.document.treeViewOpen) && !this.props.preventTreeViewOpen) || this._overrideTreeViewOpen; }
     set treeViewOpen(c: boolean) { if (this.props.preventTreeViewOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = c; }
@@ -251,19 +251,21 @@ class TreeView extends React.Component<TreeViewProps> {
     }
     docWidth = () => {
         let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
-        if (aspect) return Math.min(this.props.document[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 20));
-        return NumCast(this.props.document.nativeWidth) ? Math.min(this.props.document[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
+        let layoutDoc = Doc.Layout(this.props.document);
+        if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 20));
+        return NumCast(this.props.document.nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
     }
     docHeight = () => {
         let bounds = this.boundsOfCollectionDocument;
         return Math.min(this.MAX_EMBED_HEIGHT, (() => {
             let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
+            let layoutDoc = Doc.Layout(this.props.document);
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return this.props.document.fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection.height) :
-                Math.min(this.docWidth() * NumCast(this.props.document.scrollHeight, NumCast(this.props.document.nativeHeight)) / NumCast(this.props.document.nativeWidth,
+            return layoutDoc.fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection.height) :
+                Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(this.props.document.nativeHeight)) / NumCast(this.props.document.nativeWidth,
                     NumCast(this.props.containingCollection.height)))) :
-                NumCast(this.props.document.height) ? NumCast(this.props.document.height) : 50;
+                NumCast(layoutDoc.height) ? NumCast(layoutDoc.height) : 50;
         })());
     }
 
@@ -461,7 +463,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
         let rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
-            let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
+            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
             if (!pair.layout || pair.data instanceof Promise) {
                 return (null);
             }
@@ -480,9 +482,10 @@ class TreeView extends React.Component<TreeViewProps> {
             let addDocument = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
                 return add(doc, relativeTo ? relativeTo : docs[i], before !== undefined ? before : false);
             };
+            const childLayout = Doc.Layout(pair.layout);
             let rowHeight = () => {
                 let aspect = NumCast(child.nativeWidth, 0) / NumCast(child.nativeHeight, 0);
-                return aspect ? Math.min(child[WidthSym](), rowWidth()) / aspect : child[HeightSym]();
+                return aspect ? Math.min(childLayout[WidthSym](), rowWidth()) / aspect : childLayout[HeightSym]();
             };
             return <TreeView
                 document={pair.layout}
@@ -517,7 +520,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
-    @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplateField) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer && this.treedropDisposer();
@@ -527,6 +530,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
         this.treedropDisposer && this.treedropDisposer();
     }
 
@@ -572,7 +576,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
             <div id="body" className="collectionTreeView-dropTarget"
-                style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "lightgray") }}
+                style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "lightgray"), paddingTop: `${NumCast(this.props.Document.yMargin, 20)}px` }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
@@ -596,7 +600,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform,
-                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth, () => this.props.Document.chromeStatus !== "disabled",
+                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth, () => !this.props.Document.hideHeaderFields,
                             BoolCast(this.props.Document.preventTreeViewOpen), [])
                     }
                 </ul>

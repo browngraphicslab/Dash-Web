@@ -111,7 +111,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         Doc.GetProto(docTemplate).layoutNative = layoutNative;
                         swapViews(fieldTemplate, "", "layoutNative", layoutNative);
                         layoutNative.layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                        layoutNative.backgroundLayout = StrCast(fieldTemplateView.props.Document.backgroundLayout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                     }
                 }
             }
@@ -202,6 +201,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
+        dragData.isSelectionMove = true;
         this.Interacting = true;
         this._hidden = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
@@ -342,7 +342,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
 
         if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
-            const layout = StrCast(doc.backgroundLayout, StrCast(doc.layout, FieldView.LayoutString(DocumentView)));
+            const layout = StrCast(doc.layout, FieldView.LayoutString(DocumentView));
             iconDoc = this.createIcon([docView], layout);
         }
         return iconDoc;
@@ -379,7 +379,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
             usingRule = usingRule || (ruleProvider && heading ? true : false);
         });
-        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
@@ -470,47 +470,48 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(element => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
+                let layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
-                let width = (doc.width || 0);
-                let height = (doc.height || (nheight / nwidth * width));
+                let width = (layoutDoc.width || 0);
+                let height = (layoutDoc.height || (nheight / nwidth * width));
                 let scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
-                let fixedAspect = e.ctrlKey || (!doc.ignoreAspect && nwidth && nheight);
-                if (fixedAspect && e.ctrlKey && doc.ignoreAspect) {
-                    doc.ignoreAspect = false;
-                    proto.nativeWidth = nwidth = doc.width || 0;
-                    proto.nativeHeight = nheight = doc.height || 0;
+                let proto = doc.isTemplateField ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
+                let fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
+                    layoutDoc.ignoreAspect = false;
+                    proto.nativeWidth = nwidth = layoutDoc.width || 0;
+                    proto.nativeHeight = nheight = layoutDoc.height || 0;
                 }
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    proto.nativeWidth = nwidth = doc.width || 0;
-                    proto.nativeHeight = nheight = doc.height || 0;
+                    proto.nativeWidth = nwidth = layoutDoc.width || 0;
+                    proto.nativeHeight = nheight = layoutDoc.height || 0;
                 }
-                if (nwidth > 0 && nheight > 0 && !BoolCast(doc.ignoreAspect)) {
+                if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
+                            Doc.SetInPlace(doc, "nativeWidth", actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0), true);
                         }
-                        doc.width = actualdW;
-                        if (fixedAspect && !doc.fitWidth) doc.height = nheight / nwidth * doc.width;
-                        else doc.height = actualdH;
+                        layoutDoc.width = actualdW;
+                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
+                        else layoutDoc.height = actualdH;
                     }
                     else {
                         if (!fixedAspect) {
-                            Doc.SetInPlace(element.props.Document, "nativeHeight", actualdH / (doc.height || 1) * (doc.nativeHeight || 0), true);
+                            Doc.SetInPlace(doc, "nativeHeight", actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0), true);
                         }
-                        doc.height = actualdH;
-                        if (fixedAspect && !doc.fitWidth) doc.width = nwidth / nheight * doc.height;
-                        else doc.width = actualdW;
+                        layoutDoc.height = actualdH;
+                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
+                        else layoutDoc.width = actualdW;
                     }
                 } else {
-                    dW && (doc.width = actualdW);
-                    dH && (doc.height = actualdH);
-                    dH && element.props.Document.autoHeight && Doc.SetInPlace(element.props.Document, "autoHeight", false, true);
+                    dW && (layoutDoc.width = actualdW);
+                    dH && (layoutDoc.height = actualdH);
+                    dH && layoutDoc.autoHeight && Doc.SetInPlace(layoutDoc, "autoHeight", false, true);
                 }
             }
         });

@@ -32,7 +32,11 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     public static LayoutString() { return FieldView.LayoutString(ButtonBox); }
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() {
+        return this.props.DataDoc &&
+            (BoolCast(this.props.Document.isTemplateField) || BoolCast(this.props.DataDoc.isTemplateField) ||
+                this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document);
+    }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {

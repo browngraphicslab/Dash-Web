@@ -47,6 +47,7 @@ import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
+import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -69,7 +70,8 @@ export interface DocumentOptions {
     preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
-    isTemplate?: boolean;
+    isTemplateField?: boolean;
+    isTemplateDoc?: boolean;
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
@@ -78,7 +80,6 @@ export interface DocumentOptions {
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
-    backgroundLayout?: string;
     chromeStatus?: string;
     columnWidth?: number;
     fontSize?: number;
@@ -98,6 +99,7 @@ export interface DocumentOptions {
     unchecked?: ScriptField; // returns whether a check box is unchecked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
     gridGap?: number; // gap between items in masonry view
@@ -105,7 +107,7 @@ export interface DocumentOptions {
     yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     panel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
-    convertToButtons?: boolean; // whether documents dropped onto a collection should be converted to buttons that will construct the dropped document
+    dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     // [key: string]: Opt<Field>;
 }
 
@@ -126,7 +128,6 @@ export namespace Docs {
             layout: {
                 view: LayoutSource,
                 ext?: string, // optional extension field for layout source
-                collectionView?: CollectionViewType
             },
             options?: Partial<DocumentOptions>
         };
@@ -141,7 +142,7 @@ export namespace Docs {
                 options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
+                layout: { view: HistogramBox },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.QUERY, {
@@ -205,7 +206,7 @@ export namespace Docs {
             }],
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox },
-                options: { width: 40, height: 40 },
+                options: { width: 40, height: 40, borderRounding: "100%" },
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox }
@@ -290,15 +291,8 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            let primary = layout.view.LayoutString(layout.ext);
-            let collectionView = layout.collectionView;
-            if (collectionView) {
-                options.layout = collectionView[0].LayoutString(collectionView[1], collectionView[2]);
-                options.backgroundLayout = primary;
-            } else {
-                options.layout = primary;
-            }
-            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: primary });
+            options.layout = layout.view.LayoutString(layout.ext);
+            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
         }
 
     }
@@ -309,7 +303,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "dropAction", "forceActive"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -722,6 +716,11 @@ export namespace DocUtils {
             linkDocProto.anchor2Context = target.ctx;
             linkDocProto.anchor2Groups = new List<Doc>([]);
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
+            linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
+            linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
+            linkDocProto.width = linkDocProto.height = 0;
+            linkDocProto.isBackground = true;
+            linkDocProto.isButton = true;
 
             LinkManager.Instance.addLink(linkDocProto);
 

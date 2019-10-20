@@ -25,7 +25,7 @@ export class InkingControl {
 
     switchTool = action((tool: InkTool): void => {
         this._selectedTool = tool;
-    })
+    });
     decimalToHexString(number: number) {
         if (number < 0) {
             number = 0xFFFFFFFF + number + 1;
@@ -41,7 +41,9 @@ export class InkingControl {
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
-                let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :
+                    view.props.Document.layout instanceof Doc ? view.props.Document.layout :
+                        view.props.Document.isTemplateField ? view.props.Document : Doc.GetProto(view.props.Document);
                 let sel = window.getSelection();
                 if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
                     targetDoc.color = this._selectedColor;
@@ -79,20 +81,20 @@ export class InkingControl {
                     ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
                     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
-                !ruleProvider && (targetDoc.backgroundColor = matchedColor);
+                (!ruleProvider && targetDoc) && (Doc.Layout(view.props.Document).backgroundColor = matchedColor);
 
                 return {
                     target: targetDoc,
                     previous: oldColor
                 };
             });
-            let captured = this._selectedColor;
-            UndoManager.AddEvent({
-                undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
-                redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
-            });
+            //let captured = this._selectedColor;
+            // UndoManager.AddEvent({
+            //     undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
+            //     redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
+            // });
         } else {
-            CurrentUserUtils.UserDocument.activePen instanceof Doc && CurrentUserUtils.UserDocument.activePen.pen instanceof Doc && (CurrentUserUtils.UserDocument.activePen.pen.backgroundColor = this._selectedColor);
+            CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
         }
     });
     @action

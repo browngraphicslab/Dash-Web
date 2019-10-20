@@ -1,63 +1,48 @@
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
-import { BoolCast, NumCast, StrCast } from "../../../../new_fields/Types";
-import { InkingControl } from "../../InkingControl";
+import { Doc } from "../../../../new_fields/Doc";
+import { Utils } from '../../../../Utils';
+import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { observable, action } from "mobx";
 
 export interface CollectionFreeFormLinkViewProps {
-    A: Doc;
-    B: Doc;
+    A: DocumentView;
+    B: DocumentView;
     LinkDocs: Doc[];
-    addDocument: (document: Doc) => boolean;
-    removeDocument: (document: Doc) => boolean;
 }
 
 @observer
 export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFormLinkViewProps> {
-
-    onPointerDown = (e: React.PointerEvent) => {
-        if (e.button === 0 && !InkingControl.Instance.selectedTool) {
-            let a = this.props.A;
-            let b = this.props.B;
-            let x1 = NumCast(a.x) + (BoolCast(a.isMinimized) ? 5 : a[WidthSym]() / 2);
-            let y1 = NumCast(a.y) + (BoolCast(a.isMinimized) ? 5 : a[HeightSym]() / 2);
-            let x2 = NumCast(b.x) + (BoolCast(b.isMinimized) ? 5 : b[WidthSym]() / 2);
-            let y2 = NumCast(b.y) + (BoolCast(b.isMinimized) ? 5 : b[HeightSym]() / 2);
-            // this.props.LinkDocs.map(l => {
-            //     let width = l[WidthSym]();
-            //     l.x = (x1 + x2) / 2 - width / 2;
-            //     l.y = (y1 + y2) / 2 + 10;
-            //     if (!this.props.removeDocument(l)) this.props.addDocument(l, false);
-            // });
-            e.stopPropagation();
-            e.preventDefault();
-        }
+    @observable _alive: number = 0;
+    @action
+    componentDidMount() {
+        this._alive = 1;
+        setTimeout(this.rerender, 50);
     }
+    @action
+    componentWillUnmount() {
+        this._alive = 0;
+    }
+    rerender = action(() => {
+        if (this._alive) {
+            setTimeout(this.rerender, 50);
+            this._alive++;
+        }
+    });
+
     render() {
-        // let l = this.props.LinkDocs;
-        let a = this.props.A;
-        let b = this.props.B;
-        let x1 = NumCast(a.x) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.width) / 2);
-        let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.height) / 2);
-        let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.width) / 2);
-        let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / 2);
-        let text = "";
-        // let first = this.props.LinkDocs[0];
-        // if (this.props.LinkDocs.length === 1) text += first.title + (first.linkDescription ? "(" + StrCast(first.linkDescription) + ")" : "");
-        // else text = "-multiple-";
-        return (
-            <>
-                <line key="linkLine" className="collectionfreeformlinkview-linkLine"
-                    x1={`${x1}`} y1={`${y1}`}
-                    x2={`${x2}`} y2={`${y2}`} />
-                {/* <circle key="linkCircle" className="collectionfreeformlinkview-linkCircle"
-                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} /> */}
-                <text key="linkText" textAnchor="middle" className="collectionfreeformlinkview-linkText" x={`${(x1 + x2) / 2}`} y={`${(y1 + y2) / 2}`}>
-                    {text}
-                </text>
-            </>
-        );
+        let y = this._alive;
+        let acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
+        let bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
+        let a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
+        let b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
+        let pt1 = Utils.getNearestPointInPerimeter(a.left, a.top, a.width, a.height, b.left + b.width / 2, b.top + b.height / 2);
+        let pt2 = Utils.getNearestPointInPerimeter(b.left, b.top, b.width, b.height, a.left + a.width / 2, a.top + a.height / 2);
+        return (<line key="linkLine" className="collectionfreeformlinkview-linkLine"
+            x1={`${pt1[0]}`} y1={`${pt1[1]}`}
+            x2={`${pt2[0]}`} y2={`${pt2[1]}`} />);
     }
 }

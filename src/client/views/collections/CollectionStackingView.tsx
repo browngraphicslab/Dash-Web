@@ -65,7 +65,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             let style = this.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(pair.layout as Doc, pair.data, dxf, width)}
+                {pair.layout instanceof Doc && this.getDisplayDoc(pair.layout, pair.data, dxf, width)}
             </div>;
         });
     }
@@ -74,11 +74,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this._heightMap.set(key, sectionHeight);
     }
 
-    get layoutDoc() {
-        // if this document's layout field contains a document (ie, a rendering template), then we will use that
-        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
-        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
-    }
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
 
     get Sections() {
         if (!this.sectionFilter || this.sectionHeaders instanceof Promise) return new Map<SchemaHeaderField, Doc[]>();
@@ -110,9 +106,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     componentDidMount() {
-        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
+        super.componentDidMount();
         this._heightDisposer = reaction(() => {
-            if (BoolCast(this.props.Document.autoHeight)) {
+            if (this.props.Document.autoHeight) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
                 if (this.isStackingView) {
                     return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
@@ -138,6 +134,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         );
     }
     componentWillUnmount() {
+        super.componentWillUnmount();
         this._heightDisposer && this._heightDisposer();
         this._sectionFilterDisposer && this._sectionFilterDisposer();
     }
@@ -168,7 +165,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             renderDepth={this.props.renderDepth}
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
             fitToBox={this.props.fitToBox}
-            onClick={layoutDoc.isTemplate ? this.onClickHandler : this.onChildClickHandler}
+            onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
             PanelWidth={width}
             PanelHeight={height}
             getTransform={finalDxf}
@@ -188,15 +185,17 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
+        let layoutDoc = Doc.Layout(d);
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!d.ignoreAspect && !d.fitWidth && nw && nh) {
+        if (!layoutDoc.ignoreAspect && !layoutDoc.fitWidth && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
-            if (!(d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(d[WidthSym](), wid);
+            if (!(d.nativeWidth && !layoutDoc.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(layoutDoc[WidthSym](), wid);
             return wid * aspect;
         }
-        return d.fitWidth ? !d.nativeHeight ? this.props.PanelHeight() - 2 * this.yMargin : Math.min(wid * NumCast(d.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : d[HeightSym]();
+        return layoutDoc.fitWidth ? !d.nativeHeight ? this.props.PanelHeight() - 2 * this.yMargin :
+            Math.min(wid * NumCast(layoutDoc.scrollHeight, NumCast(d.nativeHeight)) / NumCast(d.nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : layoutDoc[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

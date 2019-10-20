@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
     faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
-    faMusic, faObjectGroup, faPause, faPenNib, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt
+    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
@@ -102,8 +102,11 @@ export class MainView extends React.Component {
         library.add(faGlobeAsia);
         library.add(faUndoAlt);
         library.add(faRedoAlt);
+        library.add(faMousePointer);
         library.add(faPen);
+        library.add(faHighlighter);
         library.add(faEraser);
+        library.add(faFileAudio);
         library.add(faPenNib);
         library.add(faFilm);
         library.add(faMusic);
@@ -180,7 +183,8 @@ export class MainView extends React.Component {
             y: 400,
             width: this._panelWidth * .7,
             height: this._panelHeight,
-            title: "My Blank Collection"
+            title: "My Blank Collection",
+            backgroundColor: "white"
         };
         let workspaces: FieldResult<Doc>;
         let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);

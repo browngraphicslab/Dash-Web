@@ -745,6 +745,8 @@ addSecureRoute({
                             }
                         });
                     });
+                } else if (type.indexOf("audio") !== -1) {
+                    // nothing to be done yet-- although transcribing the audio a la pdfs would make sense.
                 } else {
                     uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
                 }

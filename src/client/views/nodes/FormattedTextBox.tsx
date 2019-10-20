@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import _ from "lodash";
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -43,6 +43,8 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { siteVerification } from 'googleapis/build/src/apis/siteVerification';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -127,7 +129,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let view = this._editorView!;
         if (view.state.selection.from === view.state.selection.to) return false;
         if (view.state.selection.to - view.state.selection.from > view.state.doc.nodeSize - 3) {
-            this.props.Document.color = color;
+            this.layoutDoc.color = color;
         }
         let colorMark = view.state.schema.mark(view.state.schema.marks.pFontColor, { color: color });
         view.dispatch(view.state.tr.addMark(view.state.selection.from, view.state.selection.to, colorMark));
@@ -143,7 +145,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+
+    // the document containing the view layout information - will be the Document itself unless the Document has
+    // a layout field.  In that case, all layout information comes from there unless overriden by Document
+    @computed get layoutDoc(): Doc { return Doc.Layout(this.props.Document); }
 
     linkOnDeselect: Map<string, string> = new Map();
 
@@ -249,42 +255,41 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        // We're dealing with a link to a document
-        if (de.data instanceof DragManager.EmbedDragData) {
-            let target = de.data.embeddableSourceDoc;
-            // We're dealing with an internal document drop
-            const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "ImgRef:" + target.title);
-            let alias = Doc.MakeAlias(target);
-            alias.fitToBox = true;
-            let node = schema.nodes.dashDoc.create({
-                width: target[WidthSym](), height: target[HeightSym](),
-                title: "dashDoc", docid: alias[Id],
-                float: "right"
-            });
-            let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
-            link && this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, node));
-            this.tryUpdateHeight();
-            e.stopPropagation();
-        } else if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document)) {
-                if (de.mods === "AltKey") {
-                    if (draggedDoc.data instanceof RichTextField) {
-                        Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
-                        e.stopPropagation();
-                    }
-                } else if (de.mods === "CtrlKey") {
-                    draggedDoc.isTemplate = true;
-                    if (typeof (draggedDoc.layout) === "string") {
-                        let layoutDelegateToOverrideFieldKey = Doc.MakeDelegate(draggedDoc);
-                        layoutDelegateToOverrideFieldKey.layout = StrCast(layoutDelegateToOverrideFieldKey.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
-                        this.props.Document.layout = layoutDelegateToOverrideFieldKey;
-                    } else {
-                        this.props.Document.layout = draggedDoc.layout instanceof Doc ? draggedDoc.layout : draggedDoc;
-                    }
+            // replace text contents whend dragging with Alt
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "AltKey") {
+                if (draggedDoc.data instanceof RichTextField) {
+                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                    e.stopPropagation();
                 }
+                // apply as template when dragging with Meta
+            } else if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "MetaKey") {
+                draggedDoc.isTemplateDoc = true;
+                let newLayout = Doc.Layout(draggedDoc);
+                if (typeof (draggedDoc.layout) === "string") {
+                    newLayout = Doc.MakeDelegate(draggedDoc);
+                    newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
+                }
+                this.props.Document.layout = newLayout;
                 e.stopPropagation();
-            }
+                // embed document when dragging with a userDropAction or an embedDoc flag set
+            } else if (de.data.userDropAction || de.data.embedDoc) {
+                let target = de.data.droppedDocuments[0];
+                const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
+                if (link) {
+                    target.fitToBox = true;
+                    let node = schema.nodes.dashDoc.create({
+                        width: target[WidthSym](), height: target[HeightSym](),
+                        title: "dashDoc", docid: target[Id],
+                        float: "right"
+                    });
+                    let view = this._editorView!;
+                    view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
+                    this.tryUpdateHeight();
+                    e.stopPropagation();
+                }
+            } // otherwise, fall through to outer collection to handle drop
         }
     }
 
@@ -364,7 +369,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Dictate", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -379,6 +384,27 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }));
 
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: funcs, icon: "asterisk" });
+    }
+
+    @observable _recording = false;
+
+    recordDictation = () => {
+        //this._editorView!.focus();
+        if (this._recording) return;
+        runInAction(() => this._recording = true);
+        DictationManager.Controls.listen({
+            interimHandler: this.setCurrentBulletContent,
+            continuous: { indefinite: false },
+        }).then(results => {
+            if (results && [DictationManager.Controls.Infringed].includes(results)) {
+                DictationManager.Controls.stop();
+            }
+            this._editorView!.focus();
+        });
+    }
+    stopDictation = (abort: boolean) => {
+        runInAction(() => this._recording = false);
+        DictationManager.Controls.stop(!abort);
     }
 
     recordBullet = async () => {
@@ -489,7 +515,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         );
 
         this._heightReactionDisposer = reaction(
-            () => [this.props.Document[WidthSym](), this.props.Document.autoHeight],
+            () => [this.layoutDoc[WidthSym](), this.layoutDoc.autoHeight],
             () => this.tryUpdateHeight()
         );
 
@@ -508,7 +534,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
 
         this._searchReactionDisposer = reaction(() => {
-            return StrCast(this.props.Document.search_string);
+            return StrCast(this.layoutDoc.search_string);
         }, searchString => {
             if (searchString) {
                 this.highlightSearchTerms([searchString]);
@@ -521,7 +547,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         this._rulesReactionDisposer = reaction(() => {
             let ruleProvider = this.props.ruleProvider;
-            let heading = NumCast(this.props.Document.heading);
+            let heading = NumCast(this.layoutDoc.heading);
             if (ruleProvider instanceof Doc) {
                 return {
                     align: StrCast(ruleProvider["ruleAlign_" + heading], ""),
@@ -533,7 +559,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         },
             action((rules: any) => {
                 this._fontFamily = rules ? rules.font : "Arial";
-                this._fontSize = rules ? rules.size : NumCast(this.props.Document.fontSize, 13);
+                this._fontSize = rules ? rules.size : NumCast(this.layoutDoc.fontSize, 13);
                 rules && setTimeout(() => {
                     const view = this._editorView!;
                     if (this._proseRef) {
@@ -550,7 +576,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }), { fireImmediately: true }
         );
         this._scrollToRegionReactionDisposer = reaction(
-            () => StrCast(this.props.Document.scrollToLinkID),
+            () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
                 let findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
@@ -588,7 +614,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
                         setTimeout(() => this.unhighlightSearchTerms(), 2000);
                     }
-                    this.props.Document.scrollToLinkID = undefined;
+                    this.layoutDoc.scrollToLinkID = undefined;
                 }
 
             },
@@ -888,7 +914,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         });
                     }
                 } else {
-                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
+                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.layoutDoc.x, 0) + NumCast(this.layoutDoc.width, 0), y: NumCast(this.layoutDoc.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
                 }
                 e.stopPropagation();
@@ -897,6 +923,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey);
+        if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
@@ -960,7 +987,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
     onBlur = (e: any) => {
-        DictationManager.Controls.stop(false);
+        //DictationManager.Controls.stop(false);
         if (this._undoTyping) {
             this._undoTyping.end();
             this._undoTyping = undefined;
@@ -981,34 +1008,33 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
+        if (this._recording) { this.stopDictation(true); setTimeout(() => this.recordDictation(), 250); }
     }
 
     @action
     tryUpdateHeight() {
         let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.props.Document.isAnimating && this.props.Document.autoHeight && scrollHeight !== 0 &&
+        if (!this.layoutDoc.isAnimating && this.layoutDoc.autoHeight && scrollHeight !== 0 &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
-            let dh = NumCast(this.props.Document.height, 0);
-            this.props.Document.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
+            let nh = this.props.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
+            let dh = NumCast(this.layoutDoc.height, 0);
+            this.layoutDoc.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;
         }
     }
 
     render() {
-        let style = "hidden";
-        let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground
+        let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
+        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground
             ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         if (this.props.isSelected()) {
             FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         }
         return (
-            <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
+            <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    overflowY: this.props.Document.autoHeight ? "hidden" : "auto",
-                    height: this.props.Document.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
+                    height: this.layoutDoc.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
@@ -1029,6 +1055,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerLeave={action(() => this._entered = false)}
             >
                 <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.props.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+
+                <div className="formattedTextBox-dictation"
+                    onClick={e => {
+                        this._recording ? this.stopDictation(true) : this.recordDictation();
+                        setTimeout(() => this._editorView!.focus(), 500);
+                        e.stopPropagation();
+                    }} >
+                    <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.2 }} icon={"file-audio"} size="sm" />
+                </div>
             </div>
         );
     }

@@ -14,6 +14,7 @@ import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
 import { LinkFollowBox } from "../../../client/views/linking/LinkFollowBox";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { DragManager } from "../../../client/util/DragManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -24,47 +25,45 @@ export class CurrentUserUtils {
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
     @computed public static get UserDocument() { return Doc.UserDoc(); }
+    @computed public static get ActivePen() { return Doc.UserDoc().activePen instanceof Doc && (Doc.UserDoc().activePen as Doc).pen as Doc; }
 
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestWorkspace: Doc | undefined;
 
-    private static createUserDocument(id: string): Doc {
-        let doc = new Doc(id, true);
-        doc.title = Doc.CurrentUserEmail;
-        return this.updateUserDocument(doc);// this should be the last 
-    }
-
     // a default set of note types .. not being used yet...
     static setupNoteTypes(doc: Doc) {
-        let notes = [
-            Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplate: true }),
-            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplate: true })
+        return [
+            Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
+            Docs.Create.TextDocument({ title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
         ];
-        doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc) {
+        let notes = CurrentUserUtils.setupNoteTypes(doc);
+        doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
         doc.activePen = doc;
-        let docProtoData: { title: string, icon: string, drag?: string, click?: string, unchecked?: string, activePen?: Doc, backgroundColor?: string }[] = [
-            { title: "collection", icon: "folder", drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
-            { title: "web page", icon: "globe-asia", drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
-            { title: "image", icon: "cat", drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
-            { title: "button", icon: "bolt", drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
-            { title: "presentation", icon: "tv", drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
-            { title: "import folder", icon: "cloud-upload-alt", drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
-            { title: "pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", unchecked: `!sameDocs(this.activePen.pen,  this)`, activePen: doc },
-            { title: "highlighter", icon: "pen", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "none", icon: "pause", click: 'deactivateInk();this.activePen.pen = this;', unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
+        let docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, unchecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
+            { title: "collection", icon: "folder", ignoreClick: true, drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
+            { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
+            { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
+            { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
+            { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
+            { title: "presentation", icon: "tv", ignoreClick: true, drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
+            { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
+            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", unchecked: `!sameDocs(this.activePen.pen,  this)`, activePen: doc },
+            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
+            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
+            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', unchecked: `!sameDocs(this.activePen.pen, this) && this.activePen.pen !== undefined`, backgroundColor: "white", activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
-            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon,
+            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
             unchecked: data.unchecked ? ComputedField.MakeFunction(data.unchecked) : undefined, activePen: data.activePen,
-            backgroundColor: data.backgroundColor
+            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
         }));
     }
 
@@ -72,21 +71,20 @@ export class CurrentUserUtils {
     static setupCreatePanel(sidebarContainer: Doc, doc: Doc) {
         // setup a masonry view of all he creators
         const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
-            width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons"
+            width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons",
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), yMargin: 0
         });
         // setup a color picker
         const color = Docs.Create.ColorDocument({
-            title: "color picker", width: 400, removeDropProperties: new List<string>(["dropAction", "forceActive"])
+            title: "color picker", width: 400, dropAction: "alias", forceActive: true, removeDropProperties: new List<string>(["dropAction", "forceActive"])
         });
-        color.dropAction = "alias";  // these must be set on the view document so they can't be part of the creator above.
-        color.forceActive = true;
 
         return Docs.Create.ButtonDocument({
             width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create", targetContainer: sidebarContainer,
             panel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, chromeStatus: "disabled", title: "creator stack"
             }),
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel"),
         });
     }
 
@@ -98,17 +96,17 @@ export class CurrentUserUtils {
         });
 
         doc.documents = Docs.Create.TreeDocument([], {
-            title: "DOCUMENTS", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0", backgroundColor: "#eeeeee", preventTreeViewOpen: true, forceActive: true, lockedPosition: true
+            title: "DOCUMENTS", height: 42, forceActive: true, boxShadow: "0 0", preventTreeViewOpen: true, lockedPosition: true, backgroundColor: "#eeeeee"
         });
 
         // setup Recently Closed library item
         doc.recentlyClosed = Docs.Create.TreeDocument([], {
-            title: "Recently Closed".toUpperCase(), height: 75, boxShadow: "0 0", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, backgroundColor: "#eeeeee"
+            title: "RECENTLY CLOSED", height: 75, forceActive: true, boxShadow: "0 0", preventTreeViewOpen: true, lockedPosition: true, backgroundColor: "#eeeeee"
         });
 
         return Docs.Create.ButtonDocument({
             width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library",
-            panel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], {
+            panel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
                 title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
             }),
             targetContainer: sidebarContainer,
@@ -147,13 +145,14 @@ export class CurrentUserUtils {
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupExpandingButtons(doc: Doc) {
         doc.undoBtn = Docs.Create.FontIconDocument(
-            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
+            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), removeDropProperties: new List<string>(["dropAction"]), title: "undo button", icon: "undo-alt" });
         doc.redoBtn = Docs.Create.FontIconDocument(
-            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
+            { nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), removeDropProperties: new List<string>(["dropAction"]), title: "redo button", icon: "redo-alt" });
 
         doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc], {
             title: "expanding buttons", gridGap: 5, xMargin: 5, yMargin: 5, height: 42, width: 100, boxShadow: "0 0",
-            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true, convertToButtons: true
+            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true,
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         });
     }
 
@@ -174,9 +173,9 @@ export class CurrentUserUtils {
     }
 
     static updateUserDocument(doc: Doc) {
+        doc.title = Doc.CurrentUserEmail;
         new InkingControl();
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
-        (doc.noteTypes === undefined) && CurrentUserUtils.setupNoteTypes(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
@@ -195,8 +194,8 @@ export class CurrentUserUtils {
         });
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
-        doc.undoBtn && reaction(() => UndoManager.undoStack.slice(), () => (doc.undoBtn as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
-        doc.redoBtn && reaction(() => UndoManager.redoStack.slice(), () => (doc.redoBtn as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
+        doc.undoBtn && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc.undoBtn as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
+        doc.redoBtn && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc.redoBtn as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
         return doc;
     }
@@ -217,10 +216,8 @@ export class CurrentUserUtils {
         Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id && id !== "guest") {
-                return DocServer.GetRefField(id).then(async field => {
-                    let userDoc = field instanceof Doc ? await this.updateUserDocument(field) : this.createUserDocument(id);
-                    runInAction(() => Doc.SetUserDoc(userDoc));
-                });
+                return DocServer.GetRefField(id).then(async field =>
+                    Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(id, true))));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

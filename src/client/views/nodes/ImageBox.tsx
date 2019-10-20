@@ -157,7 +157,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     body: formData
                 });
                 const files = await res.json();
-                const url = Utils.prepend(files[0]);
+                const url = Utils.prepend(files[0].path);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
@@ -401,7 +401,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
+        let interactive = this.active() ? "-interactive" : "";// InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
