@@ -114,6 +114,31 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
     }
 
+    // onLinkButtonDown = (e: React.PointerEvent): void => { // TODODO
+    //     e.stopPropagation();
+    //     e.preventDefault();
+    //     document.removeEventListener("pointermove", this.onLinkButtonMoved);
+    //     document.addEventListener("pointermove", this.onLinkButtonMoved);
+    //     document.removeEventListener("pointerup", this.onLinkButtonUp);
+    //     document.addEventListener("pointerup", this.onLinkButtonUp);
+    // }
+
+    // onLinkButtonUp = (e: PointerEvent): void => {
+    //     document.removeEventListener("pointermove", this.onLinkButtonMoved);
+    //     document.removeEventListener("pointerup", this.onLinkButtonUp);
+    //     e.stopPropagation();
+    // }
+
+
+    // onLinkButtonMoved = async (e: PointerEvent) => {
+    //     if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+    //         document.removeEventListener("pointermove", this.onLinkButtonMoved);
+    //         document.removeEventListener("pointerup", this.onLinkButtonUp);
+    //         DragLinksAsDocuments(this._linkButton.current, e.x, e.y, this.props.views[0].props.Document);
+    //     }
+    //     e.stopPropagation();
+    // }
+
     render() {
 
         let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
