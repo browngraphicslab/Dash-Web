@@ -56,6 +56,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
+        if (!this.layoutDoc) return "<p>awaiting layout</p>";
         const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
             return this.props.Document.data ?
@@ -69,14 +70,16 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     get dataDoc() {
-        if (this.props.DataDoc === undefined && (Doc.LayoutField(this.props.Document) instanceof Doc || this.props.Document instanceof Promise)) {
+        if (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string") {
             // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
             // then we render the layout document as a template and use this document as the data context for the template layout.
             return this.props.Document;
         }
         return this.props.DataDoc;
     }
-    get layoutDoc() { return Doc.Layout(this.props.Document); }
+    get layoutDoc() {
+        return this.props.DataDoc === undefined ? Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document) : Doc.Layout(this.props.Document);
+    }
 
     CreateBindings(): JsxBindings {
         let list = {

@@ -499,7 +499,7 @@ export namespace Doc {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
             let fieldExtensionDoc = Doc.fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
             layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
-        } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        } else layoutDoc = childDocLayout;
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
 

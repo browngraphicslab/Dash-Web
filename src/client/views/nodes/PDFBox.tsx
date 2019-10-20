@@ -65,13 +65,11 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
             }, { fireImmediately: true });
     }
 
-    get layoutDoc() { return Doc.Layout(this.props.Document); }
-
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
-        this.layoutDoc.nativeWidth = nw * 96 / 72;
-        this.layoutDoc.nativeHeight = nh * 96 / 72;
-        !this.layoutDoc.fitWidth && !this.layoutDoc.ignoreAspect && (this.layoutDoc.height = this.layoutDoc[WidthSym]() * (nh / nw));
+        this.Document.nativeWidth = nw * 96 / 72;
+        this.Document.nativeHeight = nh * 96 / 72;
+        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }

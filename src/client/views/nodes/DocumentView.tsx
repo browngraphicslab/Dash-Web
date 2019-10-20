@@ -191,7 +191,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let preventDefault = true;
             if (this._doubleTap && this.props.renderDepth && (!this.onClickHandler || !this.onClickHandler.script)) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias["layoutCustom"] !== undefined) {
+                if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias.layoutCustom !== undefined) {
                     fullScreenAlias.layoutKey = "layoutCustom";
                 }
                 this.props.addDocTab(fullScreenAlias, undefined, "inTab");

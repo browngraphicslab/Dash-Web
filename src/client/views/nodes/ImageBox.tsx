@@ -39,7 +39,8 @@ library.add(faFileAudio, faAsterisk);
 
 export const pageSchema = createSchema({
     curPage: "number",
-    fitWidth: "boolean"
+    fitWidth: "boolean",
+    rotation: "number"
 });
 
 interface Window {
@@ -178,18 +179,17 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         });
     }
 
-    get layoutDoc() { return Doc.Layout(this.props.Document); }
     @undoBatch
     rotate = action(() => {
-        let nw = this.layoutDoc.nativeWidth;
-        let nh = this.layoutDoc.nativeHeight;
-        let w = this.layoutDoc.width;
-        let h = this.layoutDoc.height;
-        this.layoutDoc.rotation = (NumCast(this.layoutDoc.rotation) + 90) % 360;
-        this.layoutDoc.nativeWidth = nh;
-        this.layoutDoc.nativeHeight = nw;
-        this.layoutDoc.width = h;
-        this.layoutDoc.height = w;
+        let nw = this.Document.nativeWidth;
+        let nh = this.Document.nativeHeight;
+        let w = this.Document.width;
+        let h = this.Document.height;
+        this.Document.rotation = ((this.Document.rotation || 0) + 90) % 360;
+        this.Document.nativeWidth = nh;
+        this.Document.nativeHeight = nw;
+        this.Document.width = h;
+        this.Document.height = w;
     });
 
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -251,7 +251,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     dots(paths: string[]) {
-        let nativeWidth = NumCast(this.layoutDoc.nativeWidth, 1);
+        let nativeWidth = (this.Document.nativeWidth || 1);
         let dist = Math.min(nativeWidth / paths.length, 40);
         let left = (nativeWidth - paths.length * dist) / 2;
         return paths.map((p, i) =>
@@ -291,17 +291,17 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
     _curSuffix = "_m";
 
-    resize(srcpath: string, layoutdoc: Doc) {
+    resize = (srcpath: string) => {
         requestImageSize(srcpath)
             .then((size: any) => {
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
                 let aspect = realsize.height / realsize.width;
-                if (layoutdoc.width && (Math.abs(1 - NumCast(layoutdoc.height) / NumCast(layoutdoc.width) / (realsize.height / realsize.width)) > 0.1)) {
+                if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
                     setTimeout(action(() => {
-                        layoutdoc.height = layoutdoc[WidthSym]() * aspect;
-                        layoutdoc.nativeHeight = realsize.height;
-                        layoutdoc.nativeWidth = realsize.width;
+                        this.Document.height = this.Document[WidthSym]() * aspect;
+                        this.Document.nativeHeight = realsize.height;
+                        this.Document.nativeWidth = realsize.width;
                     }), 0);
                 }
             })
@@ -346,41 +346,24 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         // }
     }
 
-    @action
-    audioDown = () => {
-        this.recordAudioAnnotation();
-    }
+    audioDown = () => this.recordAudioAnnotation();
 
     considerGooglePhotosLink = () => {
         const remoteUrl = StrCast(this.props.Document.googlePhotosUrl);
-        if (remoteUrl) {
-            return (
-                <img
-                    id={"google-photos"}
-                    src={"/assets/google_photos.png"}
-                    style={{ opacity: this.hoverActive ? 1 : 0 }}
-                    onClick={() => window.open(remoteUrl)}
-                />
-            );
-        }
-        return (null);
+        return !remoteUrl ? (null) : (<img
+            id={"google-photos"}
+            src={"/assets/google_photos.png"}
+            style={{ opacity: this.hoverActive ? 1 : 0 }}
+            onClick={() => window.open(remoteUrl)}
+        />);
     }
 
     considerGooglePhotosTags = () => {
         const tags = StrCast(this.props.Document.googlePhotosTags);
-        if (tags) {
-            return (
-                <img
-                    id={"google-tags"}
-                    src={"/assets/google_tags.png"}
-                />
-            );
-        }
-        return (null);
+        return !tags ? (null) : (<img id={"google-tags"} src={"/assets/google_tags.png"} />);
     }
 
-    content(layoutDoc: Doc) {
-        if (!layoutDoc) return (null);
+    @computed get content() {
         console.log("REDOING IMAGE CONTENT");
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
@@ -388,8 +371,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         // let w = bptX - sptX;
 
-        let nativeWidth = NumCast(layoutDoc.nativeWidth, pw);
-        let nativeHeight = NumCast(layoutDoc.nativeHeight, 0);
+        let nativeWidth = NumCast(this.Document.nativeWidth, pw);
+        let nativeHeight = NumCast(this.Document.nativeHeight, 0);
         let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
@@ -403,13 +386,13 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         paths.push(...altpaths);
         // }
         let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
-        let rotation = NumCast(layoutDoc.rotation, 0);
-        let aspect = (rotation % 180) ? layoutDoc[HeightSym]() / layoutDoc[WidthSym]() : 1;
+        let rotation = NumCast(this.Document.rotation, 0);
+        let aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length - 1, NumCast(layoutDoc.curPage))];
+        let srcpath = paths[Math.min(paths.length - 1, NumCast(this.Document.curPage))];
         let fadepath = paths[Math.min(paths.length - 1, 1)];
 
-        (!layoutDoc.ignoreAspect && !this.props.leaveNativeSize) && this.resize(srcpath, layoutDoc);
+        (!this.Document.ignoreAspect && !this.props.leaveNativeSize) && this.resize(srcpath);
 
         return (
             <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
@@ -470,7 +453,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 chromeCollapsed={true}>
-                {() => [this.content(this.layoutDoc)]}
+                {() => [this.content]}
             </CollectionFreeFormView>
         </div >);
     }
