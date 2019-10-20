@@ -31,6 +31,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
     @observable private _roundToggleRef = React.createRef<HTMLDivElement>();
     @observable private _roundToggleContainerRef = React.createRef<HTMLDivElement>();
+    @observable private _timeInputRef = React.createRef<HTMLInputElement>(); 
 
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
@@ -62,10 +63,25 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         runInAction(() => {
+            if (!this.props.Document.AnimationLength){
+                this.props.Document.AnimationLength = this._time; 
+            } else {
+                this._time = NumCast(this.props.Document.AnimationLength); 
+                console.log(this._time); 
+            }
             this._totalLength = this._tickSpacing * (this._time / this._tickIncrement);
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width;
             this._visibleStart = this._infoContainer.current!.scrollLeft;
+            this.props.Document.isAnimating = !this.props.Document.isAnimating; 
+            this.toggleHandle(); 
         });
+    }
+
+    componentWillUnmount(){
+        runInAction(() => {
+            console.log(this._time); 
+            this.props.Document.AnimationLength = this._time; 
+        }); 
     }
 
     /**
@@ -194,16 +210,20 @@ export class Timeline extends React.Component<FieldViewProps> {
         let titleContainer = this._titleContainer.current!;
         this.movePanX(this._visibleStart - e.movementX);
         trackbox.scrollTop = trackbox.scrollTop - e.movementY;
-        titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;
+        titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;    
+        if (this._visibleStart + this._visibleLength + 20>= this._totalLength){
+            this._visibleStart -= e.movementX; 
+            this._totalLength -= e.movementX;
+            this._time -= KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this._tickSpacing, this._tickIncrement); 
+            this.props.Document.AnimationLength = this._time; 
+        }
+        
     }
     @action
     movePanX = (pixel: number) => {
         let infoContainer = this._infoContainer.current!;
         infoContainer.scrollLeft = pixel;
         this._visibleStart = infoContainer.scrollLeft;
-        console.log(infoContainer.scrollLeft); 
-        console.log(this._totalLength); 
-        console.log(this._visibleLength); 
     }
 
     @action
@@ -300,19 +320,39 @@ export class Timeline extends React.Component<FieldViewProps> {
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
                 <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
                 <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
-                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
+                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>                
+                <div key="overview-text" className="animation-text"><p>Timeline Overview</p></div>
                 <TimelineOverview scale={scale} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                <div key="animation-text" className="animation-text"><p>Mode: {this.props.Document.isAnimating ? "Authoring" : "Play"}</p></div>
                 <div key="round-toggle" ref={this._roundToggleContainerRef} className="round-toggle">
                     <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
                 </div>
+                <div key="time-text" className="animation-text"><p>Length: </p></div>
+                <input placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
+
             </div>
         );
+    }
+    
+    @action 
+    private onTimeInput = (e: React.KeyboardEvent) => {
+        if (e.keyCode === 13){
+            let timeInput = this._timeInputRef.current!; 
+            this._time = parseInt(timeInput.value, 10);
+            this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
+            this.props.Document.AnimationLength = this._time; 
+            
+        }
     }
 
     @action
     private toggleChecked = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        this.toggleHandle(); 
+    }
+
+    private toggleHandle = () => {
         let roundToggle = this._roundToggleRef.current!;
         let roundToggleContainer = this._roundToggleContainerRef.current!;
         let timelineContainer = this._timelineContainer.current!;
@@ -322,7 +362,6 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggleContainer.style.animationName = "turnoff";
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isAnimating = false;
-        
         } else {
             roundToggle.style.transform = "translate(45px, 0px)";
             roundToggle.style.animationName = "turnon";

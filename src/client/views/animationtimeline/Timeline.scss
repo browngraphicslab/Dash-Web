@@ -7,9 +7,47 @@
     display:flex;
     align-items: flex-start; 
     flex-direction: row;  
+    justify-content: space-evenly; 
+    align-items: baseline; 
     top: 10px;
     div{
         margin-left:10px; 
+    }
+    .animation-text{
+        font-size: 20px; 
+        height: auto; 
+        width: auto; 
+    }
+    .round-toggle {
+        height: 40px;
+        width: 80px;
+        background-color: white;
+        border: 2px solid purple;
+        border-radius: 20px;
+        animation-fill-mode: forwards; 
+        animation-duration: 500ms;
+        top: 30px; 
+        input{
+            position:absolute; 
+            opacity: 0; 
+            height: 0; 
+            width: 0; 
+        }
+        .round-toggle-slider{
+            height: 35px; 
+            width: 35px; 
+            background-color: white;
+            border:1px solid grey;
+            border-radius: 20px; 
+            transition: transform 500ms ease-in-out; 
+            margin-left: 0px; 
+            margin-top: 0.5px; 
+        } 
+    }
+    .time-input{
+        height: 40px; 
+        width: 100px; 
+        
     }
 }
 
@@ -112,38 +150,12 @@
         float: left 0px; 
         top: 25%; 
         height: 75%; 
-        width: 100%; 
+        width: 100%;     
         background-color: grey; 
     }
 }
 
-.round-toggle {
-    height: 40px;
-    width: 80px;
-    background-color: white;
-    border: 2px solid purple;
-    border-radius: 20px;
-    animation-fill-mode: forwards; 
-    animation-duration: 500ms;
-    top: 20px; 
-    input{
-        position:absolute; 
-        opacity: 0; 
-        height: 0; 
-        width: 0; 
-    }
-    .round-toggle-slider{
-        height: 35px; 
-        width: 35px; 
-        background-color: white;
-        border:1px solid grey;
-        border-radius: 20px; 
-        transition: transform 500ms ease-in-out; 
-        margin-left: 0px; 
-        margin-top: 0.5px; 
-    } 
- 
-}
+
 @keyframes turnon{
     from{
         background-color: white;
