@@ -16,6 +16,7 @@ import { EditableView } from "../EditableView";
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import "./CollectionTimelineView.scss";
 import { Thumbnail } from "./CollectionTimeLineViewNode";
+import { timeSchema } from "../nodes/VideoBox";
 
 
 
@@ -111,6 +112,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 );
             }
         );
+        reaction(
+            () => this.props.PanelHeight(),
+            number => {
+                console.log("hi");
+                this.createRows();
+            }
+        );
+        reaction(
+            () => this.props.Document.sortstate,
+            number => {
+                this.createticks();
+            }
+        );
     }
 
     componentWillMount() {
@@ -123,11 +137,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.thumbnailbools = [];
         this.updateWidth();
         this.createRows();
-        // this.createticks();
+        this.createticks();
         this.filtermenu();
         this.thumbnailloop();
         this.createdownbool();
-        window.addEventListener('resize', this.createRows);
+        window.addEventListener('resize', () => this.createRows(this.rowscale));
     }
 
     componentWillUnmount() {
@@ -390,6 +404,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.leftbound = NumCast(markerUnit.document.initialMapLeft);
             this.rightbound = this.barwidth - NumCast(markerUnit.document.initialMapWidth) - this.leftbound;
         }
+        this.createticks();
         this.markerrender();
     }
 
@@ -447,7 +462,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private _values: number[] = [];
-    private ticks: JSX.Element[] = [];
     private thumbnails: Node[] = [];
     private filterDocs = (thumbnail: Node[]): Node[] => {
         let thumbnails = [];
@@ -612,15 +626,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     private tickrefs: React.RefObject<HTMLDivElement>[] = [];
-    @observable
+    //@observable
     private tickvals: Tick[] = [];
-    @action
     createticks = () => {
         //Creates the array of tick marks.
         console.log("CREATING TICKS!");
+
         let counter = 0;
         this.tickvals = [];
-        this.ticks = [];
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
             let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px");
             let tickref = React.createRef<HTMLDivElement>();
@@ -630,31 +643,30 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0] - this._range * 0.05);
                 let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
                 this.tickvals.push(t);
-                this.ticks.push(<div className="max" ref={tickref} style={{
-                    position: "absolute", top: "0%", left: leftval, zIndex: -100, writingMode: "vertical-rl",
-                    textOrientation: "mixed",
-                }
-                }> <div style={{ paddingTop: "10px" }}>{val}</div></div >);
             }
             else if (counter % 50 === 0) {
-                this.ticks.push(<div className="max2" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
                 this.tickvals.push(t);
             }
             else if (counter % 10 === 0) {
-                this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
                 this.tickvals.push(t);
             }
             counter++;
         }
+        this.thumbnailloop();
     }
 
     @action
-    createRows() {
+    createRows(number?: number) {
+        let adjust = 0;
+        this.screenref.current ? adjust = this.screenref.current.getBoundingClientRect().height : null;
+        console.log(number);
+        console.log(this.rowscale);
+        console.log(this.windowheight)
+
         this.rowval = [];
-        //if (this.windowheight !== document.body.clientHeight) {
-        this.windowheight = document.body.clientHeight - 60;
-        //this.forceUpdate();
-        //}
+        this.windowheight = adjust;
         let border = "";
         let cursor = "";
         if (this.rowPrev === true) {
@@ -664,12 +676,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(`Ratio: this.windowheight / this.rowscale = ${this.windowheight} / ${this.rowscale}`);
         for (let i = 0; i < this.windowheight; i
             += this.rowscale) {
-            // this.rows.push(<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: cursor, borderTop: border, height: "5px", position: "absolute", top: i, width: "100%", zIndex: 100 }} />);
             this.rowval.push(i);
             console.log("Pushed ", i);
         }
+        // if (this.rowval.length < 5) {
+        //     this.rowscale = this.rowscale * 0.8;
+        // }
         console.log("Computed interval: ", this.rowval[1]);
         this.rowval.pop();
+        this.thumbnailloop();
     }
 
     @observable
@@ -708,6 +723,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerMove_AdjustScale = (e: PointerEvent): void => {
+        console.log(this.rowscale);
         e.stopPropagation();
         e.preventDefault();
         let number = e.movementY;
@@ -721,6 +737,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.rowscale += number;
         }
         this.createRows();
+        this.thumbnailloop();
         document.addEventListener("pointerup", this.onPointerUp_Dragger);
     }
 
@@ -764,8 +781,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return NumCast(doc.barwidth);
     }
 
-
-
     private set barwidth(number) {
         this.props.Document.barwidth = number;
     }
@@ -802,7 +817,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return BoolCast(doc.bugfix);
     }
 
-
     private set update(boolean: boolean) {
         this.props.Document.update = boolean;
     }
@@ -814,7 +828,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         return BoolCast(doc.update);
     }
-
 
     private set transtate(boolean: boolean) {
         this.props.Document.transtate = boolean;
@@ -841,7 +854,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return BoolCast(doc.opac);
     }
 
-
     private set sortstate(string) {
         this.props.Document.sortstate = string;
     }
@@ -856,7 +868,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         return true;
     }
-
 
     private _range = 0;
 
@@ -1031,16 +1042,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let v = this.props.ScreenToLocalTransform().translate(0, 0).transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         return <div ref={this.marqueeref} className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
         </div>;
-
     }
-
 
     @action
     onPointerUp_Dragger = (e: PointerEvent): void => {
         this.downbool = true;
         document.removeEventListener("pointermove", this.onPointerMove_AdjustScale);
     }
-
 
     @undoBatch
     makeBtnClicked = (): void => {
@@ -1062,6 +1070,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         //DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
         //this.makeBtnClicked();
         this.props.addDocTab && this.props.addDocTab(portal, portal, "onBottom");
+        this.createRows();
     }
 
     @observable private transition: boolean | undefined;
@@ -1107,6 +1116,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.leftbound = (this.leftbound + e.movementX);
             this.rightbound = (this.rightbound - e.movementX);
         }
+        this.createticks();
         document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
     }
@@ -1118,7 +1128,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointermove", this.onPointerMove_OnBar);
         document.removeEventListener("pointermove", this.onPointerMove_LeftResize);
         document.removeEventListener("pointermove", this.onPointerMove_RightResize);
-
         document.body.style.cursor = "default";
         this.downbool = true;
     }
@@ -1137,6 +1146,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         else {
             this.leftbound = (this.leftbound + e.movementX);
         }
+        this.createticks();
         document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
     }
@@ -1153,6 +1163,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.rightbound = (this.barwidth - this.leftbound - 20);
         }
         else { this.rightbound = (this.rightbound - e.movementX); }
+        this.createticks();
 
         document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
@@ -1161,7 +1172,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_LeftBound = (e: React.PointerEvent): void => {
-
         document.addEventListener("pointermove", this.onPointerMove_LeftBound);
         e.stopPropagation();
         this.downbool = false;
@@ -1177,7 +1187,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
         this.transtate = false;
-
         this.downbool = false;
         let temp = this.barwidth - this.rightbound - this.leftbound;
         let newx = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98;
@@ -1193,6 +1202,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.leftbound = (newx + newx2);
             this.rightbound = (0);
         }
+        this.createticks();
         e.stopPropagation();
     }
 
@@ -1205,15 +1215,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
+    @observable firstround: boolean = false;
+
     render() {
+        // if (this.firstround === false) {
+        //     this.createRows();
+        //     this.thumbnailloop();
+        //     this.createticks();
+        //     this.firstround = true;
+        // }
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0] - this._range * 0.05;
-        // this.updateWidth();
-        // this.createticks();
-        this.filtermenu();
-        this.thumbnailloop();
         this.createdownbool();
-        console.log("Rendered interval: ", this.rowval[1]);
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
