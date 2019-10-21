@@ -220,7 +220,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let dragPos = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
         let delta = dragPos - this._columnStart;
         this._columnStart = dragPos;
-        this.layoutDoc.columnWidth = this.columnWidth + delta;
+        this.layoutDoc.columnWidth = Math.max(10, this.columnWidth + delta);
     }
 
     @action
