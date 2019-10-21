@@ -82,9 +82,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
-    @computed get dataField() { return this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey; }
-
     active = (): boolean => {
         var isSelected = this.props.isSelected();
         return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
@@ -97,15 +94,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
-    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
-            Doc.GetProto(doc).annotationOn = this.props.Document;
-        }
-        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplateField ? this.extensionDoc : this.props.Document;
-        let targetField = (this.props.fieldExt || this.props.Document.isTemplateField) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        let targetDataDoc = this.props.Document;
+        let targetField = this.props.fieldKey;
         Doc.AddDocToList(targetDataDoc, targetField, doc);
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
@@ -116,16 +109,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         //TODO This won't create the field if it doesn't already exist
-        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplateField ? this.extensionDoc : this.props.Document;
-        let targetField = (this.props.fieldExt || this.props.Document.isTemplateField) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        let targetDataDoc = this.props.Document;
+        let targetField = this.props.fieldKey;
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
-            if (Doc.AreProtosEqual(annotationOn, FieldValue(Cast(this.dataDoc.extendsDoc, Doc)))) {
-                Doc.GetProto(doc).annotationOn = undefined;
-            }
-        });
 
         if (index !== -1) {
             value.splice(index, 1);

@@ -23,8 +23,6 @@ import React = require("react");
 var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
-import { CollectionViewType } from "./CollectionBaseView";
-import { ObjectField } from "../../../new_fields/ObjectField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -41,6 +39,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     ruleProvider: Doc | undefined;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    isAnnotationOverlay?: boolean;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
@@ -73,14 +72,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        // The data field for rendeing this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
+        // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
         // to its children which may be templates.
         // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
         @computed get dataField() {
             return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
         }
-
 
         get childLayoutPairs() {
             return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));

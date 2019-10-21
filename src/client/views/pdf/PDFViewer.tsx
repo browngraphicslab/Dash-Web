@@ -639,6 +639,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                     VisibleHeight={this.visibleHeight}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
+                    isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.active}
                     ContentScaling={returnOne}

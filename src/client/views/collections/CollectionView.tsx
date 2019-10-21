@@ -31,15 +31,13 @@ library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faF
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
-    @observable private _collapsed = true;
-
-    private _reactionDisposer: IReactionDisposer | undefined;
 
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
-    constructor(props: any) {
-        super(props);
-    }
+    private _reactionDisposer: IReactionDisposer | undefined;
+    @observable private _isLightboxOpen = false;
+    @observable private _curLightboxImg = 0;
+    @observable private _collapsed = true;
 
     componentDidMount = () => {
         this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
@@ -64,7 +62,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
-        switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
+        switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
             case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
@@ -89,7 +87,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
+        if (this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
             return [(null), this.SubViewHelper(type, renderProps)];
         }
         return [
@@ -98,10 +96,9 @@ export class CollectionView extends React.Component<FieldViewProps> {
         ];
     }
 
-    get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
             let subItems: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; }, icon: "signature" });
@@ -125,7 +122,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
-            subItems.push({ description: "lightbox", event: action(() => this._isOpen = true), icon: "eye" });
+            subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             let existing = ContextMenu.Instance.findByDescription("Layout...");
@@ -136,16 +133,14 @@ export class CollectionView extends React.Component<FieldViewProps> {
         }
     }
 
-    @observable _isOpen = false;
-    @observable _curPage = 0;
     lightbox = (images: string[]) => {
-        return !this._isOpen ? (null) : (<Lightbox key="lightbox"
-            mainSrc={images[this._curPage]}
-            nextSrc={images[(this._curPage + 1) % images.length]}
-            prevSrc={images[(this._curPage + images.length - 1) % images.length]}
-            onCloseRequest={action(() => this._isOpen = false)}
-            onMovePrevRequest={action(() => this._curPage = (this._curPage + images.length - 1) % images.length)}
-            onMoveNextRequest={action(() => this._curPage = (this._curPage + 1) % images.length)} />);
+        return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
+            mainSrc={images[this._curLightboxImg]}
+            nextSrc={images[(this._curLightboxImg + 1) % images.length]}
+            prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
+            onCloseRequest={action(() => this._isLightboxOpen = false)}
+            onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
+            onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
 
     render() {

@@ -120,8 +120,6 @@ export namespace Docs {
     export namespace Prototypes {
 
         type LayoutSource = { LayoutString: (ext?: string) => string };
-        type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
-        type CollectionViewType = [CollectionLayoutSource, string, string?];
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,

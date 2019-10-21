@@ -58,7 +58,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(ImageBox, "data", fieldExt); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _dropDisposer?: DragManager.DragDropDisposer;
-    @observable private _isOpen: boolean = false;
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
 
@@ -332,6 +331,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                isAnnotationOverlay={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 select={emptyFunction}

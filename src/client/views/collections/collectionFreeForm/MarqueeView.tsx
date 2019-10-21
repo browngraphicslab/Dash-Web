@@ -30,7 +30,7 @@ interface MarqueeViewProps {
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay: boolean;
+    isAnnotationOverlay?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 

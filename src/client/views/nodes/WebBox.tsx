@@ -34,7 +34,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
-    get layoutDoc() {return Doc.Layout(this.props.Document); }
+    get layoutDoc() { return Doc.Layout(this.props.Document); }
     componentWillMount() {
 
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
@@ -202,6 +202,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 PanelWidth={this.props.PanelWidth}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
+                isAnnotationOverlay={true}
                 select={emptyFunction}
                 active={this.active}
                 ContentScaling={returnOne}
