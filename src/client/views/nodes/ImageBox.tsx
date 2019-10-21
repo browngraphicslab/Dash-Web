@@ -57,29 +57,16 @@ const ImageDocument = makeInterface(pageSchema, documentSchema);
 
 @observer
 export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
-
     public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(ImageBox, "data", fieldExt); }
-    @observable static _showControls: boolean;
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
-    private _downX: number = 0;
-    private _downY: number = 0;
-    private _lastTap: number = 0;
+    private _dropDisposer?: DragManager.DragDropDisposer;
     @observable private _isOpen: boolean = false;
-    private dropDisposer?: DragManager.DragDropDisposer;
-    @observable private hoverActive = false;
+    @observable private _audioState = 0;
+    @observable static _showControls: boolean;
 
     protected createDropTarget = (ele: HTMLDivElement) => {
-        if (this.dropDisposer) {
-            this.dropDisposer();
-        }
-        if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
-        }
-    }
-    onDrop = (e: React.DragEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        console.log("IMPLEMENT ME PLEASE");
+        this._dropDisposer && this._dropDisposer();
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } }));
     }
 
     @undoBatch
@@ -97,29 +84,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         }
     }
 
-    onPointerDown = (e: React.PointerEvent): void => {
-        if (e.shiftKey && e.ctrlKey) {
-            e.stopPropagation(); // allows default system drag drop of images with shift+ctrl only
-        }
-        // if (Date.now() - this._lastTap < 300) {
-        //     if (e.buttons === 1) {
-        //         this._downX = e.clientX;
-        //         this._downY = e.clientY;
-        //         document.removeEventListener("pointerup", this.onPointerUp);
-        //         document.addEventListener("pointerup", this.onPointerUp);
-        //     }
-        // } else {
-        //     this._lastTap = Date.now();
-        // }
-    }
-    @action
-    onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointerup", this.onPointerUp);
-        if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
-            this._isOpen = true;
-        }
-        e.stopPropagation();
-    }
 
     @action
     lightbox = (images: string[]) => {
@@ -193,12 +157,10 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     });
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = Cast(this.Document[this.props.fieldKey], ImageField);
+        const field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
-            let url = field.url.href;
             let funcs: ContextMenuProps[] = [];
-            funcs.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
-            funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
+            funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
             let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
@@ -214,12 +176,10 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     extractFaces = () => {
         let converter = (results: any) => {
             let faceDocs = new List<Doc>();
-            results.map((face: CognitiveServices.Image.Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
+            results.reduce((face: CognitiveServices.Image.Face, faceDocs: List<Doc>) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!), new List<Doc>());
             return faceDocs;
         };
-        if (this.url) {
-            CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
-        }
+        this.url && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
@@ -236,29 +196,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             tagDoc.confidence = threshold;
             return tagDoc;
         };
-        if (this.url) {
-            CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
-        }
+        this.url && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
     }
 
-    @action
-    onDotDown(index: number) {
-        this.Document.curPage = index;
-    }
     @computed private get url() {
-        let data = Cast(Doc.GetProto(this.props.Document)[this.props.fieldKey], ImageField);
+        let data = Cast(this.dataDoc[this.props.fieldKey], ImageField);
         return data ? data.url.href : undefined;
-    }
-
-    dots(paths: string[]) {
-        let nativeWidth = (this.Document.nativeWidth || 1);
-        let dist = Math.min(nativeWidth / paths.length, 40);
-        let left = (nativeWidth - paths.length * dist) / 2;
-        return paths.map((p, i) =>
-            <div className="imageBox-placer" key={i} >
-                <div className="imageBox-dot" style={{ background: (i === this.Document.curPage ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
-            </div>
-        );
     }
 
     choosePath(url: URL) {
@@ -305,12 +248,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     }), 0);
                 }
             })
-            .catch((err: any) => {
-                console.log(err);
-            });
+            .catch((err: any) => console.log(err));
     }
-
-    @observable _audioState = 0;
 
     @action
     onPointerEnter = () => {
@@ -330,20 +269,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             });
             this._audioState = 1;
         }
-        // else {
-        //     if (this._audioState === 0) {
-        //         this._audioState = 1;
-        //         new Howl({
-        //             src: ["https://www.kozco.com/tech/piano2-CoolEdit.mp3"],
-        //             autoplay: true,
-        //             loop: false,
-        //             volume: 0.5,
-        //             onend: function () {
-        //                 runInAction(() => self._audioState = 0);
-        //             }
-        //         });
-        //     }
-        // }
     }
 
     audioDown = () => this.recordAudioAnnotation();
@@ -353,7 +278,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return !remoteUrl ? (null) : (<img
             id={"google-photos"}
             src={"/assets/google_photos.png"}
-            style={{ opacity: this.hoverActive ? 1 : 0 }}
             onClick={() => window.open(remoteUrl)}
         />);
     }
@@ -364,7 +288,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     @computed get content() {
-        console.log("REDOING IMAGE CONTENT");
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         // var [sptX, sptY] = transform.transformPoint(0, 0);
@@ -389,17 +312,14 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         let rotation = NumCast(this.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length - 1, NumCast(this.Document.curPage))];
+        let srcpath = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))];
         let fadepath = paths[Math.min(paths.length - 1, 1)];
 
         !this.Document.ignoreAspect && this.resize(srcpath);
 
         return (
-            <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
-                onPointerDown={this.onPointerDown}
-                onPointerEnter={action(() => this.hoverActive = true)}
-                onPointerLeave={action(() => this.hoverActive = false)}
-                onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+            <div className={`imageBox-cont${interactive}`}
+                ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
                     <img
                         key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
@@ -416,7 +336,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
                 </div>
-                {paths.length > 1 ? this.dots(paths) : (null)}
                 <div className="imageBox-audioBackground"
                     onPointerDown={this.audioDown}
                     onPointerEnter={this.onPointerEnter}
@@ -426,13 +345,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {this.considerGooglePhotosLink()}
-                {/* {this.lightbox(paths)} */}
                 <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 
     render() {
-        trace();
         if (!Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey)) return (null);
         return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}>
             <CollectionFreeFormView {...this.props}

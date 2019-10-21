@@ -1,18 +1,16 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
+import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from '../../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, PromiseValue, StrCast } from '../../../new_fields/Types';
+import { ImageField } from '../../../new_fields/URLField';
 import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
-import { DateField } from '../../../new_fields/DateField';
-import { ImageField } from '../../../new_fields/URLField';
 
 export enum CollectionViewType {
     Invalid,
