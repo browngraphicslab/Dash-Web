@@ -3,7 +3,6 @@ import { action, observable, runInAction, reaction, IReactionDisposer } from 'mo
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import 'react-image-lightbox/style.css';
 import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';

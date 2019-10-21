@@ -4,8 +4,6 @@ import { faAsterisk, faFileAudio, faImage, faPaintBrush } from '@fortawesome/fre
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
-import Lightbox from 'react-image-lightbox';
-import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
@@ -81,27 +79,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
                 e.stopPropagation();
             }));
-        }
-    }
-
-
-    @action
-    lightbox = (images: string[]) => {
-        if (this._isOpen) {
-            return (<Lightbox
-                mainSrc={images[this.Document.curPage || 0]}
-                nextSrc={images[((this.Document.curPage || 0) + 1) % images.length]}
-                prevSrc={images[((this.Document.curPage || 0) + images.length - 1) % images.length]}
-                onCloseRequest={action(() =>
-                    this._isOpen = false
-                )}
-                onMovePrevRequest={action(() =>
-                    this.Document.curPage = ((this.Document.curPage || 0) + images.length - 1) % images.length
-                )}
-                onMoveNextRequest={action(() =>
-                    this.Document.curPage = ((this.Document.curPage || 0) + 1) % images.length
-                )}
-            />);
         }
     }
 
@@ -294,13 +271,13 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         // let w = bptX - sptX;
 
-        let nativeWidth = NumCast(this.Document.nativeWidth, pw);
-        let nativeHeight = NumCast(this.Document.nativeHeight, 0);
-        let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
+        let nativeWidth = (this.Document.nativeWidth || pw);
+        let nativeHeight = (this.Document.nativeHeight || 0);
+        let paths = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
         let alts = DocListCast(this.extensionDoc.Alternates);
-        let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
+        let altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
         // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";

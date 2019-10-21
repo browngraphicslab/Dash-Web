@@ -5,7 +5,7 @@ import { action, IReactionDisposer, observable, reaction, runInAction } from 'mo
 import { observer } from "mobx-react";
 import * as React from 'react';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { StrCast } from '../../../new_fields/Types';
+import { StrCast, Cast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -20,6 +20,11 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 import { CollectionLinearView } from '../CollectionLinearView';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { ImageField } from '../../../new_fields/URLField';
+import { DocListCast } from '../../../new_fields/Doc';
+import Lightbox from 'react-image-lightbox-with-rotate';
+import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -120,6 +125,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
+            subItems.push({ description: "lightbox", event: action(() => this._isOpen = true), icon: "eye" });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             let existing = ContextMenu.Instance.findByDescription("Layout...");
@@ -130,11 +136,26 @@ export class CollectionView extends React.Component<FieldViewProps> {
         }
     }
 
+    @observable _isOpen = false;
+    @observable _curPage = 0;
+    lightbox = (images: string[]) => {
+        return !this._isOpen ? (null) : (<Lightbox key="lightbox"
+            mainSrc={images[this._curPage]}
+            nextSrc={images[(this._curPage + 1) % images.length]}
+            prevSrc={images[(this._curPage + images.length - 1) % images.length]}
+            onCloseRequest={action(() => this._isOpen = false)}
+            onMovePrevRequest={action(() => this._curPage = (this._curPage + images.length - 1) % images.length)}
+            onMoveNextRequest={action(() => this._curPage = (this._curPage + 1) % images.length)} />);
+    }
+
     render() {
-        return (
-            <CollectionBaseView {...this.props} onContextMenu={this.onContextMenu}>
+        return (<>
+            <CollectionBaseView key="baseView" {...this.props} onContextMenu={this.onContextMenu}>
                 {this.SubView}
             </CollectionBaseView>
+
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField)!.url!.href))}
+        </>
         );
     }
 }

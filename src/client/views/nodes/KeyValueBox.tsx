@@ -1,7 +1,6 @@
 
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
