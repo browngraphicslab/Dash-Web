@@ -63,11 +63,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     @observable _clusterSets: (Doc[])[] = [];
 
-    get layoutDoc() { return PanZoomDocument(Doc.Layout(this.props.Document)); }
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)); }
-    @computed get nativeWidth() { return this.layoutDoc.fitToContent ? 0 : this.layoutDoc.nativeWidth || 0; }
+    @computed get nativeWidth() { return this.Document.fitToContent ? 0 : this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.fitToContent ? 0 : this.Document.nativeHeight || 0; }
     private get isAnnotationOverlay() { return this.props.fieldExt ? true : false; } // fieldExt will be "" or "annotation". should maybe generalize this, or make it more specific (ie, 'annotation' instead of 'fieldExt')
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }

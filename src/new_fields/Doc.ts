@@ -378,8 +378,9 @@ export namespace Doc {
                     else list.splice(before ? ind : ind + 1, 0, doc);
                 }
             }
+            return true;
         }
-        return true;
+        return false;
     }
 
     //
@@ -473,15 +474,8 @@ export namespace Doc {
         // ... which means we change the layout to be an expanded view of the template layout.  
         // This allows the view override the template's properties and be referenceable as its own document.
 
-        let expandedTemplateLayout = dataDoc[templateLayoutDoc[Id]];
-        if (expandedTemplateLayout instanceof Doc) {
-            return expandedTemplateLayout;
-        }
-        if (expandedTemplateLayout instanceof Promise) {
-            return undefined;
-        }
         let expandedLayoutFieldKey = "Layout[" + templateLayoutDoc[Id] + "]";
-        expandedTemplateLayout = dataDoc[expandedLayoutFieldKey];
+        let expandedTemplateLayout = dataDoc[expandedLayoutFieldKey];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
@@ -613,6 +607,7 @@ export namespace Doc {
         fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
         fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
         fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
+        fieldTemplate.type = fieldTemplate.type;
         fieldTemplate.panX = 0;
         fieldTemplate.panY = 0;
         fieldTemplate.scale = 1;
