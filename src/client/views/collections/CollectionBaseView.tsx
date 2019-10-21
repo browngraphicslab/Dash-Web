@@ -100,7 +100,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let targetDataDoc = Doc.GetProto(this.props.Document);
         let targetField = this.props.fieldKey;
         Doc.AddDocToList(targetDataDoc, targetField, doc);
-        let extension = Doc.fieldExtensionDoc(targetDataDoc, targetField);
+        let extension = Doc.fieldExtensionDoc(targetDataDoc, targetField);  // set metadata about the field being rendered (ie, the set of documents) on an extension field for that field
         extension && (extension.lastModified = new DateField(new Date(Date.now())));
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;

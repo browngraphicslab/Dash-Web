@@ -63,18 +63,18 @@ export class CollectionView extends React.Component<FieldViewProps> {
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />);
             // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
-            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
-            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
-            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
-            case CollectionViewType.Linear: { return (<CollectionLinearView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />); }
+            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />);
+            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />); }
+            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />); }
+            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />); }
+            case CollectionViewType.Linear: { return (<CollectionLinearView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />); }
             case CollectionViewType.Freeform:
             default:
                 this.props.Document.freeformLayoutEngine = undefined;
-                return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+                return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} fieldExt={""} />);
         }
         return (null);
     }
@@ -149,7 +149,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                 {this.SubView}
             </CollectionBaseView>
 
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField)!.url.href))}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))}
         </>
         );
     }

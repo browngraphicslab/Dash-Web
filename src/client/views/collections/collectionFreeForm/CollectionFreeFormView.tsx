@@ -305,7 +305,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.extensionDoc.ink, InkField);
+                let ink = this.extensionDoc && Cast(this.extensionDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -601,9 +601,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     analyzeStrokes = async () => {
-        let data = Cast(this.extensionDoc.ink, InkField);
-        if (data) {
-            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.extensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
+        const extensionDoc = this.extensionDoc;
+        let data = extensionDoc && Cast(extensionDoc.ink, InkField);
+        if (data && extensionDoc) {
+            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(extensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
         }
     }
 

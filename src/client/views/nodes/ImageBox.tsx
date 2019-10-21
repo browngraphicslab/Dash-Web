@@ -75,7 +75,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 e.stopPropagation();
             }
             de.mods === "MetaKey" && de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
+                this.extensionDoc && Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
                 e.stopPropagation();
             }));
         }
@@ -85,7 +85,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         let gumStream: any;
         let recorder: any;
         let self = this;
-        navigator.mediaDevices.getUserMedia({
+        const extensionDoc = this.extensionDoc;
+        extensionDoc && navigator.mediaDevices.getUserMedia({
             audio: true
         }).then(function (stream) {
             gumStream = stream;
@@ -102,9 +103,9 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", width: 200, height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
-                let audioAnnos = Cast(self.extensionDoc.audioAnnotations, listSpec(Doc));
+                let audioAnnos = Cast(extensionDoc.audioAnnotations, listSpec(Doc));
                 if (audioAnnos === undefined) {
-                    self.extensionDoc.audioAnnotations = new List([audioDoc]);
+                    extensionDoc.audioAnnotations = new List([audioDoc]);
                 } else {
                     audioAnnos.push(audioDoc);
                 }
@@ -155,7 +156,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             results.reduce((face: CognitiveServices.Image.Face, faceDocs: List<Doc>) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!), new List<Doc>());
             return faceDocs;
         };
-        this.url && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+        this.url && this.extensionDoc && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
@@ -167,12 +168,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 let sanitized = tag.name.replace(" ", "_");
                 tagDoc[sanitized] = ComputedField.MakeFunction(`(${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`);
             });
-            this.extensionDoc.generatedTags = tagsList;
+            this.extensionDoc && (this.extensionDoc.generatedTags = tagsList);
             tagDoc.title = "Generated Tags Doc";
             tagDoc.confidence = threshold;
             return tagDoc;
         };
-        this.url && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
+        this.url && this.extensionDoc && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
     }
 
     @computed private get url() {
@@ -230,8 +231,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     @action
     onPointerEnter = () => {
         let self = this;
-        let audioAnnos = DocListCast(this.extensionDoc.audioAnnotations);
-        if (audioAnnos.length && this._audioState === 0) {
+        let audioAnnos = this.extensionDoc && DocListCast(this.extensionDoc.audioAnnotations);
+        if (audioAnnos && audioAnnos.length && this._audioState === 0) {
             let anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
             anno.data instanceof AudioField && new Howl({
                 src: [anno.data.url.href],
@@ -264,6 +265,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     @computed get content() {
+        const extensionDoc = this.extensionDoc;
+        if (!extensionDoc) return (null);
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         // var [sptX, sptY] = transform.transformPoint(0, 0);
@@ -275,7 +278,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         let paths = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
-        let alts = DocListCast(this.extensionDoc.Alternates);
+        let alts = DocListCast(extensionDoc.Alternates);
         let altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
@@ -318,10 +321,10 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
                 >
                     <FontAwesomeIcon className="imageBox-audioFont"
-                        style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
+                        style={{ color: [DocListCast(extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {this.considerGooglePhotosLink()}
-                <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
+                <FaceRectangles document={extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 

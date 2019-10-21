@@ -518,7 +518,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._textReactionDisposer = reaction(
             () => this.extensionDoc,
             () => {
-                if (this.dataDoc.text || this.dataDoc.lastModified) {
+                if (this.extensionDoc && (this.dataDoc.text || this.dataDoc.lastModified)) {
                     this.extensionDoc.text = this.dataDoc.text;
                     this.extensionDoc.lastModified = DateCast(this.dataDoc.lastModified)[Copy]();
                     this.dataDoc.text = undefined;

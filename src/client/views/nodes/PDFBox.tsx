@@ -207,7 +207,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
         if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+        return (!this.extensionDoc || noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
             <div className="pdfBox-title-outer" >
                 <div className={classname} >
                     <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>

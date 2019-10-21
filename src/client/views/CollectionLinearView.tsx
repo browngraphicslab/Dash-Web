@@ -75,6 +75,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
+                                fieldKey={this.props.fieldKey}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}
