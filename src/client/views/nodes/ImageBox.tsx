@@ -392,7 +392,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         let srcpath = paths[Math.min(paths.length - 1, NumCast(this.Document.curPage))];
         let fadepath = paths[Math.min(paths.length - 1, 1)];
 
-        (!this.Document.ignoreAspect && !this.props.leaveNativeSize) && this.resize(srcpath);
+        !this.Document.ignoreAspect && this.resize(srcpath);
 
         return (
             <div className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}

@@ -103,6 +103,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
+    rowHeight = () => 30;
+
     createTable = () => {
         let doc = this.fieldDocToLayout;
         if (!doc) {
@@ -124,14 +126,15 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let i = 0;
         const self = this;
         for (let key of Object.keys(ids).slice().sort()) {
-            rows.push(<KeyValuePair doc={realDoc} addDocTab={this.props.addDocTab} ref={(function () {
-                let oldEl: KeyValuePair | undefined;
-                return (el: KeyValuePair) => {
-                    if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
-                    oldEl = el;
-                    if (el) self.rows.push(el);
-                };
-            })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
+            rows.push(<KeyValuePair doc={realDoc} addDocTab={this.props.addDocTab} PanelWidth={this.props.PanelWidth} PanelHeight={this.rowHeight}
+                ref={(function () {
+                    let oldEl: KeyValuePair | undefined;
+                    return (el: KeyValuePair) => {
+                        if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
+                        oldEl = el;
+                        if (el) self.rows.push(el);
+                    };
+                })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;
     }

@@ -22,6 +22,8 @@ export interface KeyValuePairProps {
     keyName: string;
     doc: Doc;
     keyWidth: number;
+    PanelHeight: () => number;
+    PanelWidth: () => number;
     addDocTab: (doc: Doc, data: Opt<Doc>, where: string) => boolean;
 }
 @observer
@@ -67,8 +69,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
-            PanelWidth: returnZero,
-            PanelHeight: returnZero,
+            PanelWidth: this.props.PanelWidth,
+            PanelHeight: this.props.PanelHeight,
             addDocTab: returnFalse,
             pinToPres: returnZero,
             ContentScaling: returnOne
