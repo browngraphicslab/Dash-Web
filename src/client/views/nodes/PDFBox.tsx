@@ -229,7 +229,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                     addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
-                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
+                    pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                     fieldKey={this.props.fieldKey} extensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />

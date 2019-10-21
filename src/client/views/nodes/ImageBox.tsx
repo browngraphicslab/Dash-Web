@@ -326,11 +326,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     render() {
-        if (!Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey)) return (null);
         return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                fieldExt={"annotations"}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}

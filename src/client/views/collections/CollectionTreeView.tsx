@@ -317,6 +317,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 <CollectionSchemaPreview
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
+                    fieldKey={this.fieldKey}
                     renderDepth={this.props.renderDepth}
                     showOverlays={this.noOverlays}
                     ruleProvider={this.props.document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.document : this.props.ruleProvider}
@@ -556,7 +557,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     render() {
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);

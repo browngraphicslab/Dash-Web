@@ -44,7 +44,6 @@ import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { siteVerification } from 'googleapis/build/src/apis/siteVerification';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -142,10 +141,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
-
-    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document
@@ -1028,7 +1023,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground
             ? "none" : "all";
-        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         if (this.props.isSelected()) {
             FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         }

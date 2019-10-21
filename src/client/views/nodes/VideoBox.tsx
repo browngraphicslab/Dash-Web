@@ -322,7 +322,6 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         InkingControl.Instance.switchTool(InkTool.None);
         this._isResetClick < 10 && (this.Document.currentTimecode = 0);
     }
-    @computed get fieldExtensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
     @computed get dataDoc() { return this.props.DataDoc && this.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
@@ -337,14 +336,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     @action.bound
     addDocumentWithTimestamp(doc: Doc): boolean {
-        Doc.GetProto(doc).annotationOn = this.props.Document;
         var curTime = (this.Document.currentTimecode || -1);
         curTime !== -1 && (doc.displayTimecode = curTime);
-        return Doc.AddDocToList(this.fieldExtensionDoc, this.props.fieldExt, doc);
+        return this.addDocument(doc);
     }
 
     render() {
-        if (!Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey)) return (null);
         return (<div className={"videoBox-container"} onContextMenu={this.specificContextMenu}>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}

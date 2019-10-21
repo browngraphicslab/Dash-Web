@@ -149,7 +149,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                 {this.SubView}
             </CollectionBaseView>
 
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField)!.url!.href))}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField)!.url.href))}
         </>
         );
     }

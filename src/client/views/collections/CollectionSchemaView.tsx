@@ -158,6 +158,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <CollectionSchemaPreview
                 Document={layoutDoc}
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                fieldKey={this.props.fieldKey}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
@@ -226,7 +227,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
             <div className="collectionSchemaView-container" style={{ height: "100%", marginTop: "0", }}>
                 <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
@@ -898,6 +898,7 @@ interface CollectionSchemaPreviewProps {
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
+    fieldKey: string;
     PanelWidth: () => number;
     PanelHeight: () => number;
     ruleProvider: Doc | undefined;
@@ -993,6 +994,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                     <DocumentView {...this.props}
                         DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
+                        fieldKey={this.props.fieldKey}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
                         ruleProvider={this.props.ruleProvider}

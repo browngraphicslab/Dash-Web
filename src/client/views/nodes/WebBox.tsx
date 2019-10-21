@@ -195,11 +195,11 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             </>);
     }
     render() {
-        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (<div className={"imageBox-container"} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                fieldExt={"annotations"}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

@@ -7,7 +7,6 @@ import { AudioField } from "../../../new_fields/URLField";
 import { DocStaticComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
 import { documentSchema } from "./DocumentView";
-import { InkingControl } from "../InkingControl";
 
 type AudioDocument = makeInterface<[typeof documentSchema]>;
 const AudioDocument = makeInterface(documentSchema);

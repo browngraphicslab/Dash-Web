@@ -46,7 +46,6 @@ interface IViewerProps {
     pdf: Pdfjs.PDFDocumentProxy;
     url: string;
     fieldKey: string;
-    fieldExt: string;
     Document: Doc;
     DataDoc?: Doc;
     ContainingCollectionView: Opt<CollectionView>;
@@ -550,7 +549,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     highlight = (color: string) => {
         // creates annotation documents for current highlights
         let annotationDoc = this.makeAnnotationDocument(color);
-        annotationDoc && Doc.AddDocToList(this.props.extensionDoc, this.props.fieldExt, annotationDoc);
+        annotationDoc && this.props.addDocument && this.props.addDocument(annotationDoc);
         return annotationDoc;
     }
 

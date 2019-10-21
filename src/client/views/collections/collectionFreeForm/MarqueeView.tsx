@@ -247,12 +247,12 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.
         let cprops = this.props.container.props;
-        return Cast(Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink, InkField);
+        return Cast(this.props.container.extensionDoc.ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
         let cprops = this.props.container.props;
-        Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink = value;
+        this.props.container.extensionDoc.ink = value;
     }
 
     @undoBatch

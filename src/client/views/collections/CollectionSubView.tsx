@@ -33,6 +33,7 @@ export interface CollectionViewProps extends FieldViewProps {
     VisibleHeight?: () => number;
     chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    fieldKey: string;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -77,7 +78,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
         @computed get dataField() {
-            return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+            return this.props.fieldExt ? this.extensionDoc[this.props.fieldExt] : this.dataDoc[this.props.fieldKey];
         }
 
         get childLayoutPairs() {

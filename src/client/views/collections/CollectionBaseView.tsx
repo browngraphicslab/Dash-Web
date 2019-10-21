@@ -97,9 +97,11 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        let targetDataDoc = this.props.Document;
+        let targetDataDoc = Doc.GetProto(this.props.Document);
         let targetField = this.props.fieldKey;
         Doc.AddDocToList(targetDataDoc, targetField, doc);
+        let extension = Doc.fieldExtensionDoc(targetDataDoc, targetField);
+        extension && (extension.lastModified = new DateField(new Date(Date.now())));
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }

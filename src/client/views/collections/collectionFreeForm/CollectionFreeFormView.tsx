@@ -113,10 +113,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
     }
 
-    @computed get fieldExtensionDoc() {
-        return Doc.fieldExtensionDoc(this.props.DataDoc || this.props.Document, this.props.fieldKey);
-    }
-
     @action
     onDrop = (e: React.DragEvent): Promise<void> => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
@@ -309,7 +305,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.fieldExtensionDoc.ink, InkField);
+                let ink = Cast(this.extensionDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -605,9 +601,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     analyzeStrokes = async () => {
-        let data = Cast(this.fieldExtensionDoc.ink, InkField);
+        let data = Cast(this.extensionDoc.ink, InkField);
         if (data) {
-            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.fieldExtensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
+            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.extensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
         }
     }
 
@@ -680,7 +676,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
         // if isAnnotationOverlay is set, then children will be stored in the extension document for the fieldKey.
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
         return (
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
@@ -690,7 +685,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.fieldExtensionDoc} inkFieldKey={"ink"} >
+                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
                             {this.childViews}
                         </InkingCanvas>
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />

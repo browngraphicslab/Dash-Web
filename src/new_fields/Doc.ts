@@ -398,44 +398,6 @@ export namespace Doc {
         return bounds;
     }
 
-    //
-    // Resolves a reference to a field by returning 'doc' if no field extension is specified,
-    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
-    // This mechanism allows any fields to be extended with an extension document that can
-    // be used to capture field-specific metadata.  For example, an image field can be extended
-    // to store annotations, ink, and other data.
-    //
-    export function fieldExtensionDoc(doc: Doc, fieldKey: string, fieldExt: string = "yes") {
-        return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
-    }
-
-    export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-        docExtensionForField.title = fieldKey + ".ext";
-        docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-        docExtensionForField.type = DocumentType.EXTENSION;
-        let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
-            proto = proto.proto;
-        }
-        (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
-        return docExtensionForField;
-    }
-
-    export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string, immediate: boolean = false) {
-        let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
-        if (docExtensionForField === undefined) {
-            if (immediate) {
-                CreateDocumentExtensionForField(doc, fieldKey);
-                return true;
-            }
-            else {
-                setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-                return false;
-            }
-        }
-        return true;
-    }
     export function MakeTitled(title: string) {
         let doc = new Doc();
         doc.title = title;
@@ -490,11 +452,36 @@ export namespace Doc {
         let layoutDoc: Doc | undefined = childDocLayout;
         let resolvedDataDoc = !doc.isTemplateField && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
-            Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
-            let fieldExtensionDoc = Doc.fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
-            layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
+            let extensionDoc = fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)));
+            layoutDoc = Doc.expandTemplateLayout(childDocLayout, extensionDoc !== resolvedDataDoc ? extensionDoc : undefined);
         } else layoutDoc = childDocLayout;
         return { layout: layoutDoc, data: resolvedDataDoc };
+    }
+
+    //
+    // Resolves a reference to a field by returning 'doc' if no field extension is specified,
+    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
+    // This mechanism allows any fields to be extended with an extension document that can
+    // be used to capture field-specific metadata.  For example, an image field can be extended
+    // to store annotations, ink, and other data.
+    //
+    export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
+        let extension = doc[fieldKey + "_ext"] as Doc;
+        (extension === undefined) && setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
+        return extension ? extension : doc;
+    }
+
+    export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+        let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+        docExtensionForField.title = fieldKey + ".ext";
+        docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+        docExtensionForField.type = DocumentType.EXTENSION;
+        let proto: Doc | undefined = doc;
+        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
+            proto = proto.proto;
+        }
+        (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        return docExtensionForField;
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {

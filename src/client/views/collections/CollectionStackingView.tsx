@@ -170,6 +170,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return <CollectionSchemaPreview
             Document={doc}
             DataDocument={dataDoc}
+            fieldKey={this.props.fieldKey}
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
@@ -389,7 +390,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             SetValue: this.addGroup,
             contents: "+ ADD A GROUP"
         };
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         let sections = [[undefined, this.filteredChildren] as [SchemaHeaderField | undefined, Doc[]]];
         if (this.sectionFilter) {
             let entries = Array.from(this.Sections.entries());

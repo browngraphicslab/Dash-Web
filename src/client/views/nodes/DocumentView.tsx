@@ -67,6 +67,7 @@ library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCom
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
     fitToBox?: boolean;
@@ -598,6 +599,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
+            fieldKey={this.props.fieldKey}
             fitToBox={this.props.fitToBox}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
