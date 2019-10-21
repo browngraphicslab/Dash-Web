@@ -660,7 +660,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <FormattedTextBox {...this.props}
                     onClick={this.onClickHandler} DataDoc={this.props.DataDoc} active={returnTrue}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
-                    fieldExt={""} hideOnLeave={true} fieldKey={showCaption}
+                    hideOnLeave={true} fieldKey={showCaption}
                 />
             </div>);
         const titleView = (!showTitle ? (null) :

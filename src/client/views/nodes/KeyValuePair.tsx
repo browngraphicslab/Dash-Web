@@ -60,7 +60,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             ContainingCollectionDoc: undefined,
             ruleProvider: undefined,
             fieldKey: this.props.keyName,
-            fieldExt: "",
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: 1,

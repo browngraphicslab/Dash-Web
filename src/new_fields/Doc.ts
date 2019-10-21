@@ -468,7 +468,7 @@ export namespace Doc {
     export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
         let extension = doc[fieldKey + "_ext"] as Doc;
         (extension === undefined) && setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-        return extension ? extension : doc;
+        return extension ? extension : undefined;
     }
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {

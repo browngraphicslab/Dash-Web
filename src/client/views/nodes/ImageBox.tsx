@@ -54,8 +54,8 @@ type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
 @observer
-export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(ImageBox, "data", fieldExt); }
+export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument, "annotations") {
+    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _dropDisposer?: DragManager.DragDropDisposer;
     @observable private _audioState = 0;
@@ -330,7 +330,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                fieldExt={"annotations"}
+                fieldExt={this.fieldExt}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}

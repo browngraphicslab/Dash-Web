@@ -55,14 +55,14 @@ interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
-    fieldExt: string;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: () => boolean;
     renderDepth: number;
 }
-export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
+export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T, fieldExt: string) {
     class Component extends React.Component<P> {
         _isChildActive = false;
+        _fieldExt = fieldExt;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed
         get Document(): T {
@@ -70,13 +70,14 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         }
         @computed get dataDoc() { return (this.props.DataDoc && this.props.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
         @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+        @computed get fieldExt() { return this._fieldExt; }
 
         @action.bound
         removeDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = undefined;
-            let value = Cast(this.extensionDoc[this.props.fieldExt], listSpec(Doc), []);
+            let value = this.extensionDoc && Cast(this.extensionDoc[this._fieldExt], listSpec(Doc), []);
             let index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
-            return index !== -1 && value.splice(index, 1) ? true : false;
+            return index !== -1 && value && value.splice(index, 1) ? true : false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
@@ -87,7 +88,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @action.bound
         addDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = this.props.Document;
-            return Doc.AddDocToList(this.extensionDoc, this.props.fieldExt, doc);
+            return this.extensionDoc && Doc.AddDocToList(this.extensionDoc, this._fieldExt, doc) ? true : false;
         }
 
         whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);

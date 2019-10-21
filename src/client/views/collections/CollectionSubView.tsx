@@ -41,6 +41,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     ruleProvider: Doc | undefined;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     isAnnotationOverlay?: boolean;
+    fieldExt: string;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
@@ -78,7 +79,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
         @computed get dataField() {
-            return this.props.fieldExt ? this.extensionDoc[this.props.fieldExt] : this.dataDoc[this.props.fieldKey];
+            return this.props.fieldExt ? (this.extensionDoc ? this.extensionDoc[this.props.fieldExt] : undefined) : this.dataDoc[this.props.fieldKey];
         }
 
         get childLayoutPairs() {

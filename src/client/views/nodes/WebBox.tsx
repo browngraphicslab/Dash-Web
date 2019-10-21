@@ -28,9 +28,9 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
+export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument, "annotations") {
 
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(WebBox, "data", fieldExt); }
+    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
@@ -199,7 +199,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                fieldExt={"annotations"}
+                fieldExt={this.fieldExt}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

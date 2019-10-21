@@ -685,9 +685,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
-                            {this.childViews}
-                        </InkingCanvas>
+                        {!this.extensionDoc ? (null) :
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
+                                {this.childViews}
+                            </InkingCanvas>}
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>

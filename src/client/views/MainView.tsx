@@ -478,7 +478,6 @@ export class MainView extends React.Component {
                     Document={CurrentUserUtils.UserDocument.expandingButtons}
                     DataDoc={undefined}
                     fieldKey={"data"}
-                    fieldExt={""}
                     select={emptyFunction}
                     chromeCollapsed={true}
                     active={returnFalse}

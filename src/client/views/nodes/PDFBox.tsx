@@ -26,8 +26,8 @@ type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, t
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
-export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(PDFBox, "data", fieldExt); }
+export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument, "annotations") {
+    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";

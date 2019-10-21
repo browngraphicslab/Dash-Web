@@ -24,7 +24,6 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 //
 export interface FieldViewProps {
     fieldKey: string;
-    fieldExt: string;
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
@@ -53,8 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"}/>`;
         //"<ImageBox {...props} />"
     }
 

@@ -1,21 +1,16 @@
 import { action, IReactionDisposer, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, HeightSym, WidthSym, DocListCast } from '../../new_fields/Doc';
-import { ObjectField } from '../../new_fields/ObjectField';
+import { Doc, HeightSym, WidthSym } from '../../new_fields/Doc';
 import { makeInterface } from '../../new_fields/Schema';
-import { ScriptField } from '../../new_fields/ScriptField';
 import { BoolCast, NumCast, StrCast } from '../../new_fields/Types';
 import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
-import { Docs } from '../documents/Documents';
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import "./CollectionLinearView.scss";
 import { CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionSubView } from './collections/CollectionSubView';
 import { documentSchema, DocumentView } from './nodes/DocumentView';
-import { translate } from 'googleapis/build/src/apis/translate';
-import { DocumentType } from '../documents/DocumentTypes';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;

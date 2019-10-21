@@ -130,7 +130,6 @@ export namespace Docs {
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
         const data = "data";
-        const anno = "annotations";
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
@@ -150,11 +149,11 @@ export namespace Docs {
                 options: { nativeWidth: 220, nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, ext: anno },
+                layout: { view: ImageBox },
                 options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, ext: anno },
+                layout: { view: WebBox },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
@@ -166,7 +165,7 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, ext: anno },
+                layout: { view: VideoBox },
                 options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
@@ -174,7 +173,7 @@ export namespace Docs {
                 options: { height: 32 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, ext: anno },
+                layout: { view: PDFBox },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
@@ -286,7 +285,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view.LayoutString(layout.ext);
+            options.layout = layout.view.LayoutString();
             return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
         }
 

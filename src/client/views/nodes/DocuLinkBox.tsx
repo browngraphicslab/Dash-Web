@@ -18,7 +18,7 @@ const DocLinkDocument = makeInterface(documentSchema);
 
 @observer
 export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(DocLinkDocument) {
-    public static LayoutString(fieldKey: string, fieldExt?: string) { return FieldView.LayoutString(DocuLinkBox, fieldKey, fieldExt); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocuLinkBox, fieldKey); }
     _downx = 0;
     _downy = 0;
     @observable _x = 0;

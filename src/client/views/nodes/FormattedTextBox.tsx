@@ -727,8 +727,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
                     if ((pdfDoc instanceof Doc) && (pdfRegion instanceof Doc)) {
                         setTimeout(async () => {
-                            let targetAnnotations = await DocListCastAsync(Doc.fieldExtensionDoc(pdfDoc, "data").annotations);// bcz: NO... this assumes the pdf is using its 'data' field.  need to have the PDF's view handle updating its own annotations
-                            targetAnnotations && targetAnnotations.push(pdfRegion);
+                            const extension = Doc.fieldExtensionDoc(pdfDoc, "data");
+                            if (extension) {
+                                let targetAnnotations = await DocListCastAsync(extension.annotations);// bcz: NO... this assumes the pdf is using its 'data' field.  need to have the PDF's view handle updating its own annotations
+                                targetAnnotations && targetAnnotations.push(pdfRegion);
+                            }
                         });
 
                         let link = DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: pdfRegion, ctx: pdfDoc }, "note on " + pdfDoc.title, "pasted PDF link");

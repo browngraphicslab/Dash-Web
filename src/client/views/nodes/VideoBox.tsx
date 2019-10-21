@@ -35,7 +35,7 @@ const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
 library.add(faVideo);
 
 @observer
-export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
+export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument, "annotations") {
     static _youtubeIframeCounter: number = 0;
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
@@ -49,7 +49,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @observable _fullScreen = false;
     @observable _playing = false;
     @observable static _showControls: boolean;
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(VideoBox, "data", fieldExt); }
+    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(VideoBox, fieldKey); }
 
     public get player(): HTMLVideoElement | null {
         return this._videoRef;
@@ -346,6 +346,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                fieldExt={this.fieldExt}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

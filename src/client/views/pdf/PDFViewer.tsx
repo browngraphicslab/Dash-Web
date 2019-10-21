@@ -73,7 +73,7 @@ interface IViewerProps {
  * Handles rendering and virtualization of the pdf
  */
 @observer
-export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
+export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument, "annotations") {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
@@ -632,6 +632,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 <Annotation {...this.props} focus={this.props.focus} anno={anno} key={`${anno[Id]}-annotation`} />)}
             <div className="pdfViewer-overlay" id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
                 <CollectionFreeFormView {...this.props}
+                    fieldExt={this.fieldExt}
                     setPreviewCursor={this.setPreviewCursor}
                     PanelHeight={() => (this.Document.scrollHeight || this.Document.nativeHeight || 0)}
                     PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document.nativeWidth || 0)}

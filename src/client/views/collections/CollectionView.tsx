@@ -32,7 +32,7 @@ library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faF
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
 
-    public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
+    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _reactionDisposer: IReactionDisposer | undefined;
     @observable private _isLightboxOpen = false;
