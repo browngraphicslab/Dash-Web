@@ -1,29 +1,37 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction, trace, observable } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
+import { Document } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast, FieldValue } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { ImageField } from '../../../new_fields/URLField';
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, returnTrue, Utils, returnTransparent, returnOne } from "../../../Utils";
+import { emptyFunction, returnTransparent, returnTrue, Utils } from "../../../Utils";
+import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DictationManager } from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { LinkManager } from '../../util/LinkManager';
+import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from "../../util/SelectionManager";
+import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { CollectionViewType } from '../collections/CollectionBaseView';
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
+import { DictationOverlay } from '../DictationOverlay';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { OverlayView } from '../OverlayView';
@@ -33,13 +41,6 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
-import { DocumentType } from '../../documents/DocumentTypes';
-import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
-import { ImageField } from '../../../new_fields/URLField';
-import SharingManager from '../../util/SharingManager';
-import { Scripting } from '../../util/Scripting';
-import { DictationOverlay } from '../DictationOverlay';
-import { CollectionViewType } from '../collections/CollectionBaseView';
 
 library.add(fa.faEdit);
 library.add(fa.faTrash);
@@ -67,7 +68,6 @@ library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCom
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
-    fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
     fitToBox?: boolean;
@@ -96,41 +96,6 @@ export interface DocumentViewProps {
     layoutKey?: string;
 }
 
-export const documentSchema = createSchema({
-    // layout: "string", // this should be a "string" or Doc, but can't do that in schemas, so best to leave it out
-    title: "string",            // document title (can be on either data document or layout)
-    nativeWidth: "number",      // native width of document which determines how much document contents are scaled when the document's width is set
-    nativeHeight: "number",     // "
-    width: "number",            // width of document in its container's coordinate system
-    height: "number",           // "
-    backgroundColor: "string",  // background color of document
-    opacity: "number",          // opacity of document
-    //links: listSpec(Doc),       // computed (readonly) list of links associated with this document
-    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
-    removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
-    onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
-    onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
-    dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
-    ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
-    autoHeight: "boolean",      // whether the height of the document should be computed automatically based on its contents
-    isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
-    isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
-    type: "string",             // enumerated type of document
-    maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
-    lockedPosition: "boolean",  // whether the document can be spatially manipulated
-    inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
-    borderRounding: "string",   // border radius rounding of document
-    searchFields: "string",     // the search fields to display when this document matches a search in its metadata
-    heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
-    showCaption: "string",      // whether editable caption text is overlayed at the bottom of the document 
-    showTitle: "string",        // whether an editable title banner is displayed at tht top of the document
-    isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)      
-    ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
-});
-
-
-type Document = makeInterface<[typeof documentSchema]>;
-const Document = makeInterface(documentSchema);
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
@@ -572,13 +537,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-
-    // the document containing the view layout information - will be the Document itself unless the Document has
-    // a layout field.  In that case, all layout information comes from there unless overriden by Document
-    get layoutDoc(): Document {
-        return Document(Doc.Layout(this.props.Document));
-    }
-
     // does Document set a layout prop 
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
@@ -599,7 +557,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
-            fieldKey={this.props.fieldKey}
             fitToBox={this.props.fitToBox}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
@@ -729,6 +686,4 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-Scripting.addGlobal(function toggleDetail(doc: any) {
-    doc.layoutKey = StrCast(doc.layoutKey, "layout") === "layout" ? "layoutCustom" : "layout";
-});
+Scripting.addGlobal(function toggleDetail(doc: any) { doc.layoutKey = StrCast(doc.layoutKey, "layout") === "layout" ? "layoutCustom" : "layout"; });

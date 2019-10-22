@@ -7,11 +7,11 @@ import { Utils } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragLinksAsDocuments } from "../../util/DragManager";
 import { DocComponent } from "../DocComponent";
-import { documentSchema } from "./DocumentView";
 import "./DocuLinkBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { DocumentType } from "../../documents/DocumentTypes";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 
 type DocLinkSchema = makeInterface<[typeof documentSchema]>;
 const DocLinkDocument = makeInterface(documentSchema);

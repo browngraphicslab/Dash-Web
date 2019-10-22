@@ -84,7 +84,8 @@ export interface DocumentOptions {
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
-    currentTimecode?: number;
+    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)
+    displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
@@ -119,11 +120,11 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        type LayoutSource = { LayoutString: (ext?: string) => string };
+        type LayoutSource = { LayoutString: (key: string) => string };
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
-                ext?: string, // optional extension field for layout source
+                dataField: string
             },
             options?: Partial<DocumentOptions>
         };
@@ -133,80 +134,80 @@ export namespace Docs {
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
-                layout: { view: FormattedTextBox },
+                layout: { view: FormattedTextBox, dataField: data },
                 options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { view: HistogramBox },
+                layout: { view: HistogramBox, dataField: data },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.QUERY, {
-                layout: { view: QueryBox },
+                layout: { view: QueryBox, dataField: data },
                 options: { width: 400 }
             }],
             [DocumentType.COLOR, {
-                layout: { view: ColorBox },
+                layout: { view: ColorBox, dataField: data },
                 options: { nativeWidth: 220, nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox },
+                layout: { view: ImageBox, dataField: data },
                 options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox },
+                layout: { view: WebBox, dataField: data },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
-                layout: { view: CollectionView },
+                layout: { view: CollectionView, dataField: data },
                 options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 }
             }],
             [DocumentType.KVP, {
-                layout: { view: KeyValueBox },
+                layout: { view: KeyValueBox, dataField: data },
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox },
+                layout: { view: VideoBox, dataField: data },
                 options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
-                layout: { view: AudioBox },
+                layout: { view: AudioBox, dataField: data },
                 options: { height: 32 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox },
+                layout: { view: PDFBox, dataField: data },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
-                layout: { view: IconBox },
+                layout: { view: IconBox, dataField: data },
                 options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
             }],
             [DocumentType.IMPORT, {
-                layout: { view: DirectoryImportBox },
+                layout: { view: DirectoryImportBox, dataField: data },
                 options: { height: 150 }
             }],
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
-                layout: { view: EmptyBox },
+                layout: { view: EmptyBox, dataField: data },
             }],
             [DocumentType.YOUTUBE, {
-                layout: { view: YoutubeBox }
+                layout: { view: YoutubeBox, dataField: data }
             }],
             [DocumentType.BUTTON, {
-                layout: { view: ButtonBox },
+                layout: { view: ButtonBox, dataField: data },
             }],
             [DocumentType.PRES, {
-                layout: { view: PresBox },
+                layout: { view: PresBox, dataField: data },
                 options: {}
             }],
             [DocumentType.FONTICON, {
-                layout: { view: FontIconBox },
+                layout: { view: FontIconBox, dataField: data },
                 options: { width: 40, height: 40, borderRounding: "100%" },
             }],
             [DocumentType.LINKFOLLOW, {
-                layout: { view: LinkFollowBox }
+                layout: { view: LinkFollowBox, dataField: data }
             }],
             [DocumentType.PRESELEMENT, {
-                layout: { view: PresElementBox }
+                layout: { view: PresElementBox, dataField: data }
             }],
         ]);
 
@@ -285,7 +286,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view.LayoutString();
+            options.layout = layout.view.LayoutString(layout.dataField);
             return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
         }
 
@@ -701,12 +702,12 @@ export namespace DocUtils {
             linkDocProto.linkDescription = description;
 
             linkDocProto.anchor1 = source.doc;
-            linkDocProto.anchor1Context = source.ctx;
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
-            linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor1Context = source.ctx;
             linkDocProto.anchor2Context = target.ctx;
+            linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
             linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
             linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");

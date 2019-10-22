@@ -52,9 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"}/>`;
-        //"<ImageBox {...props} />"
+    public static LayoutString(fieldType: { name: string }, fieldStr: string) {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"}/>`;  //e.g., "<ImageBox {...props} fieldKey={"dada} />"
     }
 
     @computed

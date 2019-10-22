@@ -20,12 +20,12 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from '../DocComponent';
 import { InkingControl } from '../InkingControl';
-import { documentSchema } from './DocumentView';
 import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
+import { documentSchema } from '../../../new_fields/documentSchemas';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -38,7 +38,9 @@ library.add(faFileAudio, faAsterisk);
 export const pageSchema = createSchema({
     curPage: "number",
     fitWidth: "boolean",
-    rotation: "number"
+    rotation: "number",
+    googlePhotosUrl: "string",
+    googlePhotosTags: "string"
 });
 
 interface Window {
@@ -54,8 +56,8 @@ type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
 @observer
-export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument, "annotations") {
-    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(ImageBox, fieldKey); }
+export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _dropDisposer?: DragManager.DragDropDisposer;
     @observable private _audioState = 0;
@@ -251,7 +253,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     audioDown = () => this.recordAudioAnnotation();
 
     considerGooglePhotosLink = () => {
-        const remoteUrl = StrCast(this.props.Document.googlePhotosUrl);
+        const remoteUrl = this.Document.googlePhotosUrl;
         return !remoteUrl ? (null) : (<img
             id={"google-photos"}
             src={"/assets/google_photos.png"}
@@ -260,7 +262,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     considerGooglePhotosTags = () => {
-        const tags = StrCast(this.props.Document.googlePhotosTags);
+        const tags = this.Document.googlePhotosTags;
         return !tags ? (null) : (<img id={"google-tags"} src={"/assets/google_tags.png"} />);
     }
 
@@ -287,7 +289,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
+        let interactive = InkingControl.Instance.selectedTool || this.Document.isBackground ? "" : "-interactive";
         let rotation = NumCast(this.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
@@ -333,7 +335,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                fieldExt={this.fieldExt}
+                annotationsKey={this.annotationsKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}

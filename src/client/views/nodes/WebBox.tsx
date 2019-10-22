@@ -19,8 +19,8 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
-import { documentSchema } from "./DocumentView";
 import { DocAnnotatableComponent } from "../DocComponent";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 
 library.add(faStickyNote);
 
@@ -28,13 +28,12 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument, "annotations") {
+export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
-    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(WebBox, fieldKey); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
-    get layoutDoc() { return Doc.Layout(this.props.Document); }
     componentWillMount() {
 
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
@@ -199,7 +198,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                fieldExt={this.fieldExt}
+                annotationsKey={this.annotationsKey}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

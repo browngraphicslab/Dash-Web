@@ -4,18 +4,18 @@ import { observer } from "mobx-react";
 import "./AudioBox.scss";
 import { Cast } from "../../../new_fields/Types";
 import { AudioField } from "../../../new_fields/URLField";
-import { DocStaticComponent } from "../DocComponent";
+import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
-import { documentSchema } from "./DocumentView";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 
 type AudioDocument = makeInterface<[typeof documentSchema]>;
 const AudioDocument = makeInterface(documentSchema);
 const defaultField: AudioField = new AudioField(new URL("http://techslides.com/demos/samples/sample.mp3"));
 
 @observer
-export class AudioBox extends DocStaticComponent<FieldViewProps, AudioDocument>(AudioDocument) {
+export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
 
-    public static LayoutString() { return FieldView.LayoutString(AudioBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     _ref = React.createRef<HTMLAudioElement>();
 
     componentDidMount() {

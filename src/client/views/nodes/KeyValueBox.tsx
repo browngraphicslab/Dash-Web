@@ -25,11 +25,12 @@ export type KVPScript = {
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(KeyValueBox, fieldStr); }
+
     private _mainCont = React.createRef<HTMLDivElement>();
     private _keyHeader = React.createRef<HTMLTableHeaderCellElement>();
-    @observable private rows: KeyValuePair[] = [];
 
-    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
+    @observable private rows: KeyValuePair[] = [];
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }

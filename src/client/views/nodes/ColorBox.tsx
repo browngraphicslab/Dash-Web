@@ -4,20 +4,20 @@ import { SketchPicker } from 'react-color';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ColorBox.scss";
 import { InkingControl } from "../InkingControl";
-import { DocStaticComponent } from "../DocComponent";
-import { documentSchema } from "./DocumentView";
+import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
-import { trace, reaction, observable, action, IReactionDisposer } from "mobx";
+import { reaction, observable, action, IReactionDisposer } from "mobx";
 import { SelectionManager } from "../../util/SelectionManager";
 import { StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 
 type ColorDocument = makeInterface<[typeof documentSchema]>;
 const ColorDocument = makeInterface(documentSchema);
 
 @observer
-export class ColorBox extends DocStaticComponent<FieldViewProps, ColorDocument>(ColorDocument) {
-    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(ColorBox, fieldKey); }
+export class ColorBox extends DocExtendableComponent<FieldViewProps, ColorDocument>(ColorDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ColorBox, fieldKey); }
 
     _selectedDisposer: IReactionDisposer | undefined;
     _penDisposer: IReactionDisposer | undefined;

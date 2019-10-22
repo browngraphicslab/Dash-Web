@@ -10,7 +10,8 @@ import { Transform } from '../util/Transform';
 import "./CollectionLinearView.scss";
 import { CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionSubView } from './collections/CollectionSubView';
-import { documentSchema, DocumentView } from './nodes/DocumentView';
+import { DocumentView } from './nodes/DocumentView';
+import { documentSchema } from '../../new_fields/documentSchemas';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -75,7 +76,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
-                                fieldKey={this.props.fieldKey}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}

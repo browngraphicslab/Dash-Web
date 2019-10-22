@@ -33,7 +33,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocComponent } from "../DocComponent";
+import { DocExtendableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
 import { DocumentDecorations } from '../DocumentDecorations';
 import { InkingControl } from "../InkingControl";
@@ -44,6 +44,7 @@ import React = require("react");
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { documentSchema } from '../../../new_fields/documentSchemas';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -62,16 +63,14 @@ const richTextSchema = createSchema({
 
 export const GoogleRef = "googleDocId";
 
-type RichTextDocument = makeInterface<[typeof richTextSchema]>;
-const RichTextDocument = makeInterface(richTextSchema);
+type RichTextDocument = makeInterface<[typeof richTextSchema, typeof documentSchema]>;
+const RichTextDocument = makeInterface(richTextSchema, documentSchema);
 
 type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => void;
 
 @observer
-export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
-    public static LayoutString(fieldStr: string = "data") {
-        return FieldView.LayoutString(FormattedTextBox, fieldStr);
-    }
+export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
     private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
@@ -135,16 +134,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return true;
     }
 
-    constructor(props: FieldViewProps) {
+    constructor(props: any) {
         super(props);
         FormattedTextBox.Instance = this;
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
-
-    // the document containing the view layout information - will be the Document itself unless the Document has
-    // a layout field.  In that case, all layout information comes from there unless overriden by Document
-    @computed get layoutDoc(): Doc { return Doc.Layout(this.props.Document); }
 
     linkOnDeselect: Map<string, string> = new Map();
 
@@ -266,8 +261,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     newLayout = Doc.MakeDelegate(draggedDoc);
                     newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
                 }
-                this.props.Document.layoutCustom = newLayout;
-                this.props.Document.layoutKey = "layoutCustom";
+                this.Document.layoutCustom = newLayout;
+                this.Document.layoutKey = "layoutCustom";
                 e.stopPropagation();
                 // embed document when dragging with a userDropAction or an embedDoc flag set
             } else if (de.data.userDropAction || de.data.embedDoc) {
@@ -1015,7 +1010,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
         if (!this.layoutDoc.isAnimating && this.layoutDoc.autoHeight && scrollHeight !== 0 &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            let nh = this.props.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
+            let nh = this.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.layoutDoc.height, 0);
             this.layoutDoc.height = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;
@@ -1052,7 +1047,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.props.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
 
                 <div className="formattedTextBox-dictation"
                     onClick={e => {

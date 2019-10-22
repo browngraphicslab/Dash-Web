@@ -645,7 +645,8 @@ export namespace Doc {
         @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
 
-    // returns the active layout document for 'doc'.  
+    // the document containing the view layout information - will be the Document itself unless the Document has
+    // a layout field.  In that case, all layout information comes from there unless overriden by Document  
     export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? doc[StrCast(doc.layoutKey, "layout")] as Doc : doc; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     const manager = new DocData();

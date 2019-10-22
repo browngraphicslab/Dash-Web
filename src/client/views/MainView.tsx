@@ -270,7 +270,6 @@ export class MainView extends React.Component {
                         <DocumentView Document={mainContainer}
                             DataDoc={undefined}
                             addDocument={undefined}
-                            fieldKey={"data"}
                             addDocTab={this.addDocTabFunc}
                             pinToPres={emptyFunction}
                             onClick={undefined}
@@ -360,7 +359,6 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
-                    fieldKey={"data"}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -387,7 +385,6 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarContent}
                     DataDoc={undefined}
-                    fieldKey={"data"}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -481,7 +478,7 @@ export class MainView extends React.Component {
                     Document={CurrentUserUtils.UserDocument.expandingButtons}
                     DataDoc={undefined}
                     fieldKey={"data"}
-                    fieldExt={""}
+                    annotationsKey={""}
                     select={emptyFunction}
                     chromeCollapsed={true}
                     active={returnFalse}

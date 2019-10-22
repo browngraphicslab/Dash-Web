@@ -994,7 +994,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                     <DocumentView {...this.props}
                         DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
-                        fieldKey={this.props.fieldKey}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
                         ruleProvider={this.props.ruleProvider}

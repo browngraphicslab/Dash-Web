@@ -4,27 +4,26 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
+import { PositionDocument } from '../../new_fields/documentSchemas';
 import { List } from "../../new_fields/List";
 import { ObjectField } from '../../new_fields/ObjectField';
-import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { emptyFunction, Utils } from "../../Utils";
+import { Utils } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
+import { TooltipTextMenu } from '../util/TooltipTextMenu';
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
-import { PositionDocument } from './nodes/CollectionFreeFormDocumentView';
 import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
-import { TooltipTextMenu } from '../util/TooltipTextMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -281,7 +280,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
 
             if (selectedDocs.length > 1) {
-                this._iconDoc = this._iconDoc ? this._iconDoc : this.createIcon(SelectionManager.SelectedDocuments(), CollectionView.LayoutString());
+                this._iconDoc = this._iconDoc ? this._iconDoc : this.createIcon(SelectionManager.SelectedDocuments(), CollectionView.LayoutString(""));
                 this.moveIconDoc(this._iconDoc);
             } else {
                 this.getIconDoc(selectedDocs[0]).then(icon => icon && this.moveIconDoc(this._iconDoc = icon));
@@ -339,7 +338,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
 
         if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
-            const layout = StrCast(doc.layout, FieldView.LayoutString(DocumentView));
+            const layout = StrCast(doc.layout, FieldView.LayoutString(DocumentView, ""));
             iconDoc = this.createIcon([docView], layout);
         }
         return iconDoc;

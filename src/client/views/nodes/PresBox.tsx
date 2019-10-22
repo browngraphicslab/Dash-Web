@@ -31,7 +31,7 @@ library.add(faEdit);
 
 @observer
 export class PresBox extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
     _docListChangedReaction: IReactionDisposer | undefined;
     componentDidMount() {
         this._docListChangedReaction = reaction(() => {

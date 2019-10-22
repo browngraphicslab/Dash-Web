@@ -41,7 +41,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     ruleProvider: Doc | undefined;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     isAnnotationOverlay?: boolean;
-    fieldExt: string;
+    annotationsKey: string;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
@@ -74,12 +74,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
+        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc!) : Doc.GetProto(this.props.Document); }
+        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
         // to its children which may be templates.
-        // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
+        // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            return this.props.fieldExt ? (this.extensionDoc ? this.extensionDoc[this.props.fieldExt] : undefined) : this.dataDoc[this.props.fieldKey];
+            return this.props.annotationsKey ? (this.extensionDoc ? this.extensionDoc[this.props.annotationsKey] : undefined) : this.dataDoc[this.props.fieldKey];
         }
 
         get childLayoutPairs() {

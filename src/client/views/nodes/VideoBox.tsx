@@ -1,33 +1,32 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, trace } from "mobx";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faVideo } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
+import { Doc } from "../../../new_fields/Doc";
 import { InkTool } from "../../../new_fields/InkField";
-import { makeInterface, createSchema, listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
-import { Utils, emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
-import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faVideo } from "@fortawesome/free-solid-svg-icons";
-import { Doc } from "../../../new_fields/Doc";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { positionSchema } from "./CollectionFreeFormDocumentView";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
 var path = require('path');
 
 export const timeSchema = createSchema({
-    currentTimecode: "number",
+    currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
 });
 type VideoDocument = makeInterface<[typeof documentSchema, typeof positionSchema, typeof timeSchema]>;
 const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
@@ -35,7 +34,7 @@ const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
 library.add(faVideo);
 
 @observer
-export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument, "annotations") {
+export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     static _youtubeIframeCounter: number = 0;
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
@@ -49,7 +48,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @observable _fullScreen = false;
     @observable _playing = false;
     @observable static _showControls: boolean;
-    public static LayoutString(fieldKey: string = "data") { return FieldView.LayoutString(VideoBox, fieldKey); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(VideoBox, fieldKey); }
 
     public get player(): HTMLVideoElement | null {
         return this._videoRef;
@@ -282,24 +281,20 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         ]]);
     }
 
-    @action
-    onPlayDown = () => this._playing ? this.Pause() : this.Play()
+    onPlayDown = () => this._playing ? this.Pause() : this.Play();
 
-    @action
     onFullDown = (e: React.PointerEvent) => {
         this.FullScreen();
         e.stopPropagation();
         e.preventDefault();
     }
 
-    @action
     onSnapshot = (e: React.PointerEvent) => {
         this.Snapshot();
         e.stopPropagation();
         e.preventDefault();
     }
 
-    @action
     onResetDown = (e: React.PointerEvent) => {
         this.Pause();
         e.stopPropagation();
@@ -309,12 +304,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         InkingControl.Instance.switchTool(InkTool.Eraser);
     }
 
-    @action
     onResetMove = (e: PointerEvent) => {
         this._isResetClick += Math.abs(e.movementX) + Math.abs(e.movementY);
         this.Seek(Math.max(0, (this.Document.currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
         e.stopImmediatePropagation();
     }
+
     @action
     onResetUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onResetMove, true);
@@ -322,7 +317,6 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         InkingControl.Instance.switchTool(InkTool.None);
         this._isResetClick < 10 && (this.Document.currentTimecode = 0);
     }
-    @computed get dataDoc() { return this.props.DataDoc && this.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
@@ -346,7 +340,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                fieldExt={this.fieldExt}
+                annotationsKey={this.annotationsKey}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

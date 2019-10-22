@@ -75,8 +75,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this._heightMap.set(key, sectionHeight);
     }
 
-    get layoutDoc() { return Doc.Layout(this.props.Document); }
-
     get Sections() {
         if (!this.sectionFilter || this.sectionHeaders instanceof Promise) return new Map<SchemaHeaderField, Doc[]>();
 

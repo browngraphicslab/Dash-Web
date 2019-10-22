@@ -24,8 +24,8 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
 import { DocAnnotatableComponent } from "../DocComponent";
-import { documentSchema } from "../nodes/DocumentView";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -49,7 +49,6 @@ interface IViewerProps {
     Document: Doc;
     DataDoc?: Doc;
     ContainingCollectionView: Opt<CollectionView>;
-    extensionDoc: Doc;
     PanelWidth: () => number;
     PanelHeight: () => number;
     ContentScaling: () => number;
@@ -73,7 +72,7 @@ interface IViewerProps {
  * Handles rendering and virtualization of the pdf
  */
 @observer
-export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument, "annotations") {
+export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
@@ -109,8 +108,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     private _coverPath: any;
 
     @computed get allAnnotations() {
-        return DocListCast(this.props.extensionDoc.annotations).filter(
-            anno => this._script.run({ this: anno }, console.log, true).result);
+        return this.extensionDoc ? DocListCast(this.extensionDoc.annotations).filter(
+            anno => this._script.run({ this: anno }, console.log, true).result) : [];
     }
 
     @computed get nonDocAnnotations() {
@@ -200,7 +199,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         await this.initialLoad();
 
         this._annotationReactionDisposer = reaction(
-            () => this.props.extensionDoc && DocListCast(this.props.extensionDoc.annotations),
+            () => this.extensionDoc && DocListCast(this.extensionDoc.annotations),
             annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
             { fireImmediately: true });
 
@@ -629,10 +628,10 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     @computed get annotationLayer() {
         return <div className="pdfViewer-annotationLayer" style={{ height: (this.Document.nativeHeight || 0) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                <Annotation {...this.props} focus={this.props.focus} anno={anno} key={`${anno[Id]}-annotation`} />)}
+                <Annotation {...this.props} focus={this.props.focus} extensionDoc={this.extensionDoc!} anno={anno} key={`${anno[Id]}-annotation`} />)}
             <div className="pdfViewer-overlay" id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
                 <CollectionFreeFormView {...this.props}
-                    fieldExt={this.fieldExt}
+                    annotationsKey={this.annotationsKey}
                     setPreviewCursor={this.setPreviewCursor}
                     PanelHeight={() => (this.Document.scrollHeight || this.Document.nativeHeight || 0)}
                     PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document.nativeWidth || 0)}
@@ -673,7 +672,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     marqueeing = () => this._marqueeing;
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     render() {
-        return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")}
+        return !this.extensionDoc ? (null) : (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")}
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
             {this.pdfViewerDiv}
             {this.annotationLayer}
