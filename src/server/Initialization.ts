@@ -37,9 +37,11 @@ export default async function InitializeServer(options: InitializationOptions) {
     registerAuthenticationRoutes(server);
     registerCorsProxy(server);
 
-    routeSetter(new RouteManager(server, determineEnvironment()));
+    const isRelease = determineEnvironment();
+    routeSetter(new RouteManager(server, isRelease));
 
     server.listen(listenAtPort, () => console.log(`server started at http://localhost:${listenAtPort}`));
+    return isRelease;
 }
 
 const week = 7 * 24 * 60 * 60 * 1000;

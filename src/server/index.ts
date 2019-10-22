@@ -1,5 +1,4 @@
 require('dotenv').config();
-import { exec } from 'child_process';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
 import * as sharp from 'sharp';
@@ -7,10 +6,6 @@ import * as Pdfjs from 'pdfjs-dist';
 const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
-import * as io from 'socket.io';
-import { Socket } from 'socket.io';
-import { Utils } from '../Utils';
-import { Client } from './Client';
 import { Database } from './database';
 import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
 import { RouteStore } from './RouteStore';
@@ -34,12 +29,13 @@ import { reject } from 'bluebird';
 import RouteSubscriber from './RouteSubscriber';
 import InitializeServer from './Initialization';
 import { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
-import { command_line } from './ActionUtilities';
-var findInFiles = require('find-in-files');
 import * as qs from 'query-string';
+import UtilManager from './ApiManagers/UtilManager';
+import SearchManager from './ApiManagers/SearchManager';
+import UserManager from './ApiManagers/UserManager';
+import { WebSocket } from './Websocket/Websocket';
 
-
-let youtubeApiKey: string;
+export let youtubeApiKey: string;
 
 export type Hierarchy = { [id: string]: string | Hierarchy };
 export type ZipMutator = (file: Archiver.Archiver) => void | Promise<void>;
@@ -53,7 +49,7 @@ export interface NewMediaItem {
 
 const pngTypes = [".png", ".PNG"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-const uploadDirectory = __dirname + "/public/files/";
+export const uploadDirectory = __dirname + "/public/files/";
 const pdfDirectory = uploadDirectory + "text";
 const solrURL = "http://localhost:8983/solr/#/dash";
 
@@ -70,96 +66,11 @@ async function PreliminaryFunctions() {
     await InitializeServer({
         listenAtPort: 1050,
         routeSetter: router => {
+            new UtilManager().register(router);
+            new SearchManager().register(router);
+            new UserManager().register(router);
 
-            router.addSupervisedRoute({
-                method: Method.GET,
-                subscription: "/pull",
-                onValidation: ({ res }) => {
-                    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', err => {
-                        if (err) {
-                            res.send(err.message);
-                            return;
-                        }
-                        res.redirect("/");
-                    });
-                }
-            });
-
-            router.addSupervisedRoute({
-                method: Method.GET,
-                subscription: "/textsearch",
-                onValidation: async ({ req, res }) => {
-                    let q = req.query.q;
-                    if (q === undefined) {
-                        res.send([]);
-                        return;
-                    }
-                    let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDirectory + "text", ".txt$");
-                    let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
-                    for (var result in results) {
-                        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
-                        resObj.lines.push(results[result].line);
-                        resObj.numFound++;
-                    }
-                    res.send(resObj);
-                }
-            });
-
-            router.addSupervisedRoute({
-                method: Method.GET,
-                subscription: "/buxton",
-                onValidation: ({ res }) => {
-                    let cwd = '../scraping/buxton';
-
-                    let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
-                    let onRejected = (err: any) => { console.error(err.message); res.send(err); };
-                    let tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
-
-                    command_line('python scraper.py', cwd).then(onResolved, tryPython3);
-                },
-            });
-
-            router.addSupervisedRoute({
-                method: Method.GET,
-                subscription: "/version",
-                onValidation: ({ res }) => {
-                    exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout) => {
-                        if (err) {
-                            res.send(err.message);
-                            return;
-                        }
-                        res.send(stdout);
-                    });
-                }
-            });
-
-            router.addSupervisedRoute({
-                method: Method.GET,
-                subscription: "/search",
-                onValidation: async ({ req, res }) => {
-                    const solrQuery: any = {};
-                    ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
-                    if (solrQuery.q === undefined) {
-                        res.send([]);
-                        return;
-                    }
-                    let results = await Search.Instance.search(solrQuery);
-                    res.send(results);
-                }
-            });
-
-            function msToTime(duration: number) {
-                let milliseconds = Math.floor((duration % 1000) / 100),
-                    seconds = Math.floor((duration / 1000) % 60),
-                    minutes = Math.floor((duration / (1000 * 60)) % 60),
-                    hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
-
-                let hoursS = (hours < 10) ? "0" + hours : hours;
-                let minutesS = (minutes < 10) ? "0" + minutes : minutes;
-                let secondsS = (seconds < 10) ? "0" + seconds : seconds;
-
-                return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
-            }
+            WebSocket.initialize(serverPort, router.isRelease);
 
             async function getDocs(id: string) {
                 const files = new Set<string>();
@@ -431,23 +342,6 @@ async function PreliminaryFunctions() {
 
             router.addSupervisedRoute({
                 method: Method.GET,
-                subscription: "/whosOnline",
-                onValidation: ({ res }) => {
-                    let users: any = { active: {}, inactive: {} };
-                    const now = Date.now();
-
-                    for (const user in timeMap) {
-                        const time = timeMap[user];
-                        const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
-                        users[key][user] = `Last active ${msToTime(now - time)} ago`;
-                    }
-
-                    res.send(users);
-                }
-            });
-
-            router.addSupervisedRoute({
-                method: Method.GET,
                 subscription: new RouteSubscriber("/thumbnail").add("filename"),
                 onValidation: ({ req, res }) => {
                     let filename = req.params.filename;
@@ -704,7 +598,7 @@ async function PreliminaryFunctions() {
                     if (isRelease) {
                         return _permission_denied(res, deletionPermissionError);
                     }
-                    deleteFields().then(() => res.redirect(RouteStore.home));
+                    WebSocket.deleteFields().then(() => res.redirect(RouteStore.home));
                 }
             });
 
@@ -715,105 +609,9 @@ async function PreliminaryFunctions() {
                     if (isRelease) {
                         return _permission_denied(res, deletionPermissionError);
                     }
-                    deleteAll().then(() => res.redirect(RouteStore.home));
+                    WebSocket.deleteAll().then(() => res.redirect(RouteStore.home));
                 }
             });
-
-            const server = io();
-            interface Map {
-                [key: string]: Client;
-            }
-            let clients: Map = {};
-
-            let socketMap = new Map<SocketIO.Socket, string>();
-            let timeMap: { [id: string]: number } = {};
-
-            server.on("connection", function (socket: Socket) {
-                socket.use((packet, next) => {
-                    let id = socketMap.get(socket);
-                    if (id) {
-                        timeMap[id] = Date.now();
-                    }
-                    next();
-                });
-
-                Utils.Emit(socket, MessageStore.Foo, "handshooken");
-
-                Utils.AddServerHandler(socket, MessageStore.Bar, guid => barReceived(socket, guid));
-                Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
-                Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
-                Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
-                if (!router.release) {
-                    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
-                }
-
-                Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
-                Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiQuery, HandleYoutubeQuery);
-                Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
-                Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
-                Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
-                Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
-                Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
-            });
-
-            async function deleteFields() {
-                await Database.Instance.deleteAll();
-                await Search.Instance.clear();
-                await Database.Instance.deleteAll('newDocuments');
-            }
-
-            async function deleteAll() {
-                await Database.Instance.deleteAll();
-                await Database.Instance.deleteAll('newDocuments');
-                await Database.Instance.deleteAll('sessions');
-                await Database.Instance.deleteAll('users');
-                await Search.Instance.clear();
-            }
-
-            function barReceived(socket: SocketIO.Socket, guid: string) {
-                clients[guid] = new Client(guid.toString());
-                console.log(`User ${guid} has connected`);
-                socketMap.set(socket, guid);
-            }
-
-            function getField([id, callback]: [string, (result?: Transferable) => void]) {
-                Database.Instance.getDocument(id, (result?: Transferable) =>
-                    callback(result ? result : undefined));
-            }
-
-            function getFields([ids, callback]: [string[], (result: Transferable[]) => void]) {
-                Database.Instance.getDocuments(ids, callback);
-            }
-
-            function setField(socket: Socket, newValue: Transferable) {
-                Database.Instance.update(newValue.id, newValue, () =>
-                    socket.broadcast.emit(MessageStore.SetField.Message, newValue));
-                if (newValue.type === Types.Text) {
-                    Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
-                    console.log("set field");
-                    console.log("checking in");
-                }
-            }
-
-            function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-                Database.Instance.getDocument(id, callback, "newDocuments");
-            }
-
-            function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
-                Database.Instance.getDocuments(ids, callback, "newDocuments");
-            }
-
-            function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
-                switch (query.type) {
-                    case YoutubeQueryType.Channels:
-                        YoutubeApi.authorizedGetChannel(youtubeApiKey);
-                        break;
-                    case YoutubeQueryType.SearchVideo:
-                        YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput, callback);
-                    case YoutubeQueryType.VideoDetails:
-                        YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
-                }
-            }
 
             const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
 
@@ -984,107 +782,6 @@ async function PreliminaryFunctions() {
                     _invalid(res, requestError);
                 }
             });
-
-            const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
-                "number": "_n",
-                "string": "_t",
-                "boolean": "_b",
-                "image": ["_t", "url"],
-                "video": ["_t", "url"],
-                "pdf": ["_t", "url"],
-                "audio": ["_t", "url"],
-                "web": ["_t", "url"],
-                "date": ["_d", value => new Date(value.date).toISOString()],
-                "proxy": ["_i", "fieldId"],
-                "list": ["_l", list => {
-                    const results = [];
-                    for (const value of list.fields) {
-                        const term = ToSearchTerm(value);
-                        if (term) {
-                            results.push(term.value);
-                        }
-                    }
-                    return results.length ? results : null;
-                }]
-            };
-
-            function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
-                if (val === null || val === undefined) {
-                    return;
-                }
-                const type = val.__type || typeof val;
-                let suffix = suffixMap[type];
-                if (!suffix) {
-                    return;
-                }
-
-                if (Array.isArray(suffix)) {
-                    const accessor = suffix[1];
-                    if (typeof accessor === "function") {
-                        val = accessor(val);
-                    } else {
-                        val = val[accessor];
-                    }
-                    suffix = suffix[0];
-                }
-
-                return { suffix, value: val };
-            }
-
-            function getSuffix(value: string | [string, any]): string {
-                return typeof value === "string" ? value : value[0];
-            }
-
-            function UpdateField(socket: Socket, diff: Diff) {
-                Database.Instance.update(diff.id, diff.diff,
-                    () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
-                const docfield = diff.diff.$set;
-                if (!docfield) {
-                    return;
-                }
-                const update: any = { id: diff.id };
-                let dynfield = false;
-                for (let key in docfield) {
-                    if (!key.startsWith("fields.")) continue;
-                    dynfield = true;
-                    let val = docfield[key];
-                    key = key.substring(7);
-                    Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
-                    let term = ToSearchTerm(val);
-                    if (term !== undefined) {
-                        let { suffix, value } = term;
-                        update[key + suffix] = { set: value };
-                    }
-                }
-                if (dynfield) {
-                    Search.Instance.updateDocument(update);
-                }
-            }
-
-            function DeleteField(socket: Socket, id: string) {
-                Database.Instance.delete({ _id: id }, "newDocuments").then(() => {
-                    socket.broadcast.emit(MessageStore.DeleteField.Message, id);
-                });
-
-                Search.Instance.deleteDocuments([id]);
-            }
-
-            function DeleteFields(socket: Socket, ids: string[]) {
-                Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
-                    socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
-                });
-
-                Search.Instance.deleteDocuments(ids);
-
-            }
-
-            function CreateField(newValue: any) {
-                Database.Instance.insert(newValue, "newDocuments");
-            }
-
-            server.listen(serverPort);
-            console.log(`listening on port ${serverPort}`);
         }
     });
-
 })();
