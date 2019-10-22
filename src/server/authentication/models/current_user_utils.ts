@@ -131,6 +131,7 @@ export class CurrentUserUtils {
     static setupSidebarButtons(doc: Doc) {
         doc.sidebarContainer = new Doc();
         (doc.sidebarContainer as Doc).chromeStatus = "disabled";
+        (doc.sidebarContainer as Doc).onClick = ScriptField.MakeScript("freezeSidebar()");
 
         doc.CreateBtn = this.setupCreatePanel(doc.sidebarContainer as Doc, doc);
         doc.LibraryBtn = this.setupLibraryPanel(doc.sidebarContainer as Doc, doc);
