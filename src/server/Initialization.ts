@@ -19,9 +19,10 @@ import * as whm from 'webpack-hot-middleware';
 import * as fs from 'fs';
 import * as request from 'request';
 
+export type RouteSetter = (server: RouteManager) => void;
 export interface InitializationOptions {
     listenAtPort: number;
-    routeSetter: (server: RouteManager) => void;
+    routeSetter: RouteSetter;
 }
 
 export default async function InitializeServer(options: InitializationOptions) {

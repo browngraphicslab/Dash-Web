@@ -31,7 +31,7 @@ export default class RouteManager {
     private server: express.Express;
     private _isRelease: boolean;
 
-    public get release() {
+    public get isRelease() {
         return this._isRelease;
     }
 
