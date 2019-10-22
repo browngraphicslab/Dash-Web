@@ -66,7 +66,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData && e.target) {
-            this.props.Document[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments);
+            this.props.Document[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments.map((d, i) =>
+                d.onDragStart ? de.data.draggedDocuments[i] : d));
             e.stopPropagation();
         }
     }

@@ -26,7 +26,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionViewType } from '../collections/CollectionBaseView';
+import { CollectionViewType } from '../collections/CollectionView';
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";

@@ -8,7 +8,7 @@ import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import "./CollectionLinearView.scss";
-import { CollectionViewType } from './collections/CollectionBaseView';
+import { CollectionViewType } from './collections/CollectionView';
 import { CollectionSubView } from './collections/CollectionSubView';
 import { DocumentView } from './nodes/DocumentView';
 import { documentSchema } from '../../new_fields/documentSchemas';

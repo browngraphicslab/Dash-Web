@@ -12,7 +12,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Transform } from "../../util/Transform";
-import { CollectionViewType } from '../collections/CollectionBaseView';
+import { CollectionViewType } from '../collections/CollectionView';
 import { CollectionSchemaPreview } from '../collections/CollectionSchemaView';
 import { DocComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
@@ -51,7 +51,7 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
 
     @computed get indexInPres() { return DocListCast(this.presentationDoc[this.Document.presBoxKey || ""]).indexOf(this.props.Document); }
     @computed get presentationDoc() { return Cast(this.Document.presBox, Doc) as Doc; }
-    @computed get targetDoc() { return this.Document.presentationTargetDoc as Doc }
+    @computed get targetDoc() { return this.Document.presentationTargetDoc as Doc; }
     @computed get currentIndex() { return NumCast(this.presentationDoc.selectedDoc); }
 
     /**

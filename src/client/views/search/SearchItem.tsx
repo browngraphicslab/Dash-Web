@@ -15,7 +15,7 @@ import { LinkManager } from "../../util/LinkManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
-import { CollectionViewType } from "../collections/CollectionBaseView";
+import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentView } from "../nodes/DocumentView";

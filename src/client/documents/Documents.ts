@@ -2,7 +2,7 @@ import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 import { CollectionView } from "../views/collections/CollectionView";
-import { CollectionViewType } from "../views/collections/CollectionBaseView";
+import { CollectionViewType } from "../views/collections/CollectionView";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";

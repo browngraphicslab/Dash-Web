@@ -15,7 +15,7 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
-import { CollectionViewType } from "../CollectionBaseView";
+import { CollectionViewType } from "../CollectionView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");

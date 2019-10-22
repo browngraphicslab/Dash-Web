@@ -23,7 +23,7 @@ import { EditableView } from "../EditableView";
 import { MainView } from '../MainView';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 import { Templates } from '../Templates';
-import { CollectionViewType } from './CollectionBaseView';
+import { CollectionViewType } from './CollectionView';
 import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";

@@ -5,7 +5,7 @@ import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { Doc, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { undoBatch } from "../../util/UndoManager";
 import { NumCast, FieldValue, Cast, StrCast } from "../../../new_fields/Types";
-import { CollectionViewType } from "../collections/CollectionBaseView";
+import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";

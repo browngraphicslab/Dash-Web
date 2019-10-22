@@ -14,7 +14,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 import { DocLike } from "../MetadataEntryMenu";
-import { CollectionViewType } from "./CollectionBaseView";
+import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import * as Autosuggest from 'react-autosuggest';

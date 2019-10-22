@@ -24,7 +24,7 @@ import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionLinearView } from './CollectionLinearView';
-import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
+import { CollectionViewType, CollectionView } from './collections/CollectionView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
@@ -228,7 +228,7 @@ export class MainView extends React.Component {
                 if (!state.nro) {
                     DocServer.Control.makeReadOnly();
                 }
-                CollectionBaseView.SetSafeMode(true);
+                CollectionView.SetSafeMode(true);
             } else if (state.nro || state.nro === null || state.readonly === false) {
             } else if (doc.readOnly) {
                 DocServer.Control.makeReadOnly();
