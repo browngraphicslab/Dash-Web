@@ -436,21 +436,17 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @computed
     get marqueeDiv() {
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
             <span className="marquee-legend" />
         </div>;
     }
 
     render() {
-        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} onScroll={(e) => e.currentTarget.scrollLeft = 0}  >
-                {this._visible ? this.marqueeDiv : null}
-                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
-                    {this.props.children}
-                </div>
-            </div>
+        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            {this._visible ? this.marqueeDiv : null}
+            {this.props.children}
         </div>;
     }
 }
