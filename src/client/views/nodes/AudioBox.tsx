@@ -3,7 +3,7 @@ import { FieldViewProps, FieldView } from './FieldView';
 import { observer } from "mobx-react";
 import "./AudioBox.scss";
 import { Cast, DateCast } from "../../../new_fields/Types";
-import { AudioField } from "../../../new_fields/URLField";
+import { AudioField, nullAudio } from "../../../new_fields/URLField";
 import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
@@ -30,11 +30,9 @@ export const audioSchema = createSchema({
 
 type AudioDocument = makeInterface<[typeof documentSchema, typeof audioSchema]>;
 const AudioDocument = makeInterface(documentSchema, audioSchema);
-const defaultField: AudioField = new AudioField(new URL("http://techslides.com/demos/samples/sample.mp3"));
 
 @observer
 export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
-
     _reactionDisposer: IReactionDisposer | undefined;
     @observable private _audioState = 0;
 
@@ -122,9 +120,9 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     @computed get path() {
-        let field = Cast(this.props.Document[this.props.fieldKey], AudioField, defaultField);
-        let path = field.url.href;
-        return path === "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" ? "" : path;
+        let field = Cast(this.props.Document[this.props.fieldKey], AudioField);
+        let path = (field instanceof AudioField) ? field.url.href : "";
+        return path === nullAudio ? "" : path;
     }
 
     @computed get audio() {
@@ -136,7 +134,6 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     render() {
-
         let interactive = this.active() ? "-interactive" : "";
         return (!this.extensionDoc ? (null) :
             <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
