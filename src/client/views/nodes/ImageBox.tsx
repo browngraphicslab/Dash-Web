@@ -26,6 +26,7 @@ import "./ImageBox.scss";
 import React = require("react");
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
+import { Id } from '../../../new_fields/FieldSymbols';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -299,8 +300,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         !this.Document.ignoreAspect && this.resize(srcpath);
 
         return (
-            <div className={`imageBox-cont${interactive}`}
-                ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+            <div className={`imageBox-cont${interactive}`} key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <div id="cf">
                     <img
                         key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys

@@ -12,6 +12,7 @@ import { CollectionViewType } from './collections/CollectionView';
 import { CollectionSubView } from './collections/CollectionSubView';
 import { DocumentView } from './nodes/DocumentView';
 import { documentSchema } from '../../new_fields/documentSchemas';
+import { Id } from '../../new_fields/FieldSymbols';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -67,7 +68,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         let scalingContent = nested ? 1 : this.dimension() / (this._spacing + nativeWidth);
                         let scalingBox = nested ? 1 : this.dimension() / nativeWidth;
                         let deltaSize = nativeWidth * scalingBox - nativeWidth * scalingContent;
-                        return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={StrCast(pair.layout.title)} ref={dref}
+                        return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension(),
                                 height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension(),
