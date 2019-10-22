@@ -20,6 +20,15 @@ export abstract class Touchable<T> extends React.Component<T> {
             let pt = e.targetTouches.item(i);
             this.prevPoints.set(pt.identifier, pt);
         }
+
+        switch (e.targetTouches.length) {
+            case 1:
+                this.handle1PointerDown();
+                break;
+            case 2:
+                this.handle2PointersDown(e);
+        }
+
         document.removeEventListener("touchmove", this.onTouch);
         document.addEventListener("touchmove", this.onTouch);
         document.removeEventListener("touchend", this.onTouchEnd);
@@ -36,10 +45,10 @@ export abstract class Touchable<T> extends React.Component<T> {
         this._touchDrag = true;
         switch (e.targetTouches.length) {
             case 1:
-                this.handle1Pointer(e)
+                this.handle1PointerMove(e)
                 break;
             case 2:
-                this.handle2Pointers(e);
+                this.handle2PointersMove(e);
                 break;
         }
     }
@@ -70,13 +79,16 @@ export abstract class Touchable<T> extends React.Component<T> {
         document.removeEventListener("touchend", this.onTouchEnd);
     }
 
-    handle1Pointer = (e: TouchEvent): any => {
+    handle1PointerMove = (e: TouchEvent): any => {
         e.stopPropagation();
         e.preventDefault();
     }
 
-    handle2Pointers = (e: TouchEvent): any => {
+    handle2PointersMove = (e: TouchEvent): any => {
         e.stopPropagation();
         e.preventDefault();
     }
+
+    handle1PointerDown = (): any => { };
+    handle2PointersDown = (e: React.TouchEvent): any => { };
 }

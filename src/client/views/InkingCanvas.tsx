@@ -10,6 +10,8 @@ import { UndoManager } from "../util/UndoManager";
 import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
+import { Touchable } from "./Touchable";
+import { InteractionUtils } from "../util/InteractionUtils";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -20,7 +22,7 @@ interface InkCanvasProps {
 }
 
 @observer
-export class InkingCanvas extends React.Component<InkCanvasProps> {
+export class InkingCanvas extends Touchable<InkCanvasProps> {
     maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
     @observable inkMidX: number = 0;
     @observable inkMidY: number = 0;
@@ -94,6 +96,18 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     @action
+    handle1PointerMove = (e: TouchEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        let pointer = e.targetTouches.item(0);
+        if (pointer) {
+            this.handleMove(pointer.clientX, pointer.clientY);
+        }
+    }
+
+    handle2PointersMove = () => { }
+
+    @action
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove, true);
         document.removeEventListener("pointerup", this.onPointerUp, true);
@@ -116,19 +130,26 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         batch.end();
     }
 
-    @action
-    onPointerMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
+    handleMove = (x: number, y: number) => {
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             let data = this.inkData;  // add points to new line as it is being drawn
             let strokeData = data.get(this._currentStrokeId);
             if (strokeData) {
-                strokeData.pathData.push(this.relativeCoordinatesForEvent(e.clientX, e.clientY));
+                strokeData.pathData.push(this.relativeCoordinatesForEvent(x, y));
                 data.set(this._currentStrokeId, strokeData);
             }
             this.inkData = data;
         }
+    }
+
+    @action
+    onPointerMove = (e: PointerEvent): void => {
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) {
+            return;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+        this.handleMove(e.clientX, e.clientY);
     }
 
     relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
@@ -183,7 +204,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None && !this.props.Document.isBackground ? "canSelect" : "noSelect";
         return (
             <div className="inkingCanvas">
-                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={(e) => e.stopPropagation()} />
+                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart} />
                 {this.props.children()}
                 {this.drawnPaths}
             </div >

@@ -356,7 +356,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    handle1Pointer = (e: TouchEvent) => {
+    handle1PointerMove = (e: TouchEvent) => {
         // panning a workspace
         if (!e.cancelBubble && this.props.active()) {
             let pt = e.targetTouches.item(0);
@@ -368,7 +368,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    handle2Pointers = (e: TouchEvent) => {
+    handle2PointersMove = (e: TouchEvent) => {
         // pinch zooming
         if (!e.cancelBubble) {
             let pt1: Touch | null = e.targetTouches.item(0);
@@ -411,6 +411,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         e.stopPropagation();
         e.preventDefault();
+    }
+
+    handle2PointersDown = (e: React.TouchEvent) => {
+        let pt1: React.Touch | null = e.targetTouches.item(0);
+        let pt2: React.Touch | null = e.targetTouches.item(1);
+        if (!pt1 || !pt2) return;
+
+        let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+        let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+        this._lastX = centerX;
+        this._lastY = centerY;
     }
 
     cleanUpInteractions = () => {
