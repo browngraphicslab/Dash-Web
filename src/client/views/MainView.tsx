@@ -449,7 +449,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = 250;
-    })
+    });
 
     @computed get expandButton() {
         return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);

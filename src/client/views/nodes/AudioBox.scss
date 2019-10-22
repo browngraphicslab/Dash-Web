@@ -1,14 +1,21 @@
 .audiobox-container, .audiobox-container-interactive {
     width: 100%;
     height: 100%;
+    min-height: 32px;
     position: inherit;
-    display:inline-block;
+    display:flex;
     pointer-events: all;
+    .audiobox-handle {
+        width:20px;
+        height:100%;
+        display:inline-block;
+        background: gray;
+    }
     .audiobox-control, .audiobox-control-interactive {
         top:0;
         max-height: 32px;
-        position: absolute;
         width: 100%;
+        display:inline-block;
         pointer-events: none;
     }
     .audiobox-control-interactive {
@@ -23,6 +30,5 @@
     }
     .audiobox-record-interactive {
         pointer-events: all;
-
     }
 }

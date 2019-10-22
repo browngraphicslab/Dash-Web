@@ -38,8 +38,9 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     _linkPlayDisposer: IReactionDisposer | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
-    _ref = React.createRef<HTMLAudioElement>();
+    _ele: HTMLAudioElement | null = null;
     _recorder: any;
+    _lastUpdate = 0;
 
     @observable private _audioState = 0;
     public static ActiveRecordings: Doc[] = [];
@@ -64,21 +65,44 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             });
     }
 
+    updateHighlights = () => {
+        const extensionDoc = this.extensionDoc;
+        const htmlEle = this._ele;
+        const start = extensionDoc && DateCast(extensionDoc.recordingStart);
+        if (htmlEle && !htmlEle.paused && start) {
+            setTimeout(this.updateHighlights, 30);
+            DocListCast(this.dataDoc.links).map(l => {
+                let la1 = l.anchor1 as Doc;
+                if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                    la1 = l.anchor2 as Doc;
+                }
+                let date = DateCast(la1.creationDate);
+                let offset = (date!.date.getTime() - start.date.getTime()) / 1000;
+                if (offset > this._lastUpdate && offset < htmlEle.currentTime) {
+                    Doc.linkFollowHighlight(la1);
+                }
+            });
+            this._lastUpdate = htmlEle.currentTime;
+        }
+    }
+
     playFrom = (sel: Doc) => {
         const extensionDoc = this.extensionDoc;
         let start = extensionDoc && DateCast(extensionDoc.recordingStart);
-        let seek = sel && DateCast(sel.creationDate)
-        if (this._ref.current && start && seek) {
+        let seek = sel && DateCast(sel.creationDate);
+        if (this._ele && start && seek) {
             if (sel) {
                 let delta = (seek.date.getTime() - start.date.getTime()) / 1000;
-                if (start && seek && delta > 0 && delta < this._ref.current.duration) {
-                    this._ref.current.currentTime = delta;
-                    this._ref.current.play();
+                if (start && seek && delta > 0 && delta < this._ele.duration) {
+                    this._ele.currentTime = delta;
+                    this._ele.play();
+                    this._lastUpdate = delta;
+                    setTimeout(this.updateHighlights, 0);
                 } else {
-                    this._ref.current.pause();
+                    this._ele.pause();
                 }
             } else {
-                this._ref.current.pause();
+                this._ele.pause();
             }
         }
     }
@@ -132,17 +156,20 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._audioState = 2;
         let ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
         ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
-    })
+    });
 
     recordClick = (e: React.MouseEvent) => {
         if (e.button === 0 && !e.ctrlKey) {
-            if (this._recorder) {
-                this.stopRecording();
-            } else {
-                this.recordAudioAnnotation();
-            }
+            this._recorder ? this.stopRecording() : this.recordAudioAnnotation();
             e.stopPropagation();
         }
+    }
+
+    playClick = (e: any) => setTimeout(this.updateHighlights, 30);
+
+    setRef = (e: HTMLAudioElement | null) => {
+        e && e.addEventListener("play", this.playClick as any);
+        this._ele = e;
     }
 
     @computed get path() {
@@ -153,7 +180,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     @computed get audio() {
         let interactive = this.active() ? "-interactive" : "";
-        return <audio controls ref={this._ref} className={`audiobox-control${interactive}`}>
+        return <audio controls ref={this.setRef} className={`audiobox-control${interactive}`}>
             <source src={this.path} type="audio/mpeg" />
             Not supported.
         </audio>;
@@ -163,6 +190,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         let interactive = this.active() ? "-interactive" : "";
         return (!this.extensionDoc ? (null) :
             <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
+                <div className="audiobox-handle"></div>
                 {!this.path ?
                     <button className={`audiobox-record${interactive}`} style={{ backgroundColor: ["black", "red", "blue"][this._audioState] }}>
                         {this._audioState === 1 ? "STOP" : "RECORD"}
