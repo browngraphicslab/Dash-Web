@@ -26,7 +26,7 @@ const datepicker = require('js-datepicker');
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-NPN_ENABLED
+NPN_ENABLED;
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
@@ -1050,7 +1050,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                         </div>
                     </div>
                     <input className="rows" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" />
-                    <input className="update" type="checkbox" onChange={this.toggleUpdate} id="add-menu-toggle" />
+                    {/* <input className="update" type="checkbox" onChange={this.toggleUpdate} id="add-menu-toggle" /> */}
                 </div >
             </div>
         );

@@ -243,14 +243,16 @@
     display: flex;
     flex-direction: column;
 }
+
 .commandEntry-outerDiv {
     display: flex;
     flex-direction: column;
     width: 165px;
     height: 40px;
 }
+
 .commandEntry-inputArea {
-    display:flex;
+    display: flex;
     flex-direction: row;
     width: 150px;
     margin: auto 0 auto auto;
