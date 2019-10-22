@@ -95,5 +95,28 @@
 }
 
 .savebehaviorButton {
-    width: 70%;
+    width: 80%;
+}
+
+.savedBehaviors {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    width: 65%;
+    justify-content: center;
+    background: $light-color-secondary;
+    padding: 10px;
+
+    .behaviorTitle {
+        border-bottom: 2px solid $alt-accent;
+        padding-bottom: 5px;
+        margin-bottom: 5px;
+    }
+
+    .savedBehaviorTitle:hover {
+        -webkit-transform: scale(1.2);
+        -ms-transform: scale(1.2);
+        transform: scale(1.2);
+        transition: .2s ease;
+    }
 }

@@ -25,7 +25,7 @@ import { OmitKeys, JSONUtils, emptyFunction } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -161,7 +161,7 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: { defaultLinkFollow: "Pan to Document,none,false", savedLinkFollows: new List<string>([]) }
+                options: { defaultLinkFollow: "Open in Right Split,self,false", savedLinkFollows: new List<string>([]) }
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
@@ -651,9 +651,24 @@ export namespace DocUtils {
 
             linkDocProto.targetContext = targetContext;
             linkDocProto.sourceContext = sourceContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+
+            //truncate linked document names
+            var sourceTitle: string = StrCast(source.title);
+            var targetTitle: string = StrCast(target.title);
+            var length = 11;
+            var trimmedSourceString = sourceTitle.substring(0, length);
+            var trimmedTargetString = targetTitle.substring(0, length);
+
+            if (trimmedSourceString !== sourceTitle) {
+                trimmedSourceString += "...";
+            }
+            if (trimmedTargetString !== targetTitle) {
+                trimmedTargetString += "...";
+            }
+
+            linkDocProto.title = title === "" ? trimmedSourceString + " to " + trimmedTargetString : title;
             linkDocProto.linkDescription = description;
-            linkDocProto.defaultLinkFollow = "Pan to Document,none,false";
+            linkDocProto.defaultLinkFollow = "Open in Right Split,self,false";
             linkDocProto.savedLinkFollows = new List<string>();
 
             linkDocProto.anchor1 = source;
