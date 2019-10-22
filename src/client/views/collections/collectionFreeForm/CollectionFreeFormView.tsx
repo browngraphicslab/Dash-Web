@@ -263,7 +263,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.nativeEvent.cancelBubble) return;
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
-        if (e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
+        if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);

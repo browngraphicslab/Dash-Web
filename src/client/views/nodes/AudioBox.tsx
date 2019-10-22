@@ -9,12 +9,13 @@ import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
-import { runInAction, observable, reaction, IReactionDisposer, computed } from "mobx";
+import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 interface Window {
     MediaRecorder: MediaRecorder;
@@ -33,41 +34,60 @@ const AudioDocument = makeInterface(documentSchema, audioSchema);
 
 @observer
 export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
-    _reactionDisposer: IReactionDisposer | undefined;
-    @observable private _audioState = 0;
-
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
+
+    _linkPlayDisposer: IReactionDisposer | undefined;
+    _reactionDisposer: IReactionDisposer | undefined;
     _ref = React.createRef<HTMLAudioElement>();
+    _recorder: any;
+
+    @observable private _audioState = 0;
+    public static ActiveRecordings: Doc[] = [];
 
     componentDidMount() {
         runInAction(() => this._audioState = this.path ? 2 : 0);
+        this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
+            scrollLinkId => {
+                scrollLinkId && DocListCast(this.dataDoc.links).map(l => {
+                    const la1 = l.anchor1 as Doc;
+                    const la2 = l.anchor2 as Doc;
+                    if (l[Id] === scrollLinkId && la1 && la2) {
+                        setTimeout(() => this.playFrom(Doc.AreProtosEqual(la1, this.dataDoc) ? la2 : la1), 250);
+                    }
+                });
+                scrollLinkId && (this.layoutDoc.scrollLinkID = undefined);
+            }, { fireImmediately: true });
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 let sel = selected.length ? selected[0].props.Document : undefined;
-                const extensionDoc = this.extensionDoc;
-                let start = extensionDoc && DateCast(extensionDoc.recordingStart);
-                let seek = sel && DateCast(sel.creationDate)
-                if (this._ref.current && start && seek) {
-                    if (this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document)) {
-                        let delta = (seek.date.getTime() - start.date.getTime()) / 1000;
-                        if (start && seek && delta > 0 && delta < this._ref.current.duration) {
-                            this._ref.current.currentTime = delta;
-                            this._ref.current.play();
-                        } else {
-                            this._ref.current.pause();
-                        }
-                    } else {
-                        this._ref.current.pause();
-                    }
-                }
+                this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(sel);
             });
+    }
+
+    playFrom = (sel: Doc) => {
+        const extensionDoc = this.extensionDoc;
+        let start = extensionDoc && DateCast(extensionDoc.recordingStart);
+        let seek = sel && DateCast(sel.creationDate)
+        if (this._ref.current && start && seek) {
+            if (sel) {
+                let delta = (seek.date.getTime() - start.date.getTime()) / 1000;
+                if (start && seek && delta > 0 && delta < this._ref.current.duration) {
+                    this._ref.current.currentTime = delta;
+                    this._ref.current.play();
+                } else {
+                    this._ref.current.pause();
+                }
+            } else {
+                this._ref.current.pause();
+            }
+        }
     }
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
+        this._linkPlayDisposer && this._linkPlayDisposer();
     }
 
-    _recorder: any;
     recordAudioAnnotation = () => {
         let gumStream: any;
         let self = this;
@@ -78,6 +98,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             gumStream = stream;
             self._recorder = new MediaRecorder(stream);
             extensionDoc.recordingStart = new DateField(new Date());
+            AudioBox.ActiveRecordings.push(self.props.Document);
             self._recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
@@ -93,8 +114,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             runInAction(() => self._audioState = 1);
             self._recorder.start();
             setTimeout(() => {
-                self._recorder.stop();
-                runInAction(() => self._audioState = 2);
+                self.stopRecording();
                 gumStream.getAudioTracks()[0].stop();
             }, 60 * 60 * 1000); // stop after an hour?
         });
@@ -107,11 +127,17 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         ContextMenu.Instance.addItem({ description: "Audio Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
+    stopRecording = action(() => {
+        this._recorder.stop();
+        this._audioState = 2;
+        let ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
+        ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
+    })
+
     recordClick = (e: React.MouseEvent) => {
-        if (e.button === 0) {
+        if (e.button === 0 && !e.ctrlKey) {
             if (this._recorder) {
-                this._recorder.stop();
-                runInAction(() => this._audioState = 2);
+                this.stopRecording();
             } else {
                 this.recordAudioAnnotation();
             }
