@@ -605,7 +605,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                         setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
                         setTimeout(() => this.unhighlightSearchTerms(), 2000);
                     }
-                    this.layoutDoc.scrollToLinkID = undefined;
+                    Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
                 }
 
             },

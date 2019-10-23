@@ -1,9 +1,10 @@
 import { makeInterface, createSchema, listSpec } from "./Schema";
 import { ScriptField } from "./ScriptField";
 import { Doc } from "./Doc";
+import { DateField } from "./DateField";
 
 export const documentSchema = createSchema({
-    // layout: "string", // this should be a "string" or Doc, but can't do that in schemas, so best to leave it out
+    layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below (see layoutCustom as an example)
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
     layoutCustom: Doc,          // used to hold a custom layout (there's nothing special about this field .. any field could hold a custom layout that can be selected by setting 'layoutKey')
     title: "string",            // document title (can be on either data document or layout)
@@ -14,7 +15,8 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
-    //links: listSpec(Doc),       // computed (readonly) list of links associated with this document
+    creationDate: DateField,     // when the document was created
+    links: listSpec(Doc),       // computed (readonly) list of links associated with this document
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
@@ -25,6 +27,9 @@ export const documentSchema = createSchema({
     isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     type: "string",             // enumerated type of document
+    currentTimecode: "number",   // current play back time of a temporal document (video / audio)
+    summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
+    maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
     lockedPosition: "boolean",  // whether the document can be spatially manipulated
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
@@ -33,8 +38,11 @@ export const documentSchema = createSchema({
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
     showCaption: "string",      // whether editable caption text is overlayed at the bottom of the document 
     showTitle: "string",        // whether an editable title banner is displayed at tht top of the document
-    isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)      
+    isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
+    isAnimating: "boolean",     // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).
+    animateToDimensions: listSpec("number"), // layout information about the target rectangle a document is animating towards 
+    scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
 });
 
 export const positionSchema = createSchema({

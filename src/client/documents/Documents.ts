@@ -84,7 +84,7 @@ export interface DocumentOptions {
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
-    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)
+    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     documentText?: string;
     borderRounding?: string;
@@ -104,7 +104,7 @@ export interface DocumentOptions {
     gridGap?: number; // gap between items in masonry view
     xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
-    panel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
+    sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     // [key: string]: Opt<Field>;

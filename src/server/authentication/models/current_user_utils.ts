@@ -83,10 +83,10 @@ export class CurrentUserUtils {
 
         return Docs.Create.ButtonDocument({
             width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create", targetContainer: sidebarContainer,
-            panel: Docs.Create.StackingDocument([dragCreators, color], {
+            sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, chromeStatus: "disabled", title: "creator stack"
             }),
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel"),
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });
     }
 
@@ -108,11 +108,11 @@ export class CurrentUserUtils {
 
         return Docs.Create.ButtonDocument({
             width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library",
-            panel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
+            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
                 title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
             }),
             targetContainer: sidebarContainer,
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
 
@@ -120,11 +120,11 @@ export class CurrentUserUtils {
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
             width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Search",
-            panel: Docs.Create.QueryDocument({
+            sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
             }),
             targetContainer: sidebarContainer,
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
 
@@ -190,7 +190,7 @@ export class CurrentUserUtils {
             stackingDoc && PromiseValue(Cast(stackingDoc.data, listSpec(Doc))).then(sidebarButtons => {
                 sidebarButtons && sidebarButtons.map((sidebarBtn, i) => {
                     sidebarBtn && PromiseValue(Cast(sidebarBtn, Doc)).then(async btn => {
-                        btn && btn.panel && btn.targetContainer && i === 1 && (btn.onClick as ScriptField).script.run({ this: btn });
+                        btn && btn.sourcePanel && btn.targetContainer && i === 1 && (btn.onClick as ScriptField).script.run({ this: btn });
                     });
                 });
             });

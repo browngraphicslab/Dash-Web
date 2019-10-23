@@ -2,7 +2,7 @@ import React = require("react");
 import { FieldViewProps, FieldView } from './FieldView';
 import { observer } from "mobx-react";
 import "./AudioBox.scss";
-import { Cast, DateCast } from "../../../new_fields/Types";
+import { Cast, DateCast, NumCast } from "../../../new_fields/Types";
 import { AudioField, nullAudio } from "../../../new_fields/URLField";
 import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
@@ -41,33 +41,33 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _scrubbingDisposer: IReactionDisposer | undefined;
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
+    _recordStart = 0;
     _lastUpdate = 0;
 
-    @observable private _audioState = 0;
+    @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
     @observable public static ScrubTime = 0;
     public static ActiveRecordings: Doc[] = [];
 
     componentDidMount() {
-        runInAction(() => this._audioState = this.path ? 2 : 0);
+        runInAction(() => this._audioState = this.path ? "recorded" : "unrecorded");
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
-                scrollLinkId && DocListCast(this.dataDoc.links).map(l => {
-                    const la1 = l.anchor1 as Doc;
-                    const la2 = l.anchor2 as Doc;
-                    if (l[Id] === scrollLinkId && la1 && la2) {
-                        let doc = Doc.AreProtosEqual(la1, this.dataDoc) ? la2 : la1;
-                        let seek = DateCast(la1.creationTime);
-                        setTimeout(() => this.playFrom(seek.date.getTime()), 250);
-                    }
+                scrollLinkId && DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
+                    let la1 = l.anchor1 as Doc;
+                    let linkTime = Doc.AreProtosEqual(la1, this.dataDoc) ? NumCast(l.anchor1Timecode) : NumCast(l.anchor2Timecode);
+                    setTimeout(() => this.playFrom(linkTime), 250);
                 });
-                scrollLinkId && (this.layoutDoc.scrollLinkID = undefined);
+                scrollLinkId && Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
             }, { fireImmediately: true });
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 let sel = selected.length ? selected[0].props.Document : undefined;
                 this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(DateCast(sel.creationTime).date.getTime());
             });
-        this._scrubbingDisposer = reaction(() => AudioBox.ScrubTime, time => this.Document.playOnSelect && this.playFrom(time));
+        this._scrubbingDisposer = reaction(() => AudioBox.ScrubTime, timeInMillisecondsFrom1970 => {
+            let start = this.extensionDoc && DateCast(this.extensionDoc.recordingStart);
+            start && this.playFrom((timeInMillisecondsFrom1970 - start.date.getTime()) / 1000);
+        });
     }
 
     updateHighlights = () => {
@@ -76,14 +76,15 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         const start = extensionDoc && DateCast(extensionDoc.recordingStart);
         if (htmlEle && !htmlEle.paused && start) {
             setTimeout(this.updateHighlights, 30);
+            this.Document.currentTimecode = htmlEle.currentTime;
             DocListCast(this.dataDoc.links).map(l => {
                 let la1 = l.anchor1 as Doc;
+                let linkTime = NumCast(l.anchor2Timecode);
                 if (Doc.AreProtosEqual(la1, this.dataDoc)) {
                     la1 = l.anchor2 as Doc;
+                    linkTime = NumCast(l.anchor1Timecode);
                 }
-                let date = DateCast(la1.creationDate);
-                let offset = (date!.date.getTime() - start.date.getTime()) / 1000;
-                if (offset > this._lastUpdate && offset < htmlEle.currentTime) {
+                if (linkTime > this._lastUpdate && linkTime < htmlEle.currentTime) {
                     Doc.linkFollowHighlight(la1);
                 }
             });
@@ -91,16 +92,15 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         }
     }
 
-    playFrom = (seek: number) => {
+    playFrom = (seekTimeInSeconds: number) => {
         const extensionDoc = this.extensionDoc;
         let start = extensionDoc && DateCast(extensionDoc.recordingStart);
         if (this._ele && start) {
-            if (seek) {
-                let delta = (seek - start.date.getTime()) / 1000;
-                if (start && delta > 0 && delta < this._ele.duration) {
-                    this._ele.currentTime = delta;
+            if (seekTimeInSeconds) {
+                if (seekTimeInSeconds >= 0 && seekTimeInSeconds <= this._ele.duration) {
+                    this._ele.currentTime = seekTimeInSeconds;
                     this._ele.play();
-                    this._lastUpdate = delta;
+                    this._lastUpdate = seekTimeInSeconds;
                     setTimeout(this.updateHighlights, 0);
                 } else {
                     this._ele.pause();
@@ -115,6 +115,14 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._reactionDisposer && this._reactionDisposer();
         this._linkPlayDisposer && this._linkPlayDisposer();
         this._scrubbingDisposer && this._scrubbingDisposer();
+    }
+
+
+    updateRecordTime = () => {
+        if (this._audioState === "recording") {
+            setTimeout(this.updateRecordTime, 30);
+            this.Document.currentTimecode = (new Date().getTime() - this._recordStart) / 1000;
+        }
     }
 
     recordAudioAnnotation = () => {
@@ -140,7 +148,9 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                 // upload to server with known URL 
                 self.props.Document[self.props.fieldKey] = new AudioField(url);
             };
-            runInAction(() => self._audioState = 1);
+            runInAction(() => self._audioState = "recording");
+            self._recordStart = new Date().getTime();
+            setTimeout(self.updateRecordTime, 0);
             self._recorder.start();
             setTimeout(() => {
                 self.stopRecording();
@@ -158,7 +168,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     stopRecording = action(() => {
         this._recorder.stop();
-        this._audioState = 2;
+        this._audioState = "recorded";
         let ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
         ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
     });
@@ -174,6 +184,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     setRef = (e: HTMLAudioElement | null) => {
         e && e.addEventListener("play", this.playClick as any);
+        e && e.addEventListener("timeupdate", () => this.props.Document.currentTimecode = e!.currentTime);
         this._ele = e;
     }
 
@@ -197,8 +208,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
                 <div className="audiobox-handle"></div>
                 {!this.path ?
-                    <button className={`audiobox-record${interactive}`} style={{ backgroundColor: ["black", "red", "blue"][this._audioState] }}>
-                        {this._audioState === 1 ? "STOP" : "RECORD"}
+                    <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this._audioState === "recording" ? "red" : "black" }}>
+                        {this._audioState === "recording" ? "STOP" : "RECORD"}
                     </button> :
                     this.audio
                 }

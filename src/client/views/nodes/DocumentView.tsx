@@ -165,7 +165,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
                 this.onClickHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
-            } else if (this.props.Document.type === DocumentType.BUTTON) {
+            } else if (this.Document.type === DocumentType.BUTTON) {
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
@@ -179,8 +179,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
-        let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
-        let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
+        let maximizedDocs = await DocListCastAsync(this.Document.maximizedDocs);
+        let summarizedDocs = await DocListCastAsync(this.Document.summarizedDocs);
         let linkDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
         let expandedDocs: Doc[] = [];
         expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
@@ -333,9 +333,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onDrop = (e: React.DragEvent) => {
         let text = e.dataTransfer.getData("text/plain");
         if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
-            let oldLayout = StrCast(this.props.Document.layout);
+            let oldLayout = this.Document.layout || "";
             let layout = text.replace("{layout}", oldLayout);
-            this.props.Document.layout = layout;
+            this.Document.layout = layout;
             e.stopPropagation();
             e.preventDefault();
         }
@@ -355,7 +355,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeIntoPortal = async () => {
-        let anchors = await Promise.all(DocListCast(this.props.Document.links).map(async (d: Doc) => Cast(d.anchor2, Doc)));
+        let anchors = await Promise.all(DocListCast(this.Document.links).map(async (d: Doc) => Cast(d.anchor2, Doc)));
         if (!anchors.find(anchor2 => anchor2 && anchor2.title === this.Document.title + ".portal" ? true : false)) {
             let portalID = (this.Document.title + ".portal").replace(/^-/, "").replace(/\([0-9]*\)$/, "");
             DocServer.GetRefField(portalID).then(existingPortal => {
@@ -590,7 +590,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         if (!this.props.Document) return (null);
-        let animDims = this.props.Document.animateToDimensions ? Array.from(Cast(this.props.Document.animateToDimensions, listSpec("number"))!) : undefined;
+        const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
@@ -644,7 +644,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    transition: this.props.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
+                    transition: this.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
                     pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
                     color: StrCast(this.Document.color),
                     outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
@@ -658,7 +658,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
-                {this.props.Document.links && DocListCast(this.props.Document.links).map((d, i) =>
+                {this.Document.links && DocListCast(this.Document.links).map((d, i) =>
                     //this.linkEndpointDoc(d).type === DocumentType.PDFANNO ? (null) :
                     <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
                         <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />
