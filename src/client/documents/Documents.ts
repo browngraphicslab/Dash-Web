@@ -334,9 +334,7 @@ export namespace Docs {
             let dataDoc = MakeDataDelegate(proto, protoProps, data);
             let viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
-            AudioBox.ActiveRecordings.map(d => {
-                DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title);
-            });
+            AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
 
             return Doc.assign(viewDoc, delegateProps);
         }

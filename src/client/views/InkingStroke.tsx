@@ -1,9 +1,10 @@
 import { observer } from "mobx-react";
-import { observable, trace } from "mobx";
+import { observable, trace, runInAction } from "mobx";
 import { InkingControl } from "./InkingControl";
 import React = require("react");
 import { InkTool } from "../../new_fields/InkField";
 import "./InkingStroke.scss";
+import { AudioBox } from "./nodes/AudioBox";
 
 
 interface StrokeProps {
@@ -15,6 +16,7 @@ interface StrokeProps {
     color: string;
     width: string;
     tool: InkTool;
+    creationTime: number;
     deleteCallback: (index: string) => void;
 }
 
@@ -28,6 +30,11 @@ export class InkingStroke extends React.Component<StrokeProps> {
     deleteStroke = (e: React.PointerEvent): void => {
         if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
             this.props.deleteCallback(this.props.id);
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (InkingControl.Instance.selectedTool === InkTool.Scrubber && e.buttons === 1) {
+            runInAction(() => AudioBox.ScrubTime = this.props.creationTime);
             e.stopPropagation();
             e.preventDefault();
         }
@@ -55,10 +62,9 @@ export class InkingStroke extends React.Component<StrokeProps> {
         let pathlength = this.props.count; // bcz: this is needed to force reactions to the line's data changes
         let marker = this.props.tool === InkTool.Highlighter ? "-marker" : "";
 
-        let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ? "all" : "none";
-        return (
-            <path className={`inkingStroke${marker}`} d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
-                onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
-        );
+        let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ||
+            InkingControl.Instance.selectedTool === InkTool.Scrubber ? "all" : "none";
+        return (<path className={`inkingStroke${marker}`} d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }}
+            strokeLinejoin="round" strokeLinecap="round" onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />);
     }
 }

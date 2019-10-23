@@ -301,7 +301,6 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         this._isResetClick = 0;
         document.addEventListener("pointermove", this.onResetMove, true);
         document.addEventListener("pointerup", this.onResetUp, true);
-        InkingControl.Instance.switchTool(InkTool.Eraser);
     }
 
     onResetMove = (e: PointerEvent) => {
@@ -314,7 +313,6 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     onResetUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onResetMove, true);
         document.removeEventListener("pointerup", this.onResetUp, true);
-        InkingControl.Instance.switchTool(InkTool.None);
         this._isResetClick < 10 && (this.Document.currentTimecode = 0);
     }
 

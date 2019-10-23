@@ -38,11 +38,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     _linkPlayDisposer: IReactionDisposer | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
+    _scrubbingDisposer: IReactionDisposer | undefined;
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _lastUpdate = 0;
 
     @observable private _audioState = 0;
+    @observable public static ScrubTime = 0;
     public static ActiveRecordings: Doc[] = [];
 
     componentDidMount() {
@@ -53,7 +55,9 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     const la1 = l.anchor1 as Doc;
                     const la2 = l.anchor2 as Doc;
                     if (l[Id] === scrollLinkId && la1 && la2) {
-                        setTimeout(() => this.playFrom(Doc.AreProtosEqual(la1, this.dataDoc) ? la2 : la1), 250);
+                        let doc = Doc.AreProtosEqual(la1, this.dataDoc) ? la2 : la1;
+                        let seek = DateCast(la1.creationTime);
+                        setTimeout(() => this.playFrom(seek.date.getTime()), 250);
                     }
                 });
                 scrollLinkId && (this.layoutDoc.scrollLinkID = undefined);
@@ -61,8 +65,9 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 let sel = selected.length ? selected[0].props.Document : undefined;
-                this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(sel);
+                this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(DateCast(sel.creationTime).date.getTime());
             });
+        this._scrubbingDisposer = reaction(() => AudioBox.ScrubTime, time => this.Document.playOnSelect && this.playFrom(time));
     }
 
     updateHighlights = () => {
@@ -86,14 +91,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         }
     }
 
-    playFrom = (sel: Doc) => {
+    playFrom = (seek: number) => {
         const extensionDoc = this.extensionDoc;
         let start = extensionDoc && DateCast(extensionDoc.recordingStart);
-        let seek = sel && DateCast(sel.creationDate);
-        if (this._ele && start && seek) {
-            if (sel) {
-                let delta = (seek.date.getTime() - start.date.getTime()) / 1000;
-                if (start && seek && delta > 0 && delta < this._ele.duration) {
+        if (this._ele && start) {
+            if (seek) {
+                let delta = (seek - start.date.getTime()) / 1000;
+                if (start && delta > 0 && delta < this._ele.duration) {
                     this._ele.currentTime = delta;
                     this._ele.play();
                     this._lastUpdate = delta;
@@ -110,6 +114,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
         this._linkPlayDisposer && this._linkPlayDisposer();
+        this._scrubbingDisposer && this._scrubbingDisposer();
     }
 
     recordAudioAnnotation = () => {
