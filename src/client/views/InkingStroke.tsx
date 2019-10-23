@@ -34,7 +34,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
             e.preventDefault();
         }
         if (InkingControl.Instance.selectedTool === InkTool.Scrubber && e.buttons === 1) {
-            runInAction(() => AudioBox.ScrubTime = this.props.creationTime);
+            AudioBox.SetScrubTime(this.props.creationTime);
             e.stopPropagation();
             e.preventDefault();
         }

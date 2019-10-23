@@ -45,7 +45,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _lastUpdate = 0;
 
     @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
-    @observable public static ScrubTime = 0;
+    @observable private static _scrubTime = 0;
+    public static SetScrubTime = action((timeInMillisFrom1970: number) => AudioBox._scrubTime = timeInMillisFrom1970);
     public static ActiveRecordings: Doc[] = [];
 
     componentDidMount() {
@@ -64,7 +65,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                 let sel = selected.length ? selected[0].props.Document : undefined;
                 this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(DateCast(sel.creationTime).date.getTime());
             });
-        this._scrubbingDisposer = reaction(() => AudioBox.ScrubTime, timeInMillisecondsFrom1970 => {
+        this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, timeInMillisecondsFrom1970 => {
             let start = this.extensionDoc && DateCast(this.extensionDoc.recordingStart);
             start && this.playFrom((timeInMillisecondsFrom1970 - start.date.getTime()) / 1000);
         });

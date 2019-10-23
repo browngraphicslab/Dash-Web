@@ -45,6 +45,7 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { documentSchema } from '../../../new_fields/documentSchemas';
+import { AudioBox } from './AudioBox';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -190,6 +191,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
 
+            let tsel = this._editorView.state.selection.$from;
+            tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 5000)));
             this._applyingChange = true;
             this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
