@@ -37,6 +37,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { Scripting } from '../util/Scripting';
+import { LinkManager } from '../util/LinkManager';
 
 @observer
 export class MainView extends React.Component {

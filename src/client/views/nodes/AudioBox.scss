@@ -31,4 +31,23 @@
     .audiobox-record-interactive {
         pointer-events: all;
     }
+    .audiobox-controls {
+        width:100%;
+        height:100%;
+        position: relative;
+        display: grid;
+        .audiobox-player {
+            margin-top:auto;
+            margin-bottom:auto;
+            width:100%;
+            position: relative;
+            display: grid;
+            .audiobox-marker {
+                position:absolute;
+                width:10px;
+                height:100%;
+                background:green;
+            }
+        }
+    }
 }

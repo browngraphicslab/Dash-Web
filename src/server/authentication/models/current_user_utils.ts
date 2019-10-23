@@ -15,6 +15,7 @@ import { RouteStore } from "../../RouteStore";
 import { InkingControl } from "../../../client/views/InkingControl";
 import { DragManager } from "../../../client/util/DragManager";
 import { nullAudio } from "../../../new_fields/URLField";
+import { LinkManager } from "../../../client/util/LinkManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;

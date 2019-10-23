@@ -16,6 +16,8 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { DocumentManager } from "../../util/DocumentManager";
 
 interface Window {
     MediaRecorder: MediaRecorder;
@@ -42,6 +44,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _recordStart = 0;
+    @observable _duration = 1;
     _lastUpdate = 0;
 
     @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
@@ -50,6 +53,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     public static ActiveRecordings: Doc[] = [];
 
     componentDidMount() {
+        runInAction(() => this._duration = NumCast(this.dataDoc.duration, 1));
         runInAction(() => this._audioState = this.path ? "recorded" : "unrecorded");
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
@@ -76,6 +80,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         const htmlEle = this._ele;
         const start = extensionDoc && DateCast(extensionDoc.recordingStart);
         if (htmlEle && !htmlEle.paused && start) {
+            htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = this._duration = htmlEle.duration);
             setTimeout(this.updateHighlights, 30);
             this.Document.currentTimecode = htmlEle.currentTime;
             DocListCast(this.dataDoc.links).map(l => {
@@ -94,18 +99,14 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     playFrom = (seekTimeInSeconds: number) => {
-        const extensionDoc = this.extensionDoc;
-        let start = extensionDoc && DateCast(extensionDoc.recordingStart);
-        if (this._ele && start) {
-            if (seekTimeInSeconds) {
-                if (seekTimeInSeconds >= 0 && seekTimeInSeconds <= this._ele.duration) {
-                    this._ele.currentTime = seekTimeInSeconds;
-                    this._ele.play();
-                    this._lastUpdate = seekTimeInSeconds;
-                    setTimeout(this.updateHighlights, 0);
-                } else {
-                    this._ele.pause();
-                }
+        if (this._ele) {
+            if (seekTimeInSeconds < 0) {
+                this._ele.pause();
+            } else if (seekTimeInSeconds <= this._ele.duration) {
+                this._ele.currentTime = seekTimeInSeconds;
+                this._ele.play();
+                this._lastUpdate = seekTimeInSeconds;
+                setTimeout(this.updateHighlights, 0);
             } else {
                 this._ele.pause();
             }
@@ -182,6 +183,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     playClick = (e: any) => setTimeout(this.updateHighlights, 30);
+    onPlay = (e: any) => this.playFrom(this._ele!.paused ? this._ele!.currentTime : -1);
 
     setRef = (e: HTMLAudioElement | null) => {
         e && e.addEventListener("play", this.playClick as any);
@@ -197,7 +199,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     @computed get audio() {
         let interactive = this.active() ? "-interactive" : "";
-        return <audio controls ref={this.setRef} className={`audiobox-control${interactive}`}>
+        return <audio ref={this.setRef} className={`audiobox-control${interactive}`}>
             <source src={this.path} type="audio/mpeg" />
             Not supported.
         </audio>;
@@ -212,7 +214,25 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this._audioState === "recording" ? "red" : "black" }}>
                         {this._audioState === "recording" ? "STOP" : "RECORD"}
                     </button> :
-                    this.audio
+                    <div className="audiobox-controls">
+                        <div className="audiobox-player" onClick={this.onPlay}>
+                            <FontAwesomeIcon icon="play" size="sm" ></FontAwesomeIcon>
+                            {DocListCast(this.dataDoc.links).map((l, i) => {
+                                let la1 = l.anchor1 as Doc;
+                                let la2 = l.anchor2 as Doc;
+                                let linkTime = NumCast(l.anchor2Timecode);
+                                if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                                    la1 = l.anchor2 as Doc;
+                                    la2 = l.anchor1 as Doc;
+                                    linkTime = NumCast(l.anchor1Timecode);
+                                }
+                                return <div key={i} className="audiobox-marker" onPointerDown={() =>
+                                    DocumentManager.Instance.FollowLink(l, la2, document => this.props.addDocTab(document, undefined, "onRight"), false)}
+                                    style={{ left: `${linkTime / this._duration * 100}%` }} />;
+                            })}
+                            {this.audio}
+                        </div>
+                    </div>
                 }
             </div>
         );
