@@ -1,5 +1,5 @@
 import { DragManager } from "./DragManager";
-import { CollectionViewType } from "../views/collections/CollectionBaseView";
+import { CollectionViewType } from "../views/collections/CollectionView";
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { DocumentType } from "../documents/DocumentTypes";
 import { ObjectField } from "../../new_fields/ObjectField";

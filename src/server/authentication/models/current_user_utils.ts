@@ -15,6 +15,8 @@ import { RouteStore } from "../../RouteStore";
 import { LinkFollowBox } from "../../../client/views/linking/LinkFollowBox";
 import { InkingControl } from "../../../client/views/InkingControl";
 import { DragManager } from "../../../client/util/DragManager";
+import { nullAudio } from "../../../new_fields/URLField";
+import { LinkManager } from "../../../client/util/LinkManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -51,12 +53,14 @@ export class CurrentUserUtils {
             { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
+            { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", ignoreClick: true, drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
             { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", unchecked: `!sameDocs(this.activePen.pen,  this)`, activePen: doc },
             { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
+            { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', unchecked: `!sameDocs(this.activePen.pen, this) && this.activePen.pen !== undefined`, backgroundColor: "white", activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
@@ -72,7 +76,7 @@ export class CurrentUserUtils {
         // setup a masonry view of all he creators
         const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
             width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons",
-            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), yMargin: 0
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), yMargin: 5
         });
         // setup a color picker
         const color = Docs.Create.ColorDocument({
@@ -81,10 +85,10 @@ export class CurrentUserUtils {
 
         return Docs.Create.ButtonDocument({
             width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create", targetContainer: sidebarContainer,
-            panel: Docs.Create.StackingDocument([dragCreators, color], {
+            sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, chromeStatus: "disabled", title: "creator stack"
             }),
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel"),
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });
     }
 
@@ -106,11 +110,11 @@ export class CurrentUserUtils {
 
         return Docs.Create.ButtonDocument({
             width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library",
-            panel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
+            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
                 title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
             }),
             targetContainer: sidebarContainer,
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
 
@@ -118,11 +122,11 @@ export class CurrentUserUtils {
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
             width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Search",
-            panel: Docs.Create.QueryDocument({
+            sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
             }),
             targetContainer: sidebarContainer,
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.panel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
 
@@ -130,6 +134,7 @@ export class CurrentUserUtils {
     static setupSidebarButtons(doc: Doc) {
         doc.sidebarContainer = new Doc();
         (doc.sidebarContainer as Doc).chromeStatus = "disabled";
+        (doc.sidebarContainer as Doc).onClick = ScriptField.MakeScript("freezeSidebar()");
 
         doc.CreateBtn = this.setupCreatePanel(doc.sidebarContainer as Doc, doc);
         doc.LibraryBtn = this.setupLibraryPanel(doc.sidebarContainer as Doc, doc);
@@ -187,7 +192,7 @@ export class CurrentUserUtils {
             stackingDoc && PromiseValue(Cast(stackingDoc.data, listSpec(Doc))).then(sidebarButtons => {
                 sidebarButtons && sidebarButtons.map((sidebarBtn, i) => {
                     sidebarBtn && PromiseValue(Cast(sidebarBtn, Doc)).then(async btn => {
-                        btn && btn.panel && btn.targetContainer && i === 1 && (btn.onClick as ScriptField).script.run({ this: btn });
+                        btn && btn.sourcePanel && btn.targetContainer && i === 1 && (btn.onClick as ScriptField).script.run({ this: btn });
                     });
                 });
             });

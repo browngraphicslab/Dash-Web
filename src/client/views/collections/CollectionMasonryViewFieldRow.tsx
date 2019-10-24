@@ -4,12 +4,12 @@ import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, WidthSym } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
+import Measure from "react-measure";
+import { Doc } from "../../../new_fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils, numberRange } from "../../../Utils";
+import { StrCast } from "../../../new_fields/Types";
+import { numberRange } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
@@ -20,7 +20,6 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
-import Measure from "react-measure";
 
 library.add(faPalette);
 
@@ -367,7 +366,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         >
                             {headingView}
                             {collapsed ? (null) :
-                                < div >
+                                < div style={{ position: "relative" }}>
                                     <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
                                         ref={this._contRef}
                                         style={{

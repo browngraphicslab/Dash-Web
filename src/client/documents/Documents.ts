@@ -2,7 +2,7 @@ import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 import { CollectionView } from "../views/collections/CollectionView";
-import { CollectionViewType } from "../views/collections/CollectionBaseView";
+import { CollectionViewType } from "../views/collections/CollectionView";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
@@ -84,7 +84,8 @@ export interface DocumentOptions {
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
-    currentTimecode?: number;
+    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
@@ -105,7 +106,7 @@ export interface DocumentOptions {
     gridGap?: number; // gap between items in masonry view
     xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
-    panel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
+    sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     // [key: string]: Opt<Field>;
@@ -121,98 +122,95 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        type LayoutSource = { LayoutString: (ext?: string) => string };
-        type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
-        type CollectionViewType = [CollectionLayoutSource, string, string?];
+        type LayoutSource = { LayoutString: (key: string) => string };
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
-                ext?: string, // optional extension field for layout source
+                dataField: string
             },
             options?: Partial<DocumentOptions>
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
         const data = "data";
-        const anno = "annotations";
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
-                layout: { view: FormattedTextBox },
+                layout: { view: FormattedTextBox, dataField: data },
                 options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { view: HistogramBox },
+                layout: { view: HistogramBox, dataField: data },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.QUERY, {
-                layout: { view: QueryBox },
+                layout: { view: QueryBox, dataField: data },
                 options: { width: 400 }
             }],
             [DocumentType.COLOR, {
-                layout: { view: ColorBox },
+                layout: { view: ColorBox, dataField: data },
                 options: { nativeWidth: 220, nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, ext: anno },
+                layout: { view: ImageBox, dataField: data },
                 options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, ext: anno },
+                layout: { view: WebBox, dataField: data },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
-                layout: { view: CollectionView },
+                layout: { view: CollectionView, dataField: data },
                 options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 }
             }],
             [DocumentType.KVP, {
-                layout: { view: KeyValueBox },
+                layout: { view: KeyValueBox, dataField: data },
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, ext: anno },
+                layout: { view: VideoBox, dataField: data },
                 options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
-                layout: { view: AudioBox },
-                options: { height: 32 }
+                layout: { view: AudioBox, dataField: data },
+                options: { height: 35, backgroundColor: "lightGray" }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, ext: anno },
+                layout: { view: PDFBox, dataField: data },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
-                layout: { view: IconBox },
+                layout: { view: IconBox, dataField: data },
                 options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
             }],
             [DocumentType.IMPORT, {
-                layout: { view: DirectoryImportBox },
+                layout: { view: DirectoryImportBox, dataField: data },
                 options: { height: 150 }
             }],
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
-                layout: { view: EmptyBox },
+                layout: { view: EmptyBox, dataField: data },
                 options: { defaultLinkFollow: "Pan to Document,none,false", savedLinkFollows: new List<string>([]) }
             }],
             [DocumentType.YOUTUBE, {
-                layout: { view: YoutubeBox }
+                layout: { view: YoutubeBox, dataField: data }
             }],
             [DocumentType.BUTTON, {
-                layout: { view: ButtonBox },
+                layout: { view: ButtonBox, dataField: data },
             }],
             [DocumentType.PRES, {
-                layout: { view: PresBox },
+                layout: { view: PresBox, dataField: data },
                 options: {}
             }],
             [DocumentType.FONTICON, {
-                layout: { view: FontIconBox },
+                layout: { view: FontIconBox, dataField: data },
                 options: { width: 40, height: 40, borderRounding: "100%" },
             }],
             [DocumentType.LINKFOLLOW, {
-                layout: { view: LinkFollowBox }
+                layout: { view: LinkFollowBox, dataField: data }
             }],
             [DocumentType.PRESELEMENT, {
-                layout: { view: PresElementBox }
+                layout: { view: PresElementBox, dataField: data }
             }],
         ]);
 
@@ -291,7 +289,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view.LayoutString(layout.ext);
+            options.layout = layout.view.LayoutString(layout.dataField);
             return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
         }
 
@@ -303,7 +301,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "dropAction", "forceActive"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "forceActive", "fitWidth"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -339,6 +337,8 @@ export namespace Docs {
             let dataDoc = MakeDataDelegate(proto, protoProps, data);
             let viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
+            AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
+
             return Doc.assign(viewDoc, delegateProps);
         }
 
@@ -372,11 +372,11 @@ export namespace Docs {
             requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
-                    if (!inst.proto!.nativeWidth) {
-                        inst.proto!.nativeWidth = size.width;
+                    if (!inst.nativeWidth) {
+                        inst.nativeWidth = size.width;
                     }
-                    inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                    inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                    inst.nativeHeight = NumCast(inst.nativeWidth) * aspect;
+                    inst.height = NumCast(inst.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
             // }
@@ -694,6 +694,7 @@ export namespace DocUtils {
             }
         });
     }
+
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         let sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
@@ -709,15 +710,16 @@ export namespace DocUtils {
             linkDocProto.savedLinkFollows = new List<string>();
 
             linkDocProto.anchor1 = source.doc;
-            linkDocProto.anchor1Context = source.ctx;
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
-            linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor1Context = source.ctx;
             linkDocProto.anchor2Context = target.ctx;
+            linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
             linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
             linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
+            linkDocProto.borderRounding = "20";
             linkDocProto.width = linkDocProto.height = 0;
             linkDocProto.isBackground = true;
             linkDocProto.isButton = true;

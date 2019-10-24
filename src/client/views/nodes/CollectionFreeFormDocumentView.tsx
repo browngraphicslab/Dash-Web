@@ -2,14 +2,15 @@ import { random } from "animejs";
 import { computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
-import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { percent2frac } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import "./CollectionFreeFormDocumentView.scss";
-import { documentSchema, DocumentView, DocumentViewProps } from "./DocumentView";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
+import { PositionDocument } from "../../../new_fields/documentSchemas";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, dataDoc?: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
@@ -20,15 +21,6 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     jitterRotation: number;
     transition?: string;
 }
-export const positionSchema = createSchema({
-    zIndex: "number",
-    x: "number",
-    y: "number",
-    z: "number",
-});
-
-export type PositionDocument = makeInterface<[typeof documentSchema, typeof positionSchema]>;
-export const PositionDocument = makeInterface(documentSchema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
@@ -77,7 +69,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     borderRounding = () => {
         let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
-        let ld = this.layoutDoc.layout instanceof Doc ? this.layoutDoc.layout : undefined;
+        let ld = this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] instanceof Doc ? this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] as Doc : undefined;
         let br = StrCast((ld || this.props.Document).borderRounding);
         br = !br && ruleRounding ? ruleRounding : br;
         if (br.endsWith("%")) {
@@ -91,8 +83,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get clusterColor() { return this.props.backgroundColor(this.props.Document); }
 
     clusterColorFunc = (doc: Doc) => this.clusterColor;
-
-    get layoutDoc() { return Doc.Layout(this.props.Document); }
 
     @observable _animPos: number[] | undefined = undefined;
 

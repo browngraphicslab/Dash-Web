@@ -17,7 +17,7 @@ type FontIconDocument = makeInterface<[typeof FontIconSchema]>;
 const FontIconDocument = makeInterface(FontIconSchema);
 @observer
 export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(FontIconDocument) {
-    public static LayoutString() { return FieldView.LayoutString(FontIconBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FontIconBox, fieldKey); }
     @observable _foregroundColor = "white";
     _ref: React.RefObject<HTMLButtonElement> = React.createRef();
     _backgroundReaction: IReactionDisposer | undefined;

@@ -5,7 +5,7 @@ import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { Doc, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { undoBatch } from "../../util/UndoManager";
 import { NumCast, FieldValue, Cast, StrCast } from "../../../new_fields/Types";
-import { CollectionViewType } from "../collections/CollectionBaseView";
+import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -37,7 +37,7 @@ enum FollowOptions {
 @observer
 export class LinkFollowBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString(LinkFollowBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkFollowBox, fieldKey); }
     public static Instance: LinkFollowBox | undefined;
     @observable static linkDoc: Doc | undefined = undefined;
     @observable static destinationDoc: Doc | undefined = undefined;

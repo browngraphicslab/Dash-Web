@@ -10,7 +10,7 @@ import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
-import { aggregateBounds, emptyFunction, intersectRect, returnEmptyString, returnOne, Utils } from "../../../../Utils";
+import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -25,18 +25,17 @@ import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss"
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingCanvas } from "../../InkingCanvas";
-import { CollectionFreeFormDocumentView, positionSchema } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentContentsView } from "../../nodes/DocumentContentsView";
-import { documentSchema, DocumentViewProps } from "../../nodes/DocumentView";
+import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
+import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import { CollectionSubView } from "../CollectionSubView";
 import { computePivotLayout, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
-import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -50,6 +49,11 @@ export const panZoomSchema = createSchema({
     isRuleProvider: "boolean",
     fitToBox: "boolean",
     panTransformType: "string",
+    scrollHeight: "number",
+    fitX: "number",
+    fitY: "number",
+    fitW: "number",
+    fitH: "number"
 });
 
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
@@ -66,9 +70,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)); }
-    @computed get nativeWidth() { return this.fitToContent ? 0 : this.Document.nativeWidth || 0; }
+    @computed get nativeWidth() { return this.Document.fitToContent ? 0 : this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.fitToContent ? 0 : this.Document.nativeHeight || 0; }
-    private get isAnnotationOverlay() { return this.props.fieldExt ? true : false; } // fieldExt will be "" or "annotation". should maybe generalize this, or make it more specific (ie, 'annotation' instead of 'fieldExt')
+    private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private easing = () => this.props.Document.panTransformType === "Ease";
     private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document.panX || 0;
@@ -108,10 +112,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
-    }
-
-    @computed get fieldExtensionDoc() {
-        return Doc.fieldExtensionDoc(this.props.DataDoc || this.props.Document, this.props.fieldKey);
     }
 
     @action
@@ -263,7 +263,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.nativeEvent.cancelBubble) return;
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
-        if (e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
+        if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -306,7 +306,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.fieldExtensionDoc.ink, InkField);
+                let ink = this.extensionDoc && Cast(this.extensionDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -448,6 +448,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ...this.props,
             DataDoc: childData,
             Document: childLayout,
+            layoutKey: undefined,
             ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
@@ -601,9 +602,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     analyzeStrokes = async () => {
-        let data = Cast(this.fieldExtensionDoc.ink, InkField);
-        if (data) {
-            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.fieldExtensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
+        const extensionDoc = this.extensionDoc;
+        let data = extensionDoc && Cast(extensionDoc.ink, InkField);
+        if (data && extensionDoc) {
+            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(extensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
         }
     }
 
@@ -670,31 +672,29 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     render() {
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
-        this.props.Document.fitX = this.contentBounds && this.contentBounds.x;
-        this.props.Document.fitY = this.contentBounds && this.contentBounds.y;
-        this.props.Document.fitW = this.contentBounds && (this.contentBounds.r - this.contentBounds.x);
-        this.props.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
-        // if fieldExt is set, then children will be stored in the extension document for the fieldKey.
+        this.Document.fitX = this.contentBounds && this.contentBounds.x;
+        this.Document.fitY = this.contentBounds && this.contentBounds.y;
+        this.Document.fitW = this.contentBounds && (this.contentBounds.r - this.contentBounds.x);
+        this.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
+        // if isAnnotationOverlay is set, then children will be stored in the extension document for the fieldKey.
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc || this.props.Document, this.props.fieldKey);
-        return (
+        return !this.extensionDoc ? (null) :
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}
-                style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (NumCast(this.props.Document.scrollHeight) ? NumCast(this.props.Document.scrollHeight) : "100%") : this.props.PanelHeight() }}
+                style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
-                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
-                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox} setPreviewCursor={this.props.setPreviewCursor}
-                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
+                <MarqueeView {...this.props} extensionDoc={this.extensionDoc} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
+                    addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.fieldExtensionDoc} inkFieldKey={"ink"} >
-                            {this.childViews}
-                        </InkingCanvas>
+                        {!this.extensionDoc ? (null) :
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
+                                {this.childViews}
+                            </InkingCanvas>}
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
                 {this.overlayViews}
-            </div>
-        );
+            </div>;
     }
 }
 

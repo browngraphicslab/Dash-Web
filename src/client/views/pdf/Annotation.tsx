@@ -102,6 +102,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 DocumentManager.Instance.FollowLink(undefined, annoGroup,
                     (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"),
                     false, false, undefined);
+                e.stopPropagation();
             }
         }
     }

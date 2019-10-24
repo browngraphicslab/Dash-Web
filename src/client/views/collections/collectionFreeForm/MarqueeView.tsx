@@ -15,27 +15,28 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
-import { CollectionViewType } from "../CollectionBaseView";
+import { CollectionViewType } from "../CollectionView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import { SubCollectionViewProps } from "../CollectionSubView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
-    container: CollectionFreeFormView;
     addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
     selectDocuments: (docs: Doc[]) => void;
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay: boolean;
+    extensionDoc: Doc;
+    isAnnotationOverlay?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
 @observer
-export class MarqueeView extends React.Component<MarqueeViewProps>
+export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
     private _mainCont = React.createRef<HTMLDivElement>();
     @observable _lastX: number = 0;
@@ -187,13 +188,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
+        if (!this.props.active()) this.props.selectDocuments([this.props.Document]);
         if (this._visible) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
-                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.Document);
             }
-            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+            this.props.selectDocuments(mselect.length ? mselect : [this.props.Document]);
         }
         this.cleanupInteractions(true);
 
@@ -246,13 +247,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.
-        let cprops = this.props.container.props;
-        return Cast(Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink, InkField);
+        return this.props.extensionDoc && Cast(this.props.extensionDoc.ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
-        let cprops = this.props.container.props;
-        Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink = value;
+        this.props.extensionDoc && (this.props.extensionDoc.ink = value);
     }
 
     @undoBatch
@@ -291,11 +290,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             let defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
                 "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
-            let colorPalette = Cast(this.props.container.props.Document.colorPalette, listSpec("string"));
-            if (!colorPalette) this.props.container.props.Document.colorPalette = new List<string>(defaultPalette);
-            let palette = Array.from(Cast(this.props.container.props.Document.colorPalette, listSpec("string")) as string[]);
+            let colorPalette = Cast(this.props.Document.colorPalette, listSpec("string"));
+            if (!colorPalette) this.props.Document.colorPalette = new List<string>(defaultPalette);
+            let palette = Array.from(Cast(this.props.Document.colorPalette, listSpec("string")) as string[]);
             let usedPaletted = new Map<string, number>();
-            [...this.props.activeDocuments(), this.props.container.props.Document].map(child => {
+            [...this.props.activeDocuments(), this.props.Document].map(child => {
                 let bg = StrCast(Doc.Layout(child).backgroundColor);
                 if (palette.indexOf(bg) !== -1) {
                     palette.splice(palette.indexOf(bg), 1);
@@ -437,21 +436,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @computed
     get marqueeDiv() {
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
             <span className="marquee-legend" />
         </div>;
     }
 
     render() {
-        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} onScroll={(e) => e.currentTarget.scrollLeft = 0}  >
-                {this._visible ? this.marqueeDiv : null}
-                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
-                    {this.props.children}
-                </div>
-            </div>
+        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            {this._visible ? this.marqueeDiv : null}
+            {this.props.children}
         </div>;
     }
 }

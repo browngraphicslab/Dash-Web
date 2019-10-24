@@ -3,8 +3,7 @@ import { action, observable, runInAction, reaction, IReactionDisposer } from 'mo
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import 'react-image-lightbox/style.css';
-import { Opt, WidthSym } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { Cast } from "../../../new_fields/Types";
@@ -17,18 +16,18 @@ import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
-import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { documentSchema } from '../../../new_fields/documentSchemas';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
 export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(PDFBox, "data", fieldExt); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
@@ -208,7 +207,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
         if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+        return (!this.extensionDoc || noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
             <div className="pdfBox-title-outer" >
                 <div className={classname} >
                     <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
@@ -230,10 +229,10 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                     addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
-                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
+                    pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} extensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />
+                    fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }

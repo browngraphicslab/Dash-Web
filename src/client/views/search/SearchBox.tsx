@@ -211,7 +211,7 @@ export class SearchBox extends React.Component {
         });
         let x = 0;
         let y = 0;
-        for (const doc of docs) {
+        for (const doc of docs.map(d => Doc.Layout(d))) {
             doc.x = x;
             doc.y = y;
             const size = 200;
