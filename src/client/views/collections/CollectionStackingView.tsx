@@ -128,7 +128,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         },
             (hgt: number) => {
                 let doc = hgt === -1 ? undefined : this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-                doc && (Doc.Layout(doc).height = hgt);
+                doc && hgt > 0 && (Doc.Layout(doc).height = hgt);
             },
             { fireImmediately: true }
         );
