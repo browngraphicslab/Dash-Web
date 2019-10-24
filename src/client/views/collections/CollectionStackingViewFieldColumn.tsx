@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, trace } from "mobx";
+import { action, observable, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -72,7 +72,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             this.props.parent.drop(e, de);
             e.stopPropagation();
         }
-    })
+    });
     getValue = (value: string): any => {
         let parsed = parseInt(value);
         if (!isNaN(parsed)) {
@@ -204,7 +204,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             document.removeEventListener("pointerup", this.pointerUp);
             document.addEventListener("pointerup", this.pointerUp);
         }
-        this._createAliasSelected = false;
+        runInAction(() => this._createAliasSelected = false);
     }
 
     renderColorPicker = () => {
@@ -335,11 +335,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
-        let chromeStatus = this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus;
+        let chromeStatus = this.props.parent.props.Document.chromeStatus;
         return (
             <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
-                {headingView}
+                {this.props.parent.Document.hideHeadings ? (null) : headingView}
                 {
                     this.collapsed ? (null) :
                         <div>

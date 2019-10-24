@@ -18,6 +18,7 @@ import { Transform } from "./Transform";
 import React = require("react");
 import { BoolCast, NumCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -482,9 +483,10 @@ export const marks: { [index: string]: MarkSpec } = {
             let min = Math.round(node.attrs.modified / 12);
             let hr = Math.round(min / 60);
             let day = Math.round(hr / 60 / 24);
+            let remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
             return node.attrs.opened ?
-                ['span', { class: "userMark-" + uid + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
-                ['span', { class: "userMark-" + uid + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
+                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
+                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
         }
     },
     // the id of the user who entered the text
@@ -815,8 +817,8 @@ export class DashDocView {
                     addDocTab={self._textBox.props.addDocTab}
                     pinToPres={returnFalse}
                     renderDepth={1}
-                    PanelWidth={self._dashDoc![WidthSym]}
-                    PanelHeight={self._dashDoc![HeightSym]}
+                    PanelWidth={self._dashDoc[WidthSym]}
+                    PanelHeight={self._dashDoc[HeightSym]}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
                     parentActive={returnFalse}

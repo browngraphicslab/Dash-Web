@@ -1322,7 +1322,7 @@ export class TooltipTextMenu {
         }
         this.view = view;
         let state = view.state;
-        DocumentDecorations.Instance.TextBar && DocumentDecorations.Instance.setTextBar(DocumentDecorations.Instance.TextBar);
+        DocumentDecorations.Instance.showTextBar();
         props && (this.editorProps = props);
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&

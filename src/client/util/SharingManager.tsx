@@ -17,8 +17,8 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { DocumentView } from "../views/nodes/DocumentView";
 import { SelectionManager } from "./SelectionManager";
 import { DocumentManager } from "./DocumentManager";
-import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 import { CollectionView } from "../views/collections/CollectionView";
+import { DictationOverlay } from "../views/DictationOverlay";
 
 library.add(fa.faCopy);
 
@@ -72,7 +72,7 @@ export default class SharingManager extends React.Component<{}> {
         this.populateUsers().then(action(() => {
             this.targetDocView = target;
             this.targetDoc = target.props.Document;
-            MainView.Instance.hasActiveModal = true;
+            DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = true;
             if (!this.sharingDoc) {
                 this.sharingDoc = new Doc;
@@ -85,7 +85,7 @@ export default class SharingManager extends React.Component<{}> {
         this.users = [];
         setTimeout(action(() => {
             this.copied = false;
-            MainView.Instance.hasActiveModal = false;
+            DictationOverlay.Instance.hasActiveModal = false;
             this.targetDoc = undefined;
         }), 500);
     });
@@ -185,7 +185,7 @@ export default class SharingManager extends React.Component<{}> {
                 className={"focus-span"}
                 title={title}
                 onClick={() => {
-                    let context: Opt<CollectionVideoView | CollectionView>;
+                    let context: Opt<CollectionView>;
                     if (this.targetDoc && this.targetDocView && (context = this.targetDocView.props.ContainingCollectionView)) {
                         DocumentManager.Instance.jumpToDocument(this.targetDoc, true, undefined, context.props.Document);
                     }

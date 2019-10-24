@@ -62,14 +62,14 @@ export namespace Utils {
     }
 
     export function fromRGBAstr(rgba: string) {
-        let rm = rgba.match(/rgb[a]?\(([0-9]+)/);
+        let rm = rgba.match(/rgb[a]?\(([ 0-9]+)/);
         let r = rm ? Number(rm[1]) : 0;
-        let gm = rgba.match(/rgb[a]?\([0-9]+,([0-9]+)/);
+        let gm = rgba.match(/rgb[a]?\([ 0-9]+,([ 0-9]+)/);
         let g = gm ? Number(gm[1]) : 0;
-        let bm = rgba.match(/rgb[a]?\([0-9]+,[0-9]+,([0-9]+)/);
+        let bm = rgba.match(/rgb[a]?\([ 0-9]+,[ 0-9]+,([ 0-9]+)/);
         let b = bm ? Number(bm[1]) : 0;
-        let am = rgba.match(/rgba?\([0-9]+,[0-9]+,[0-9]+,([0-9]+)/);
-        let a = am ? Number(am[1]) : 0;
+        let am = rgba.match(/rgba?\([ 0-9]+,[ 0-9]+,[ 0-9]+,([ .0-9]+)/);
+        let a = am ? Number(am[1]) : 1;
         return { r: r, g: g, b: b, a: a };
     }
 
@@ -148,6 +148,29 @@ export namespace Utils {
         return { h: h, s: s, l: l };
     }
 
+
+    export function clamp(n: number, lower: number, upper: number) {
+        return Math.max(lower, Math.min(upper, n));
+    }
+
+    export function getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
+        var r = l + w,
+            b = t + h;
+
+        var x = clamp(x, l, r),
+            y = clamp(y, t, b);
+
+        var dl = Math.abs(x - l),
+            dr = Math.abs(x - r),
+            dt = Math.abs(y - t),
+            db = Math.abs(y - b);
+
+        var m = Math.min(dl, dr, dt, db);
+
+        return (m === dt) ? [x, t] :
+            (m === db) ? [x, b] :
+                (m === dl) ? [l, y] : [r, y];
+    }
 
     export function GetClipboardText(): string {
         var textArea = document.createElement("textarea");
@@ -265,6 +288,8 @@ export function percent2frac(percent: string) {
 }
 
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+
+export function returnTransparent() { return "transparent"; }
 
 export function returnTrue() { return true; }
 

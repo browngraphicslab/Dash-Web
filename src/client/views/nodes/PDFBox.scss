@@ -6,7 +6,7 @@
     width:100%;
     overflow: hidden;
     position:absolute;
-    z-index: -1;
+    cursor:auto;
 }
 
 .pdfBox-title-outer {
@@ -15,7 +15,7 @@
     width: 100%;
     height: 100%;
     background: lightslategray;
-    .pdfBox-title-cont, .pdfBox-cont-interactive{
+    .pdfBox-cont, .pdfBox-cont-interactive{
         width: 150%;
         height: 100%;
         position: relative;

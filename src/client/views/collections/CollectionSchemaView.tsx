@@ -23,7 +23,6 @@ import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
@@ -159,6 +158,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <CollectionSchemaPreview
                 Document={layoutDoc}
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                fieldKey={this.props.fieldKey}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
@@ -227,7 +227,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
             <div className="collectionSchemaView-container" style={{ height: "100%", marginTop: "0", }}>
                 <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
@@ -246,8 +245,8 @@ export interface SchemaTableProps {
     PanelHeight: () => number;
     PanelWidth: () => number;
     childDocs?: Doc[];
-    CollectionView: Opt<CollectionView | CollectionVideoView>;
-    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
@@ -899,16 +898,17 @@ interface CollectionSchemaPreviewProps {
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
+    fieldKey: string;
     PanelWidth: () => number;
     PanelHeight: () => number;
     ruleProvider: Doc | undefined;
     focus?: (doc: Doc) => void;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
-    CollectionView?: CollectionView | CollectionVideoView;
+    CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
     getTransform: () => Transform;
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument: (document: Doc) => boolean;
     active: () => boolean;
@@ -923,8 +923,9 @@ interface CollectionSchemaPreviewProps {
 export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
     private dropDisposer?: DragManager.DragDropDisposer;
     _mainCont?: HTMLDivElement;
-    private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.PanelWidth()); }
-    private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.PanelHeight()); }
+    private get layoutDoc() { return this.props.Document && Doc.Layout(this.props.Document); }
+    private get nativeWidth() { return NumCast(this.layoutDoc!.nativeWidth, this.props.PanelWidth()); }
+    private get nativeHeight() { return NumCast(this.layoutDoc!.nativeHeight, this.props.PanelHeight()); }
     private contentScaling = () => {
         let wscale = this.props.PanelWidth() / (this.nativeWidth ? this.nativeWidth : this.props.PanelWidth());
         if (wscale * this.nativeHeight > this.props.PanelHeight()) {
@@ -948,10 +949,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         if (de.data instanceof DragManager.DocumentDragData) {
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
                 let target = Doc.GetProto(otherdoc);
-                let layoutNative = Doc.MakeTitled("layoutNative");
-                layoutNative.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layoutNative = layoutNative;
-                target.layoutCUstom = target.layout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
+                target.layout = ComputedField.MakeFunction("this.image_data[0]");
+                target.layoutCustom = Doc.MakeDelegate(de.data.draggedDocuments[0]);
             });
             e.stopPropagation();
         }
@@ -969,7 +968,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         let br = StrCast(this.props.Document!.borderRounding);
         if (br.endsWith("%")) {
             let percent = Number(br.substr(0, br.length - 1)) / 100;
-            let nativeDim = Math.min(NumCast(this.props.Document!.nativeWidth), NumCast(this.props.Document!.nativeHeight));
+            let nativeDim = Math.min(NumCast(this.layoutDoc!.nativeWidth), NumCast(this.layoutDoc!.nativeHeight));
             let minDim = percent * (nativeDim ? nativeDim : Math.min(this.PanelWidth(), this.PanelHeight()));
             return minDim;
         }

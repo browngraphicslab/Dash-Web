@@ -1,34 +1,36 @@
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { FieldResult, Doc, Field } from "../../../new_fields/Doc";
+import { Doc, FieldResult } from "../../../new_fields/Doc";
 import { HtmlField } from "../../../new_fields/HtmlField";
+import { InkTool } from "../../../new_fields/InkField";
+import { makeInterface } from "../../../new_fields/Schema";
+import { Cast, NumCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
+import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { SelectionManager } from "../../util/SelectionManager";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
+import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
-import { InkTool } from "../../../new_fields/InkField";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils } from "../../../Utils";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
-import { observable, action, computed } from "mobx";
-import { listSpec } from "../../../new_fields/Schema";
-import { RefField } from "../../../new_fields/RefField";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { updateSourceFile } from "typescript";
-import { KeyValueBox } from "./KeyValueBox";
-import { setReactionScheduler } from "mobx/lib/internal";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Docs } from "../../documents/Documents";
+import { DocAnnotatableComponent } from "../DocComponent";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 
 library.add(faStickyNote);
 
-@observer
-export class WebBox extends React.Component<FieldViewProps> {
+type WebDocument = makeInterface<[typeof documentSchema]>;
+const WebDocument = makeInterface(documentSchema);
 
-    public static LayoutString() { return FieldView.LayoutString(WebBox); }
+@observer
+export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
+
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
@@ -37,12 +39,12 @@ export class WebBox extends React.Component<FieldViewProps> {
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field && field.url.href.indexOf("youtube") !== -1) {
             let youtubeaspect = 400 / 315;
-            var nativeWidth = NumCast(this.props.Document.nativeWidth, 0);
-            var nativeHeight = NumCast(this.props.Document.nativeHeight, 0);
+            var nativeWidth = NumCast(this.layoutDoc.nativeWidth);
+            var nativeHeight = NumCast(this.layoutDoc.nativeHeight);
             if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                if (!nativeWidth) this.props.Document.nativeWidth = 600;
-                this.props.Document.nativeHeight = NumCast(this.props.Document.nativeWidth) / youtubeaspect;
-                this.props.Document.height = NumCast(this.props.Document.width) / youtubeaspect;
+                if (!nativeWidth) this.layoutDoc.nativeWidth = 600;
+                this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / youtubeaspect;
+                this.layoutDoc.height = NumCast(this.layoutDoc.width) / youtubeaspect;
             }
         }
 
@@ -91,7 +93,7 @@ export class WebBox extends React.Component<FieldViewProps> {
         });
 
         SelectionManager.SelectedDocuments().map(dv => {
-            dv.props.addDocument && dv.props.addDocument(newBox, false);
+            dv.props.addDocument && dv.props.addDocument(newBox);
             dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
         });
 
@@ -162,8 +164,10 @@ export class WebBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
-    render() {
-        let field = this.props.Document[this.props.fieldKey];
+
+    @computed
+    get content() {
+        let field = this.dataDoc[this.props.fieldKey];
         let view;
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
@@ -188,5 +192,31 @@ export class WebBox extends React.Component<FieldViewProps> {
                 </div>
                 {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
             </>);
+    }
+    render() {
+        return (<div className={"imageBox-container"} >
+            <CollectionFreeFormView {...this.props}
+                PanelHeight={this.props.PanelHeight}
+                PanelWidth={this.props.PanelWidth}
+                annotationsKey={this.annotationsKey}
+                focus={this.props.focus}
+                isSelected={this.props.isSelected}
+                isAnnotationOverlay={true}
+                select={emptyFunction}
+                active={this.active}
+                ContentScaling={returnOne}
+                whenActiveChanged={this.whenActiveChanged}
+                removeDocument={this.removeDocument}
+                moveDocument={this.moveDocument}
+                addDocument={this.addDocument}
+                CollectionView={undefined}
+                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                ruleProvider={undefined}
+                renderDepth={this.props.renderDepth + 1}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                chromeCollapsed={true}>
+                {() => [this.content]}
+            </CollectionFreeFormView>
+        </div >);
     }
 }

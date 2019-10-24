@@ -7,7 +7,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { NumCast } from "../../../new_fields/Types";
-import { CollectionViewType } from "./CollectionBaseView";
+import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

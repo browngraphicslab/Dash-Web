@@ -8,7 +8,6 @@ import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
 import { Transform } from "../../util/Transform";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { FormattedTextBox } from "./FormattedTextBox";
@@ -25,10 +24,8 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 //
 export interface FieldViewProps {
     fieldKey: string;
-    fieldExt: string;
-    leaveNativeSize?: boolean;
     fitToBox?: boolean;
-    ContainingCollectionView: Opt<CollectionView | CollectionVideoView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     ruleProvider: Doc | undefined;
     Document: Doc;
@@ -37,7 +34,7 @@ export interface FieldViewProps {
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
-    addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument?: (document: Doc) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
@@ -55,9 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
-        //"<ImageBox {...props} />"
+    public static LayoutString(fieldType: { name: string }, fieldStr: string) {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"}/>`;  //e.g., "<ImageBox {...props} fieldKey={"dada} />"
     }
 
     @computed
@@ -77,7 +73,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <FormattedTextBox {...this.props} />;
         }
         else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} leaveNativeSize={true} />;
+            return <ImageBox {...this.props} />;
         }
         // else if (field instaceof PresBox) {
         //    return <PresBox {...this.props} />;

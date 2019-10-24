@@ -25,7 +25,8 @@ export namespace GoogleApiServerUtils {
         'drive.file',
         'photoslibrary',
         'photoslibrary.appendonly',
-        'photoslibrary.sharing'
+        'photoslibrary.sharing',
+        'userinfo.profile'
     ];
 
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
@@ -96,20 +97,60 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    export const ProcessClientSideCode = async (information: CredentialInformation, authenticationCode: string): Promise<TokenResult> => {
+    export interface GoogleAuthenticationResult {
+        access_token: string;
+        avatar: string;
+        name: string;
+    }
+    export const ProcessClientSideCode = async (information: CredentialInformation, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
         const oAuth2Client = await RetrieveOAuthClient(information);
-        return new Promise<TokenResult>((resolve, reject) => {
+        return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
             oAuth2Client.getToken(authenticationCode, async (err, token) => {
                 if (err || !token) {
                     reject(err);
                     return console.error('Error retrieving access token', err);
                 }
                 oAuth2Client.setCredentials(token);
-                await Database.Auxiliary.GoogleAuthenticationToken.Write(information.userId, token);
-                resolve({ token, client: oAuth2Client });
+                const enriched = injectUserInfo(token);
+                await Database.Auxiliary.GoogleAuthenticationToken.Write(information.userId, enriched);
+                const { given_name, picture } = enriched.userInfo;
+                resolve({
+                    access_token: enriched.access_token!,
+                    avatar: picture,
+                    name: given_name
+                });
             });
         });
     };
+
+    /**
+     * It's pretty cool: the credentials id_token is split into thirds by periods.
+     * The middle third contains a base64-encoded JSON string with all the
+     * user info contained in the interface below. So, we isolate that middle third,
+     * base64 decode with atob and parse the JSON. 
+     * @param credentials the client credentials returned from OAuth after the user
+     * has executed the authentication routine
+     */
+    const injectUserInfo = (credentials: Credentials): EnrichedCredentials => {
+        const userInfo = JSON.parse(atob(credentials.id_token!.split(".")[1]));
+        return { ...credentials, userInfo };
+    };
+
+    export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
+    export interface UserInfo {
+        at_hash: string;
+        aud: string;
+        azp: string;
+        exp: number;
+        family_name: string;
+        given_name: string;
+        iat: number;
+        iss: string;
+        locale: string;
+        name: string;
+        picture: string;
+        sub: string;
+    }
 
     export const RetrieveCredentials = (information: CredentialInformation) => {
         return new Promise<TokenResult>((resolve, reject) => {

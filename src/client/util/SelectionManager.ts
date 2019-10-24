@@ -45,17 +45,6 @@ export namespace SelectionManager {
     }
 
     const manager = new Manager();
-    reaction(() => manager.SelectedDocuments, sel => {
-        let targetColor = "#FFFFFF";
-        if (sel.length > 0) {
-            let firstView = sel[0];
-            let doc = firstView.props.Document;
-            let targetDoc = doc.isTemplate ? doc : Doc.GetProto(doc);
-            let stored = StrCast(targetDoc.backgroundColor);
-            stored.length > 0 && (targetColor = stored);
-        }
-        InkingControl.Instance.updateSelectedColor(targetColor);
-    }, { fireImmediately: true });
 
     export function DeselectDoc(docView: DocumentView): void {
         manager.DeselectDoc(docView);

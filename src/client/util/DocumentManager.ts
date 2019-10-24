@@ -1,17 +1,15 @@
-import { action, computed, observable, trace } from 'mobx';
-import { Doc, DocListCastAsync } from '../../new_fields/Doc';
+import { action, computed, observable } from 'mobx';
+import { Doc, DocListCastAsync, DocListCast } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
+import { List } from '../../new_fields/List';
 import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
-import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
-import { undoBatch, UndoManager } from './UndoManager';
 import { Scripting } from './Scripting';
-import { List } from '../../new_fields/List';
 import { SelectionManager } from './SelectionManager';
-import { notDeepEqual } from 'assert';
+import { DocumentType } from '../documents/DocumentTypes';
 
 
 export class DocumentManager {
@@ -44,8 +42,8 @@ export class DocumentManager {
         if (toReturn.length === 0) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
-                if (doc && doc[Id]) {
-                    if (doc[Id] === id) { toReturn.push(view); }
+                if (doc && doc[Id] && doc[Id] === id) {
+                    toReturn.push(view);
                 }
             });
         }
@@ -56,7 +54,7 @@ export class DocumentManager {
         return this.getDocumentViewsById(doc[Id]);
     }
 
-    public getDocumentViewById(id: string, preferredCollection?: CollectionView | CollectionVideoView): DocumentView | undefined {
+    public getDocumentViewById(id: string, preferredCollection?: CollectionView): DocumentView | undefined {
 
         let toReturn: DocumentView | undefined;
         let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
@@ -75,13 +73,15 @@ export class DocumentManager {
                         toReturn = view;
                     }
                 });
+            } else {
+                break;
             }
         }
 
         return toReturn;
     }
 
-    public getDocumentView(toFind: Doc, preferredCollection?: CollectionView | CollectionVideoView): DocumentView | undefined {
+    public getDocumentView(toFind: Doc, preferredCollection?: CollectionView): DocumentView | undefined {
         return this.getDocumentViewById(toFind[Id], preferredCollection);
     }
 
@@ -90,48 +90,39 @@ export class DocumentManager {
         return views.length ? views[0] : undefined;
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
-
         let toReturn: DocumentView[] = [];
 
-        //gets document view that is in a freeform canvas collection
-        DocumentManager.Instance.DocumentViews.map(view => {
-            let doc = view.props.Document;
-
-            if (doc === toFind) {
-                toReturn.push(view);
-            } else {
-                if (Doc.AreProtosEqual(doc, toFind)) {
-                    toReturn.push(view);
-                }
-            }
-        });
+        DocumentManager.Instance.DocumentViews.map(view =>
+            Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)).reduce((pairs, dv) => {
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv =>
+            (dv.isSelected() || Doc.IsBrushed(dv.props.Document)) // draw links from DocumentViews that are selected or brushed OR
+            || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
+                let rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
+                let init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
+                return init && rest;
+            })
+        ).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
-                if (link) {
-                    let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                    if (linkToDoc) {
-                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                            pairs.push({ a: dv, b: docView1, l: link });
-                        });
+                let linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                    if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
+                        pairs.push({ a: dv, b: docView1, l: link });
                     }
-                }
+                });
                 return pairs;
             }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
 
         return pairs;
     }
-
-
 
     public jumpToDocument = async (targetDoc: Doc, willZoom: boolean, dockFunc?: (doc: Doc) => void, docContext?: Doc, linkId?: string, closeContextIfNotFound: boolean = false): Promise<void> => {
         let highlight = () => {

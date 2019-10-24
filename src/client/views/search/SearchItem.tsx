@@ -15,7 +15,7 @@ import { LinkManager } from "../../util/LinkManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
-import { CollectionViewType } from "../collections/CollectionBaseView";
+import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentView } from "../nodes/DocumentView";
@@ -150,7 +150,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (!this._useIcons) {
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
+            let scale = () => returnXDimension() / NumCast(Doc.Layout(this.props.doc).nativeWidth, returnXDimension());
             const docview = <div
                 onPointerDown={action(() => {
                     this._useIcons = !this._useIcons;
@@ -212,15 +212,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     @computed
     get linkCount() { return LinkManager.Instance.getAllRelatedLinks(this.props.doc).length; }
-
-    @computed
-    get linkString(): string {
-        let num = this.linkCount;
-        if (num === 1) {
-            return num.toString() + " link";
-        }
-        return num.toString() + " links";
-    }
 
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
@@ -290,7 +281,11 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 <div className="search-item" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
                     onClick={this.onClick}>
                     <div className="main-search-info">
-                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" /> </div>
+                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" />
+                            <div className="link-container item">
+                                <div className="link-count" title={`${this.linkCount + " links"}`}>{this.linkCount}</div>
+                            </div>
+                        </div>
                         <div className="search-title-container">
                             <div className="search-title">{StrCast(this.props.doc.title)}</div>
                             <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
@@ -300,10 +295,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" title="Click to Preview">{this.DocumentIcon()}</div>
                                 <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
-                            </div>
-                            <div className="link-container item">
-                                <div className="link-count">{this.linkCount}</div>
-                                <div className="link-extended">{this.linkString}</div>
                             </div>
                         </div>
                     </div>
