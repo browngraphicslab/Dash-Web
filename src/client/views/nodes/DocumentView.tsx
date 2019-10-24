@@ -667,9 +667,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
-                {this.Document.links && DocListCast(this.Document.links).filter(this.isNonTemporalLink).map((d, i) =>
+                {this.Document.links && DocListCast(this.Document.links).filter((d) => !DocListCast(this.layoutDoc.hiddenLinks).some(hidden => Doc.AreProtosEqual(hidden, d))).filter(this.isNonTemporalLink).map((d, i) =>
                     <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
-                        <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />
+                        <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} removeDocument={undoBatch((doc: Doc) => Doc.AddDocToList(this.layoutDoc, "hiddenLinks", doc))} layoutKey={this.linkEndpoint(d)} />
                     </div>)}
                 {!showTitle && !showCaption ?
                     this.Document.searchFields ?
