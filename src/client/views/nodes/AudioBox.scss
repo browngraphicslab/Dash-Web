@@ -36,6 +36,8 @@
         height:100%;
         position: relative;
         display: flex;
+        padding-left: 2px;
+        border: gray solid 3px;
         .audiobox-player {
             margin-top:auto;
             margin-bottom:auto;
@@ -59,7 +61,7 @@
                     background-color: red;
                     position: absolute;;
                 }
-                .audiobox-linker {
+                .audiobox-linker, .audiobox-linker-mini {
                     position:absolute;
                     width:15px;
                     min-height:10px;
@@ -76,10 +78,24 @@
                         top: calc(100% - 15px) !important;
                     }
                 }
-                .audiobox-linker:hover {
+                .audiobox-linker-mini {
+                    width:8px;
+                    min-height:8px;
+                    height:8px;
+                    box-shadow: black 1px 1px 1px;
+                    margin-left: -1;
+                    margin-top: -2;
+                    .docuLinkBox-cont {
+                        width:8px !important;
+                        height:8px !important;
+                        left: calc(100% - 8px) !important;
+                        top: calc(100% - 8px) !important;
+                    }
+                }
+                .audiobox-linker:hover, .audiobox-linker-mini:hover {
                     transform:scale(1.5);
                 }
-                .audiobox-marker-container {
+                .audiobox-marker-container, .audiobox-marker-minicontainer {
                     position:absolute;
                     width:10px;
                     height:100%;
@@ -93,6 +109,15 @@
                     }
                     .audio-marker:hover {
                         border: orange 2px solid;
+                    }
+                }
+                .audiobox-marker-minicontainer {
+                    width:5px;
+                    border-radius: 1px;
+                    .audiobox-marker {
+                        position:relative;
+                        height: calc(100% - 8px);
+                        margin-top: 8px;
                     }
                 }
             }

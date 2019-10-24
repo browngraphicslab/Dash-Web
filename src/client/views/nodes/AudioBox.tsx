@@ -184,7 +184,10 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         }
     }
 
-    onPlay = (e: any) => this.playFrom(this._ele!.paused ? this._ele!.currentTime : -1);
+    onPlay = (e: any) => {
+        this.playFrom(this._ele!.paused ? this._ele!.currentTime : -1);
+        e.stopPropagation();
+    }
     onStop = (e: any) => {
         this.pause();
         this._ele!.currentTime = 0;
@@ -213,7 +216,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     render() {
         let interactive = this.active() ? "-interactive" : "";
         return (!this.extensionDoc ? (null) :
-            <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
+            <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
+                onClick={!this.path ? this.recordClick : undefined}>
                 <div className="audiobox-handle"></div>
                 {!this.path ?
                     <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this._audioState === "recording" ? "red" : "black" }}>
@@ -221,8 +225,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     </button> :
                     <div className="audiobox-controls">
                         <div className="audiobox-player" onClick={this.onPlay}>
-                            <FontAwesomeIcon className="audiobox-playhead" icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 25 ? "1x" : "2x"} />
-                            <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon className="audiobox-playhead" icon="stop" size={this.props.PanelHeight() < 25 ? "1x" : "2x"} /></div>
+                            <FontAwesomeIcon className="audiobox-playhead" icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                            <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon className="audiobox-playhead" icon="stop" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                             <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
                                 onPointerDown={e => {
                                     if (e.button === 0 && !e.ctrlKey) {
@@ -241,8 +245,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                         la2 = l.anchor1 as Doc;
                                         linkTime = NumCast(l.anchor1Timecode);
                                     }
-                                    return !linkTime ? (null) : <div className="audiobox-marker-container" style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
-                                        <div className="audioBox-linker" key={"linker" + i}>
+                                    return !linkTime ? (null) : <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                        <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
                                             <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
                                                 parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
                                                 backgroundColor={returnTransparent} />
