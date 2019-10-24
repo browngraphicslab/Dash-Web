@@ -21,6 +21,11 @@
     overflow-y: auto;
     flex-wrap: wrap;
     transition: top .5s;
+    >div {
+        height: 100%;
+        position: relative;
+        display: inline-block;
+    }
 
     .collectionSchemaView-previewDoc {
         height: 100%;

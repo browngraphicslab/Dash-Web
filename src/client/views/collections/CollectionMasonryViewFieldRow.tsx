@@ -366,7 +366,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         >
                             {headingView}
                             {collapsed ? (null) :
-                                < div >
+                                < div style={{ position: "relative" }}>
                                     <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
                                         ref={this._contRef}
                                         style={{

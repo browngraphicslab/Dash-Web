@@ -12,12 +12,11 @@ import { RouteStore } from "../../../server/RouteStore";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCast, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DocumentManager } from "../../util/DocumentManager";
 import { DocumentView } from "./DocumentView";
 
 interface Window {
@@ -59,7 +58,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                 scrollLinkId && DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
                     let la1 = l.anchor1 as Doc;
                     let linkTime = Doc.AreProtosEqual(la1, this.dataDoc) ? NumCast(l.anchor1Timecode) : NumCast(l.anchor2Timecode);
-                    setTimeout(() => this.playFrom(linkTime), 250);
+                    setTimeout(() => { this.playFrom(linkTime); Doc.linkFollowHighlight(l); }, 250);
                 });
                 scrollLinkId && Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
             }, { fireImmediately: true });
@@ -75,11 +74,9 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     timecodeChanged = () => {
-        const extensionDoc = this.extensionDoc;
         const htmlEle = this._ele;
-        const start = extensionDoc && DateCast(extensionDoc.recordingStart);
-        if (start && htmlEle) {
-            htmlEle && htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = htmlEle.duration);
+        if (this._audioState === "recorded" && htmlEle) {
+            htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = htmlEle.duration);
             DocListCast(this.dataDoc.links).map(l => {
                 let la1 = l.anchor1 as Doc;
                 let linkTime = NumCast(l.anchor2Timecode);
@@ -195,7 +192,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     setRef = (e: HTMLAudioElement | null) => {
-        e && e.addEventListener("timeupdate", action(() => this.Document.currentTimecode = e!.currentTime));
+        e && e.addEventListener("timeupdate", this.timecodeChanged);
         this._ele = e;
     }
 
@@ -225,13 +222,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     </button> :
                     <div className="audiobox-controls">
                         <div className="audiobox-player" onClick={this.onPlay}>
-                            <FontAwesomeIcon className="audiobox-playhead" icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
-                            <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon className="audiobox-playhead" icon="stop" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                            <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                            <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%" }} icon="stop" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                             <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
                                 onPointerDown={e => {
                                     if (e.button === 0 && !e.ctrlKey) {
                                         let rect = (e.target as any).getBoundingClientRect();
-                                        this._ele!.currentTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                        this._ele!.currentTime = this.Document.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
                                         this.pause();
                                         e.stopPropagation();
                                     }

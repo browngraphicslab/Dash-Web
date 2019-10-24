@@ -171,7 +171,7 @@ export namespace Docs {
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox, dataField: data },
-                options: { height: 35, backgroundColor: "lightGray", borderRounding: "20%" }
+                options: { height: 35, backgroundColor: "lightGray" }
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
@@ -714,6 +714,7 @@ export namespace DocUtils {
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
             linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
             linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
+            linkDocProto.borderRounding = "20";
             linkDocProto.width = linkDocProto.height = 0;
             linkDocProto.isBackground = true;
             linkDocProto.isButton = true;

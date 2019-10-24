@@ -192,7 +192,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             }
 
             let tsel = this._editorView.state.selection.$from;
-            tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 5000)));
+            tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
             this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
