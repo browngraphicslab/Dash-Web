@@ -22,9 +22,8 @@
     flex-wrap: wrap;
     transition: top .5s;
     >div {
-        height: 100%;
         position: relative;
-        display: inline-block;
+        display: block;
     }
 
     .collectionSchemaView-previewDoc {
@@ -227,7 +226,6 @@
             }
 
             .collectionStackingView-optionPicker {
-                width: 78px;
 
                 .optionOptions {
                     display: inline;
@@ -235,10 +233,10 @@
 
                 .optionPicker {
                     cursor: pointer;
-                    width: 20px;
                     height: 20px;
                     border-radius: 10px;
                     margin: 3px;
+                    width:max-content;
 
                     &.active {
                         color: red;

@@ -71,7 +71,7 @@ export class CurrentUserUtils {
     }
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.  when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
-    static setupCreatePanel(sidebarContainer: Doc, doc: Doc) {
+    static setupToolsPanel(sidebarContainer: Doc, doc: Doc) {
         // setup a masonry view of all he creators
         const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
             width: 500, autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons",
@@ -83,9 +83,9 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Create", targetContainer: sidebarContainer,
+            width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Tools", targetContainer: sidebarContainer,
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
-                width: 500, height: 800, chromeStatus: "disabled", title: "creator stack"
+                width: 500, height: 800, lockedPosition: true, chromeStatus: "disabled", title: "tools stack"
             }),
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });
@@ -125,6 +125,7 @@ export class CurrentUserUtils {
                 title: "search stack", ignoreClick: true
             }),
             targetContainer: sidebarContainer,
+            lockedPosition: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
@@ -135,12 +136,12 @@ export class CurrentUserUtils {
         (doc.sidebarContainer as Doc).chromeStatus = "disabled";
         (doc.sidebarContainer as Doc).onClick = ScriptField.MakeScript("freezeSidebar()");
 
-        doc.CreateBtn = this.setupCreatePanel(doc.sidebarContainer as Doc, doc);
+        doc.ToolsBtn = this.setupToolsPanel(doc.sidebarContainer as Doc, doc);
         doc.LibraryBtn = this.setupLibraryPanel(doc.sidebarContainer as Doc, doc);
         doc.SearchBtn = this.setupSearchPanel(doc.sidebarContainer as Doc);
 
         // Finally, setup the list of buttons to display in the sidebar
-        doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.CreateBtn as Doc], {
+        doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
             width: 500, height: 80, boxShadow: "0 0", sectionFilter: "title", hideHeadings: true, ignoreClick: true,
             backgroundColor: "lightgrey", chromeStatus: "disabled", title: "library stack"
         });
