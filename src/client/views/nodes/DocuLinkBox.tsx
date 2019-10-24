@@ -33,7 +33,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
+        (e.button === 0 && !e.ctrlKey) && e.stopPropagation();
     }
     onPointerMove = action((e: PointerEvent) => {
         let cdiv = this._ref.current!.parentElement;
@@ -43,7 +43,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
             let separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
             let dragdist = Math.sqrt((pt[0] - this._downx) * (pt[0] - this._downx) + (pt[1] - this._downy) * (pt[1] - this._downy));
             if (separation > 100) {
-                DragLinksAsDocuments(this._ref.current!, pt[0], pt[1], this.props.ContainingCollectionDoc as Doc, this.props.Document); // Containging collection is the document, not a collection... hack.
+                DragLinksAsDocuments(this._ref.current!, pt[0], pt[1], Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, this.props.Document); // Containging collection is the document, not a collection... hack.
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
             } else if (dragdist > separation) {

@@ -41,6 +41,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { link } from 'fs';
 
 library.add(fa.faEdit);
 library.add(fa.faTrash);
@@ -585,8 +586,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             layoutKey={this.props.layoutKey || "layout"}
             DataDoc={this.props.DataDoc} />);
     }
-    linkEndpoint = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2";
-    linkEndpointDoc = (linkDoc: Doc) => Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? Cast(linkDoc.anchor1, Doc) as Doc : Cast(linkDoc.anchor2, Doc) as Doc;
+    linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
+
+    // used to decide whether a link document should be created or not. 
+    // if it's a tempoarl link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
+    // would be good to generalize this some way.
+    isNonTemporalLink = (linkDoc: Doc) => {
+        let anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
+        let ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1Timecode : linkDoc.anchor2Timecode;
+        return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
+    }
 
     render() {
         if (!this.props.Document) return (null);
@@ -658,8 +667,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
-                {this.Document.links && DocListCast(this.Document.links).map((d, i) =>
-                    //this.linkEndpointDoc(d).type === DocumentType.PDFANNO ? (null) :
+                {this.Document.links && DocListCast(this.Document.links).filter(this.isNonTemporalLink).map((d, i) =>
                     <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
                         <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} layoutKey={this.linkEndpoint(d)} />
                     </div>)}

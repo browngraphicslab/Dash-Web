@@ -7,17 +7,18 @@ import { AudioField, nullAudio } from "../../../new_fields/URLField";
 import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Utils } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, WidthSym } from "../../../new_fields/Doc";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentView } from "./DocumentView";
 
 interface Window {
     MediaRecorder: MediaRecorder;
@@ -44,16 +45,14 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _recordStart = 0;
-    @observable _duration = 1;
-    _lastUpdate = 0;
 
-    @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
     @observable private static _scrubTime = 0;
+    @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
+    @observable private _playing = false;
     public static SetScrubTime = action((timeInMillisFrom1970: number) => AudioBox._scrubTime = timeInMillisFrom1970);
     public static ActiveRecordings: Doc[] = [];
 
     componentDidMount() {
-        runInAction(() => this._duration = NumCast(this.dataDoc.duration, 1));
         runInAction(() => this._audioState = this.path ? "recorded" : "unrecorded");
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
@@ -75,14 +74,12 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         });
     }
 
-    updateHighlights = () => {
+    timecodeChanged = () => {
         const extensionDoc = this.extensionDoc;
         const htmlEle = this._ele;
         const start = extensionDoc && DateCast(extensionDoc.recordingStart);
-        if (htmlEle && !htmlEle.paused && start) {
-            htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = this._duration = htmlEle.duration);
-            setTimeout(this.updateHighlights, 30);
-            this.Document.currentTimecode = htmlEle.currentTime;
+        if (start && htmlEle) {
+            htmlEle && htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = htmlEle.duration);
             DocListCast(this.dataDoc.links).map(l => {
                 let la1 = l.anchor1 as Doc;
                 let linkTime = NumCast(l.anchor2Timecode);
@@ -90,25 +87,29 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     la1 = l.anchor2 as Doc;
                     linkTime = NumCast(l.anchor1Timecode);
                 }
-                if (linkTime > this._lastUpdate && linkTime < htmlEle.currentTime) {
+                if (linkTime > NumCast(this.Document.currentTimecode) && linkTime < htmlEle.currentTime) {
                     Doc.linkFollowHighlight(la1);
                 }
             });
-            this._lastUpdate = htmlEle.currentTime;
+            this.Document.currentTimecode = htmlEle.currentTime;
         }
     }
+
+    pause = action(() => {
+        this._ele!.pause();
+        this._playing = false;
+    })
 
     playFrom = (seekTimeInSeconds: number) => {
         if (this._ele) {
             if (seekTimeInSeconds < 0) {
-                this._ele.pause();
+                this.pause();
             } else if (seekTimeInSeconds <= this._ele.duration) {
                 this._ele.currentTime = seekTimeInSeconds;
                 this._ele.play();
-                this._lastUpdate = seekTimeInSeconds;
-                setTimeout(this.updateHighlights, 0);
+                runInAction(() => this._playing = true);
             } else {
-                this._ele.pause();
+                this.pause();
             }
         }
     }
@@ -170,6 +171,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     stopRecording = action(() => {
         this._recorder.stop();
+        this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
         this._audioState = "recorded";
         let ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
         ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
@@ -182,12 +184,15 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         }
     }
 
-    playClick = (e: any) => setTimeout(this.updateHighlights, 30);
     onPlay = (e: any) => this.playFrom(this._ele!.paused ? this._ele!.currentTime : -1);
+    onStop = (e: any) => {
+        this.pause();
+        this._ele!.currentTime = 0;
+        e.stopPropagation();
+    }
 
     setRef = (e: HTMLAudioElement | null) => {
-        e && e.addEventListener("play", this.playClick as any);
-        e && e.addEventListener("timeupdate", () => this.props.Document.currentTimecode = e!.currentTime);
+        e && e.addEventListener("timeupdate", action(() => this.Document.currentTimecode = e!.currentTime));
         this._ele = e;
     }
 
@@ -216,21 +221,40 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     </button> :
                     <div className="audiobox-controls">
                         <div className="audiobox-player" onClick={this.onPlay}>
-                            <FontAwesomeIcon icon="play" size="sm" ></FontAwesomeIcon>
-                            {DocListCast(this.dataDoc.links).map((l, i) => {
-                                let la1 = l.anchor1 as Doc;
-                                let la2 = l.anchor2 as Doc;
-                                let linkTime = NumCast(l.anchor2Timecode);
-                                if (Doc.AreProtosEqual(la1, this.dataDoc)) {
-                                    la1 = l.anchor2 as Doc;
-                                    la2 = l.anchor1 as Doc;
-                                    linkTime = NumCast(l.anchor1Timecode);
-                                }
-                                return <div key={i} className="audiobox-marker" onPointerDown={() =>
-                                    DocumentManager.Instance.FollowLink(l, la2, document => this.props.addDocTab(document, undefined, "onRight"), false)}
-                                    style={{ left: `${linkTime / this._duration * 100}%` }} />;
-                            })}
-                            {this.audio}
+                            <FontAwesomeIcon className="audiobox-playhead" icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 25 ? "1x" : "2x"} />
+                            <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon className="audiobox-playhead" icon="stop" size={this.props.PanelHeight() < 25 ? "1x" : "2x"} /></div>
+                            <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
+                                onPointerDown={e => {
+                                    if (e.button === 0 && !e.ctrlKey) {
+                                        let rect = (e.target as any).getBoundingClientRect();
+                                        this._ele!.currentTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                        this.pause();
+                                        e.stopPropagation();
+                                    }
+                                }} >
+                                {DocListCast(this.dataDoc.links).map((l, i) => {
+                                    let la1 = l.anchor1 as Doc;
+                                    let la2 = l.anchor2 as Doc;
+                                    let linkTime = NumCast(l.anchor2Timecode);
+                                    if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                                        la1 = l.anchor2 as Doc;
+                                        la2 = l.anchor1 as Doc;
+                                        linkTime = NumCast(l.anchor1Timecode);
+                                    }
+                                    return !linkTime ? (null) : <div className="audiobox-marker-container" style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                        <div className="audioBox-linker" key={"linker" + i}>
+                                            <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
+                                                parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
+                                                backgroundColor={returnTransparent} />
+                                        </div>
+                                        <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
+                                            onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(linkTime); e.stopPropagation(); } }}
+                                            onClick={e => { if (e.button === 0 && !e.ctrlKey) { this.pause(); e.stopPropagation(); } }} />
+                                    </div>;
+                                })}
+                                <div className="audiobox-current" style={{ left: `${NumCast(this.Document.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
+                                {this.audio}
+                            </div>
                         </div>
                     </div>
                 }

@@ -1,10 +1,10 @@
 .audiobox-container, .audiobox-container-interactive {
     width: 100%;
     height: 100%;
-    min-height: 32px;
     position: inherit;
     display:flex;
     pointer-events: all;
+    cursor:default;
     .audiobox-handle {
         width:20px;
         height:100%;
@@ -35,18 +35,66 @@
         width:100%;
         height:100%;
         position: relative;
-        display: grid;
+        display: flex;
         .audiobox-player {
             margin-top:auto;
             margin-bottom:auto;
             width:100%;
+            height: 80%;
             position: relative;
-            display: grid;
-            .audiobox-marker {
-                position:absolute;
-                width:10px;
+            display: flex;
+            .audiobox-playhead {
+                position: relative;
+                margin-top: auto;
+                margin-bottom: auto;
+                width: 25px;
+            }
+            .audiobox-timeline {
+                position:relative;
                 height:100%;
-                background:green;
+                width:100%;
+                .audiobox-current {
+                    width: 1px;
+                    height:100%;
+                    background-color: red;
+                    position: absolute;;
+                }
+                .audiobox-linker {
+                    position:absolute;
+                    width:15px;
+                    min-height:10px;
+                    height:15px;
+                    margin-left:-2.55px;
+                    background:gray;
+                    border-radius: 100%;
+                    background-color: transparent;
+                    box-shadow: black 2px 2px 1px;
+                    .docuLinkBox-cont {
+                        width:15px !important;
+                        height:15px !important;
+                        left: calc(100% - 15px) !important;
+                        top: calc(100% - 15px) !important;
+                    }
+                }
+                .audiobox-linker:hover {
+                    transform:scale(1.5);
+                }
+                .audiobox-marker-container {
+                    position:absolute;
+                    width:10px;
+                    height:100%;
+                    background:gray;
+                    border-radius: 5px;
+                    box-shadow: black 2px 2px 1px;
+                    .audiobox-marker {
+                        position:relative;
+                        height: calc(100% - 15px);
+                        margin-top: 15px;
+                    }
+                    .audio-marker:hover {
+                        border: orange 2px solid;
+                    }
+                }
             }
         }
     }

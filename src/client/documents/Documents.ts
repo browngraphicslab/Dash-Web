@@ -171,7 +171,7 @@ export namespace Docs {
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox, dataField: data },
-                options: { height: 32 }
+                options: { height: 35, backgroundColor: "lightGray", borderRounding: "20%" }
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
@@ -691,6 +691,7 @@ export namespace DocUtils {
             }
         });
     }
+
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         let sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
