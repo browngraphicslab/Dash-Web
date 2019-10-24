@@ -182,6 +182,24 @@
     }
 }
 
+#colorPicker {
+    position: relative;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .buttonColor {
+        position: absolute;
+        top: 24px;
+        left: 1px;
+        width: 24px;
+        height: 4px;
+        margin-top: 0;
+    }
+}
+
   .strong, .heading { font-weight: bold; }
   .em { font-style: italic; }
   .underline {text-decoration: underline}

@@ -21,7 +21,7 @@ import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { updateBullets } from './ProsemirrorExampleTransfer';
 import { DocumentDecorations } from '../views/DocumentDecorations';
 import { SelectionManager } from './SelectionManager';
-import { PastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
+import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -58,6 +58,8 @@ export class TooltipTextMenu {
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
+    private colorDom?: Node;
+    private colorDropdownDom?: Node;
 
 
     // private _collapseBtn?: MenuItem;
@@ -99,7 +101,7 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
-            { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
+            // { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
         ];
 
         // add menu items
@@ -135,8 +137,10 @@ export class TooltipTextMenu {
         });
 
         // color menu
-        this.tooltip.appendChild(this.createColorTool().render(this.view).dom);
-        this.tooltip.appendChild(this.createColorDropdown().render(this.view).dom);
+        this.colorDom = this.createColorTool().render(this.view).dom;
+        this.colorDropdownDom = this.createColorDropdown().render(this.view).dom;
+        this.tooltip.appendChild(this.colorDom);
+        this.tooltip.appendChild(this.colorDropdownDom);
 
         // link menu
         this.updateLinkMenu();
@@ -760,14 +764,35 @@ export class TooltipTextMenu {
         return true;
     }
 
+    createHighlightTool() {
+
+    }
+
     createColorTool() {
         return new MenuItem({
-            title: "Summarize",
-            label: "Summarize",
-            icon: icons.join,
+            title: "Color",
+            // label: "Color",
+            // icon: icon,
             css: "color:white;",
             class: "menuicon",
             execEvent: "",
+            render() {
+                let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("viewBox", "-100 -100 650 650");
+                let path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+                path.setAttributeNS(null, "d", "M204.3 5C104.9 24.4 24.8 104.3 5.2 203.4c-37 187 131.7 326.4 258.8 306.7 41.2-6.4 61.4-54.6 42.5-91.7-23.1-45.4 9.9-98.4 60.9-98.4h79.7c35.8 0 64.8-29.6 64.9-65.3C511.5 97.1 368.1-26.9 204.3 5zM96 320c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm32-128c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128-64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128 64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z");
+                svg.appendChild(path);
+
+                let color = document.createElement("div");
+                color.className = "buttonColor";
+                color.style.backgroundColor = TooltipTextMenuManager.Instance.color.toString();
+
+                let wrapper = document.createElement("div");
+                wrapper.id = "colorPicker";
+                wrapper.appendChild(svg);
+                wrapper.appendChild(color);
+                return wrapper;
+            },
             run: (state, dispatch) => {
                 TooltipTextMenu.insertColor(TooltipTextMenuManager.Instance.color, this.view.state, this.view.dispatch);
             }
@@ -798,15 +823,15 @@ export class TooltipTextMenu {
                 colorsWrapper.className = "colorPicker-wrapper";
 
                 let colors = [
-                    PastelSchemaPalette.get("pink2"),
-                    PastelSchemaPalette.get("purple4"),
-                    PastelSchemaPalette.get("bluegreen1"),
-                    PastelSchemaPalette.get("yellow4"),
-                    PastelSchemaPalette.get("red2"),
-                    PastelSchemaPalette.get("bluegreen7"),
-                    PastelSchemaPalette.get("bluegreen5"),
-                    PastelSchemaPalette.get("orange1"),
-                    "#f1efeb",
+                    DarkPastelSchemaPalette.get("pink2"),
+                    DarkPastelSchemaPalette.get("purple4"),
+                    DarkPastelSchemaPalette.get("bluegreen1"),
+                    DarkPastelSchemaPalette.get("yellow4"),
+                    DarkPastelSchemaPalette.get("red2"),
+                    DarkPastelSchemaPalette.get("bluegreen7"),
+                    DarkPastelSchemaPalette.get("bluegreen5"),
+                    DarkPastelSchemaPalette.get("orange1"),
+                    "#757472",
                     "#000"
                 ];
 
@@ -815,7 +840,19 @@ export class TooltipTextMenu {
                     button.className = color === TooltipTextMenuManager.Instance.color ? "colorPicker active" : "colorPicker";
                     if (color) {
                         button.style.backgroundColor = color;
-                        button.onclick = e => TooltipTextMenuManager.Instance.color = color;
+                        button.onclick = e => {
+                            TooltipTextMenuManager.Instance.color = color;
+
+                            TooltipTextMenu.insertColor(TooltipTextMenuManager.Instance.color, self.view.state, self.view.dispatch);
+
+                            // update color menu
+                            let colorDom = self.createColorTool().render(self.view).dom;
+                            let colorDropdownDom = self.createColorDropdown().render(self.view).dom;
+                            self.colorDom && self.tooltip.replaceChild(colorDom, self.colorDom);
+                            self.colorDropdownDom && self.tooltip.replaceChild(colorDropdownDom, self.colorDropdownDom);
+                            self.colorDom = colorDom;
+                            self.colorDropdownDom = colorDropdownDom;
+                        };
                     }
                     colorsWrapper.appendChild(button);
                 });
@@ -1183,8 +1220,8 @@ export class TooltipTextMenu {
         //UPDATE LIST ITEM DROPDOWN
 
         // update link dropdown
-        let dropdown = await this.createLinkDropdown();
-        let newLinkDropdowndom = dropdown.render(this.view).dom;
+        let linkDropdown = await this.createLinkDropdown();
+        let newLinkDropdowndom = linkDropdown.render(this.view).dom;
         this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
         this._linkDropdownDom = newLinkDropdowndom;
 
