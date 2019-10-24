@@ -95,14 +95,14 @@ export class TooltipTextMenu {
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
 
-        // init buttons to the tooltip
+        // init buttons to the tooltip -- paths to svgs are obtained from fontawesome
         let items = [
-            { command: toggleMark(schema.marks.strong), dom: this.icon("B", "strong", "Bold") },
-            { command: toggleMark(schema.marks.em), dom: this.icon("i", "em", "Italic") },
-            { command: toggleMark(schema.marks.underline), dom: this.icon("U", "underline", "Underline") },
-            { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
-            { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
-            { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
+            { command: toggleMark(schema.marks.strong), dom: this.svgIcon("strong", "Bold", "M333.49 238a122 122 0 0 0 27-65.21C367.87 96.49 308 32 233.42 32H34a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h31.87v288H34a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h209.32c70.8 0 134.14-51.75 141-122.4 4.74-48.45-16.39-92.06-50.83-119.6zM145.66 112h87.76a48 48 0 0 1 0 96h-87.76zm87.76 288h-87.76V288h87.76a56 56 0 0 1 0 112z") },
+            { command: toggleMark(schema.marks.em), dom: this.svgIcon("em", "Italic", "M320 48v32a16 16 0 0 1-16 16h-62.76l-80 320H208a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16H16a16 16 0 0 1-16-16v-32a16 16 0 0 1 16-16h62.76l80-320H112a16 16 0 0 1-16-16V48a16 16 0 0 1 16-16h192a16 16 0 0 1 16 16z") },
+            { command: toggleMark(schema.marks.underline), dom: this.svgIcon("underline", "Underline", "M32 64h32v160c0 88.22 71.78 160 160 160s160-71.78 160-160V64h32a16 16 0 0 0 16-16V16a16 16 0 0 0-16-16H272a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h32v160a80 80 0 0 1-160 0V64h32a16 16 0 0 0 16-16V16a16 16 0 0 0-16-16H32a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16zm400 384H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16z") },
+            { command: toggleMark(schema.marks.strikethrough), dom: this.svgIcon("strikethrough", "Strikethrough", "M496 224H293.9l-87.17-26.83A43.55 43.55 0 0 1 219.55 112h66.79A49.89 49.89 0 0 1 331 139.58a16 16 0 0 0 21.46 7.15l42.94-21.47a16 16 0 0 0 7.16-21.46l-.53-1A128 128 0 0 0 287.51 32h-68a123.68 123.68 0 0 0-123 135.64c2 20.89 10.1 39.83 21.78 56.36H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h480a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm-180.24 96A43 43 0 0 1 336 356.45 43.59 43.59 0 0 1 292.45 400h-66.79A49.89 49.89 0 0 1 181 372.42a16 16 0 0 0-21.46-7.15l-42.94 21.47a16 16 0 0 0-7.16 21.46l.53 1A128 128 0 0 0 224.49 480h68a123.68 123.68 0 0 0 123-135.64 114.25 114.25 0 0 0-5.34-24.36z") },
+            { command: toggleMark(schema.marks.superscript), dom: this.svgIcon("superscript", "Superscript", "M496 160h-16V16a16 16 0 0 0-16-16h-48a16 16 0 0 0-14.29 8.83l-16 32A16 16 0 0 0 400 64h16v96h-16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h96a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zM336 64h-67a16 16 0 0 0-13.14 6.87l-79.9 115-79.9-115A16 16 0 0 0 83 64H16A16 16 0 0 0 0 80v48a16 16 0 0 0 16 16h33.48l77.81 112-77.81 112H16a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h67a16 16 0 0 0 13.14-6.87l79.9-115 79.9 115A16 16 0 0 0 269 448h67a16 16 0 0 0 16-16v-48a16 16 0 0 0-16-16h-33.48l-77.81-112 77.81-112H336a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16z") },
+            { command: toggleMark(schema.marks.subscript), dom: this.svgIcon("subscript", "Subscript", "M496 448h-16V304a16 16 0 0 0-16-16h-48a16 16 0 0 0-14.29 8.83l-16 32A16 16 0 0 0 400 352h16v96h-16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h96a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zM336 64h-67a16 16 0 0 0-13.14 6.87l-79.9 115-79.9-115A16 16 0 0 0 83 64H16A16 16 0 0 0 0 80v48a16 16 0 0 0 16 16h33.48l77.81 112-77.81 112H16a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h67a16 16 0 0 0 13.14-6.87l79.9-115 79.9 115A16 16 0 0 0 269 448h67a16 16 0 0 0 16-16v-48a16 16 0 0 0-16-16h-33.48l-77.81-112 77.81-112H336a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16z") },
             // { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
         ];
 
@@ -787,7 +787,7 @@ export class TooltipTextMenu {
 
                 let color = document.createElement("div");
                 color.className = "buttonColor";
-                color.style.backgroundColor = TooltipTextMenuManager.Instance.highlight.toString() === "transparent" ? "#fff" : TooltipTextMenuManager.Instance.highlight.toString();
+                color.style.backgroundColor = TooltipTextMenuManager.Instance.highlight.toString();
 
                 let wrapper = document.createElement("div");
                 wrapper.id = "colorPicker";
@@ -832,7 +832,7 @@ export class TooltipTextMenu {
                     PastelSchemaPalette.get("bluegreen7"),
                     PastelSchemaPalette.get("bluegreen5"),
                     PastelSchemaPalette.get("orange1"),
-                    // "#f1f0eb",
+                    "white",
                     "transparent"
                 ];
 
@@ -840,8 +840,7 @@ export class TooltipTextMenu {
                     let button = document.createElement("button");
                     button.className = color === TooltipTextMenuManager.Instance.highlight ? "colorPicker active" : "colorPicker";
                     if (color) {
-                        button.style.backgroundColor = color === "transparent" ? "#fff" : color;
-                        button.style.color = "black";
+                        button.style.backgroundColor = color;
                         button.textContent = color === "transparent" ? "X" : "";
                         button.onclick = e => {
                             TooltipTextMenuManager.Instance.highlight = color;
@@ -1236,6 +1235,21 @@ export class TooltipTextMenu {
         span.title = title;
         span.textContent = text;
         span.style.color = "white";
+        return span;
+    }
+
+    svgIcon(name: string, title: string = name, dpath: string) {
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "-100 -100 650 650");
+        let path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+        path.setAttributeNS(null, "d", dpath);
+        svg.appendChild(path);
+
+        let span = document.createElement("span");
+        span.className = name + " menuicon";
+        span.title = title;
+        span.appendChild(svg);
+
         return span;
     }
 
