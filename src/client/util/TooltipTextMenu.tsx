@@ -1,4 +1,4 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
+import { library, dom } from '@fortawesome/fontawesome-svg-core';
 import { faListUl } from '@fortawesome/free-solid-svg-icons';
 import { action, observable } from "mobx";
 import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
@@ -60,6 +60,8 @@ export class TooltipTextMenu {
     private listTypeBtnDom?: Node;
     private colorDom?: Node;
     private colorDropdownDom?: Node;
+    private highlightDom?: Node;
+    private highlightDropdownDom?: Node;
 
 
     // private _collapseBtn?: MenuItem;
@@ -135,6 +137,12 @@ export class TooltipTextMenu {
             });
 
         });
+
+        // highlight menu
+        this.highlightDom = this.createHighlightTool().render(this.view).dom;
+        this.highlightDropdownDom = this.createHighlightDropdown().render(this.view).dom;
+        this.tooltip.appendChild(this.highlightDom);
+        this.tooltip.appendChild(this.highlightDropdownDom);
 
         // color menu
         this.colorDom = this.createColorTool().render(this.view).dom;
@@ -765,14 +773,111 @@ export class TooltipTextMenu {
     }
 
     createHighlightTool() {
+        return new MenuItem({
+            title: "Highlight",
+            css: "color:white;",
+            class: "menuicon",
+            execEvent: "",
+            render() {
+                let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("viewBox", "-100 -100 650 650");
+                let path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+                path.setAttributeNS(null, "d", "M0 479.98L99.92 512l35.45-35.45-67.04-67.04L0 479.98zm124.61-240.01a36.592 36.592 0 0 0-10.79 38.1l13.05 42.83-50.93 50.94 96.23 96.23 50.86-50.86 42.74 13.08c13.73 4.2 28.65-.01 38.15-10.78l35.55-41.64-173.34-173.34-41.52 35.44zm403.31-160.7l-63.2-63.2c-20.49-20.49-53.38-21.52-75.12-2.35L190.55 183.68l169.77 169.78L530.27 154.4c19.18-21.74 18.15-54.63-2.35-75.13z");
+                svg.appendChild(path);
 
+                let color = document.createElement("div");
+                color.className = "buttonColor";
+                color.style.backgroundColor = TooltipTextMenuManager.Instance.highlight.toString() === "transparent" ? "#fff" : TooltipTextMenuManager.Instance.highlight.toString();
+
+                let wrapper = document.createElement("div");
+                wrapper.id = "colorPicker";
+                wrapper.appendChild(svg);
+                wrapper.appendChild(color);
+                return wrapper;
+            },
+            run: (state, dispatch) => {
+                TooltipTextMenu.insertHighlight(TooltipTextMenuManager.Instance.highlight, this.view.state, this.view.dispatch);
+            }
+        });
+    }
+
+    public static insertHighlight(color: String, state: EditorState<any>, dispatch: any) {
+        if (state.selection.empty) return false;
+
+        let highlightMark = state.schema.mark(state.schema.marks.highlight2, { highlight: color });
+        dispatch(state.tr.addMark(state.selection.from, state.selection.to, highlightMark));
+    }
+
+    createHighlightDropdown() {
+        // menu item for color picker
+        let self = this;
+        let colors = new MenuItem({
+            title: "",
+            execEvent: "",
+            class: "button-setting-disabled",
+            css: "",
+            render() {
+                let p = document.createElement("p");
+                p.textContent = "Change highlight:";
+
+                let colorsWrapper = document.createElement("div");
+                colorsWrapper.className = "colorPicker-wrapper";
+
+                let colors = [
+                    PastelSchemaPalette.get("pink2"),
+                    PastelSchemaPalette.get("purple4"),
+                    PastelSchemaPalette.get("bluegreen1"),
+                    PastelSchemaPalette.get("yellow4"),
+                    PastelSchemaPalette.get("red2"),
+                    PastelSchemaPalette.get("bluegreen7"),
+                    PastelSchemaPalette.get("bluegreen5"),
+                    PastelSchemaPalette.get("orange1"),
+                    // "#f1f0eb",
+                    "transparent"
+                ];
+
+                colors.forEach(color => {
+                    let button = document.createElement("button");
+                    button.className = color === TooltipTextMenuManager.Instance.highlight ? "colorPicker active" : "colorPicker";
+                    if (color) {
+                        button.style.backgroundColor = color === "transparent" ? "#fff" : color;
+                        button.style.color = "black";
+                        button.textContent = color === "transparent" ? "X" : "";
+                        button.onclick = e => {
+                            TooltipTextMenuManager.Instance.highlight = color;
+
+                            TooltipTextMenu.insertHighlight(TooltipTextMenuManager.Instance.highlight, self.view.state, self.view.dispatch);
+
+                            // update color menu
+                            let highlightDom = self.createHighlightTool().render(self.view).dom;
+                            let highlightDropdownDom = self.createHighlightDropdown().render(self.view).dom;
+                            self.highlightDom && self.tooltip.replaceChild(highlightDom, self.highlightDom);
+                            self.highlightDropdownDom && self.tooltip.replaceChild(highlightDropdownDom, self.highlightDropdownDom);
+                            self.highlightDom = highlightDom;
+                            self.highlightDropdownDom = highlightDropdownDom;
+                        };
+                    }
+                    colorsWrapper.appendChild(button);
+                });
+
+                let div = document.createElement("div");
+                div.appendChild(p);
+                div.appendChild(colorsWrapper);
+                return div;
+            },
+            enable() { return false; },
+            run(p1, p2, p3, event) {
+                event.stopPropagation();
+            }
+        });
+
+        let colorDropdown = new Dropdown([colors], { class: "buttonSettings-dropdown" }) as MenuItem;
+        return colorDropdown;
     }
 
     createColorTool() {
         return new MenuItem({
             title: "Color",
-            // label: "Color",
-            // icon: icon,
             css: "color:white;",
             class: "menuicon",
             execEvent: "",
@@ -796,7 +901,6 @@ export class TooltipTextMenu {
             run: (state, dispatch) => {
                 TooltipTextMenu.insertColor(TooltipTextMenuManager.Instance.color, this.view.state, this.view.dispatch);
             }
-
         });
     }
 
@@ -1406,6 +1510,7 @@ class TooltipTextMenuManager {
     public _brushIsEmpty: boolean = true;
 
     public color: String = "#000";
+    public highlight: String = "transparent";
 
     public activeMenu: TooltipTextMenu | undefined;
 

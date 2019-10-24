@@ -321,8 +321,21 @@ export const marks: { [index: string]: MarkSpec } = {
         }],
         toDOM(node: any) {
             return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
-            // ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
-            // ["a", { ...node.attrs }, 0];
+        }
+    },
+
+    highlight2: {
+        attrs: {
+            highlight: { default: "transparent" }
+        },
+        inclusive: false,
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { highlight: dom.getAttribute("backgroundColor") };
+            }
+        }],
+        toDOM(node: any) {
+            return node.attrs.highlight ? ['span', { style: 'background-color:' + node.attrs.highlight }] : ['span', { style: 'background-color: transparent' }];
         }
     },
 
