@@ -1,4 +1,4 @@
-import { Doc } from "../new_fields/Doc";
+import { Doc, FieldResult } from "../new_fields/Doc";
 import { StrCast, Cast } from "../new_fields/Types";
 import { List } from "../new_fields/List";
 import { CognitiveServices } from "./cognitive_services/CognitiveServices";
@@ -147,47 +147,55 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false, image: boolean = false) {
-        let fielddata = Cast(dataDoc.data, RichTextField);
-        if (image && extDoc.generatedTags) {
-            console.log(Cast(extDoc.generatedTags, listSpec("string")));
+        let data: string = "";
+        let taglist: FieldResult<List<string>> = undefined;
+        if (image && extDoc.generatedTags) { // TODO: Automatically generate tags. Need to ask Sam about this.
+            taglist = Cast(extDoc.generatedTags, listSpec("string"));
+            taglist!.forEach(tag => {
+                data += tag + ", ";
+            });
         }
-        let data: string;
-        fielddata ? data = fielddata[ToPlainText]() : data = "";
-        let converter = async (results: any, data: string) => {
+        else {
+            let fielddata = Cast(dataDoc.data, RichTextField);
+            fielddata ? data = fielddata[ToPlainText]() : data = "";
+        }
+
+        let converter = async (results: any, data: string, isImage: boolean = false) => {
             let keyterms = new List<string>(); // raw keywords
             // let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated. input to w2v
             let kp_string: string = ""; // keywords*frequency concatenated into a string. input into TF
             let highKP: string[] = [""]; // most frequent keyphrase
             let high = 0;
-            results.documents.forEach((doc: any) => {
-                let keyPhrases = doc.keyPhrases;
-                keyPhrases.map((kp: string) => {
-                    keyterms.push(kp);
-                    const frequency = this.countFrequencies(kp, data); // frequency of keyphrase in paragraph
-                    kp_string += kp + ", "; // ensures that if frequency is 0 for some reason kp is still added
-                    for (let i = 0; i < frequency - 1; i++) {
-                        kp_string += kp + ", "; // weights repeated keywords higher
-                    }
-                    // replaces highKP with new one
-                    if (frequency > high) {
-                        high = frequency;
-                        highKP = [kp];
-                    }
-                    // appends to current highKP phrase
-                    else if (frequency === high) {
-                        highKP.push(kp);
-                    }
-                    // let words = kp.split(" "); // separates phrase into words
-                    // words = this.removeStopWords(words); // removes stop words if they appear in phrases
-                    // words.forEach((word) => {
-                    //     for (let i = 0; i < frequency; i++) {
-                    //         keyterms_counted.push(word);
-                    //     }
-                    // });
+
+            if (isImage) {
+                kp_string = data;
+                if (taglist) {
+                    keyterms = taglist;
+                    highKP = [taglist[0]];
+                }
+            }
+            else { // text processing
+                results.documents.forEach((doc: any) => {
+                    let keyPhrases = doc.keyPhrases;
+                    keyPhrases.map((kp: string) => {
+                        keyterms.push(kp);
+                        const frequency = this.countFrequencies(kp, data); // frequency of keyphrase in paragraph
+                        kp_string += kp + ", "; // ensures that if frequency is 0 for some reason kp is still added
+                        for (let i = 0; i < frequency - 1; i++) {
+                            kp_string += kp + ", "; // weights repeated keywords higher
+                        }
+                        // replaces highKP with new one
+                        if (frequency > high) {
+                            high = frequency;
+                            highKP = [kp];
+                        }
+                        // appends to current highKP phrase
+                        else if (frequency === high) {
+                            highKP.push(kp);
+                        }
+                    });
                 });
-            });
-            // const kts_counted = new List<string>();
-            // keyterms_counted.forEach(kt => kts_counted.push(kt.toLowerCase()));
+            }
             if (kp_string.length > 2) kp_string = kp_string.substring(0, kp_string.length - 2);
             console.log("kp string: ", kp_string);
             let values = "";

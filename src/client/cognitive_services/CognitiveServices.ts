@@ -9,6 +9,7 @@ import { UndoManager } from "../util/UndoManager";
 import requestPromise = require("request-promise");
 import { List } from "../../new_fields/List";
 import { ClientRecommender } from "../ClientRecommender";
+import { ImageBox } from "../views/nodes/ImageBox";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
@@ -288,12 +289,12 @@ export namespace CognitiveServices {
                 );
             }
 
-            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, isMainDoc: boolean = false, internal: boolean = true) => {
+            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, isMainDoc: boolean = false, isInternal: boolean = true) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
                 let { keyterms, external_recommendations, kp_string } = await converter(results, data);
                 target[keys[0]] = keyterms;
-                if (internal) {
+                if (isInternal) {
                     //await vectorize([data], dataDoc, isMainDoc);
                     await vectorize(kp_string, dataDoc, isMainDoc);
                 } else {

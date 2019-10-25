@@ -143,7 +143,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
     //     return y;
     // }
 
-    render() {
+    render() { //TODO: Invariant violation: max depth exceeded error. Occurs when images are rendered. 
         // if (!this._display) {
         //     return null;
         // }
