@@ -76,6 +76,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     rowDrop = action((e: Event, de: DragManager.DropEvent) => {
         this._createAliasSelected = false;
         if (de.data instanceof DragManager.DocumentDragData) {
+            (this.props.parent.Document.dropConverter instanceof ScriptField) &&
+                this.props.parent.Document.dropConverter.script.run({ dragData: de.data });
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
             let castedValue = this.getValue(this._heading);
             de.data.droppedDocuments.forEach(d => d[key] = castedValue);
@@ -282,40 +284,44 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             toggle: this.toggleVisibility,
             color: this._color
         };
-        let headingView = this.props.headingObject ?
-            <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
-                <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
-                    title={evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                    style={{
-                        width: "100%",
-                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
-                        color: "grey"
-                    }}>
-                    {<EditableView {...headerEditableViewProps} />}
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
-                        <div className="collectionStackingView-sectionColor">
-                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
-                                <button className="collectionStackingView-sectionColorButton">
-                                    <FontAwesomeIcon icon="palette" size="lg" />
-                                </button>
-                            </ Flyout >
-                        </div>
-                    }
-                    <button className="collectionStackingView-sectionDelete" onClick={this.collapseSection}>
-                        <FontAwesomeIcon icon={this._collapsed ? "chevron-down" : "chevron-up"} size="lg" />
-                    </button>
-                    {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
-                        <div className="collectionStackingView-sectionOptions">
-                            <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
-                                <button className="collectionStackingView-sectionOptionButton">
-                                    <FontAwesomeIcon icon="ellipsis-v" size="lg" />
-                                </button>
-                            </Flyout>
-                        </div>
-                    }
-                </div>
-            </div > : (null);
+        let headingView = this.props.parent.props.Document.miniHeaders ?
+            <div className="collectionStackingView-miniHeader" style={{ width: "100%" }}>
+                {<EditableView {...headerEditableViewProps} />}
+            </div> :
+            this.props.headingObject ?
+                <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
+                    <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
+                        title={evContents === `NO ${key.toUpperCase()} VALUE` ?
+                            `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
+                        style={{
+                            width: "100%",
+                            background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
+                            color: "grey"
+                        }}>
+                        {<EditableView {...headerEditableViewProps} />}
+                        {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
+                            <div className="collectionStackingView-sectionColor">
+                                <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
+                                    <button className="collectionStackingView-sectionColorButton">
+                                        <FontAwesomeIcon icon="palette" size="lg" />
+                                    </button>
+                                </ Flyout >
+                            </div>
+                        }
+                        <button className="collectionStackingView-sectionDelete" onClick={this.collapseSection}>
+                            <FontAwesomeIcon icon={this._collapsed ? "chevron-down" : "chevron-up"} size="lg" />
+                        </button>
+                        {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
+                            <div className="collectionStackingView-sectionOptions">
+                                <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
+                                    <button className="collectionStackingView-sectionOptionButton">
+                                        <FontAwesomeIcon icon="ellipsis-v" size="lg" />
+                                    </button>
+                                </Flyout>
+                            </div>
+                        }
+                    </div>
+                </div > : (null);
         const background = this._background; //to account for observables in Measure
         const collapsed = this._collapsed;
         let chromeStatus = this.props.parent.props.Document.chromeStatus;

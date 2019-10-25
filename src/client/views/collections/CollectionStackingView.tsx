@@ -44,7 +44,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.sectionFilter && this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.sectionFilter && (this.props.Document.chromeStatus !== 'view-mode' && this.props.Document.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
@@ -121,7 +121,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     return res;
                 } else {
                     let sum = Array.from(this._heightMap.values()).reduce((acc: number, curr: number) => acc += curr, 0);
-                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 85 : -15));
+                    return this.props.ContentScaling() * (sum + (this.Sections.size ? (this.props.Document.miniHeaders ? 20 : 85) : -15));
                 }
             }
             return -1;
@@ -363,7 +363,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     onToggle = (checked: Boolean) => {
-        this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus = checked ? "collapsed" : "view-mode");
+        this.props.Document.chromeStatus = checked ? "collapsed" : "view-mode";
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -393,6 +393,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let entries = Array.from(this.Sections.entries());
             sections = entries.sort(this.sortFunc);
         }
+        console.log("NUM = " + this.numGroupColumns);
         return (
             <div className="collectionStackingMasonry-cont" >
                 <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
