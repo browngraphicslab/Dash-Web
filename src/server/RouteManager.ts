@@ -2,7 +2,6 @@ import RouteSubscriber from "./RouteSubscriber";
 import { RouteStore } from "./RouteStore";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
-import { Opt } from "../new_fields/Doc";
 
 export enum Method {
     GET,
@@ -41,15 +40,10 @@ export default class RouteManager {
     }
 
     /**
-     * Please invoke this function when adding a new route to Dash's server.
-     * It ensures that any requests leading to or containing user-sensitive information
-     * does not execute unless Passport authentication detects a user logged in.
-     * @param method whether or not the request is a GET or a POST
-     * @param handler the action to invoke, recieving a DashUserModel and, as expected, the Express.Request and Express.Response
-     * @param onRejection an optional callback invoked on return if no user is found to be logged in
-     * @param subscribers the forward slash prepended path names (reference and add to RouteStore.ts) that will all invoke the given @param handler 
+     * 
+     * @param initializer 
      */
-    addSupervisedRoute(initializer: RouteInitializer) {
+    addSupervisedRoute = (initializer: RouteInitializer): void => {
         const { method, subscription, onValidation, onUnauthenticated, onError } = initializer;
         const isRelease = this._isRelease;
         let supervised = async (req: express.Request, res: express.Response) => {
@@ -72,6 +66,9 @@ export default class RouteManager {
                 req.session!.target = target;
                 if (onUnauthenticated) {
                     await tryExecute(onUnauthenticated, core);
+                    if (!res.headersSent) {
+                        res.redirect(RouteStore.login);
+                    }
                 } else {
                     res.redirect(RouteStore.login);
                 }

@@ -33,11 +33,10 @@ import UtilManager from './ApiManagers/UtilManager';
 import SearchManager from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
+import ExportManager from './ApiManagers/ExportManager';
+import ApiManager from './ApiManagers/ApiManager';
 
 export let youtubeApiKey: string;
-
-export type Hierarchy = { [id: string]: string | Hierarchy };
-export type ZipMutator = (file: Archiver.Archiver) => void | Promise<void>;
 
 export interface NewMediaItem {
     description: string;
@@ -72,9 +71,13 @@ async function PreliminaryFunctions() {
 }
 
 function routeSetter(router: RouteManager) {
-    new UtilManager().register(router);
-    new SearchManager().register(router);
-    new UserManager().register(router);
+    const managers: ApiManager[] = [
+        new UtilManager(),
+        new SearchManager(),
+        new UserManager(),
+        new ExportManager()
+    ];
+    managers.forEach(manager => manager.register(router));
 
     WebSocket.initialize(serverPort, router.isRelease);
 
@@ -151,77 +154,6 @@ function routeSetter(router: RouteManager) {
             res.send({ docs, files: Array.from(files) });
         }
     });
-
-    router.addSupervisedRoute({
-        method: Method.GET,
-        subscription: new RouteSubscriber(RouteStore.imageHierarchyExport).add('docId'),
-        onValidation: async ({ req, res }) => {
-            const id = req.params.docId;
-            const hierarchy: Hierarchy = {};
-            await targetedVisitorRecursive(id, hierarchy);
-            BuildAndDispatchZip(res, async zip => {
-                await hierarchyTraverserRecursive(zip, hierarchy);
-            });
-        }
-    });
-
-    const BuildAndDispatchZip = async (res: Response, mutator: ZipMutator): Promise<void> => {
-        const zip = Archiver('zip');
-        zip.pipe(res);
-        await mutator(zip);
-        return zip.finalize();
-    };
-
-    const targetedVisitorRecursive = async (seedId: string, hierarchy: Hierarchy): Promise<void> => {
-        const local: Hierarchy = {};
-        const { title, data } = await getData(seedId);
-        const label = `${title} (${seedId})`;
-        if (Array.isArray(data)) {
-            hierarchy[label] = local;
-            await Promise.all(data.map(proxy => targetedVisitorRecursive(proxy.fieldId, local)));
-        } else {
-            hierarchy[label + path.extname(data)] = data;
-        }
-    };
-
-    const getData = async (seedId: string): Promise<{ data: string | any[], title: string }> => {
-        return new Promise<{ data: string | any[], title: string }>((resolve, reject) => {
-            Database.Instance.getDocument(seedId, async (result: any) => {
-                const { data, proto, title } = result.fields;
-                if (data) {
-                    if (data.url) {
-                        resolve({ data: data.url, title });
-                    } else if (data.fields) {
-                        resolve({ data: data.fields, title });
-                    } else {
-                        reject();
-                    }
-                }
-                if (proto) {
-                    getData(proto.fieldId).then(resolve, reject);
-                }
-            });
-        });
-    };
-
-    const hierarchyTraverserRecursive = async (file: Archiver.Archiver, hierarchy: Hierarchy, prefix = "Dash Export"): Promise<void> => {
-        for (const key of Object.keys(hierarchy)) {
-            const result = hierarchy[key];
-            if (typeof result === "string") {
-                let path: string;
-                let matches: RegExpExecArray | null;
-                if ((matches = /\:1050\/files\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
-                    path = `${__dirname}/public/files/${matches[1]}`;
-                } else {
-                    const information = await DashUploadUtils.UploadImage(result);
-                    path = information.mediaPaths[0];
-                }
-                file.file(path, { name: key, prefix });
-            } else {
-                await hierarchyTraverserRecursive(file, result, `${prefix}/${key}`);
-            }
-        }
-    };
 
     router.addSupervisedRoute({
         method: Method.GET,
@@ -600,22 +532,24 @@ function routeSetter(router: RouteManager) {
     router.addSupervisedRoute({
         method: Method.GET,
         subscription: RouteStore.delete,
-        onValidation: ({ res, isRelease }) => {
+        onValidation: async ({ res, isRelease }) => {
             if (isRelease) {
                 return _permission_denied(res, deletionPermissionError);
             }
-            WebSocket.deleteFields().then(() => res.redirect(RouteStore.home));
+            await WebSocket.deleteFields();
+            res.redirect(RouteStore.home);
         }
     });
 
     router.addSupervisedRoute({
         method: Method.GET,
         subscription: RouteStore.deleteAll,
-        onValidation: ({ res, isRelease }) => {
+        onValidation: async ({ res, isRelease }) => {
             if (isRelease) {
                 return _permission_denied(res, deletionPermissionError);
             }
-            WebSocket.deleteAll().then(() => res.redirect(RouteStore.home));
+            await WebSocket.deleteAll();
+            res.redirect(RouteStore.home);
         }
     });
 

@@ -1,13 +1,13 @@
-import ApiManager from "./ApiManager";
-import RouteManager, { Method } from "../RouteManager";
+import ApiManager, { Registration } from "./ApiManager";
+import { Method } from "../RouteManager";
 import { exec } from 'child_process';
 import { command_line } from "../ActionUtilities";
 
 export default class UtilManager extends ApiManager {
 
-    public register(router: RouteManager): void {
+    protected initialize(register: Registration): void {
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/pull",
             onValidation: ({ res }) => {
@@ -21,7 +21,7 @@ export default class UtilManager extends ApiManager {
             }
         });
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/buxton",
             onValidation: ({ res }) => {
@@ -35,7 +35,7 @@ export default class UtilManager extends ApiManager {
             },
         });
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/version",
             onValidation: ({ res }) => {

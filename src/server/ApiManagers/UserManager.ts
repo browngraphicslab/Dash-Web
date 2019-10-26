@@ -1,11 +1,12 @@
-import ApiManager from "./ApiManager";
-import RouteManager, { Method } from "../RouteManager";
+import ApiManager, { Registration } from "./ApiManager";
+import { Method } from "../RouteManager";
 import { WebSocket } from "../Websocket/Websocket";
 
 export default class UserManager extends ApiManager {
 
-    public register(router: RouteManager): void {
-        router.addSupervisedRoute({
+    protected initialize(register: Registration): void {
+
+        register({
             method: Method.GET,
             subscription: "/whosOnline",
             onValidation: ({ res }) => {
@@ -22,6 +23,7 @@ export default class UserManager extends ApiManager {
                 res.send(users);
             }
         });
+
     }
 
     private msToTime(duration: number) {

@@ -1,5 +1,5 @@
-import ApiManager from "./ApiManager";
-import RouteManager, { Method } from "../RouteManager";
+import ApiManager, { Registration } from "./ApiManager";
+import { Method } from "../RouteManager";
 import { Search } from "../Search";
 var findInFiles = require('find-in-files');
 import * as path from 'path';
@@ -7,9 +7,9 @@ import { uploadDirectory } from "..";
 
 export default class SearchManager extends ApiManager {
 
-    public register(router: RouteManager): void {
+    protected initialize(register: Registration): void {
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/textsearch",
             onValidation: async ({ req, res }) => {
@@ -29,7 +29,7 @@ export default class SearchManager extends ApiManager {
             }
         });
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/search",
             onValidation: async ({ req, res }) => {

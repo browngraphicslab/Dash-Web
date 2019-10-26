@@ -4,7 +4,7 @@ import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
 import { Search } from "../Search";
-import io from 'socket.io';
+import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { youtubeApiKey } from "..";
 
