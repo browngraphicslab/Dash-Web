@@ -24,8 +24,6 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 //
 export interface FieldViewProps {
     fieldKey: string;
-    fieldExt: string;
-    leaveNativeSize?: boolean;
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
@@ -54,9 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
-        //"<ImageBox {...props} />"
+    public static LayoutString(fieldType: { name: string }, fieldStr: string) {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"}/>`;  //e.g., "<ImageBox {...props} fieldKey={"dada} />"
     }
 
     @computed
@@ -76,7 +73,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <FormattedTextBox {...this.props} />;
         }
         else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} leaveNativeSize={true} />;
+            return <ImageBox {...this.props} />;
         }
         // else if (field instaceof PresBox) {
         //    return <PresBox {...this.props} />;

@@ -6,6 +6,15 @@
      
     .sketch-picker {
         margin:auto;
+        div {
+            cursor: crosshair;
+        }
+        .flexbox-fix {
+            cursor: pointer;
+            div {
+                cursor:pointer;
+            }
+        }
     }
 }
 .colorBox-container-interactive {

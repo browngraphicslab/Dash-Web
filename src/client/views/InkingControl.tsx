@@ -9,6 +9,7 @@ import { Utils } from "../../Utils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 
 export class InkingControl {
@@ -24,7 +25,7 @@ export class InkingControl {
 
     switchTool = action((tool: InkTool): void => {
         this._selectedTool = tool;
-    })
+    });
     decimalToHexString(number: number) {
         if (number < 0) {
             number = 0xFFFFFFFF + number + 1;
@@ -36,10 +37,13 @@ export class InkingControl {
     @undoBatch
     switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
-                let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :
+                    view.props.Document.layout instanceof Doc ? view.props.Document.layout :
+                        view.props.Document.isTemplateField ? view.props.Document : Doc.GetProto(view.props.Document);
                 let sel = window.getSelection();
                 if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
                     targetDoc.color = this._selectedColor;
@@ -77,18 +81,20 @@ export class InkingControl {
                     ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
                     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
                 }
-                !ruleProvider && (targetDoc.backgroundColor = matchedColor);
+                (!ruleProvider && targetDoc) && (Doc.Layout(view.props.Document).backgroundColor = matchedColor);
 
                 return {
                     target: targetDoc,
                     previous: oldColor
                 };
             });
-            let captured = this._selectedColor;
-            UndoManager.AddEvent({
-                undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
-                redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
-            });
+            //let captured = this._selectedColor;
+            // UndoManager.AddEvent({
+            //     undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
+            //     redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
+            // });
+        } else {
+            CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
         }
     });
     @action
@@ -120,6 +126,7 @@ export class InkingControl {
 Scripting.addGlobal(function activatePen(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Pen : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
 Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Highlighter : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
 Scripting.addGlobal(function activateEraser(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Eraser : InkTool.None); });
+Scripting.addGlobal(function activateScrubber(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Scrubber : InkTool.None); });
 Scripting.addGlobal(function deactivateInk() { return InkingControl.Instance.switchTool(InkTool.None); });
 Scripting.addGlobal(function setInkWidth(width: any) { return InkingControl.Instance.switchWidth(width); });
 Scripting.addGlobal(function setInkColor(color: any) { return InkingControl.Instance.updateSelectedColor(color); });

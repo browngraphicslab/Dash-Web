@@ -144,7 +144,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
-            fieldExt: "",
             ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
