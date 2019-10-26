@@ -8,7 +8,7 @@ import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash, faTimes, faEye, faCheck, faCross} from "@fortawesome/free-solid-svg-icons";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { TimelineOverview } from "./TimelineOverview";
@@ -265,7 +265,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     timelineContextMenu = (e: MouseEvent): void => {
         ContextMenu.Instance.addItem({description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
             this._timelineVisible = !this._timelineVisible; 
-        }), icon: faTimes}); 
+        }), icon: this._timelineVisible ? faEyeSlash : faEye }); 
     }
 
 
@@ -329,7 +329,6 @@ export class Timeline extends React.Component<FieldViewProps> {
                 </div>
                 <div key="time-text" className="animation-text"><p>Length: </p></div>
                 <input placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
-
             </div>
         );
     }
@@ -341,7 +340,6 @@ export class Timeline extends React.Component<FieldViewProps> {
             this._time = parseInt(timeInput.value, 10);
             this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
             this.props.Document.AnimationLength = this._time; 
-            
         }
     }
 
@@ -391,6 +389,10 @@ export class Timeline extends React.Component<FieldViewProps> {
                             <div key="timeline_resize" onPointerDown={this.onResizeDown}>
                                 <FontAwesomeIcon className="resize" icon={faGripLines} />
                             </div>
+                        </div>
+                        <div key="timeline-checker"> 
+                            <FontAwesomeIcon className="check" icon={faCheck} />
+                            <FontAwesomeIcon className="check" icon={faCross} />
                         </div>
                     </div>
                     {this.timelineToolBox(1)}

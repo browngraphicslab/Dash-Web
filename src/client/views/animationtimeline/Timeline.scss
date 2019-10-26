@@ -156,19 +156,12 @@
 }
 
 
-@keyframes turnon{
-    from{
-        background-color: white;
-    }
-    to{
-        background-color: purple; 
-    }
-}   
-@keyframes turnoff{
-    from{
-        background-color: purple; 
-    }
-    to{
-        background-color: white; 
+.timeline-checker{
+    height: auto; 
+    width: auto; 
+    position: absolute;     
+    .check{
+        width: 100px; 
+        height: 100px; 
     }
 }

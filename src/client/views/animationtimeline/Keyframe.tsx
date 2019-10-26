@@ -125,6 +125,7 @@ interface IProps {
     tickSpacing: number; 
     tickIncrement: number; 
     time: number; 
+    
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
 }
