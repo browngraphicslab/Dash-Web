@@ -24,7 +24,7 @@ library.add(faFilm, faTag, faTextHeight);
 
 @observer
 export class IconBox extends React.Component<FieldViewProps> {
-    public static LayoutString() { return FieldView.LayoutString(IconBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(IconBox, fieldKey); }
 
     @observable _panelWidth: number = 0;
     @observable _panelHeight: number = 0;

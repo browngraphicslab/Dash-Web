@@ -21,6 +21,10 @@
     overflow-y: auto;
     flex-wrap: wrap;
     transition: top .5s;
+    >div {
+        position: relative;
+        display: block;
+    }
 
     .collectionSchemaView-previewDoc {
         height: 100%;
@@ -99,6 +103,7 @@
         grid-column-end: span 1;
         height: 100%;
         margin: auto;
+        display: inline-grid;
     }
 
     .collectionStackingView-masonrySection {
@@ -118,7 +123,38 @@
             background: red;
         }
     }
-
+    .collectionStackingView-miniHeader {
+        width: 100%;
+        .editableView-container-editing-oneLine {
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+        }
+        span::before , span::after{
+            content: "";
+            width: 50%;
+            border-top: dashed gray 1px;
+            position: relative;
+            display: inline-block;
+        }
+        span::before {
+            margin-right: 10px;
+        }
+        span::after{
+            margin-left: 10px;
+        }
+        span {
+            position: relative;
+            text-align: center;
+            white-space: nowrap;
+            overflow: visible;
+            width: 100%;
+            display: flex;
+            color:gray;
+            align-items: center;
+        }
+    }
     .collectionStackingView-sectionHeader {
         text-align: center;
         margin-left: 2px;
@@ -220,7 +256,6 @@
             }
 
             .collectionStackingView-optionPicker {
-                width: 78px;
 
                 .optionOptions {
                     display: inline;
@@ -228,10 +263,10 @@
 
                 .optionPicker {
                     cursor: pointer;
-                    width: 20px;
                     height: 20px;
                     border-radius: 10px;
                     margin: 3px;
+                    width:max-content;
 
                     &.active {
                         color: red;

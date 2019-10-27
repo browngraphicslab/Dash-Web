@@ -19,8 +19,8 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
-import { documentSchema } from "./DocumentView";
 import { DocAnnotatableComponent } from "../DocComponent";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 
 library.add(faStickyNote);
 
@@ -30,7 +30,7 @@ const WebDocument = makeInterface(documentSchema);
 @observer
 export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(WebBox, "data", fieldExt); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
@@ -39,12 +39,12 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field && field.url.href.indexOf("youtube") !== -1) {
             let youtubeaspect = 400 / 315;
-            var nativeWidth = NumCast(this.props.Document.nativeWidth, 0);
-            var nativeHeight = NumCast(this.props.Document.nativeHeight, 0);
+            var nativeWidth = NumCast(this.layoutDoc.nativeWidth);
+            var nativeHeight = NumCast(this.layoutDoc.nativeHeight);
             if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                if (!nativeWidth) this.props.Document.nativeWidth = 600;
-                this.props.Document.nativeHeight = NumCast(this.props.Document.nativeWidth) / youtubeaspect;
-                this.props.Document.height = NumCast(this.props.Document.width) / youtubeaspect;
+                if (!nativeWidth) this.layoutDoc.nativeWidth = 600;
+                this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / youtubeaspect;
+                this.layoutDoc.height = NumCast(this.layoutDoc.width) / youtubeaspect;
             }
         }
 
@@ -194,13 +194,14 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             </>);
     }
     render() {
-        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (<div className={"imageBox-container"} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                annotationsKey={this.annotationsKey}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
+                isAnnotationOverlay={true}
                 select={emptyFunction}
                 active={this.active}
                 ContentScaling={returnOne}

@@ -3,8 +3,7 @@ import { action, observable, runInAction, reaction, IReactionDisposer } from 'mo
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import 'react-image-lightbox/style.css';
-import { Opt, WidthSym } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { Cast } from "../../../new_fields/Types";
@@ -16,20 +15,19 @@ import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeF
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from "../DocComponent";
-import { InkingControl } from "../InkingControl";
 import { PDFViewer } from "../pdf/PDFViewer";
-import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { documentSchema } from '../../../new_fields/documentSchemas';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
 export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(PDFBox, "data", fieldExt); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
@@ -65,6 +63,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 }
             }, { fireImmediately: true });
     }
+
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
         this.Document.nativeWidth = nw * 96 / 72;
@@ -115,7 +114,6 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
-    active = () => this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
@@ -134,12 +132,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
-        return !this.props.active() ? (null) :
+        return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
-                    <input className="pdfBox-searchBar" placeholder="Search" autoFocus={true} ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
+                    <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
                         e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey);
                     }} />
                     <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
@@ -205,11 +203,11 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     _initialScale: number | undefined;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live....
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
+        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
         let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
         if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+        return (!this.extensionDoc || noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
             <div className="pdfBox-title-outer" >
                 <div className={classname} >
                     <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
@@ -231,10 +229,10 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                     addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
-                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
+                    pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} extensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />
+                    fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }

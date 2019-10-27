@@ -10,6 +10,8 @@ import SharingManager from "../util/SharingManager";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Cast, PromiseValue } from "../../new_fields/Types";
 import { ScriptField } from "../../new_fields/ScriptField";
+import { InkingControl } from "./InkingControl";
+import { InkTool } from "../../new_fields/InkField";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -64,6 +66,7 @@ export default class KeyManager {
         switch (keyname) {
             case "escape":
                 let main = MainView.Instance;
+                InkingControl.Instance.switchTool(InkTool.None);
                 if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {

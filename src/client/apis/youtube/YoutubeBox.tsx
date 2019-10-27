@@ -40,7 +40,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @observable curVideoTemplates: VideoTemplate[] = [];
 
 
-    public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(YoutubeBox, fieldKey); }
 
     /**
      * When component mounts, last search's results are laoded in based on the back up stored

@@ -8,7 +8,8 @@ export enum InkTool {
     None,
     Pen,
     Highlighter,
-    Eraser
+    Eraser,
+    Scrubber
 }
 
 export interface StrokeData {
@@ -17,6 +18,7 @@ export interface StrokeData {
     width: string;
     tool: InkTool;
     displayTimecode: number;
+    creationTime: number;
 }
 
 export type InkData = Map<string, StrokeData>;

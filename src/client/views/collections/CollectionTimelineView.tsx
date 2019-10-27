@@ -1303,16 +1303,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             {this.tickvals.map(function (t) {
                                 if (t.counter % 100 === 0) {
                                     return (<div className="max" ref={t.ref} style={{
-                                        position: "absolute", top: "0%", left: t.leftval, zIndex: -100, writingMode: "vertical-rl",
+                                        position: "absolute", top: "0%", left: t.leftval, zIndex: 1, writingMode: "vertical-rl",
                                         textOrientation: "mixed",
                                     }
                                     }> <div style={{ paddingTop: "10px" }}>{t.val}</div></div>);
                                 }
                                 else if (t.counter % 50 === 0) {
-                                    return (<div className="max2" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: -100 }} />);
+                                    return (<div className="max2" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: 1 }} />);
                                 }
                                 else if (t.counter % 10 === 0) {
-                                    return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: -100 }} />);
+                                    return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: 1 }} />);
                                 }
                             })}
                         </div>

@@ -1,5 +1,8 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+    faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
+    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -21,7 +24,7 @@ import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionLinearView } from './CollectionLinearView';
-import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
+import { CollectionViewType, CollectionView } from './collections/CollectionView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
@@ -33,6 +36,8 @@ import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { Scripting } from '../util/Scripting';
+import { LinkManager } from '../util/LinkManager';
 
 @observer
 export class MainView extends React.Component {
@@ -40,6 +45,7 @@ export class MainView extends React.Component {
     private _buttonBarHeight = 75;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
+    private _docBtnRef = React.createRef<HTMLDivElement>();
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
@@ -99,7 +105,13 @@ export class MainView extends React.Component {
         library.add(faGlobeAsia);
         library.add(faUndoAlt);
         library.add(faRedoAlt);
+        library.add(faMousePointer);
+        library.add(faPen);
+        library.add(faHighlighter);
+        library.add(faEraser);
+        library.add(faFileAudio);
         library.add(faPenNib);
+        library.add(faMicrophone);
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
@@ -175,7 +187,8 @@ export class MainView extends React.Component {
             y: 400,
             width: this._panelWidth * .7,
             height: this._panelHeight,
-            title: "My Blank Collection"
+            title: "My Blank Collection",
+            backgroundColor: "white"
         };
         let workspaces: FieldResult<Doc>;
         let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
@@ -219,7 +232,7 @@ export class MainView extends React.Component {
                 if (!state.nro) {
                     DocServer.Control.makeReadOnly();
                 }
-                CollectionBaseView.SetSafeMode(true);
+                CollectionView.SetSafeMode(true);
             } else if (state.nro || state.nro === null || state.readonly === false) {
             } else if (doc.readOnly) {
                 DocServer.Control.makeReadOnly();
@@ -252,9 +265,11 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         const mainContainer = this.mainContainer;
+        let flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
+        let flyoutTranslate = this._flyoutTranslate;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} className="mainView-mainDiv" onDrop={this.onDrop}>
+                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutTranslate ? flyoutWidth : 0}px`, transform: `translate(${flyoutTranslate ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
                     {!mainContainer ? (null) :
                         <DocumentView Document={mainContainer}
                             DataDoc={undefined}
@@ -335,18 +350,18 @@ export class MainView extends React.Component {
         }
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
-    @computed
-    get flyout() {
+
+    @computed get flyout() {
         let sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        let libraryButtonDoc = Cast(CurrentUserUtils.UserDocument.libraryButtons, Doc) as Doc;
-        libraryButtonDoc.columnWidth = this.flyoutWidth / 3 - 30;
-        return <div className="mainView-flyoutContainer">
+        let sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
+        sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
+        return <div className="mainView-flyoutContainer" >
             <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
                 <DocumentView
-                    Document={libraryButtonDoc}
+                    Document={sidebarButtonsDoc}
                     DataDoc={undefined}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
@@ -401,8 +416,7 @@ export class MainView extends React.Component {
             </div></div>;
     }
 
-    @computed
-    get mainContent() {
+    @computed get mainContent() {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" >
@@ -433,52 +447,58 @@ export class MainView extends React.Component {
             </div>);
     }
 
+    public static expandFlyout = action(() => {
+        MainView.Instance._flyoutTranslate = true;
+        MainView.Instance.flyoutWidth = 250;
+    });
+
     @computed get expandButton() {
-        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={() => {
-            runInAction(() => {
-                this.flyoutWidth = 250;
-                this._flyoutTranslate = true;
-            });
-        }}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
+        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
-    addButtonDoc = (doc: Doc) => {
-        Doc.AddDocToList(CurrentUserUtils.UserDocument, "docButtons", doc);
-        return true;
-    }
-    remButtonDoc = (doc: Doc) => {
-        Doc.RemoveDocFromList(CurrentUserUtils.UserDocument, "docButtons", doc);
-        return true;
+    addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
+    remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
+    moveButtonDoc = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
+
+    buttonBarXf = () => {
+        if (!this._docBtnRef.current) return Transform.Identity();
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
+        return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        return <div className="mainView-docButtons" style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20 }} >
-            <MainViewNotifs />
-            <CollectionLinearView Document={CurrentUserUtils.UserDocument} DataDoc={undefined}
-                fieldKey={"docButtons"}
-                fieldExt={""}
-                showHiddenControls={true}
-                select={emptyFunction}
-                chromeCollapsed={true}
-                active={returnFalse}
-                isSelected={returnFalse}
-                moveDocument={returnFalse}
-                CollectionView={undefined}
-                addDocument={this.addButtonDoc}
-                addDocTab={this.addDocTabFunc}
-                pinToPres={emptyFunction}
-                removeDocument={this.remButtonDoc}
-                ruleProvider={undefined}
-                onClick={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={this.flyoutWidthFunc}
-                PanelHeight={this.getContentsHeight}
-                renderDepth={0}
-                focus={emptyFunction}
-                whenActiveChanged={emptyFunction}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
-        </div>;
+        if (CurrentUserUtils.UserDocument.expandingButtons instanceof Doc) {
+            return <div className="mainView-docButtons" ref={this._docBtnRef}
+                style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
+                <MainViewNotifs />
+                <CollectionLinearView
+                    Document={CurrentUserUtils.UserDocument.expandingButtons}
+                    DataDoc={undefined}
+                    fieldKey={"data"}
+                    annotationsKey={""}
+                    select={emptyFunction}
+                    chromeCollapsed={true}
+                    active={returnFalse}
+                    isSelected={returnFalse}
+                    moveDocument={this.moveButtonDoc}
+                    CollectionView={undefined}
+                    addDocument={this.addButtonDoc}
+                    addDocTab={this.addDocTabFunc}
+                    pinToPres={emptyFunction}
+                    removeDocument={this.remButtonDoc}
+                    ruleProvider={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={this.buttonBarXf}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getContentsHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    whenActiveChanged={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined} />
+            </div>;
+        }
+        return (null);
     }
 
     render() {
@@ -496,3 +516,4 @@ export class MainView extends React.Component {
         </div >);
     }
 }
+Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
