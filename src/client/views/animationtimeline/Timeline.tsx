@@ -8,7 +8,7 @@ import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash, faTimes, faEye, faCheck, faCross} from "@fortawesome/free-solid-svg-icons";
+import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash, faTimes, faEye, faCheck, faCross, faCheckCircle, faTimesCircle} from "@fortawesome/free-solid-svg-icons";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { TimelineOverview } from "./TimelineOverview";
@@ -368,6 +368,28 @@ export class Timeline extends React.Component<FieldViewProps> {
             this.props.Document.isAnimating = true;
         }
     }
+
+
+    @observable private _check:string = ""; 
+    @observable private _checkVisible:boolean = false; 
+    @action
+    private onCheckClicked = (type: string) => {
+        if (type === "yes"){
+            this._check = "yes";  
+        } else if (type === "no"){
+            this._check = "no";
+        }
+    }
+
+
+    @action 
+    private checkCallBack = (visible:boolean) => {
+        this._checkVisible = visible; 
+        if (!visible){ //when user confirms
+            this._check = "";
+        }
+
+    }
     render() {
         return (
             <div>
@@ -380,7 +402,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                                     <div key="timeline_scrubberhead" className="scrubberhead"></div>
                                 </div>
                                 <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
-                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />)}
+                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} check={this._check} checkCallBack={this.checkCallBack}/>)}
                                 </div>
                             </div>
                             <div key="timeline_title" className="title-container" ref={this._titleContainer}>
@@ -390,9 +412,13 @@ export class Timeline extends React.Component<FieldViewProps> {
                                 <FontAwesomeIcon className="resize" icon={faGripLines} />
                             </div>
                         </div>
-                        <div key="timeline-checker"> 
-                            <FontAwesomeIcon className="check" icon={faCheck} />
-                            <FontAwesomeIcon className="check" icon={faCross} />
+                        <div key="timeline-checker" className="timeline-checker" style={{top: `${this._containerHeight}px`, visibility: this._checkVisible ? "visible" : "hidden"}}> 
+                            <div onClick = {() => {this.onCheckClicked("yes");}}>
+                                <FontAwesomeIcon style={{color: "#42b883"}} className="check" icon={faCheckCircle} /> 
+                            </div>
+                            <div onClick = {() => {this.onCheckClicked("no");}}>
+                                <FontAwesomeIcon style={{color: "#ff7e67"}} className="check" icon={faTimesCircle} />
+                            </div>
                         </div>
                     </div>
                     {this.timelineToolBox(1)}

@@ -20,7 +20,10 @@ interface IProps {
     tickIncrement: number;
     tickSpacing: number;
     timelineVisible: boolean; 
+    check: string; 
     changeCurrentBarX: (x: number) => void;
+    checkCallBack: (visible: boolean) => void; 
+
 }
 
 @observer

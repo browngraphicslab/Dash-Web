@@ -125,9 +125,10 @@ interface IProps {
     tickSpacing: number; 
     tickIncrement: number; 
     time: number; 
-    
+    check: string; 
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
+    checkCallBack: (visible: boolean) => void; 
 }
 
 @observer
@@ -137,6 +138,7 @@ export class Keyframe extends React.Component<IProps> {
     @observable private _gain = 20; //default
     @observable private _mouseToggled = false; 
     @observable private _doubleClickEnabled = false; 
+    @observable private _index:number = 0; 
 
     @computed private get regiondata() { return RegionData(this.regions[this.regions.indexOf(this.props.RegionData)] as Doc);}
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;}
@@ -386,7 +388,7 @@ export class Keyframe extends React.Component<IProps> {
         }),         
         TimelineMenu.Instance.addItem("button", "Remove Region", ()=>{
             runInAction(() => {
-            this.regions.splice(this.regions.indexOf(this.regiondata), 1);}
+            this.regions.splice(this.regions.indexOf(this.props.RegionData), 1);}
         );}),
         TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
             runInAction(() => {
@@ -492,10 +494,12 @@ export class Keyframe extends React.Component<IProps> {
     private _plotList: ([string, StrokeData] | undefined) = undefined;
     private _interpolationKeyframe: (Doc | undefined) = undefined; 
     private _type: string = ""; 
+    
 
     @action
     onContainerDown = (kf: Doc, type: string) => {
-        let listenerCreated = false;                 
+        let listenerCreated = false;              
+        this.props.checkCallBack(true);    
         this._type = type; 
         this.props.collection.backgroundColor = "rgb(0,0,0)";
         this._reac = reaction(() => {
@@ -504,16 +508,20 @@ export class Keyframe extends React.Component<IProps> {
             if (!listenerCreated) {
                 this._plotList = Array.from(data!)[data!.size - 1]!;
                 this._interpolationKeyframe = kf; 
-                document.addEventListener("pointerup", this.onReactionListen); 
                 listenerCreated = true; 
+                const reac = reaction(() => {
+                    return this.props.check; 
+                },  () => {
+                    if(this.props.check === "yes")  this.onReactionListen(); 
+                    reac(); 
+                    this.props.checkCallBack(false); 
+                }); 
             }
         });
     }
 
     @action
-    onReactionListen = (e: PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
+    onReactionListen = () => {
         if (this._reac && this._plotList && this._interpolationKeyframe) {
             this.props.collection.backgroundColor = "#FFF";
             this._reac();
@@ -554,8 +562,6 @@ export class Keyframe extends React.Component<IProps> {
             this._reac = undefined; 
             this._interpolationKeyframe = undefined; 
             this._plotList = undefined; 
-            this._type = ""; 
-            document.removeEventListener("pointerup", this.onReactionListen); 
         }
     }
 

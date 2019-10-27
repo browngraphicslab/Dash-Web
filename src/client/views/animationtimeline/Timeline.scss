@@ -159,9 +159,19 @@
 .timeline-checker{
     height: auto; 
     width: auto; 
-    position: absolute;     
+    overflow: hidden; 
+    position: absolute; 
+    display: flex; 
+    padding: 10px 10px; 
+    div{
+        height: auto; 
+        width: auto;
+        overflow: hidden; 
+        margin: 0px 10px; 
+        cursor: pointer
+    }
     .check{
-        width: 100px; 
-        height: 100px; 
+        width: 50px; 
+        height: 50px; 
     }
 }
