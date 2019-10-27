@@ -16,11 +16,7 @@ import { EditableView } from "../EditableView";
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import "./CollectionTimelineView.scss";
 import { Thumbnail } from "./CollectionTimeLineViewNode";
-
-type DocTuple = {
-    doc: Doc,
-    value: any,
-};
+import { Id } from "../../../new_fields/FieldSymbols";
 
 type MarkerUnit = {
     document: Doc,
@@ -41,12 +37,21 @@ type Tick = {
 type Node = {
     doc: Doc;
     select?: boolean;
-    leftval: number;
-    top: number;
+    horizontalPos: number;
     mapleft: number;
     row: number;
 };
 
+interface DocValuePair<T> {
+    childDoc: Doc;
+    value: T;
+}
+
+const comparators = {
+    booleans: (a: DocValuePair<boolean>) => a.value ? 1 : -1,
+    strings: (a: DocValuePair<string>, b: DocValuePair<string>) => a.value > b.value ? 1 : -1,
+    numbers: (a: DocValuePair<number>, b: DocValuePair<number>) => a.value - b.value
+};
 
 @observer
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
@@ -55,10 +60,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private timelineref = React.createRef<HTMLDivElement>();
     private sortReactionDisposer: IReactionDisposer | undefined;
     @observable private types: boolean[] = [];
-    @observable pendingThumbnailRefCount = 0;
     private marqueeref = React.createRef<HTMLDivElement>();
     private previewflag = true;
     private disposer: Opt<IReactionDisposer>;
+    private documentThumbnailReferences: React.RefObject<Thumbnail>[] = [];
 
     @action
     onDrop = (e: React.DragEvent): Promise<void> => {
@@ -71,14 +76,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let fieldval = NumCast(this.props.Document.minvalue) + x * this._range * 1.1 / this.barref.current!.getBoundingClientRect().width;
             if (Array.isArray(input)) {
                 for (let inputs of input) {
-                    inputs[this.sortstate] = fieldval;
+                    inputs[this.currentSortingKey] = fieldval;
                 }
             }
             else {
-                input[this.sortstate] = fieldval;
+                input[this.currentSortingKey] = fieldval;
             }
         };
-        this.thumbnailloop();
+        this.initiallyPopulateThumbnails();
         return super.onDrop(e, { x: pt[0], y: pt[1] }, undefined, mutator);
     }
 
@@ -135,7 +140,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createRows();
         this.createticks();
         this.filtermenu();
-        this.thumbnailloop();
+        this.initiallyPopulateThumbnails();
         this.createdownbool();
         window.addEventListener('resize', () => this.createRows(this.rowscale));
     }
@@ -242,7 +247,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 />
                 <div onPointerDown={(e) => this.onPointerDown_RightResize(e, doc)} style={{ position: "absolute", left: NumCast(doc.initialWidth), width: "10px", cursor: "ew-resize", zIndex: 100, height: "100%" }}></div>
             </div>);
-        if (markerUnit.document.sortstate === this.sortstate) {
+        if (markerUnit.document.sortstate === this.currentSortingKey) {
             return markerUnit.element;
         }
         return undefined;
@@ -457,9 +462,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    private _values: number[] = [];
-    @observable
-    private thumbnails: Node[] = [];
+    private _values: DocValuePair<number>[] = [];
+    @observable private thumbnails: Node[] = [];
     private filterDocs = (thumbnail: Node[]): Node[] => {
         let thumbnails = [];
         for (let oldthumbnail of thumbnail) {
@@ -491,8 +495,106 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 return undefined;
         }
     }
+
     @action
-    thumbnailloop() {
+    initiallyPopulateThumbnails() {
+        const childDocs = this.childDocs;
+        let validatedChildren = childDocs.filter(doc => doc[this.currentSortingKey]);
+
+        const childCount = validatedChildren.length;
+        if (!childCount) {
+            return;
+        }
+
+        const partitioned = {
+            booleans: [] as DocValuePair<boolean>[],
+            strings: [] as DocValuePair<string>[],
+            numbers: [] as DocValuePair<number>[]
+        };
+        validatedChildren.map(childDoc => {
+            const value = childDoc[this.currentSortingKey];
+            switch (typeof value) {
+                case "boolean":
+                    partitioned.booleans.push({ childDoc, value });
+                    break;
+                case "string":
+                    partitioned.strings.push({ childDoc, value });
+                    break;
+                case "number":
+                    partitioned.numbers.push({ childDoc, value });
+                    break;
+                default:
+                    alert(`${this.currentSortingKey} is not a valid sorting key for this collection, since ${childDoc[Id]} has a non-primitive field type at this key!`);
+                    return;
+            }
+        });
+
+        const partitions = Object.values(partitioned);
+        const hasMixedTypes = partitions.filter(partition => partition.length).length > 1;
+        const { booleans, strings, numbers } = partitioned;
+
+        let sortedPairs: DocValuePair<any>[];
+        if (hasMixedTypes) {
+            const serialized: DocValuePair<string>[] = strings;
+            for (const { childDoc, value } of booleans) {
+                serialized.push({ childDoc, value: String(value) });
+            }
+            for (const { childDoc, value } of numbers) {
+                serialized.push({ childDoc, value: String(value) });
+            }
+            sortedPairs = serialized.sort(comparators.strings);
+        } else if (booleans.length) {
+            sortedPairs = booleans.sort(comparators.booleans);
+        } else if (numbers.length) {
+            sortedPairs = numbers.sort(comparators.numbers);
+        } else if (strings.length) {
+            sortedPairs = strings.sort(comparators.strings);
+        } else {
+            return;
+        }
+
+        this.documentThumbnailReferences = [];
+
+        // can we tighten this up? not well defined
+        this._range = (sortedPairs.lastElement().value - sortedPairs[0].value);
+        if (isNaN(this._range)) {
+            this._range = sortedPairs.length;
+            for (let i = 0; i < sortedPairs.length; i++) {
+                sortedPairs[i].value = i;
+            }
+        }
+
+        this._values = sortedPairs;
+
+        let { value: first } = sortedPairs[0];
+        for (const { value, childDoc } of sortedPairs) {
+            this.thumbnails.push({
+                mapleft: this.computeMapPosition(first, value),
+                horizontalPos: this.computeHorizontalPosition(first, value),
+                doc: childDoc,
+                row: Math.round(this.rowval.length / 2) - 1,
+                select: false
+            });
+        }
+
+        this.removeOverlap();
+    }
+
+    private computeMapPosition(first: number, current: number): number {
+        const padding = 0.05;
+        const currentPosition = (this._range * padding) + current - first;
+        const fractionalOffset = this.barwidth / (this._range * (1 + 2 * padding));
+        return currentPosition * fractionalOffset;
+    }
+
+    private computeHorizontalPosition(first: number, current: number): number {
+        const zoomFactor = this.barwidth / (this.barwidth - this.rightbound - this.leftbound);
+        const leftOffset = this.leftbound * zoomFactor;
+        return (this.computeMapPosition(first, current) * zoomFactor) - leftOffset;
+    }
+
+    @action
+    updateThumbnailValues() {
         console.log("hit 2");
         let arr: Doc[] = [];
         let doc = DocListCast(this.props.Document);
@@ -501,28 +603,37 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(this.childDocs.length);
         this.childDocs.map((d) => { arr.push(d); });
         //filter based on selected sort criteria 
-        console.log(this.sortstate);
-        let backup = arr.filter(doc => doc[this.sortstate]);
+        console.log(this.currentSortingKey);
+        let backup = arr.filter(doc => doc[this.currentSortingKey]);
         console.log(backup.length);
         let keyvalue: DocTuple[] = [];
 
+        this.thumbnailrenders = this.thumbnails.map(doc => new Thumbnail({
+            scale: this.rowscale, scrollTop: document.body.scrollTop, renderDepth: this.props.renderDepth,
+            CollectionView: this.props.CollectionView, active: this.props.active, whenActiveChanged: this.props.whenActiveChanged, addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres, createportal: () => this.makeportal(), leftval: doc.horizontalPos, doc: doc.doc, sortstate: this.currentSortingKey, top: this.rowval[doc.row],
+            timelinetop: (this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75), transition: this.transtate,
+            toggleopac: BoolCast(this.opac), tog: this.opacset, pointerDown: (this.downbool ? this.downbool : false), timelineTop: this.rowval[Math.round(this.rowval.length / 2)],
+            select: (doc.select ? doc.select : false), update: this.update, range: this._range, appenddoc: this.appenddoc
+        }));
+
         if (backup.length > 0) {
-            if (this.sortstate === "creationDate") {
+            if (this.currentSortingKey === "creationDate") {
                 keyvalue = backup.map(d => {
                     let vdate = Cast(d.creationDate, DateField) as DateField;
                     let value = new Date(vdate.date).getTime();
                     return { doc: d, value: value };
                 });
             }
-            else if (isNaN(parseFloat(String(backup[0][this.sortstate])))) {
+            else if (isNaN(parseFloat(String(backup[0][this.currentSortingKey])))) {
                 keyvalue = backup.map(d => {
-                    let value = String(d[this.sortstate]);
+                    let value = String(d[this.currentSortingKey]);
                     return { doc: d, value: value };
                 });
             }
             else {
                 keyvalue = backup.map(d => {
-                    let value = NumCast(d[this.sortstate]);
+                    let value = NumCast(d[this.currentSortingKey]);
                     return { doc: d, value: value };
                 });
             }
@@ -544,8 +655,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         this._values = values;
         let leftval = "0";
-        this.thumbnails = [];
-        runInAction(() => this.pendingThumbnailRefCount = backup.length);
+        //this.thumbnails = [];
         for (let i = 0; i < backup.length; i++) {
             leftval = ((((this._range * 0.05) + values[i] - values[0]) * this.barwidth / (this._range * 1.1)) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px";
             let select = false;
@@ -558,20 +668,33 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
             let newNode = {
-                mapleft: ((values[i] - values[0] + (this._range * 0.05)) * this.barwidth / (this._range * 1.1)), leftval: parseFloat(leftval), doc: docs[i], top: 20, row: Math.round(this.rowval.length / 2) - 1, select: select
+                mapleft: ((values[i] - values[0] + (this._range * 0.05)) * this.barwidth / (this._range * 1.1)), horizontalPos: parseFloat(leftval), doc: docs[i], top: 20, row: Math.round(this.rowval.length / 2) - 1, select: select
             } as Node;
             this.thumbnails.push(newNode);
         }
         this.thumbnails = this.filterDocs(this.thumbnails);
         console.log(this.thumbnails.length);
-        this.adjustY();
+        this.removeOverlap();
+        this.thumbnailrenders = this.thumbnails.map(doc => new Thumbnail({
+            scale: this.rowscale, scrollTop: document.body.scrollTop, renderDepth: this.props.renderDepth,
+            CollectionView: this.props.CollectionView, active: this.props.active, whenActiveChanged: this.props.whenActiveChanged, addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres, createportal: () => this.makeportal(), leftval: doc.horizontalPos, doc: doc.doc, sortstate: this.currentSortingKey, top: this.rowval[doc.row],
+            timelinetop: (this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75), transition: this.transtate,
+            toggleopac: BoolCast(this.opac), tog: this.opacset, pointerDown: (this.downbool ? this.downbool : false), timelineTop: this.rowval[Math.round(this.rowval.length / 2)],
+            select: (doc.select ? doc.select : false), update: this.update, range: this._range, appenddoc: this.appenddoc
+        }));
+        for (let thumbnail of this.thumbnailrenders) {
+            thumbnail.leftval = 0;
+        }
     }
+
+    private thumbnailrenders: Thumbnail[] | undefined;
 
     @observable
     private thumbnailbools: Doc[] | undefined;
 
     @action
-    adjustY() {
+    removeOverlap() {
         for (let thumbnail1 of this.thumbnails) {
             thumbnail1.row = Math.round(this.rowval.length / 2) - 1;
         }
@@ -584,30 +707,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 pos = true;
                 counter = 0;
                 for (let thumbnail2 of this.thumbnails) {
-                    if (((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - this.rowscale < thumbnail2.leftval)
-                        || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + this.rowscale > thumbnail2.leftval))
-                        && (thumbnail1.row === thumbnail2.row)
-                        && thumbnail1 !== thumbnail2) {
-                        // if (thumbnail1.row % 2 !== 0) {
-                        //     let distance = Math.abs(thumbnail1.row - Math.round(this.rows.length / 2) - 1);
-                        //     thumbnail1.row += 1 + distance;
-                        // }
-                        // else {
-                        //     let distance = Math.abs(thumbnail1.row - Math.round(this.rows.length / 2) - 1);
-                        //     thumbnail1.row -= (1 + distance);
-                        // }
+                    if (thumbnail1 === thumbnail2) {
+                        continue;
+                    }
+                    if (thumbnail1.row === thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
                         if (pos === true) {
                             counter++;
                             thumbnail2.row += counter;
                             pos = false;
-                        }
-                        else {
+                        } else {
                             thumbnail2.row -= counter;
                             pos = true;
-                        }
-
-                        if (thumbnail1.row >= this.rowval.length - 1) {
-                            //this.rowscale = this.rowscale * 0.8;
                         }
                         overlap = false;
                     }
@@ -627,6 +737,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
+    private checkOverlap = (a: Node, b: Node): boolean => {
+        const { horizontalPos: first } = a;
+        const { horizontalPos: second } = a;
+        const leftOverlap = first >= second && first - this.rowscale < second;
+        const rightOverlap = first <= second && first + this.rowscale > second;
+        return leftOverlap || rightOverlap;
+    }
+
     private tickrefs: React.RefObject<HTMLDivElement>[] = [];
     //@observable
     private tickvals: Tick[] = [];
@@ -642,7 +760,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.tickrefs.push(tickref);
             let val = 0;
             if (counter % 100 === 0) {
-                val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0] - this._range * 0.05);
+                val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0].value - this._range * 0.05);
                 let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
                 this.tickvals.push(t);
             }
@@ -793,10 +911,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.barwidth = number;
     }
 
-    private get sortstate() {
+    private get currentSortingKey() {
         let doc = this.props.Document;
         if (!doc.sortstate) {
-            this.sortstate = "x";
+            this.currentSortingKey = "x";
         }
         return String(doc.sortstate);
     }
@@ -862,7 +980,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return BoolCast(doc.opac);
     }
 
-    private set sortstate(string) {
+    private set currentSortingKey(string) {
         this.props.Document.sortstate = string;
     }
 
@@ -957,7 +1075,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.initialMapWidth = 10;
             d.annotation = "Edit me!";
             d.color = this.selectedColor;
-            d.sortstate = this.sortstate;
+            d.sortstate = this.currentSortingKey;
             this.markerDocs.push(d);
         }
         if (e.button === 2) {
@@ -1006,8 +1124,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let offsety = this.screenref.current!.getBoundingClientRect().top;
             let newselects: Doc[] | undefined = [];
             for (let thumbnails of this.thumbnails) {
-                let thumbnailinfoleft = thumbnails.leftval + offset;
-                let thumbnailinforight = thumbnails.leftval + this.rowscale + offset;
+                let thumbnailinfoleft = thumbnails.horizontalPos + offset;
+                let thumbnailinforight = thumbnails.horizontalPos + this.rowscale + offset;
                 let thumbnailinfotop = this.rowval[thumbnails.row] + offsety;
                 let thumbnailinfobottom = this.rowval[thumbnails.row] + this.rowscale + offsety;
 
@@ -1233,7 +1351,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         //     this.firstround = true;
         // }
         this.props.Document._range = this._range;
-        this.props.Document.minvalue = this.props.Document.minvalue = this._values[0] - this._range * 0.05;
+        this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
         this.createdownbool();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
@@ -1271,8 +1389,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", position: "absolute", height: "100%", width: "100%", }}>
                         {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "100%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
-                        {this.thumbnails.map(doc =>
-                            <div className="ABCDEFG">
+                        {this.thumbnails.map(node =>
+                            <div className="ABCDEFG" key={node.doc[Id]}>
                                 <Thumbnail
                                     scale={this.rowscale}
                                     scrollTop={document.body.scrollTop}
@@ -1282,13 +1400,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                                     whenActiveChanged={this.props.whenActiveChanged}
                                     addDocTab={this.props.addDocTab}
                                     pinToPres={this.props.pinToPres}
-                                    createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
+                                    createportal={() => this.makeportal()} leftval={node.horizontalPos} doc={node.doc} sortstate={this.currentSortingKey} top={this.rowval[node.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
                                     transition={this.transtate}
                                     toggleopac={BoolCast(this.opac)}
                                     tog={this.opacset}
                                     pointerDown={this.downbool ? this.downbool : false}
                                     timelineTop={this.rowval[Math.round(this.rowval.length / 2)]}
-                                    select={doc.select ? doc.select : false}
+                                    select={node.select ? node.select : false}
                                     update={this.update}
                                     range={this._range}
                                     appenddoc={this.appenddoc}
@@ -1296,6 +1414,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                                 </Thumbnail>
                             </div>)
                         }
+                        {/* <div className="HELP">
+                            {this.thumbnailrenders}
+                        </div> */}
                         {this.markerDocs.map(d => this.createmarker(d as Doc))}
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
                             position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"

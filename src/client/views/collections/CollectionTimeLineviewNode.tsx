@@ -17,7 +17,8 @@ import React = require("react");
 
 
 @observer
-export class Thumbnail extends React.Component<NodeProps> {
+export class
+    Thumbnail extends React.Component<NodeProps> {
 
     @action
     checkData = (document: Doc): IconProp => {
@@ -157,12 +158,26 @@ export class Thumbnail extends React.Component<NodeProps> {
 
     @observable newclass: boolean | undefined;
 
+    @observable left: number | undefined;
+
+    @computed
+    get leftval(): number {
+        if (this.left === undefined) {
+            this.left = this.props.leftval;
+            return this.left;
+        }
+        return this.left;
+
+    }
+
+    set leftval(number) {
+        this.left = number;
+    }
+
     render() {
         this.maketransition();
         this.getCaption();
         this.tog();
-        console.log(this.props.select);
-        console.log(this.selectclass);
         return (
             <div>
                 <div onPointerDown={(e) => this.toggleSelection(e)} style={{ zIndex: 1, transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
