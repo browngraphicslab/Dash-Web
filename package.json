@@ -161,6 +161,7 @@
         "howler": "^2.1.2",
         "html-to-image": "^0.1.0",
         "i": "^0.3.6",
+        "ibm-watson": "^5.1.0",
         "image-data-uri": "^2.0.0",
         "image-size": "^0.7.4",
         "imagesloaded": "^4.1.4",
