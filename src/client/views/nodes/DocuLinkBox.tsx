@@ -36,7 +36,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         (e.button === 0 && !e.ctrlKey) && e.stopPropagation();
     }
     onPointerMove = action((e: PointerEvent) => {
-        let cdiv = this._ref.current!.parentElement;
+        let cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
         if (cdiv && (Math.abs(e.clientX - this._downx) > 5 || Math.abs(e.clientY - this._downy) > 5)) {
             let bounds = cdiv.getBoundingClientRect();
             let pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
@@ -65,6 +65,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         }
         e.stopPropagation();
     }
+
     render() {
         let anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
         let hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;

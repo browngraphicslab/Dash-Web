@@ -95,7 +95,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     pause = action(() => {
         this._ele!.pause();
         this._playing = false;
-    })
+    });
 
     playFrom = (seekTimeInSeconds: number) => {
         if (this._ele) {
