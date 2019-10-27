@@ -564,10 +564,10 @@ function routeSetter(router: RouteManager) {
     router.addSupervisedRoute({
         method: Method.POST,
         subscription: new RouteSubscriber(RouteStore.googleDocs).add("sector", "action"),
-        onValidation: ({ req, res }) => {
+        onValidation: ({ req, res, user }) => {
             let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
             let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
-            GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, userId: req.headers.userId as string }).then(endpoint => {
+            GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id).then(endpoint => {
                 let handler = EndpointHandlerMap.get(action);
                 if (endpoint && handler) {
                     let execute = handler(endpoint, req.body).then(
@@ -592,7 +592,7 @@ function routeSetter(router: RouteManager) {
             if (!token) {
                 return res.send(await GoogleApiServerUtils.GenerateAuthenticationUrl(information));
             }
-            GoogleApiServerUtils.RetrieveAccessToken(information).then(token => res.send(token));
+            GoogleApiServerUtils.RetrieveAccessToken(userId).then(token => res.send(token));
         }
     });
 
@@ -600,9 +600,7 @@ function routeSetter(router: RouteManager) {
         method: Method.POST,
         subscription: RouteStore.writeGoogleAccessToken,
         onValidation: async ({ user, req, res }) => {
-            const userId = user.id;
-            const information = { credentialsPath, userId };
-            res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
+            res.send(await GoogleApiServerUtils.ProcessClientSideCode(user.id, req.body.authenticationCode));
         }
     });
 

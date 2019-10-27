@@ -1,7 +1,6 @@
 import { google } from "googleapis";
-import { createInterface } from "readline";
-import { readFile, writeFile } from "fs";
-import { OAuth2Client, Credentials } from "google-auth-library";
+import { readFile } from "fs";
+import { OAuth2Client, Credentials, OAuth2ClientOptions } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
@@ -31,6 +30,8 @@ export namespace GoogleApiServerUtils {
         'userinfo.profile'
     ];
 
+    const ClientMapping = new Map<String, OAuth2Client>();
+
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
 
     export enum Service {
@@ -51,11 +52,11 @@ export namespace GoogleApiServerUtils {
     export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };
     export type EndpointParameters = GlobalOptions & { version: "v1" };
 
-    export const GetEndpoint = (sector: string, paths: CredentialInformation) => {
+    export const GetEndpoint = (sector: string, userId: string) => {
         return new Promise<Opt<Endpoint>>(resolve => {
-            RetrieveCredentials(paths).then(authentication => {
+            authorize(userId).then(({ client: auth }) => {
                 let routed: Opt<Endpoint>;
-                let parameters: EndpointParameters = { auth: authentication.client, version: "v1" };
+                let parameters: EndpointParameters = { auth, version: "v1" };
                 switch (sector) {
                     case Service.Documents:
                         routed = google.docs(parameters).documents;
@@ -69,16 +70,17 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    export const RetrieveAccessToken = (information: CredentialInformation) => {
+    export const RetrieveAccessToken = (userId: string): Promise<string> => {
         return new Promise<string>((resolve, reject) => {
-            RetrieveCredentials(information).then(
-                credentials => resolve(credentials.token.access_token!),
+            authorize(userId).then(
+                ({ token: { access_token } }) => resolve(access_token!),
                 error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
             );
         });
     };
 
-    let AuthorizationManager: OAuth2Client;
+    let installed: OAuth2ClientOptions;
+    let worker: OAuth2Client;
 
     export const LoadOAuthClient = async () => {
         return new Promise<void>((resolve, reject) => {
@@ -87,15 +89,17 @@ export namespace GoogleApiServerUtils {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                const { client_secret, client_id, redirect_uris } = parseBuffer(credentials).installed;
-                AuthorizationManager = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+                installed = parseBuffer(credentials).installed;
+                worker = new google.auth.OAuth2(installed);
                 resolve();
             });
         });
     };
 
+    const generateClient = () => new google.auth.OAuth2(installed);
+
     export const GenerateAuthenticationUrl = async (information: CredentialInformation) => {
-        return AuthorizationManager.generateAuthUrl({
+        return worker.generateAuthUrl({
             access_type: 'offline',
             scope: SCOPES.map(relative => prefix + relative),
         });
@@ -106,16 +110,15 @@ export namespace GoogleApiServerUtils {
         avatar: string;
         name: string;
     }
-    export const ProcessClientSideCode = async (information: CredentialInformation, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
+    export const ProcessClientSideCode = async (userId: string, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
         return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
-            AuthorizationManager.getToken(authenticationCode, async (err, token) => {
+            worker.getToken(authenticationCode, async (err, token) => {
                 if (err || !token) {
                     reject(err);
                     return console.error('Error retrieving access token', err);
                 }
-                AuthorizationManager.setCredentials(token);
                 const enriched = injectUserInfo(token);
-                await Database.Auxiliary.GoogleAuthenticationToken.Write(information.userId, enriched);
+                await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, enriched);
                 const { given_name, picture } = enriched.userInfo;
                 resolve({
                     access_token: enriched.access_token!,
@@ -155,57 +158,39 @@ export namespace GoogleApiServerUtils {
         sub: string;
     }
 
-    export const RetrieveCredentials = (information: CredentialInformation) => {
-        return new Promise<TokenResult>((resolve, reject) => {
-            readFile(information.credentialsPath, async (err, credentials) => {
-                if (err) {
-                    reject(err);
-                    return console.log('Error loading client secret file:', err);
+    export const authorize = async (userId: string): Promise<AuthenticationResult> => {
+        return Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(token => {
+            return new Promise<AuthenticationResult>((resolve, reject) => {
+                const client = generateClient();
+                if (token!.expiry_date! < new Date().getTime()) {
+                    // Token has expired, so submitting a request for a refreshed access token
+                    return refreshToken(token!, client, userId).then(resolve, reject);
                 }
-                authorize(parseBuffer(credentials), information.userId).then(resolve, reject);
+                // Authentication successful!
+                client.setCredentials(token!);
+                resolve({ token: token!, client });
             });
         });
     };
 
-    export const RetrievePhotosEndpoint = (paths: CredentialInformation) => {
+    export const RetrievePhotosEndpoint = (userId: string) => {
         return new Promise<any>((resolve, reject) => {
-            RetrieveAccessToken(paths).then(
+            RetrieveAccessToken(userId).then(
                 token => resolve(new Photos(token)),
                 reject
             );
         });
     };
 
-    type TokenResult = { token: Credentials, client: OAuth2Client };
-    /**
-     * Create an OAuth2 client with the given credentials, and returns the promise resolving to the authenticated client
-     * @param {Object} credentials The authorization client credentials.
-     */
-    export function authorize(credentials: any, userId: string): Promise<TokenResult> {
-        const { client_secret, client_id, redirect_uris } = credentials.installed;
-        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-        return new Promise<TokenResult>((resolve, reject) => {
-            // Attempting to authorize user (${userId})
-            Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(token => {
-                if (token!.expiry_date! < new Date().getTime()) {
-                    // Token has expired, so submitting a request for a refreshed access token
-                    return refreshToken(token!, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
-                }
-                // Authentication successful!
-                oAuth2Client.setCredentials(token!);
-                resolve({ token: token!, client: oAuth2Client });
-            });
-        });
-    }
+    type AuthenticationResult = { token: Credentials, client: OAuth2Client };
 
     const refreshEndpoint = "https://oauth2.googleapis.com/token";
-    const refreshToken = (credentials: Credentials, client_id: string, client_secret: string, oAuth2Client: OAuth2Client, userId: string) => {
-        return new Promise<TokenResult>(resolve => {
+    const refreshToken = (credentials: Credentials, oAuth2Client: OAuth2Client, userId: string) => {
+        return new Promise<AuthenticationResult>(resolve => {
             let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
             let queryParameters = {
                 refreshToken: credentials.refresh_token,
-                client_id,
-                client_secret,
+                ...installed,
                 grant_type: "refresh_token"
             };
             let url = `${refreshEndpoint}?${qs.stringify(queryParameters)}`;
