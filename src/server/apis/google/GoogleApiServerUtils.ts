@@ -7,10 +7,21 @@ import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';
 import { Database } from "../../database";
-const path = require("path");
+import path from "path";
 
+/**
+ * 
+ */
 const prefix = 'https://www.googleapis.com/auth/';
+
+/**
+ * 
+ */
 const refreshEndpoint = "https://oauth2.googleapis.com/token";
+
+/**
+ * 
+ */
 const SCOPES = [
     'documents.readonly',
     'documents',
@@ -25,23 +36,31 @@ const SCOPES = [
 ];
 
 /**
- * Server side authentication for Google Api queries.
+ * This namespace manages server side authentication for Google API queries, either
+ * from the standard v1 APIs or the Google Photos REST API.
  */
 export namespace GoogleApiServerUtils {
 
-    export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
-
+    /**
+     * 
+     */
     export interface GoogleAuthenticationResult {
         access_token: string;
         avatar: string;
         name: string;
     }
 
+    /**
+     * 
+     */
     export interface CredentialsResult {
         credentials: Credentials;
         refreshed: boolean;
     }
 
+    /**
+     * 
+     */
     export interface UserInfo {
         at_hash: string;
         aud: string;
@@ -57,9 +76,74 @@ export namespace GoogleApiServerUtils {
         sub: string;
     }
 
+    /**
+     * 
+     */
+    export enum Service {
+        Documents = "Documents",
+        Slides = "Slides"
+    }
+
+    /**
+     * 
+     */
+    export interface CredentialInformation {
+        credentialsPath: string;
+        userId: string;
+    }
+
+    /**
+     * 
+     */
     let installed: OAuth2ClientOptions;
+
+    /**
+     * This is a global authorization client that is never 
+     * passed around, and whose credentials are never set.
+     * Its job is purely to generate new authentication urls
+     * (users will follow to get to Google's permissions GUI)
+     * and to use the codes returned from that process to generate the
+     * initial credentials.
+     */
     let worker: OAuth2Client;
 
+    /**
+     * 
+     */
+    export type ApiResponse = Promise<GaxiosResponse>;
+
+    /**
+     * 
+     */
+    export type ApiRouter = (endpoint: Endpoint, parameters: any) => ApiResponse;
+
+    /**
+     * 
+     */
+    export type ApiHandler = (parameters: any, methodOptions?: any) => ApiResponse;
+
+    /**
+     * 
+     */
+    export type Action = "create" | "retrieve" | "update";
+
+    /**
+     * 
+     */
+    export interface Endpoint {
+        get: ApiHandler;
+        create: ApiHandler;
+        batchUpdate: ApiHandler;
+    }
+
+    /**
+     * 
+     */
+    export type EndpointParameters = GlobalOptions & { version: "v1" };
+
+    /**
+     * 
+     */
     export const loadClientSecret = async () => {
         return new Promise<void>((resolve, reject) => {
             readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, projectCredentials) => {
@@ -68,36 +152,28 @@ export namespace GoogleApiServerUtils {
                     return console.log('Error loading client secret file:', err);
                 }
                 const { client_secret, client_id, redirect_uris } = JSON.parse(projectCredentials.toString()).installed;
-                worker = new google.auth.OAuth2({
+                // initialize the global authorization client
+                installed = {
                     clientId: client_id,
                     clientSecret: client_secret,
                     redirectUri: redirect_uris[0]
-                });
+                };
+                worker = generateClient();
                 resolve();
             });
         });
     };
 
+    /**
+     * 
+     */
     const authenticationClients = new Map<String, OAuth2Client>();
 
-    export enum Service {
-        Documents = "Documents",
-        Slides = "Slides"
-    }
-
-    export interface CredentialInformation {
-        credentialsPath: string;
-        userId: string;
-    }
-
-    export type ApiResponse = Promise<GaxiosResponse>;
-    export type ApiRouter = (endpoint: Endpoint, parameters: any) => ApiResponse;
-    export type ApiHandler = (parameters: any, methodOptions?: any) => ApiResponse;
-    export type Action = "create" | "retrieve" | "update";
-
-    export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };
-    export type EndpointParameters = GlobalOptions & { version: "v1" };
-
+    /**
+     * 
+     * @param sector 
+     * @param userId 
+     */
     export const GetEndpoint = (sector: string, userId: string) => {
         return new Promise<Opt<Endpoint>>(resolve => {
             retrieveOAuthClient(userId).then(auth => {
@@ -116,6 +192,10 @@ export namespace GoogleApiServerUtils {
         });
     };
 
+    /**
+     * 
+     * @param userId 
+     */
     export const retrieveAccessToken = (userId: string): Promise<string> => {
         return new Promise<string>((resolve, reject) => {
             retrieveCredentials(userId).then(
@@ -125,13 +205,17 @@ export namespace GoogleApiServerUtils {
         });
     };
 
+    /**
+     * 
+     * @param userId 
+     */
     export const retrieveOAuthClient = (userId: string): Promise<OAuth2Client> => {
         return new Promise<OAuth2Client>((resolve, reject) => {
             retrieveCredentials(userId).then(
                 ({ credentials, refreshed }) => {
                     let client = authenticationClients.get(userId);
                     if (!client) {
-                        authenticationClients.set(userId, client = generateClientWith(credentials));
+                        authenticationClients.set(userId, client = generateClient(credentials));
                     } else if (refreshed) {
                         client.setCredentials(credentials);
                     }
@@ -142,12 +226,19 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    function generateClientWith(credentials: Credentials) {
+    /**
+     * 
+     * @param credentials 
+     */
+    function generateClient(credentials?: Credentials) {
         const client = new google.auth.OAuth2(installed);
-        client.setCredentials(credentials);
+        credentials && client.setCredentials(credentials);
         return client;
     }
 
+    /**
+     * 
+     */
     export const generateAuthenticationUrl = async () => {
         return worker.generateAuthUrl({
             access_type: 'offline',
@@ -155,6 +246,11 @@ export namespace GoogleApiServerUtils {
         });
     };
 
+    /**
+     * 
+     * @param userId 
+     * @param authenticationCode 
+     */
     export const processNewUser = async (userId: string, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
         return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
             worker.getToken(authenticationCode, async (err, credentials) => {
@@ -175,6 +271,11 @@ export namespace GoogleApiServerUtils {
     };
 
     /**
+     * 
+     */
+    export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
+
+    /**
      * It's pretty cool: the credentials id_token is split into thirds by periods.
      * The middle third contains a base64-encoded JSON string with all the
      * user info contained in the interface below. So, we isolate that middle third,
@@ -187,6 +288,10 @@ export namespace GoogleApiServerUtils {
         return { ...credentials, userInfo };
     };
 
+    /**
+     * 
+     * @param userId 
+     */
     const retrieveCredentials = async (userId: string): Promise<CredentialsResult> => {
         return new Promise<CredentialsResult>((resolve, reject) => {
             Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(credentials => {
@@ -203,13 +308,18 @@ export namespace GoogleApiServerUtils {
         });
     };
 
+    /**
+     * 
+     * @param credentials 
+     * @param userId 
+     */
     const refreshAccessToken = (credentials: Credentials, userId: string) => {
         return new Promise<CredentialsResult>(resolve => {
             let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
             let queryParameters = {
                 refreshToken: credentials.refresh_token,
-                ...installed,
-                grant_type: "refresh_token"
+                grant_type: "refresh_token",
+                ...installed
             };
             let url = `${refreshEndpoint}?${qs.stringify(queryParameters)}`;
             request.post(url, headerParameters).then(async response => {
