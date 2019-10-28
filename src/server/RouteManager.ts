@@ -75,6 +75,7 @@ export default class RouteManager {
             }
             setTimeout(() => {
                 if (!res.headersSent) {
+                    console.log("Initiating fallback for ", target);
                     const warning = `request to ${target} fell through - this is a fallback response`;
                     res.send({ warning });
                 }

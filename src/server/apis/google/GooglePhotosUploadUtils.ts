@@ -22,7 +22,7 @@ export namespace GooglePhotosUploadUtils {
     const prepend = (extension: string) => `https://photoslibrary.googleapis.com/v1/${extension}`;
     const headers = (type: string, token: string) => ({
         'Content-Type': `application/${type}`,
-        'Authorization': token,
+        'Authorization': `Bearer ${token}`,
     });
 
     export const DispatchGooglePhotosUpload = async (bearerToken: string, url: string) => {

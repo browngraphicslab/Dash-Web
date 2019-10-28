@@ -225,55 +225,58 @@ function routeSetter(router: RouteManager) {
                     }
                 }
             };
-            form.parse(req, async (err, fields, files) => {
-                remap = fields.remap !== "false";
-                let id: string = "";
-                try {
-                    for (const name in files) {
-                        const path_2 = files[name].path;
-                        const zip = new AdmZip(path_2);
-                        zip.getEntries().forEach((entry: any) => {
-                            if (!entry.entryName.startsWith("files/")) return;
-                            let dirname = path.dirname(entry.entryName) + "/";
-                            let extname = path.extname(entry.entryName);
-                            let basename = path.basename(entry.entryName).split(".")[0];
-                            // zip.extractEntryTo(dirname + basename + "_o" + extname, __dirname + RouteStore.public, true, false);
-                            // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
-                            // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
-                            // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
-                            try {
-                                zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
-                                dirname = "/" + dirname;
+            return new Promise<void>(resolve => {
+                form.parse(req, async (_err, fields, files) => {
+                    remap = fields.remap !== "false";
+                    let id: string = "";
+                    try {
+                        for (const name in files) {
+                            const path_2 = files[name].path;
+                            const zip = new AdmZip(path_2);
+                            zip.getEntries().forEach((entry: any) => {
+                                if (!entry.entryName.startsWith("files/")) return;
+                                let dirname = path.dirname(entry.entryName) + "/";
+                                let extname = path.extname(entry.entryName);
+                                let basename = path.basename(entry.entryName).split(".")[0];
+                                // zip.extractEntryTo(dirname + basename + "_o" + extname, __dirname + RouteStore.public, true, false);
+                                // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
+                                // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
+                                // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
+                                try {
+                                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                                    dirname = "/" + dirname;
 
-                                fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
-                                fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
-                                fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
-                                fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
-                            } catch (e) {
-                                console.log(e);
-                            }
-                        });
-                        const json = zip.getEntry("doc.json");
-                        let docs: any;
-                        try {
-                            let data = JSON.parse(json.getData().toString("utf8"));
-                            docs = data.docs;
-                            id = data.id;
-                            docs = Object.keys(docs).map(key => docs[key]);
-                            docs.forEach(mapFn);
-                            await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
-                                err && console.log(err);
-                                res();
-                            }, true, "newDocuments"))));
-                        } catch (e) { console.log(e); }
-                        fs.unlink(path_2, () => { });
-                    }
-                    if (id) {
-                        res.send(JSON.stringify(getId(id)));
-                    } else {
-                        res.send(JSON.stringify("error"));
-                    }
-                } catch (e) { console.log(e); }
+                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                                } catch (e) {
+                                    console.log(e);
+                                }
+                            });
+                            const json = zip.getEntry("doc.json");
+                            let docs: any;
+                            try {
+                                let data = JSON.parse(json.getData().toString("utf8"));
+                                docs = data.docs;
+                                id = data.id;
+                                docs = Object.keys(docs).map(key => docs[key]);
+                                docs.forEach(mapFn);
+                                await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
+                                    err && console.log(err);
+                                    res();
+                                }, true, "newDocuments"))));
+                            } catch (e) { console.log(e); }
+                            fs.unlink(path_2, () => { });
+                        }
+                        if (id) {
+                            res.send(JSON.stringify(getId(id)));
+                        } else {
+                            res.send(JSON.stringify("error"));
+                        }
+                    } catch (e) { console.log(e); }
+                    resolve();
+                });
             });
         }
     });
@@ -285,22 +288,25 @@ function routeSetter(router: RouteManager) {
             let filename = req.params.filename;
             let noExt = filename.substring(0, filename.length - ".png".length);
             let pagenumber = parseInt(noExt.split('-')[1]);
-            fs.exists(uploadDirectory + filename, (exists: boolean) => {
-                console.log(`${uploadDirectory + filename} ${exists ? "exists" : "does not exist"}`);
-                if (exists) {
-                    let input = fs.createReadStream(uploadDirectory + filename);
-                    probe(input, (err: any, result: any) => {
-                        if (err) {
-                            console.log(err);
-                            console.log(`error on ${filename}`);
-                            return;
-                        }
-                        res.send({ path: "/files/" + filename, width: result.width, height: result.height });
-                    });
-                }
-                else {
-                    LoadPage(uploadDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
-                }
+            return new Promise<void>(resolve => {
+                fs.exists(uploadDirectory + filename, (exists: boolean) => {
+                    console.log(`${uploadDirectory + filename} ${exists ? "exists" : "does not exist"}`);
+                    if (exists) {
+                        let input = fs.createReadStream(uploadDirectory + filename);
+                        probe(input, (err: any, result: any) => {
+                            if (err) {
+                                console.log(err);
+                                console.log(`error on ${filename}`);
+                                return;
+                            }
+                            res.send({ path: "/files/" + filename, width: result.width, height: result.height });
+                        });
+                    }
+                    else {
+                        LoadPage(uploadDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
+                    }
+                    resolve();
+                });
             });
         }
     });
@@ -414,8 +420,8 @@ function routeSetter(router: RouteManager) {
             var canvas = createCanvas(width, height);
             var context = canvas.getContext('2d');
             return {
-                canvas: canvas,
-                context: context,
+                canvas,
+                context
             };
         }
 
@@ -442,37 +448,39 @@ function routeSetter(router: RouteManager) {
     router.addSupervisedRoute({
         method: Method.POST,
         subscription: RouteStore.upload,
-        onValidation: ({ req, res }) => {
+        onValidation: async ({ req, res }) => {
             let form = new formidable.IncomingForm();
             form.uploadDir = uploadDirectory;
             form.keepExtensions = true;
-            form.parse(req, async (_err, _fields, files) => {
-                let results: ImageFileResponse[] = [];
-                for (const key in files) {
-                    const { type, path: location, name } = files[key];
-                    const filename = path.basename(location);
-                    let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
-                    if (filename.endsWith(".pdf")) {
-                        let dataBuffer = fs.readFileSync(uploadDirectory + filename);
-                        const result: ParsedPDF = await pdf(dataBuffer);
-                        await new Promise<void>(resolve => {
-                            const path = pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
-                            fs.createWriteStream(path).write(result.text, error => {
-                                if (!error) {
-                                    resolve();
-                                } else {
-                                    reject(error);
-                                }
+            return new Promise<void>(resolve => {
+                form.parse(req, async (_err, _fields, files) => {
+                    let results: ImageFileResponse[] = [];
+                    for (const key in files) {
+                        const { type, path: location, name } = files[key];
+                        const filename = path.basename(location);
+                        let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
+                        if (filename.endsWith(".pdf")) {
+                            let dataBuffer = fs.readFileSync(uploadDirectory + filename);
+                            const result: ParsedPDF = await pdf(dataBuffer);
+                            await new Promise<void>(resolve => {
+                                const path = pdfDirectory + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
+                                fs.createWriteStream(path).write(result.text, error => {
+                                    if (!error) {
+                                        resolve();
+                                    } else {
+                                        reject(error);
+                                    }
+                                });
                             });
-                        });
-                    } else {
-                        uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
+                        } else {
+                            uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
+                        }
+                        const exif = uploadInformation ? uploadInformation.exifData : undefined;
+                        results.push({ name, type, path: `/files/${filename}`, exif });
                     }
-                    const exif = uploadInformation ? uploadInformation.exifData : undefined;
-                    results.push({ name, type, path: `/files/${filename}`, exif });
-
-                }
-                _success(res, results);
+                    _success(res, results);
+                    resolve();
+                });
             });
         }
     });
@@ -500,7 +508,7 @@ function routeSetter(router: RouteManager) {
                 res.status(401).send("incorrect parameters specified");
                 return;
             }
-            imageDataUri.outputFile(uri, uploadDirectory + filename).then((savedName: string) => {
+            return imageDataUri.outputFile(uri, uploadDirectory + filename).then((savedName: string) => {
                 const ext = path.extname(savedName);
                 let resizers = [
                     { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
@@ -562,10 +570,10 @@ function routeSetter(router: RouteManager) {
     router.addSupervisedRoute({
         method: Method.POST,
         subscription: new RouteSubscriber(RouteStore.googleDocs).add("sector", "action"),
-        onValidation: ({ req, res, user }) => {
+        onValidation: async ({ req, res, user }) => {
             let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
             let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
-            GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id).then(endpoint => {
+            return GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id).then(endpoint => {
                 let handler = EndpointHandlerMap.get(action);
                 if (endpoint && handler) {
                     let execute = handler(endpoint, req.body).then(
@@ -589,7 +597,7 @@ function routeSetter(router: RouteManager) {
             if (!token) {
                 return res.send(await GoogleApiServerUtils.generateAuthenticationUrl());
             }
-            GoogleApiServerUtils.retrieveAccessToken(userId).then(token => res.send(token));
+            return GoogleApiServerUtils.retrieveAccessToken(userId).then(token => res.send(token));
         }
     });
 
@@ -637,7 +645,7 @@ function routeSetter(router: RouteManager) {
                 console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
             }
 
-            GooglePhotosUploadUtils.CreateMediaItems(token, newMediaItems, req.body.album).then(
+            return GooglePhotosUploadUtils.CreateMediaItems(token, newMediaItems, req.body.album).then(
                 result => _success(res, { results: result.newMediaItemResults, failed }),
                 error => _error(res, mediaError, error)
             );

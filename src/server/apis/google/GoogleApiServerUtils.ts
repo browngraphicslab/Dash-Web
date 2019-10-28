@@ -62,12 +62,17 @@ export namespace GoogleApiServerUtils {
 
     export const loadClientSecret = async () => {
         return new Promise<void>((resolve, reject) => {
-            readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, credentials) => {
+            readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, projectCredentials) => {
                 if (err) {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                installed = parseBuffer(credentials).installed;
+                const { client_secret, client_id, redirect_uris } = parseBuffer(projectCredentials).installed;
+                installed = {
+                    clientId: client_id,
+                    clientSecret: client_secret,
+                    redirectUri: redirect_uris[0]
+                };
                 worker = generateClient();
                 resolve();
             });
