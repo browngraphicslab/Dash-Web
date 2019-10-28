@@ -67,21 +67,18 @@ export namespace GoogleApiServerUtils {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                const { client_secret, client_id, redirect_uris } = parseBuffer(projectCredentials).installed;
-                installed = {
+                const { client_secret, client_id, redirect_uris } = JSON.parse(projectCredentials.toString()).installed;
+                worker = new google.auth.OAuth2({
                     clientId: client_id,
                     clientSecret: client_secret,
                     redirectUri: redirect_uris[0]
-                };
-                worker = generateClient();
+                });
                 resolve();
             });
         });
     };
 
     const authenticationClients = new Map<String, OAuth2Client>();
-
-    export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
 
     export enum Service {
         Documents = "Documents",
@@ -144,10 +141,6 @@ export namespace GoogleApiServerUtils {
             );
         });
     };
-
-    function generateClient() {
-        return new google.auth.OAuth2(installed);
-    }
 
     function generateClientWith(credentials: Credentials) {
         const client = new google.auth.OAuth2(installed);
