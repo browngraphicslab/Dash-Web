@@ -37,6 +37,11 @@ export namespace GoogleApiServerUtils {
         name: string;
     }
 
+    export interface CredentialsResult {
+        credentials: Credentials;
+        refreshed: boolean;
+    }
+
     export interface UserInfo {
         at_hash: string;
         aud: string;
@@ -69,7 +74,7 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    const ClientMapping = new Map<String, OAuth2Client>();
+    const authenticationClients = new Map<String, OAuth2Client>();
 
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
 
@@ -111,8 +116,8 @@ export namespace GoogleApiServerUtils {
 
     export const retrieveAccessToken = (userId: string): Promise<string> => {
         return new Promise<string>((resolve, reject) => {
-            retrieveCurrentCredentials(userId).then(
-                ({ access_token }) => resolve(access_token!),
+            retrieveCredentials(userId).then(
+                ({ credentials }) => resolve(credentials.access_token!),
                 error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
             );
         });
@@ -120,10 +125,14 @@ export namespace GoogleApiServerUtils {
 
     export const retrieveOAuthClient = (userId: string): Promise<OAuth2Client> => {
         return new Promise<OAuth2Client>((resolve, reject) => {
-            retrieveCurrentCredentials(userId).then(
-                credentials => {
-                    const client = generateClient();
-                    client.setCredentials(credentials);
+            retrieveCredentials(userId).then(
+                ({ credentials, refreshed }) => {
+                    let client = authenticationClients.get(userId);
+                    if (!client) {
+                        authenticationClients.set(userId, client = generateClientWith(credentials));
+                    } else if (refreshed) {
+                        client.setCredentials(credentials);
+                    }
                     resolve(client);
                 },
                 error => reject(`Error: unable to instantiate and certify a new OAuth2 client.\n${error}`)
@@ -131,7 +140,15 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    const generateClient = () => new google.auth.OAuth2(installed);
+    function generateClient() {
+        return new google.auth.OAuth2(installed);
+    }
+
+    function generateClientWith(credentials: Credentials) {
+        const client = new google.auth.OAuth2(installed);
+        client.setCredentials(credentials);
+        return client;
+    }
 
     export const generateAuthenticationUrl = async () => {
         return worker.generateAuthUrl({
@@ -172,8 +189,8 @@ export namespace GoogleApiServerUtils {
         return { ...credentials, userInfo };
     };
 
-    const retrieveCurrentCredentials = async (userId: string): Promise<Credentials> => {
-        return new Promise<Credentials>((resolve, reject) => {
+    const retrieveCredentials = async (userId: string): Promise<CredentialsResult> => {
+        return new Promise<CredentialsResult>((resolve, reject) => {
             Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(credentials => {
                 if (!credentials) {
                     return reject();
@@ -183,13 +200,13 @@ export namespace GoogleApiServerUtils {
                     return refreshAccessToken(credentials!, userId).then(resolve, reject);
                 }
                 // Authentication successful!
-                resolve(credentials);
+                resolve({ credentials, refreshed: false });
             });
         });
     };
 
     const refreshAccessToken = (credentials: Credentials, userId: string) => {
-        return new Promise<Credentials>(resolve => {
+        return new Promise<CredentialsResult>(resolve => {
             let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
             let queryParameters = {
                 refreshToken: credentials.refresh_token,
@@ -203,7 +220,7 @@ export namespace GoogleApiServerUtils {
                 await Database.Auxiliary.GoogleAuthenticationToken.Update(userId, access_token, expiry_date);
                 credentials.access_token = access_token;
                 credentials.expiry_date = expiry_date;
-                resolve(credentials);
+                resolve({ credentials, refreshed: true });
             });
         });
     };
