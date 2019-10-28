@@ -6,28 +6,68 @@ import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';
-import Photos = require('googlephotos');
 import { Database } from "../../database";
 const path = require("path");
+
+const prefix = 'https://www.googleapis.com/auth/';
+const refreshEndpoint = "https://oauth2.googleapis.com/token";
+const SCOPES = [
+    'documents.readonly',
+    'documents',
+    'presentations',
+    'presentations.readonly',
+    'drive',
+    'drive.file',
+    'photoslibrary',
+    'photoslibrary.appendonly',
+    'photoslibrary.sharing',
+    'userinfo.profile'
+];
 
 /**
  * Server side authentication for Google Api queries.
  */
 export namespace GoogleApiServerUtils {
 
-    const prefix = 'https://www.googleapis.com/auth/';
-    const SCOPES = [
-        'documents.readonly',
-        'documents',
-        'presentations',
-        'presentations.readonly',
-        'drive',
-        'drive.file',
-        'photoslibrary',
-        'photoslibrary.appendonly',
-        'photoslibrary.sharing',
-        'userinfo.profile'
-    ];
+    export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
+
+    export interface GoogleAuthenticationResult {
+        access_token: string;
+        avatar: string;
+        name: string;
+    }
+
+    export interface UserInfo {
+        at_hash: string;
+        aud: string;
+        azp: string;
+        exp: number;
+        family_name: string;
+        given_name: string;
+        iat: number;
+        iss: string;
+        locale: string;
+        name: string;
+        picture: string;
+        sub: string;
+    }
+
+    let installed: OAuth2ClientOptions;
+    let worker: OAuth2Client;
+
+    export const loadClientSecret = async () => {
+        return new Promise<void>((resolve, reject) => {
+            readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, credentials) => {
+                if (err) {
+                    reject(err);
+                    return console.log('Error loading client secret file:', err);
+                }
+                installed = parseBuffer(credentials).installed;
+                worker = generateClient();
+                resolve();
+            });
+        });
+    };
 
     const ClientMapping = new Map<String, OAuth2Client>();
 
@@ -71,7 +111,7 @@ export namespace GoogleApiServerUtils {
 
     export const retrieveAccessToken = (userId: string): Promise<string> => {
         return new Promise<string>((resolve, reject) => {
-            retrieveCredentials(userId).then(
+            retrieveCurrentCredentials(userId).then(
                 ({ access_token }) => resolve(access_token!),
                 error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
             );
@@ -80,31 +120,14 @@ export namespace GoogleApiServerUtils {
 
     export const retrieveOAuthClient = (userId: string): Promise<OAuth2Client> => {
         return new Promise<OAuth2Client>((resolve, reject) => {
-            retrieveCredentials(userId).then(
+            retrieveCurrentCredentials(userId).then(
                 credentials => {
                     const client = generateClient();
                     client.setCredentials(credentials);
                     resolve(client);
                 },
-                error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
+                error => reject(`Error: unable to instantiate and certify a new OAuth2 client.\n${error}`)
             );
-        });
-    };
-
-    let installed: OAuth2ClientOptions;
-    let worker: OAuth2Client;
-
-    export const loadClientSecret = async () => {
-        return new Promise<void>((resolve, reject) => {
-            readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, credentials) => {
-                if (err) {
-                    reject(err);
-                    return console.log('Error loading client secret file:', err);
-                }
-                installed = parseBuffer(credentials).installed;
-                worker = generateClient();
-                resolve();
-            });
         });
     };
 
@@ -117,11 +140,6 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    export interface GoogleAuthenticationResult {
-        access_token: string;
-        avatar: string;
-        name: string;
-    }
     export const processNewUser = async (userId: string, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
         return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
             worker.getToken(authenticationCode, async (err, token) => {
@@ -154,23 +172,7 @@ export namespace GoogleApiServerUtils {
         return { ...credentials, userInfo };
     };
 
-    export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
-    export interface UserInfo {
-        at_hash: string;
-        aud: string;
-        azp: string;
-        exp: number;
-        family_name: string;
-        given_name: string;
-        iat: number;
-        iss: string;
-        locale: string;
-        name: string;
-        picture: string;
-        sub: string;
-    }
-
-    const retrieveCredentials = async (userId: string): Promise<Credentials> => {
+    const retrieveCurrentCredentials = async (userId: string): Promise<Credentials> => {
         return new Promise<Credentials>((resolve, reject) => {
             Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(credentials => {
                 if (!credentials) {
@@ -186,7 +188,6 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    const refreshEndpoint = "https://oauth2.googleapis.com/token";
     const refreshAccessToken = (credentials: Credentials, userId: string) => {
         return new Promise<Credentials>(resolve => {
             let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
