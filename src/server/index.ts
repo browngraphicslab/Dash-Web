@@ -65,7 +65,7 @@ async function PreliminaryFunctions() {
             resolve();
         });
     });
-    await GoogleApiServerUtils.LoadOAuthClient();
+    await GoogleApiServerUtils.loadClientSecret();
     await DashUploadUtils.createIfNotExists(pdfDirectory);
     await Database.tryInitializeConnection();
 }
@@ -553,8 +553,6 @@ function routeSetter(router: RouteManager) {
         }
     });
 
-    const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
-
     const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
         ["create", (api, params) => api.create(params)],
         ["retrieve", (api, params) => api.get(params)],
@@ -588,11 +586,10 @@ function routeSetter(router: RouteManager) {
         onValidation: async ({ user, res }) => {
             const userId = user.id;
             const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
-            const information = { credentialsPath, userId };
             if (!token) {
-                return res.send(await GoogleApiServerUtils.GenerateAuthenticationUrl(information));
+                return res.send(await GoogleApiServerUtils.generateAuthenticationUrl());
             }
-            GoogleApiServerUtils.RetrieveAccessToken(userId).then(token => res.send(token));
+            GoogleApiServerUtils.retrieveAccessToken(userId).then(token => res.send(token));
         }
     });
 
@@ -600,35 +597,28 @@ function routeSetter(router: RouteManager) {
         method: Method.POST,
         subscription: RouteStore.writeGoogleAccessToken,
         onValidation: async ({ user, req, res }) => {
-            res.send(await GoogleApiServerUtils.ProcessClientSideCode(user.id, req.body.authenticationCode));
+            res.send(await GoogleApiServerUtils.processNewUser(user.id, req.body.authenticationCode));
         }
     });
 
     const tokenError = "Unable to successfully upload bytes for all images!";
     const mediaError = "Unable to convert all uploaded bytes to media items!";
-    const userIdError = "Unable to parse the identification of the user!";
 
     router.addSupervisedRoute({
         method: Method.POST,
         subscription: RouteStore.googlePhotosMediaUpload,
         onValidation: async ({ user, req, res }) => {
             const { media } = req.body;
-            const userId = user.id;
-            if (!userId) {
-                return _error(res, userIdError);
-            }
-
-            await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
 
             let failed: number[] = [];
-
+            const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
             const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
                 { magnitude: 100, unit: TimeUnit.Milliseconds },
                 async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
                     const newMediaItems: NewMediaItem[] = [];
                     for (let index = 0; index < batch.length; index++) {
                         const element = batch[index];
-                        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+                        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(token, element.url);
                         if (!uploadToken) {
                             failed.push(index);
                         } else {
@@ -647,7 +637,7 @@ function routeSetter(router: RouteManager) {
                 console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
             }
 
-            GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
+            GooglePhotosUploadUtils.CreateMediaItems(token, newMediaItems, req.body.album).then(
                 result => _success(res, { results: result.newMediaItemResults, failed }),
                 error => _error(res, mediaError, error)
             );
