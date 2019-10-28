@@ -157,12 +157,12 @@ export namespace GoogleApiServerUtils {
 
     export const processNewUser = async (userId: string, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
         return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
-            worker.getToken(authenticationCode, async (err, token) => {
-                if (err || !token) {
+            worker.getToken(authenticationCode, async (err, credentials) => {
+                if (err || !credentials) {
                     reject(err);
                     return console.error('Error retrieving access token', err);
                 }
-                const enriched = injectUserInfo(token);
+                const enriched = injectUserInfo(credentials);
                 await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, enriched);
                 const { given_name, picture } = enriched.userInfo;
                 resolve({
