@@ -37,43 +37,8 @@ enum FollowOptions {
 interface SelectorProps { linkDoc: Doc; }
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
-    // @observable private _docs: { col: Doc, target: Doc }[] = [];
-    // @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
-
-    // constructor(props: SelectorProps) {
-    //     super(props);
-
-    //     this.fetchDocuments();
-    // }
-
-    // async fetchDocuments() {
-    //     let aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
-    //     const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
-    //     const map: Map<Doc, Doc> = new Map;
-    //     const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
-    //     allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
-    //     docs.forEach(doc => map.delete(doc));
-    //     runInAction(() => {
-    //         this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
-    //         this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
-    //     });
-    // }
-
-    // getOnClick({ col, target }: { col: Doc, target: Doc }) {
-    //     return () => {
-    //         col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-    //         if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-    //             const newPanX = NumCast(target.x) + NumCast(target.width) / 2;
-    //             const newPanY = NumCast(target.y) + NumCast(target.height) / 2;
-    //             col.panX = newPanX;
-    //             col.panY = newPanY;
-    //         }
-    //         this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
-    //     };
-    // }
 
     onClick = (behavior: string) => {
-        console.log(behavior)
         LinkFollowBox.Instance!.setLinkBehavior(behavior);
     }
 
@@ -86,9 +51,6 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         return (
             <div className="savedBehaviors" style={{ display: 'inlineBlock' }}>
                 <span className="behaviorTitle">SELECT A BEHAVIOR:</span>
-                {/* {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-                {this._otherDocs.length ? <hr key="hr" /> : null}
-                {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)} */}
                 <div className="dropdown-content">
                     {Cast(this.props.linkDoc.savedLinkFollows, listSpec("string"))!.map(behavior => {
                         return (<div className="savedBehaviorTitle" onClick={() => { this.onClick(behavior); }}>{this.behaviorTitle(behavior)}</div>);
@@ -118,7 +80,6 @@ export class SavedLinkFollowSelector extends React.Component<SelectorProps> {
         runInAction(() => this.buttonText = "Hover to Select");
         let flyout;
         if (this.hover) {
-            // if (true) {
             flyout = (
                 <div>
                     <SelectorContextMenu {...this.props} />
@@ -299,16 +260,19 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     openFullScreen = () => {
-        if (this.notOpenInContext) {
-            this.openSelfFullScreen();
-        }
-        else {
-            this.selectedContext && this.openColFullScreen({ shouldZoom: this.shouldZoom, context: this.selectedContext });
-        }
-        // if (LinkFollowBox.destinationDoc) {
-        //     let view = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc);
-        //     view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+        // old stuff from me
+        // if (this.notOpenInContext) {
+        //     this.openSelfFullScreen();
         // }
+        // else {
+        //     this.selectedContext && this.openColFullScreen({ shouldZoom: this.shouldZoom, context: this.selectedContext });
+        // }
+
+        // new stuff from ?
+        if (LinkFollowBox.destinationDoc) {
+            let view = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc);
+            view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+        }
     }
 
     @undoBatch
@@ -374,24 +338,28 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     openLinkRight = () => {
-        if (this.notOpenInContext) {
-            this.openLinkSelfRight();
-        }
-        // open in context
-        else {
-            this.selectedContext && this.openLinkColRight({ shouldZoom: this.shouldZoom, context: this.selectedContext });
-        }
-        // if (LinkFollowBox.destinationDoc) {
-        //     let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
-        //     (LinkFollowBox._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
-        //     this.highlightDoc();
-        //     SelectionManager.DeselectAll();
+        // old stuff I wrote
+        // if (this.notOpenInContext) {
+        //     this.openLinkSelfRight();
         // }
+        // // open in context
+        // else {
+        //     this.selectedContext && this.openLinkColRight({ shouldZoom: this.shouldZoom, context: this.selectedContext });
+        // }
+
+        // new stuff from ?
+        if (LinkFollowBox.destinationDoc) {
+            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            (LinkFollowBox._addDocTab || this.props.addDocTab)(alias, undefined, "onRight");
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
 
     }
 
     @undoBatch
     jumpToLink = async (options: { shouldZoom: boolean }) => {
+        // old stuff from me
         // if (LinkFollowBox.destinationDoc && LinkFollowBox.linkDoc) {
         //     let jumpToDoc: Doc = LinkFollowBox.destinationDoc;
         //     let pdfDoc = FieldValue(Cast(LinkFollowBox.destinationDoc, Doc));
@@ -429,6 +397,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         //         DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
         //     }
         // }
+
+        // new stuff from ?
         if (LinkFollowBox.sourceDoc && LinkFollowBox.linkDoc) {
             let focus = (document: Doc) => { (LinkFollowBox._addDocTab || this.props.addDocTab)(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
             //let focus = (doc: Doc, maxLocation: string) => this.props.focus(docthis.props.focus(LinkFollowBox.destinationDoc, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation));
@@ -443,21 +413,24 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     openLinkTab = () => {
-        if (this.notOpenInContext) {
-            this.openLinkSelfTab();
-        }
-        //open in a context
-        else {
-            this.selectedContext && this.openLinkColTab({ shouldZoom: this.shouldZoom, context: this.selectedContext });
-        }
-        // if (LinkFollowBox.destinationDoc) {
-        //     let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
-        //     // this.prosp.addDocTab is empty -- use the link source's addDocTab 
-        //     (LinkFollowBox._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
-
-        //     this.highlightDoc();
-        //     SelectionManager.DeselectAll();
+        // my stuff
+        // if (this.notOpenInContext) {
+        //     this.openLinkSelfTab();
         // }
+        // //open in a context
+        // else {
+        //     this.selectedContext && this.openLinkColTab({ shouldZoom: this.shouldZoom, context: this.selectedContext });
+        // }
+
+        // new stuff from ?
+        if (LinkFollowBox.destinationDoc) {
+            let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            // this.prosp.addDocTab is empty -- use the link source's addDocTab 
+            (LinkFollowBox._addDocTab || this.props.addDocTab)(fullScreenAlias, undefined, "inTab");
+
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
     }
 
     @undoBatch
