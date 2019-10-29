@@ -2,7 +2,7 @@ import * as React from 'react';
 import { action } from 'mobx';
 import { InteractionUtils } from '../util/InteractionUtils';
 
-export abstract class Touchable<T> extends React.Component<T> {
+export abstract class Touchable<T = {}> extends React.Component<T> {
     protected _touchDrag: boolean = false;
     protected prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
 

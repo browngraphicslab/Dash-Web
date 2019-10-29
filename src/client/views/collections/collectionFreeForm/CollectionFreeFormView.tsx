@@ -103,9 +103,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         added && this.updateCluster(newBox);
         return added;
     }
-    private selectDocuments = (docs: Doc[]) => {
+    private selectDocuments = (docs: Doc[], ink: Map<any, any>[]) => {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
+        ink.forEach(i => SelectionManager.SelectInk(i, true));
     }
     public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
@@ -190,7 +191,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
             // hacky way to get a list of DocumentViews in the current view given a list of Documents in the current view
             let prevSelected = SelectionManager.SelectedDocuments();
-            this.selectDocuments(eles);
+            this.selectDocuments(eles, []);
             let clusterDocs = SelectionManager.SelectedDocuments();
             SelectionManager.DeselectAll();
             prevSelected.map(dv => SelectionManager.SelectDoc(dv, true));

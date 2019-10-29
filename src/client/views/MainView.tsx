@@ -37,6 +37,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
+import InkSelectDecorations from './InkSelectDecorations';
 
 @observer
 export class MainView extends React.Component {
@@ -512,6 +513,7 @@ export class MainView extends React.Component {
             <SharingManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
+            <InkSelectDecorations />
             {this.mainContent}
             <PreviewCursor />
             <ContextMenu />

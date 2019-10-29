@@ -25,6 +25,8 @@ import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
 import { TooltipTextMenu } from '../util/TooltipTextMenu';
+import { InkingCanvas } from './InkingCanvas';
+import { StrokeData } from '../../new_fields/InkField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -166,23 +168,42 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         let x = this._forceUpdate;
-        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
-            if (documentView.props.renderDepth === 0 ||
-                Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
-                return bounds;
-            }
-            let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
-            if (transform.TranslateX === 0 && transform.TranslateY === 0) {
-                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
-                return this._lastBox;
-            }
+        this._lastBox = SelectionManager.AllSelected().reduce((bounds, docViewOrInk) => {
+            if (docViewOrInk instanceof DocumentView) {
+                if (docViewOrInk.props.renderDepth === 0 ||
+                    Doc.AreProtosEqual(docViewOrInk.props.Document, CurrentUserUtils.UserDocument)) {
+                    return bounds;
+                }
+                let transform = (docViewOrInk.props.ScreenToLocalTransform().scale(docViewOrInk.props.ContentScaling())).inverse();
+                if (transform.TranslateX === 0 && transform.TranslateY === 0) {
+                    setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
+                    return this._lastBox;
+                }
 
-            var [sptX, sptY] = transform.transformPoint(0, 0);
-            let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
-            return {
-                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-            };
+                var [sptX, sptY] = transform.transformPoint(0, 0);
+                let [bptX, bptY] = transform.transformPoint(docViewOrInk.props.PanelWidth(), docViewOrInk.props.PanelHeight());
+                return {
+                    x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                    r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+                };
+            }
+            else {
+                let left = bounds.x;
+                let top = bounds.y;
+                let right = bounds.r;
+                let bottom = bounds.b;
+                docViewOrInk.forEach((value: StrokeData, key: string) => {
+                    value.pathData.map(val => {
+                        left = Math.min(val.x, left);
+                        top = Math.min(val.y, top);
+                        right = Math.max(val.x, right);
+                        bottom = Math.max(val.y, bottom);
+                    });
+                });
+                return {
+                    x: left, y: top, r: right, b: bottom
+                };
+            }
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
         return this._lastBox;
     }
@@ -559,7 +580,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     render() {
         var bounds = this.Bounds;
-        let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        let seldoc = SelectionManager.AllSelected().length ? SelectionManager.AllSelected()[0] : undefined;
         if (bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
@@ -586,7 +607,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
+                zIndex: SelectionManager.AllSelected().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             <div className="documentDecorations-container" ref={this.setTextBar} style={{
@@ -615,7 +636,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
                 <div className="link-button-container">
-                    <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
+                    {(SelectionManager.SelectedDocuments.length && SelectionManager.SelectedDocuments()[0]) ? <DocumentButtonBar views={SelectionManager.SelectedDocuments()} /> : (null)}
                 </div>
             </div >
         </div>

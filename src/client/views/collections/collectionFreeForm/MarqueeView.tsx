@@ -20,6 +20,7 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
+import InkSelectDecorations from "../../InkSelectDecorations";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -27,7 +28,7 @@ interface MarqueeViewProps {
     container: CollectionFreeFormView;
     addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
-    selectDocuments: (docs: Doc[]) => void;
+    selectDocuments: (docs: Doc[], ink: Map<any, any>[]) => void;
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
@@ -190,13 +191,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
+        if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document], []);
         if (this._visible) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
-            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document],
+                this.ink ? [this.marqueeInkSelect(this.ink.inkData)] : []);
         }
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
@@ -350,7 +352,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
         let newCollection = this.getCollection(selected);
         this.props.addDocument(newCollection);
-        this.props.selectDocuments([newCollection]);
+        this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
     }
@@ -422,9 +424,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let centerShiftY = 0 - (this.Bounds.top + this.Bounds.height / 2);
         ink.forEach((value: StrokeData, key: string, map: any) => {
             if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
+                // let transform = this.props.container.props.ScreenToLocalTransform().scale(this.props.container.props.ContentScaling());
                 idata.set(key,
                     {
-                        pathData: value.pathData.map(val => ({ x: val.x + centerShiftX, y: val.y + centerShiftY })),
+                        pathData: value.pathData.map(val => {
+                            let tVal = this.props.getTransform().inverse().transformPoint(val.x, val.y);
+                            return { x: tVal[0], y: tVal[1] };
+                            // return { x: val.x + centerShiftX, y: val.y + centerShiftY }
+                        }),
                         color: value.color,
                         width: value.width,
                         tool: value.tool,
@@ -432,6 +439,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     });
             }
         });
+        // InkSelectDecorations.Instance.SetSelected(idata);
         return idata;
     }
 
