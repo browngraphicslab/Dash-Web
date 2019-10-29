@@ -26,7 +26,7 @@ export default class ExportManager extends ApiManager {
                 const id = req.params.docId;
                 const hierarchy: Hierarchy = {};
                 await buildHierarchyRecursive(id, hierarchy);
-                BuildAndDispatchZip(res, zip => writeHierarchyRecursive(zip, hierarchy));
+                return BuildAndDispatchZip(res, zip => writeHierarchyRecursive(zip, hierarchy));
             }
         });
     }
@@ -48,7 +48,7 @@ export async function BuildAndDispatchZip(res: express.Response, mutator: ZipMut
     const zip = Archiver('zip');
     zip.pipe(res);
     await mutator(zip);
-    zip.finalize();
+    return zip.finalize();
 }
 
 /**

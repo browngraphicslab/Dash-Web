@@ -298,7 +298,7 @@ export namespace Database {
 
             export type StoredCredentials = Credentials & { _id: string };
 
-            export const Fetch = async (userId: string, removeId = true) => {
+            export const Fetch = async (userId: string, removeId = true): Promise<Opt<StoredCredentials>> => {
                 return SanitizedSingletonQuery<StoredCredentials>({ userId }, GoogleAuthentication, removeId);
             };
 

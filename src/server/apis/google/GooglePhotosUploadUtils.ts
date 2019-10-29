@@ -20,19 +20,12 @@ export namespace GooglePhotosUploadUtils {
     }
 
     const prepend = (extension: string) => `https://photoslibrary.googleapis.com/v1/${extension}`;
-    const headers = (type: string) => ({
+    const headers = (type: string, token: string) => ({
         'Content-Type': `application/${type}`,
-        'Authorization': Bearer,
+        'Authorization': `Bearer ${token}`,
     });
 
-    let Bearer: string;
-
-    export const initialize = async (information: GoogleApiServerUtils.CredentialInformation) => {
-        const token = await GoogleApiServerUtils.RetrieveAccessToken(information);
-        Bearer = `Bearer ${token}`;
-    };
-
-    export const DispatchGooglePhotosUpload = async (url: string) => {
+    export const DispatchGooglePhotosUpload = async (bearerToken: string, url: string) => {
         if (!DashUploadUtils.imageFormats.includes(path.extname(url))) {
             return undefined;
         }
@@ -40,7 +33,7 @@ export namespace GooglePhotosUploadUtils {
         const parameters = {
             method: 'POST',
             headers: {
-                ...headers('octet-stream'),
+                ...headers('octet-stream', bearerToken),
                 'X-Goog-Upload-File-Name': path.basename(url),
                 'X-Goog-Upload-Protocol': 'raw'
             },
@@ -56,13 +49,13 @@ export namespace GooglePhotosUploadUtils {
         }));
     };
 
-    export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
+    export const CreateMediaItems = async (bearerToken: string, newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
         const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapPatientInterval(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
             async (batch: NewMediaItem[]) => {
                 const parameters = {
                     method: 'POST',
-                    headers: headers('json'),
+                    headers: headers('json', bearerToken),
                     uri: prepend('mediaItems:batchCreate'),
                     body: { newMediaItems: batch } as any,
                     json: true
