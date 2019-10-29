@@ -14,6 +14,8 @@ import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
 import { listSpec } from "../../new_fields/Schema";
+import { Scripting } from "./Scripting";
+import { convertDropDataToButtons } from "./DropConverter";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -87,12 +89,12 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     }
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc, singleLink?: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
     if (srcTarg) {
-        let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
+        let linkDocs = singleLink ? [singleLink] : LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
             draggedDocs = linkDocs.map(link => {
                 let opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
@@ -211,7 +213,9 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
+        embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
         applyAsTemplate?: boolean;
         [id: string]: any;
     }
@@ -240,7 +244,7 @@ export namespace DragManager {
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments =
-                    dragData.draggedDocuments.map(d => ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
+                    dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
                         dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
                             dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
                 );
@@ -304,16 +308,6 @@ export namespace DragManager {
         [id: string]: any;
     }
 
-    export class EmbedDragData {
-        constructor(embeddableSourceDoc: Doc) {
-            this.embeddableSourceDoc = embeddableSourceDoc;
-            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
-        }
-        embeddableSourceDoc: Doc;
-        urlField?: URLField;
-        [id: string]: any;
-    }
-
     // for column dragging in schema view
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -324,10 +318,6 @@ export namespace DragManager {
     }
 
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
-        StartDrag([ele], dragData, downX, downY, options);
-    }
-
-    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
@@ -426,7 +416,7 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
-                dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
+                dragData.userDropAction = e.ctrlKey ? "alias" : undefined;
             }
             if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
@@ -509,3 +499,4 @@ export namespace DragManager {
         }
     }
 }
+Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); });

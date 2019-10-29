@@ -80,7 +80,7 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
 
         this.previousState = new Map(this.inkData);
 
-        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
             // start the new line, saves a uuid to represent the field of the stroke
             this._currentStrokeId = Utils.GenerateGuid();
             const data = this.inkData;
@@ -89,7 +89,8 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
-                displayTimecode: NumCast(this.props.Document.currentTimecode, -1)
+                displayTimecode: NumCast(this.props.Document.currentTimecode, -1),
+                creationTime: new Date().getTime()
             });
             this.inkData = data;
         }
@@ -131,7 +132,7 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
     }
 
     handleMove = (x: number, y: number) => {
-        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
             let data = this.inkData;  // add points to new line as it is being drawn
             let strokeData = data.get(this._currentStrokeId);
             if (strokeData) {
@@ -182,6 +183,7 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
                     color={strokeData.color}
                     width={strokeData.width}
                     tool={strokeData.tool}
+                    creationTime={strokeData.creationTime}
                     deleteCallback={this.removeLine} />);
             }
             return paths;
@@ -202,9 +204,11 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
 
     render() {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None && !this.props.Document.isBackground ? "canSelect" : "noSelect";
+        let cursor = svgCanvasStyle === "canSelect" ? (InkingControl.Instance.selectedTool === InkTool.Eraser ||
+            InkingControl.Instance.selectedTool === InkTool.Scrubber ? "pointer" : "default") : undefined;
         return (
             <div className="inkingCanvas">
-                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart} />
+                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart} style={{ cursor: cursor }} />
                 {this.props.children()}
                 {this.drawnPaths}
             </div >

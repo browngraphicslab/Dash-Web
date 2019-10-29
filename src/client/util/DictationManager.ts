@@ -6,7 +6,7 @@ import { DocumentType } from "../documents/DocumentTypes";
 import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
-import { CollectionViewType } from "../views/collections/CollectionBaseView";
+import { CollectionViewType } from "../views/collections/CollectionView";
 import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
@@ -64,7 +64,7 @@ export namespace DictationManager {
         const intraSession = ". ";
         const interSession = " ... ";
 
-        let isListening = false;
+        export let isListening = false;
         let isManuallyStopped = false;
 
         let current: string | undefined = undefined;
@@ -200,6 +200,7 @@ export namespace DictationManager {
             if (!isListening || !recognizer) {
                 return;
             }
+            isListening = false;
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
             // let main = MainView.Instance;

@@ -12,6 +12,7 @@ import { Transform } from "../util/Transform";
 import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { NumCast } from "../../new_fields/Types";
+import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 
 export type OverlayDisposer = () => void;
 
@@ -206,6 +207,7 @@ export class OverlayView extends React.Component {
                 <div>
                     {this._elements}
                 </div>
+                <CollectionFreeFormLinksView key="freeformLinks" />
                 {this.overlayDocs}
             </div>
         );
