@@ -44,15 +44,6 @@ export namespace GoogleApiServerUtils {
     /**
      * 
      */
-    export interface GoogleAuthenticationResult {
-        access_token: string;
-        avatar: string;
-        name: string;
-    }
-
-    /**
-     * 
-     */
     export interface CredentialsResult {
         credentials: Credentials;
         refreshed: boolean;
@@ -247,9 +238,30 @@ export namespace GoogleApiServerUtils {
     };
 
     /**
-     * 
-     * @param userId 
-     * @param authenticationCode 
+     * This is what we return to the server in processNewUser(), after the
+     * worker OAuth2Client has used the user-pasted authentication code
+     * to retrieve an access token and an info token. The avatar is the
+     * URL to the Google-hosted mono-color, single white letter profile 'image'.
+     */
+    export interface GoogleAuthenticationResult {
+        access_token: string;
+        avatar: string;
+        name: string;
+    }
+
+    /**
+     * This method receives the authentication code that the
+     * user pasted into the overlay in the client side and uses the worker
+     * and the authentication code to fetch the full set of credentials that
+     * we'll store in the database for each user. This is called once per
+     * new account integration.
+     * @param userId The Dash user id of the user requesting account integration, used to associate the new credentials
+     * with a Dash user in the googleAuthentication table of the database.
+     * @param authenticationCode the Google-provided authentication code that the user copied
+     * from Google's permissions UI and pasted into the overlay.
+     * @returns the information necessary to authenticate a client side google photos request
+     * and display basic user information in the overlay on successful authentication. 
+     * This can be expanded as needed by adding properties to the interface GoogleAuthenticationResult.
      */
     export const processNewUser = async (userId: string, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
         return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
@@ -271,7 +283,9 @@ export namespace GoogleApiServerUtils {
     };
 
     /**
-     * 
+     * This type represents the union of the full set of OAuth2 credentials
+     * and all of a Google user's publically available information. This is the strucure
+     * of the JSON object we ultimately store in the googleAuthentication table of the database. 
      */
     export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
 
@@ -282,6 +296,8 @@ export namespace GoogleApiServerUtils {
      * base64 decode with atob and parse the JSON. 
      * @param credentials the client credentials returned from OAuth after the user
      * has executed the authentication routine
+     * @returns the full set of credentials in the structure in which they'll be stored
+     * in the database.
      */
     const injectUserInfo = (credentials: Credentials): EnrichedCredentials => {
         const userInfo = JSON.parse(atob(credentials.id_token!.split(".")[1]));
@@ -289,8 +305,12 @@ export namespace GoogleApiServerUtils {
     };
 
     /**
-     * 
-     * @param userId 
+     * Looks in the database for any credentials object with the given user id,
+     * and returns them. If the credentials are found but expired, the function will
+     * automatically refresh the credentials and then resolve with the updated values.
+     * @param userId the id of the Dash user requesting his/her credentials. Eventually
+     * might have multiple.
+     * @returns the credentials and whether or not they were updated in the process
      */
     const retrieveCredentials = async (userId: string): Promise<CredentialsResult> => {
         return new Promise<CredentialsResult>((resolve, reject) => {
@@ -309,8 +329,11 @@ export namespace GoogleApiServerUtils {
     };
 
     /**
-     * 
-     * @param credentials 
+     * This function submits a request to OAuth with the local refresh token
+     * to revalidate the credentials for a given Google user associated with
+     * the Dash user id passed in. In addition to returning the credentials, it
+     * writes the diff to the database.
+     * @param credentials the credentials
      * @param userId 
      */
     const refreshAccessToken = (credentials: Credentials, userId: string) => {
