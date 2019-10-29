@@ -21,7 +21,7 @@ import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
  */
 export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
-    let _socket: SocketIOClient.Socket;
+    export let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
