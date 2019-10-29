@@ -73,8 +73,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     openLinkOverlay = () => {
         if (LinkFollowBox.Instance !== undefined) {
-            const { linkDoc, sourceDoc, destinationDoc, addDocTab } = this.props;
-            LinkFollowBox.Instance.display(linkDoc, sourceDoc, destinationDoc, addDocTab);
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
         }
     }
 
@@ -98,6 +99,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action.bound
     async followDefault() {
         if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             //if its open
             // this.openLinkFollower();
@@ -106,14 +108,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
     }
 
-    // @action.bound
-    // async openLinkFollower() {
-    //     if (LinkFollowBox.Instance !== undefined) {
-    //         LinkFollowBox.Instance.props.Document.isMinimized = false;
-    //         MainView.Instance.toggleLinkFollowBox(false);
-    //         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-    //     }
-    // }
+    @action.bound
+    async openLinkFollower() {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+        }
+    }
 
     render() {
 

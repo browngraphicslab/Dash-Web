@@ -10,7 +10,6 @@ import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { FieldViewProps } from "../views/nodes/FieldView";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
@@ -20,6 +19,7 @@ import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
 import { Cast, NumCast } from '../../new_fields/Types';
 import { updateBullets } from './ProsemirrorExampleTransfer';
+import { DocumentDecorations } from '../views/DocumentDecorations';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -28,10 +28,10 @@ export class TooltipTextMenu {
 
     public tooltip: HTMLElement;
     private view: EditorView;
+    private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
     private listTypes: (NodeType | any)[];
-    private editorProps: FieldViewProps & FormattedTextBoxProps;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType | any, string>;
@@ -59,9 +59,8 @@ export class TooltipTextMenu {
 
     private _collapsed: boolean = false;
 
-    constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
+    constructor(view: EditorView) {
         this.view = view;
-        this.editorProps = editorProps;
 
         this.wrapper = document.createElement("div");
         this.tooltip = document.createElement("div");
@@ -120,10 +119,10 @@ export class TooltipTextMenu {
             //pointer down handler to activate button effects
             dom.addEventListener("pointerdown", e => {
                 e.preventDefault();
-                view.focus();
+                this.view.focus();
                 if (dom.contains(e.target as Node)) {
                     e.stopPropagation();
-                    command(view.state, view.dispatch, view);
+                    command(this.view.state, this.view.dispatch, this.view);
                     // if (this.view.state.selection.empty) {
                     //     if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
                     //     else { dom.style.color = "white"; }
@@ -188,12 +187,10 @@ export class TooltipTextMenu {
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
-        this.update(view, undefined);
-
-        // add tooltip to outerdiv to circumvent scaling problem
-        const outer_div = this.editorProps.outer_div;
-        outer_div && outer_div(this.wrapper);
+        this.updateFromDash(view, undefined, undefined);
+        TooltipTextMenu.Toolbar = this.wrapper;
     }
+    public static Toolbar: HTMLDivElement | undefined;
 
     //label of dropdown will change to given label
     updateFontSizeDropdown(label: string) {
@@ -275,7 +272,7 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
-                                else this.editorProps.addDocTab(f, undefined, "onRight");
+                                else this.editorProps && this.editorProps.addDocTab(f, undefined, "onRight");
                             }
                         }));
                     }
@@ -293,6 +290,7 @@ export class TooltipTextMenu {
             this.linkDrag.style.background = "black";
             this.linkDrag.style.cssFloat = "left";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
+                if (!this.editorProps) return;
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
                 // hack to get source context -sy
@@ -442,7 +440,7 @@ export class TooltipTextMenu {
         let tr = state.tr;
         tr.addMark(state.selection.from, state.selection.to, mark);
         let content = tr.selection.content();
-        let newNode = schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
         dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
@@ -503,40 +501,35 @@ export class TooltipTextMenu {
             if (markType.name[0] === 'p') {
                 let size = this.fontSizeToNum.get(markType);
                 if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-                let ruleProvider = this.editorProps.ruleProvider;
-                let heading = NumCast(this.editorProps.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleSize_" + heading] = size;
+                if (this.editorProps) {
+                    let ruleProvider = this.editorProps.ruleProvider;
+                    let heading = NumCast(this.editorProps.Document.heading);
+                    if (ruleProvider && heading) {
+                        ruleProvider["ruleSize_" + heading] = size;
+                    }
                 }
             }
             else {
                 let fontName = this.fontStylesToName.get(markType);
                 if (fontName) { this.updateFontStyleDropdown(fontName); }
-                let ruleProvider = this.editorProps.ruleProvider;
-                let heading = NumCast(this.editorProps.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleFont_" + heading] = fontName;
+                if (this.editorProps) {
+                    let ruleProvider = this.editorProps.ruleProvider;
+                    let heading = NumCast(this.editorProps.Document.heading);
+                    if (ruleProvider && heading) {
+                        ruleProvider["ruleFont_" + heading] = fontName;
+                    }
                 }
             }
             //actually apply font
             if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
-                view.dispatch(updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
-                    { ...(view.state.selection as NodeSelection).node.attrs, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema));
+                let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                    { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: markType.name, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema);
+                view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
             }
             else toggleMark(markType)(view.state, view.dispatch, view);
         }
     }
 
-    updateBullets = (tx2: Transaction, style: string) => {
-        tx2.doc.descendants((node: any, offset: any, index: any) => {
-            if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
-                let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
-                if (node.type === schema.nodes.ordered_list) depth++;
-                tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
-            }
-        });
-    }
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
         //remove oldif (nodeType) { //add new
@@ -545,18 +538,18 @@ export class TooltipTextMenu {
         } else {
             var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
             if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
-                marks && tx2.ensureMarks([...marks]);
-                marks && tx2.setStoredMarks([...marks]);
+                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
 
                 view.dispatch(tx2);
             })) {
                 let tx2 = view.state.tr;
-                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
-                marks && tx2.ensureMarks([...marks]);
-                marks && tx2.setStoredMarks([...marks]);
+                let tx3 = nodeType ? updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle) : tx2;
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
 
-                view.dispatch(tx2);
+                view.dispatch(tx3);
             }
         }
     }
@@ -586,7 +579,7 @@ export class TooltipTextMenu {
             class: "summarize",
             execEvent: "",
             run: (state, dispatch) => {
-                TooltipTextMenu.insertStar(state, dispatch);
+                TooltipTextMenu.insertStar(this.view.state, this.view.dispatch);
             }
 
         });
@@ -848,9 +841,17 @@ export class TooltipTextMenu {
         }
     }
 
+    update(view: EditorView, lastState: EditorState | undefined) { this.updateFromDash(view, lastState, this.editorProps); }
     //updates the tooltip menu when the selection changes
-    update(view: EditorView, lastState: EditorState | undefined) {
+    public updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
+        if (!view) {
+            console.log("no editor?  why?");
+            return;
+        }
+        this.view = view;
         let state = view.state;
+        DocumentDecorations.Instance.showTextBar();
+        props && (this.editorProps = props);
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;

@@ -13,17 +13,13 @@ import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../globalCssVariables.s
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
-import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
 import { undoBatch } from "../../util/UndoManager";
@@ -34,8 +30,8 @@ export interface CellProps {
     row: number;
     col: number;
     rowProps: CellInfo;
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    ContainingCollection: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
+    ContainingCollection: Opt<CollectionView>;
     Document: Doc;
     fieldKey: string;
     renderDepth: number;
@@ -148,7 +144,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
-            fieldExt: "",
             ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,

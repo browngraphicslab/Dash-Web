@@ -1,0 +1,140 @@
+.sharing-interface {
+    display: flex;
+    flex-direction: column;
+
+    .focus-span {
+        text-decoration: underline;
+    }
+
+    p {
+        font-size: 20px;
+        text-align: left;
+        font-style: italic;
+        padding: 0;
+        margin: 0 0 20px 0;
+    }
+
+    .hr-substitute {
+        border: solid black 0.5px;
+        margin-top: 20px;
+    }
+
+    .people-with-container {
+        display: flex;
+        height: 25px;
+
+        .people-with {
+            font-size: 14px;
+            margin: 0;
+            padding-top: 3px;
+            font-style: normal;
+        }
+
+        .people-with-select {
+            width: 126px;
+            outline: none;
+        }
+    }
+
+    .share-individual {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .users-list {
+        font-style: italic;
+        background: white;
+        border: 1px solid black;
+        padding-left: 10px;
+        padding-right: 10px;
+        max-height: 200px;
+        overflow: scroll;
+        height: -webkit-fill-available;
+        text-align: left;
+        display: flex;
+        align-content: center;
+        align-items: center;
+        text-align: center;
+        justify-content: center;
+        color: red;
+    }
+
+    .container {
+        display: block;
+        position: relative;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        font-size: 22px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        width: 700px;
+        min-width: 700px;
+        max-width: 700px;
+        text-align: left;
+        font-style: normal;
+        font-size: 15;
+        font-weight: normal;
+        padding: 0;
+
+        .padding {
+            padding: 0 0 0 20px;
+            color: black;
+        }
+
+        .permissions-dropdown {
+            outline: none;
+        }
+    }
+
+    .no-users {
+        margin-top: 20px;
+    }
+
+    .link-container {
+        display: flex;
+        flex-direction: row;
+        margin-bottom: 10px;
+        margin-left: auto;
+        margin-right: auto;
+
+        .link-box,
+        .copy {
+            padding: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            border: solid black 1px;
+        }
+
+        .link-box {
+            background: white;
+            color: blue;
+            text-decoration: underline;
+        }
+
+        .copy {
+            margin-left: 20px;
+            cursor: alias;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            transition: 1.5s all ease;
+            padding-top: 12px;
+        }
+    }
+
+    .close-button {
+        border-radius: 5px;
+        margin-top: 20px;
+        padding: 10px 0;
+        background: aliceblue;
+        transition: 0.5s ease all;
+        border: 1px solid;
+        border-color: aliceblue;
+    }
+
+    .close-button:hover {
+        border-color: black;
+    }
+}

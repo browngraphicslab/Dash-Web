@@ -3,13 +3,13 @@ import { faFile } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, Lambda, observable, reaction } from "mobx";
+import { action, Lambda, observable, reaction, computed, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { FieldId } from "../../../new_fields/RefField";
@@ -31,6 +31,7 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { ComputedField } from '../../../new_fields/ScriptField';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -38,7 +39,8 @@ export type AddDocTabFunction = (doc: Doc, dataDoc: Opt<Doc>, where: string) => 
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
-    public static Instance: CollectionDockingView;
+    @observable public static Instances: CollectionDockingView[] = [];
+    @computed public static get Instance() { return CollectionDockingView.Instances[0]; }
     public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
         return {
             type: 'react-component',
@@ -53,7 +55,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         };
     }
 
-    private _goldenLayout: any = null;
+    @computed public get initialized() {
+        return this._goldenLayout !== null;
+    }
+
+    @observable private _goldenLayout: any = null;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _flush: boolean = false;
     private _ignoreStateChange = "";
@@ -62,7 +68,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        !CollectionDockingView.Instance && (CollectionDockingView.Instance = this);
+        runInAction(() => !CollectionDockingView.Instances ? CollectionDockingView.Instances = [this] : CollectionDockingView.Instances.push(this));
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
@@ -253,7 +259,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         var config = StrCast(this.props.Document.dockingConfig);
         if (config) {
             if (!this._goldenLayout) {
-                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
             else {
                 if (config === JSON.stringify(this._goldenLayout.toConfig())) {
@@ -266,7 +272,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     this._goldenLayout.unbind('stackCreated', this.stackCreated);
                 } catch (e) { }
                 this._goldenLayout.destroy();
-                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
             this._goldenLayout.on('itemDropped', this.itemDropped);
             this._goldenLayout.on('tabCreated', this.tabCreated);
@@ -294,7 +300,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
-                        DocListCast((CurrentUserUtils.UserDocument.workspaces as Doc).data).map(d => d.workspaceBrush = false);
+                        let userDoc = CurrentUserUtils.UserDocument;
+                        userDoc && DocListCast((userDoc.workspaces as Doc).data).map(d => d.workspaceBrush = false);
                         this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
@@ -313,13 +320,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } catch (e) {
 
         }
-        if (this._goldenLayout) this._goldenLayout.destroy();
-        this._goldenLayout = null;
+        this._goldenLayout && this._goldenLayout.destroy();
+        runInAction(() => {
+            CollectionDockingView.Instances.splice(CollectionDockingView.Instances.indexOf(this), 1);
+            this._goldenLayout = null;
+        });
         window.removeEventListener('resize', this.onResize);
 
-        if (this.reactionDisposer) {
-            this.reactionDisposer();
-        }
+        this.reactionDisposer && this.reactionDisposer();
     }
     @action
     onResize = (event: any) => {
@@ -455,8 +463,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
 
-                    const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
-                    if (recent) {
+                    let userDoc = CurrentUserUtils.UserDocument;
+                    let recent: Doc | undefined;
+                    if (userDoc && (recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))) {
                         Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
                     SelectionManager.DeselectAll();
@@ -488,12 +497,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             .off('click') //unbind the current click handler
             .click(action(async function () {
                 //if (confirm('really close this?')) {
-                const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+
                 stack.remove();
                 stack.contentItems.forEach(async (contentItem: any) => {
                     let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
-                        if (recent) {
+                        let recent: Doc | undefined;
+                        if (CurrentUserUtils.UserDocument && (recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))) {
                             Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                         }
                         let theDoc = doc;
@@ -566,11 +576,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         //add this new doc to props.Document
         let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
+            let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
+            Doc.GetProto(pinDoc).presentationTargetDoc = doc;
+            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
             const data = Cast(curPres.data, listSpec(Doc));
             if (data) {
-                data.push(doc);
+                data.push(pinDoc);
             } else {
-                curPres.data = new List([doc]);
+                curPres.data = new List([pinDoc]);
             }
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 this.addDocTab(curPres, undefined, "onRight");
@@ -604,19 +617,20 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    panelWidth = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), this.nativeHeight()));
+    get layoutDoc() { return this._document && Doc.Layout(this._document);}
+    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
+    panelHeight = () => this._panelHeight;
 
-    nativeWidth = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
-        if (this._document!.type === DocumentType.PDF) {
-            if ((this._document && this._document.fitWidth) ||
-                this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
-                return this._panelWidth / NumCast(this._document!.nativeWidth);
+        if (this.layoutDoc!.type === DocumentType.PDF) {
+            if ((this.layoutDoc && this.layoutDoc.fitWidth) ||
+                this._panelHeight / NumCast(this.layoutDoc!.nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!.nativeWidth)) {
+                return this._panelWidth / NumCast(this.layoutDoc!.nativeWidth);
             } else {
-                return this._panelHeight / NumCast(this._document!.nativeHeight);
+                return this._panelHeight / NumCast(this.layoutDoc!.nativeHeight);
             }
         }
         const nativeH = this.nativeHeight();
@@ -634,7 +648,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() / this.ScreenToLocalTransform().Scale) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
         SelectionManager.DeselectAll();
@@ -649,7 +663,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }
-    docView(document: Doc) {
+
+    @computed get docView() {
+        if (!this._document) return (null);
+        const document = this._document;
         let resolvedDataDoc = document.layout instanceof Doc ? document : this._dataDoc;
         return <DocumentView key={document[Id]}
             Document={document}
@@ -676,13 +693,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
-        return (!this._isActive || !this._document) ? (null) :
+        return (!this._isActive || !this.layoutDoc) ? (null) :
             (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this._document && this._document.fitWidth ? undefined : "100%"
+                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%"
                 }}>
-                {this.docView(this._document)}
+                {this.docView}
             </div >);
     }
 }

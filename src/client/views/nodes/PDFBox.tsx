@@ -1,75 +1,98 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, trace } from 'mobx';
+import { action, observable, runInAction, reaction, IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import 'react-image-lightbox/style.css';
-import { Doc, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
 import { PdfField } from "../../../new_fields/URLField";
+import { Utils } from '../../../Utils';
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
+import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { DocComponent } from "../DocComponent";
-import { InkingControl } from "../InkingControl";
+import { ContextMenu } from '../ContextMenu';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { DocAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
-import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
-import { undoBatch } from '../../util/UndoManager';
-import { ContextMenuProps } from '../ContextMenuItem';
-import { ContextMenu } from '../ContextMenu';
-import { Utils } from '../../../Utils';
+import { documentSchema } from '../../../new_fields/documentSchemas';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
-export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(PDFBox, "data", fieldExt); }
+export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
     private _searchString: string = "";
-    private _isChildActive = false;
+    private _everActive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
+    private _searchRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _valueRef: React.RefObject<HTMLInputElement> = React.createRef();
     private _scriptRef: React.RefObject<HTMLInputElement> = React.createRef();
+    private _selectReaction: IReactionDisposer | undefined;
 
     @observable private _searching: boolean = false;
     @observable private _flyout: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
     @observable private _pageControls = false;
 
-    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplate ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
-
+    componentWillUnmount() {
+        this._selectReaction && this._selectReaction();
+    }
     componentDidMount() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
+        this._selectReaction = reaction(() => this.props.isSelected(),
+            () => {
+                if (this.props.isSelected()) {
+                    document.removeEventListener("keydown", this.onKeyDown);
+                    document.addEventListener("keydown", this.onKeyDown);
+                } else {
+                    document.removeEventListener("keydown", this.onKeyDown);
+                }
+            }, { fireImmediately: true });
     }
+
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc.numPages = np;
-        if (!this.Document.nativeWidth || !this.Document.nativeHeight || !this.Document.scrollHeight) {
-            let oldaspect = (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
-            this.Document.nativeWidth = nw * 96 / 72;
-            this.Document.nativeHeight = this.Document.nativeHeight ? nw * 96 / 72 * oldaspect : nh * 96 / 72;
-        }
+        this.Document.nativeWidth = nw * 96 / 72;
+        this.Document.nativeHeight = nh * 96 / 72;
         !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
     public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
     public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
-    public backPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) - 1); }
+    public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
-    public forwardPage() { this._pdfViewer!.gotoPage(NumCast(this.props.Document.curPage) + 1); }
+    public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
+
+    @undoBatch
+    onKeyDown = action((e: KeyboardEvent) => {
+        if (e.key === "f" && e.ctrlKey) {
+            this._searching = true;
+            setTimeout(() => this._searchRef.current && this._searchRef.current.focus(), 100);
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") {
+            this.forwardPage();
+        }
+        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") {
+            this.backPage();
+        }
+    });
 
     @undoBatch
     @action
@@ -91,7 +114,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
-    active = () => this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
@@ -110,12 +132,14 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
-        return !this.props.active() ? (null) :
+        return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
-                    <input className="pdfBox-searchBar" placeholder="Search" onChange={this.searchStringChanged} onKeyDown={e => e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey)} />
+                    <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
+                        e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey);
+                    }} />
                     <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
                     <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={e => this.prevAnnotation()} >
@@ -130,7 +154,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
-                <input value={`${NumCast(this.props.Document.curPage)}`}
+                <input value={`${(this.Document.curPage || 1)}`}
                     onChange={e => this.gotoPage(Number(e.currentTarget.value))}
                     style={{ left: 20, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
                     onClick={action(() => this._pageControls = !this._pageControls)} />
@@ -176,27 +200,39 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
-
+    _initialScale: number | undefined;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live....
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let classname = "pdfBox-cont" + (InkingControl.Instance.selectedTool || !this.active ? "" : "-interactive");
-        return (!(pdfUrl instanceof PdfField) || !this._pdf ?
-            <div>{`pdf, ${this.dataDoc[this.props.fieldKey]}, not found`}</div> :
-            <div className={classname} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
+        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
+        let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
+        if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
+        return (!this.extensionDoc || noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+            <div className="pdfBox-title-outer" >
+                <div className={classname} >
+                    <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
+                </div>
+            </div> :
+            <div className={classname} style={{
+                transformOrigin: "top left",
+                width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+                transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
+            }} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
                 let hit = document.elementFromPoint(e.clientX, e.clientY);
                 if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
                     e.button === 0 && e.stopPropagation();
                 }
             }}>
-                <PDFViewer {...this.props} pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} loaded={this.loaded}
+                <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                     setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                     renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                     Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
-                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage}
-                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
+                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
+                    pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                     isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} fieldExtensionDoc={this.extensionDoc} />
+                    fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
                 {this.settingsPanel()}
             </div>);
     }
