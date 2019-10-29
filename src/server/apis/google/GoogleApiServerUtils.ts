@@ -298,9 +298,9 @@ export namespace GoogleApiServerUtils {
                 if (!credentials) {
                     return reject();
                 }
-                if (credentials!.expiry_date! < new Date().getTime()) {
+                if (credentials.expiry_date! < new Date().getTime()) {
                     // Token has expired, so submitting a request for a refreshed access token
-                    return refreshAccessToken(credentials!, userId).then(resolve, reject);
+                    return refreshAccessToken(credentials, userId).then(resolve, reject);
                 }
                 // Authentication successful!
                 resolve({ credentials, refreshed: false });
