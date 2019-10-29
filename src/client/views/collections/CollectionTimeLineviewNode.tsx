@@ -185,7 +185,8 @@ export class
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
                             <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
-                                {this.props.pointerDown ? this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3) : null}
+                                {/* {this.props.pointerDown ? this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3) : null} */}
+                                {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
                             </div>
                         </div>
                     </div>
