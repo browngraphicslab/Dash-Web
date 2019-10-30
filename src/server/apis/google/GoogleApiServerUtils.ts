@@ -248,6 +248,9 @@ export namespace GoogleApiServerUtils {
      * with a Dash user in the googleAuthentication table of the database.
      * @param authenticationCode the Google-provided authentication code that the user copied
      * from Google's permissions UI and pasted into the overlay.
+     * 
+     * EXAMPLE CODE: 4/sgF2A5uGg4xASHf7VQDnLtdqo3mUlfQqLSce_HYz5qf1nFtHj9YTeGs
+     * 
      * @returns the information necessary to authenticate a client side google photos request
      * and display basic user information in the overlay on successful authentication. 
      * This can be expanded as needed by adding properties to the interface GoogleAuthenticationResult.
