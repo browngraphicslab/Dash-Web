@@ -114,6 +114,7 @@ export const STATUS = {
 };
 
 export function _error(res: express.Response, message: string, error?: any) {
+    console.error(message);
     res.statusMessage = message;
     res.status(STATUS.EXECUTION_ERROR).send(error);
 }

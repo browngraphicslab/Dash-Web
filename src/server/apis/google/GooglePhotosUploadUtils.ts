@@ -1,7 +1,7 @@
 import request = require('request-promise');
 import { GoogleApiServerUtils } from './GoogleApiServerUtils';
 import * as path from 'path';
-import { MediaItemCreationResult } from './SharedTypes';
+import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
 import { NewMediaItem } from "../../index";
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { DashUploadUtils } from '../../DashUploadUtils';
@@ -50,9 +50,9 @@ export namespace GooglePhotosUploadUtils {
     };
 
     export const CreateMediaItems = async (bearerToken: string, newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapPatientInterval(
+        const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapPatientInterval<NewMediaItemResult>(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch: NewMediaItem[]) => {
+            async (batch: NewMediaItem[], collector) => {
                 const parameters = {
                     method: 'POST',
                     headers: headers('json', bearerToken),
@@ -61,7 +61,7 @@ export namespace GooglePhotosUploadUtils {
                     json: true
                 };
                 album && (parameters.body.albumId = album.id);
-                return (await new Promise<MediaItemCreationResult>((resolve, reject) => {
+                const { newMediaItemResults } = await new Promise<MediaItemCreationResult>((resolve, reject) => {
                     request(parameters, (error, _response, body) => {
                         if (error) {
                             reject(error);
@@ -69,7 +69,8 @@ export namespace GooglePhotosUploadUtils {
                             resolve(body);
                         }
                     });
-                })).newMediaItemResults;
+                });
+                collector.push(...newMediaItemResults);
             }
         );
         return { newMediaItemResults };

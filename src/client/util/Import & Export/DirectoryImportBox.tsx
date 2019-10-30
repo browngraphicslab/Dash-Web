@@ -107,7 +107,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-        const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync(async batch => {
+        const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync<ImageUploadResponse>(async (batch, collector) => {
             const formData = new FormData();
 
             batch.forEach(file => {
@@ -116,9 +116,8 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            const responses = await Networking.PostFormDataToServer(RouteStore.upload, formData);
+            collector.push(...(await Networking.PostFormDataToServer(RouteStore.upload, formData)));
             runInAction(() => this.completed += batch.length);
-            return responses as ImageUploadResponse[];
         });
 
         await Promise.all(uploads.map(async upload => {
