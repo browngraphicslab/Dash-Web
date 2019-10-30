@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action } from "mobx";
+import { observable, action, computed } from "mobx";
 import Measure from "react-measure";
 import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
@@ -33,18 +33,17 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(RecommendationsBox, fieldKey); }
 
-    static Instance: RecommendationsBox;
     // @observable private _display: boolean = false;
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _width: number = 0;
     @observable private _height: number = 0;
+    private _docViews: JSX.Element[] = [];
     // @observable private _documents: { preview: Doc, score: number }[] = [];
     private previewDocs: Doc[] = [];
 
     constructor(props: FieldViewProps) {
         super(props);
-        RecommendationsBox.Instance = this;
     }
 
     private DocumentIcon(doc: Doc) {
@@ -143,6 +142,45 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
     //     return y;
     // }
 
+    get createDocViews() {
+        return DocListCast(this.props.Document.data).map(doc => {
+            return (
+                <div className="content">
+                    <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
+                        {this.DocumentIcon(doc)}
+                    </span>
+                    <span className="score">{NumCast(doc.score).toFixed(4)}</span>
+                    <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
+                        <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
+                    </div>
+                    <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
+                        <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
+                    </div>
+                </div>
+            );
+        });
+    }
+
+    // componentDidMount() {
+    //     this._docViews = DocListCast(this.props.Document.data).map(doc => {
+    //         return (
+    //             <div className="content">
+    //                 <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
+    //                     {this.DocumentIcon(doc)}
+    //                 </span>
+    //                 <span className="score">{NumCast(doc.score).toFixed(4)}</span>
+    //                 <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
+    //                     <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
+    //                 </div>
+    //                 <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
+    //                     <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
+    //                 </div>
+    //             </div>
+    //         );
+    //     })
+
+    // }
+
     render() { //TODO: Invariant violation: max depth exceeded error. Occurs when images are rendered. 
         // if (!this._display) {
         //     return null;
@@ -154,32 +192,12 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
             title = title.substring(0, 15) + "...";
         }
         return (
-            // <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
-            // {({ measureRef }) => (
             <div className="rec-scroll">
                 <p>Recommendations for "{title}"</p>
-                {DocListCast(this.props.Document.data).map(doc => {
-                    return (
-                        <div className="content">
-                            <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
-                                {this.DocumentIcon(doc)}
-                            </span>
-                            <span className="score">{NumCast(doc.score).toFixed(4)}</span>
-                            <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
-                                <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
-                            </div>
-                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
-                                <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
-                            </div>
-                        </div>
-                    );
-                })}
-
+                {this.createDocViews}
             </div>
-            // );
-            // }
-
-            // </Measure>
         );
     }
+    // 
+    // 
 }
