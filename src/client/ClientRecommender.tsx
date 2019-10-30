@@ -13,7 +13,7 @@ import { JSXElement } from "babel-types";
 import { RichTextField } from "../new_fields/RichTextField";
 import { ToPlainText } from "../new_fields/FieldSymbols";
 import { listSpec } from "../new_fields/Schema";
-import { IBM_Recommender } from "./apis/IBM_Recommender";
+import { Identified } from "./Network";
 
 export interface RecommenderProps {
     title: string;
@@ -45,7 +45,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         super(props);
         if (!ClientRecommender.Instance) ClientRecommender.Instance = this;
         ClientRecommender.Instance.docVectors = new Set();
-        IBM_Recommender.analyze();
+        const parameters: any = {};
+        Identified.PostToServer("/IBMAnalysis", parameters).then(response => {
+            console.log("ANALYSIS RESULTS! ", response);
+        });
         //ClientRecommender.Instance.corr_matrix = [[0, 0], [0, 0]];
     }
 

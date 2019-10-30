@@ -57,6 +57,7 @@ import { ParsedPDF } from "./PdfTypes";
 import { reject } from 'bluebird';
 import { Result } from '../client/northstar/model/idea/idea';
 import RouteSubscriber from './RouteSubscriber';
+import { IBM_Recommender } from '../client/apis/IBM_Recommender';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -772,6 +773,12 @@ addSecureRoute({
         }
         res.send({});
     }
+});
+
+addSecureRoute({
+    method: Method.POST,
+    subscribers: "/IBMAnalysis",
+    onValidation: async (_user, req, res) => res.send(await IBM_Recommender.analyze(req.body))
 });
 
 addSecureRoute({
