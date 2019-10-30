@@ -20,9 +20,8 @@ import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 import { BatchedArray } from "array-batcher";
-import { ExifData } from "exif";
 
 const unsupported = ["text/html", "text/plain"];
 
@@ -117,7 +116,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            const responses = await Identified.PostFormDataToServer(RouteStore.upload, formData);
+            const responses = await Networking.PostFormDataToServer(RouteStore.upload, formData);
             runInAction(() => this.completed += batch.length);
             return responses as ImageUploadResponse[];
         });

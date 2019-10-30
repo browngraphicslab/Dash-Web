@@ -593,11 +593,11 @@ function routeSetter(router: RouteManager) {
         subscription: RouteStore.readGoogleAccessToken,
         onValidation: async ({ user, res }) => {
             const userId = user.id;
-            const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+            const token = await GoogleApiServerUtils.retrieveAccessToken(userId);
             if (!token) {
-                return res.send(await GoogleApiServerUtils.generateAuthenticationUrl());
+                return res.send(GoogleApiServerUtils.generateAuthenticationUrl());
             }
-            return GoogleApiServerUtils.retrieveAccessToken(userId).then(token => res.send(token));
+            return res.send(token);
         }
     });
 
@@ -609,7 +609,7 @@ function routeSetter(router: RouteManager) {
         }
     });
 
-    const tokenError = "Unable to successfully upload bytes for all images!";
+    const authenticationError = "Unable to authenticate Google credentials before uploading to Google Photos!";
     const mediaError = "Unable to convert all uploaded bytes to media items!";
 
     router.addSupervisedRoute({
@@ -618,8 +618,12 @@ function routeSetter(router: RouteManager) {
         onValidation: async ({ user, req, res }) => {
             const { media } = req.body;
 
-            let failed: number[] = [];
             const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
+            if (!token) {
+                return _error(res, authenticationError);
+            }
+
+            let failed: number[] = [];
             const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
                 { magnitude: 100, unit: TimeUnit.Milliseconds },
                 async (batch: GooglePhotosUploadUtils.MediaInput[]) => {

@@ -3,7 +3,7 @@ import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 
 export const Pulls = "googleDocsPullCount";
 export const Pushes = "googleDocsPushCount";
@@ -84,7 +84,7 @@ export namespace GoogleApiClientUtils {
                 }
             };
             try {
-                const schema: docs_v1.Schema$Document = await Identified.PostToServer(path, parameters);
+                const schema: docs_v1.Schema$Document = await Networking.PostToServer(path, parameters);
                 return schema.documentId;
             } catch {
                 return undefined;
@@ -157,7 +157,7 @@ export namespace GoogleApiClientUtils {
             const path = `${RouteStore.googleDocs}/Documents/${Actions.Retrieve}`;
             try {
                 const parameters = { documentId: options.documentId };
-                const schema: RetrievalResult = await Identified.PostToServer(path, parameters);
+                const schema: RetrievalResult = await Networking.PostToServer(path, parameters);
                 return schema;
             } catch {
                 return undefined;
@@ -173,7 +173,7 @@ export namespace GoogleApiClientUtils {
                 }
             };
             try {
-                const replies: UpdateResult = await Identified.PostToServer(path, parameters);
+                const replies: UpdateResult = await Networking.PostToServer(path, parameters);
                 return replies;
             } catch {
                 return undefined;

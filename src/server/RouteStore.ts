@@ -39,6 +39,7 @@ export enum RouteStore {
     writeGoogleAccessToken = "/writeGoogleAccessToken",
     googlePhotosMediaUpload = "/googlePhotosMediaUpload",
     googlePhotosMediaDownload = "/googlePhotosMediaDownload",
-    googleDocsGet = "/googleDocsGet"
+    googleDocsGet = "/googleDocsGet",
+    checkGoogle = "/checkGoogleAuthentication"
 
 }

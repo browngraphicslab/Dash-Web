@@ -49,9 +49,9 @@ export default class RouteManager {
         let supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
             const core = { req, res, isRelease };
-            const tryExecute = async (target: (args: any) => any | Promise<any>, args: any) => {
+            const tryExecute = async (toExecute: (args: any) => any | Promise<any>, args: any) => {
                 try {
-                    await target(args);
+                    await toExecute(args);
                 } catch (e) {
                     if (onError) {
                         onError({ ...core, error: e });
