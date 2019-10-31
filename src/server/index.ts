@@ -650,11 +650,11 @@ function routeSetter(router: RouteManager) {
             const failedCount = failed.length;
             if (failedCount) {
                 console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
-                console.log(failed.map(({ reason, batch, index, url }) => `@${batch}.${index}: ${url} failed: ${reason}`).join('\n'));
+                console.log(failed.map(({ reason, batch, index, url }) => `@${batch}.${index}: ${url} failed:\n${reason}`).join('\n\n'));
             }
 
             return GooglePhotosUploadUtils.CreateMediaItems(token, newMediaItems, req.body.album).then(
-                result => _success(res, { results: result.newMediaItemResults, failed }),
+                results => _success(res, { results, failed }),
                 error => _error(res, mediaError, error)
             );
         }

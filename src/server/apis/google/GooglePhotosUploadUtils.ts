@@ -100,12 +100,12 @@ export namespace GooglePhotosUploadUtils {
      * @param album if included, will add all of the newly created remote images to the album
      * with the specified id
      */
-    export const CreateMediaItems = async (bearerToken: string, newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
+    export const CreateMediaItems = async (bearerToken: string, newMediaItems: NewMediaItem[], album?: { id: string }): Promise<NewMediaItemResult[]> => {
         // it's important to note that the API can't handle more than 50 items in each request and
         // seems to need at least some latency between requests (spamming it synchronously has led to the server returning errors)...
         const batched = BatchedArray.from(newMediaItems, { batchSize: 50 });
         // ...so we execute them in delayed batches and await the entire execution
-        const newMediaItemResults = await batched.batchedMapPatientInterval<NewMediaItemResult>(
+        return batched.batchedMapPatientInterval(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
             async (batch: NewMediaItem[], collector) => {
                 const parameters = {
@@ -117,19 +117,17 @@ export namespace GooglePhotosUploadUtils {
                 };
                 // register the target album, if provided
                 album && (parameters.body.albumId = album.id);
-                const { newMediaItemResults } = await new Promise<MediaItemCreationResult>((resolve, reject) => {
+                collector.push(...(await new Promise<NewMediaItemResult[]>((resolve, reject) => {
                     request(parameters, (error, _response, body) => {
                         if (error) {
                             reject(error);
                         } else {
-                            resolve(body);
+                            resolve(body.newMediaItemResults);
                         }
                     });
-                });
-                collector.push(...newMediaItemResults);
+                })));
             }
         );
-        return { newMediaItemResults };
     };
 
 }
