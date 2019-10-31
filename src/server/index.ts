@@ -627,7 +627,7 @@ function routeSetter(router: RouteManager) {
             }
 
             let failed: GooglePhotosUploadFailure[] = [];
-            const batched = BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 });
+            const batched = BatchedArray.from<GooglePhotosUploadUtils.UploadSource>(media, { batchSize: 25 });
             const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
                 { magnitude: 100, unit: TimeUnit.Milliseconds },
                 async (batch, collector, { completedBatches }) => {
