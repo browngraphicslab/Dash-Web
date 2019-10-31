@@ -248,6 +248,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     onDotDown(index: number) {
         this.Document.curPage = index;
     }
+
     @computed private get url() {
         let data = Cast(Doc.GetProto(this.props.Document)[this.props.fieldKey], ImageField);
         return data ? data.url.href : undefined;

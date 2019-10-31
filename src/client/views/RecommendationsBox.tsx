@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action, computed } from "mobx";
+import { observable, action, computed, runInAction } from "mobx";
 import Measure from "react-measure";
 import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
@@ -38,7 +38,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
     @observable private _pageY: number = 0;
     @observable private _width: number = 0;
     @observable private _height: number = 0;
-    private _docViews: JSX.Element[] = [];
+    @observable.shallow private _docViews: JSX.Element[] = [];
     // @observable private _documents: { preview: Doc, score: number }[] = [];
     private previewDocs: Doc[] = [];
 
@@ -46,20 +46,13 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
         super(props);
     }
 
+    @action
     private DocumentIcon(doc: Doc) {
         let layoutresult = StrCast(doc.type);
         let renderDoc = doc;
         //let box: number[] = [];
         if (layoutresult.indexOf(DocumentType.COL) !== -1) {
             renderDoc = Doc.MakeDelegate(renderDoc);
-            let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
-                var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
-                let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
-                return {
-                    x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-                    r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-                };
-            }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
         }
         let returnXDimension = () => 150;
         let returnYDimension = () => 150;
@@ -142,27 +135,8 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
     //     return y;
     // }
 
-    get createDocViews() {
-        return DocListCast(this.props.Document.data).map(doc => {
-            return (
-                <div className="content">
-                    <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
-                        {this.DocumentIcon(doc)}
-                    </span>
-                    <span className="score">{NumCast(doc.score).toFixed(4)}</span>
-                    <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
-                        <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
-                    </div>
-                    <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
-                        <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
-                    </div>
-                </div>
-            );
-        });
-    }
-
-    // componentDidMount() {
-    //     this._docViews = DocListCast(this.props.Document.data).map(doc => {
+    // get createDocViews() {
+    //     return DocListCast(this.props.Document.data).map(doc => {
     //         return (
     //             <div className="content">
     //                 <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
@@ -177,9 +151,31 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
     //                 </div>
     //             </div>
     //         );
-    //     })
-
+    //     });
     // }
+
+    componentDidMount() { //TODO: invoking a computedFn from outside an reactive context won't be memoized, unless keepAlive is set
+        runInAction(() => {
+            if (this._docViews.length === 0) {
+                this._docViews = DocListCast(this.props.Document.data).map(doc => {
+                    return (
+                        <div className="content">
+                            <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
+                                {this.DocumentIcon(doc)}
+                            </span>
+                            <span className="score">{NumCast(doc.score).toFixed(4)}</span>
+                            <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
+                                <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
+                            </div>
+                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
+                                <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
+                            </div>
+                        </div>
+                    );
+                });
+            }
+        });
+    }
 
     render() { //TODO: Invariant violation: max depth exceeded error. Occurs when images are rendered. 
         // if (!this._display) {
@@ -194,7 +190,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
         return (
             <div className="rec-scroll">
                 <p>Recommendations for "{title}"</p>
-                {this.createDocViews}
+                {this._docViews}
             </div>
         );
     }

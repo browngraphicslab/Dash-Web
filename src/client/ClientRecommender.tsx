@@ -1,7 +1,7 @@
 import { Doc, FieldResult } from "../new_fields/Doc";
 import { StrCast, Cast } from "../new_fields/Types";
 import { List } from "../new_fields/List";
-import { CognitiveServices } from "./cognitive_services/CognitiveServices";
+import { CognitiveServices, Confidence, Tag, Service } from "./cognitive_services/CognitiveServices";
 import React = require("react");
 import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
@@ -14,6 +14,8 @@ import { RichTextField } from "../new_fields/RichTextField";
 import { ToPlainText } from "../new_fields/FieldSymbols";
 import { listSpec } from "../new_fields/Schema";
 import { Identified } from "./Network";
+import { ComputedField } from "../new_fields/ScriptField";
+import { ImageField } from "../new_fields/URLField";
 
 export interface RecommenderProps {
     title: string;
@@ -31,8 +33,12 @@ export interface RecommenderDocument {
     score: number;
 }
 
+const fieldkey = "data";
+
 @observer
 export class ClientRecommender extends React.Component<RecommenderProps> {
+
+
 
     static Instance: ClientRecommender;
     private mainDoc?: RecommenderDocument;
@@ -45,10 +51,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         super(props);
         if (!ClientRecommender.Instance) ClientRecommender.Instance = this;
         ClientRecommender.Instance.docVectors = new Set();
-        const parameters: any = {};
-        Identified.PostToServer("/IBMAnalysis", parameters).then(response => {
-            console.log("ANALYSIS RESULTS! ", response);
-        });
         //ClientRecommender.Instance.corr_matrix = [[0, 0], [0, 0]];
     }
 
@@ -97,6 +99,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     public computeSimilarities(distance_metric: string) {
+        const parameters: any = {};
+        Identified.PostToServer("/IBMAnalysis", parameters).then(response => {
+            console.log("ANALYSIS RESULTS! ", response);
+        });
         ClientRecommender.Instance.docVectors.forEach((doc: RecommenderDocument) => {
             if (ClientRecommender.Instance.mainDoc) {
                 const distance = ClientRecommender.Instance.distance(ClientRecommender.Instance.mainDoc.vectorDoc, doc.vectorDoc, distance_metric);
@@ -148,23 +154,58 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     }
 
     /***
+     * Generates tags for an image using Cognitive Services
+     */
+
+    generateMetadata = async (dataDoc: Doc, extDoc: Doc, threshold: Confidence = Confidence.Excellent) => {
+        let converter = (results: any) => {
+            let tagDoc = new Doc;
+            let tagsList = new List();
+            results.tags.map((tag: Tag) => {
+                tagsList.push(tag.name);
+                let sanitized = tag.name.replace(" ", "_");
+                tagDoc[sanitized] = ComputedField.MakeFunction(`(${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`);
+            });
+            extDoc.generatedTags = tagsList;
+            tagDoc.title = "Generated Tags Doc";
+            tagDoc.confidence = threshold;
+            return tagDoc;
+        };
+        const url = this.url(dataDoc);
+        if (url) {
+            return CognitiveServices.Image.Appliers.ProcessImage(extDoc, ["generatedTagsDoc"], url, Service.ComputerVision, converter);
+        }
+    }
+
+    /***
+     * Gets URL of image
+     */
+
+    private url(dataDoc: Doc) {
+        let data = Cast(Doc.GetProto(dataDoc)[fieldkey], ImageField);
+        return data ? data.url.href : undefined;
+    }
+
+    /***
      * Uses Cognitive Services to extract keywords from a document
      */
 
     public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false, image: boolean = false) {
         let data: string = "";
         let taglist: FieldResult<List<string>> = undefined;
-        if (image && extDoc.generatedTags) { // TODO: Automatically generate tags. Need to ask Sam about this.
-            taglist = Cast(extDoc.generatedTags, listSpec("string"));
-            taglist!.forEach(tag => {
-                data += tag + ", ";
-            });
+        if (image) {
+            if (!extDoc.generatedTags) await this.generateMetadata(dataDoc, extDoc);  // TODO: Automatically generate tags. Need to ask Sam about this.
+            if (extDoc.generatedTags) {
+                taglist = Cast(extDoc.generatedTags, listSpec("string"));
+                taglist!.forEach(tag => {
+                    data += tag + ", ";
+                });
+            }
         }
         else {
             let fielddata = Cast(dataDoc.data, RichTextField);
             fielddata ? data = fielddata[ToPlainText]() : data = "";
         }
-
         let converter = async (results: any, data: string, isImage: boolean = false) => {
             let keyterms = new List<string>(); // raw keywords
             // let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated. input to w2v
