@@ -180,7 +180,9 @@ export class
         this.tog();
         return (
             <div>
-                <div onPointerDown={(e) => this.toggleSelection(e)} style={{ zIndex: 1, transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
+                <div onPointerDown={(e) => this.toggleSelection(e)} style={{
+                    zIndex: 1, transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval * this.props.transform, top: this.props.top, width: this.props.scale, height: this.props.scale,
+                }}>
                     <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
@@ -197,7 +199,7 @@ export class
                     <div style=
                         {{
                             position: "absolute", left: this.props.leftval, top: "0px", height: "100%", overflow: "hidden", writingMode: "vertical-rl",
-                            textOrientation: "mixed", borderLeft: "1px black solid"
+                            textOrientation: "mixed", borderLeft: "1px black solid",
                         }} />
                     < div style={{
                         position: "absolute", width: this.props.scale, left: this.props.leftval - this.props.scale, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
@@ -215,6 +217,7 @@ export interface NodeProps {
     scale: number;
     leftval: number;
     sortstate: string;
+    transform: number;
     doc: Doc;
     top: number;
     timelinetop: number;

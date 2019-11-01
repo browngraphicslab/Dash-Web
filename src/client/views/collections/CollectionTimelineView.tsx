@@ -29,9 +29,10 @@ type MarkerUnit = {
 
 type Tick = {
     counter: number,
-    leftval: string,
+    leftval: number,
     val: number,
     ref: React.RefObject<HTMLDivElement>;
+    transform: number,
 };
 
 type Node = {
@@ -693,21 +694,22 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let counter = 0;
         this.tickvals = [];
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
-            let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px");
+            let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))));
             let tickref = React.createRef<HTMLDivElement>();
             this.tickrefs.push(tickref);
             let val = 0;
+            let scale = (this.barwidth - this.rightbound - this.leftbound) / this.barwidth;
             if (counter % 100 === 0) {
                 val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0].value - this._range * 0.05);
-                let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                let t = { counter: counter, leftval: leftval, val: val, ref: tickref, transform: scale } as Tick;
                 this.tickvals.push(t);
             }
             else if (counter % 50 === 0) {
-                let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                let t = { counter: counter, leftval: leftval, val: val, ref: tickref, transform: scale } as Tick;
                 this.tickvals.push(t);
             }
             else if (counter % 10 === 0) {
-                let t = { counter: counter, leftval: leftval, val: val, ref: tickref } as Tick;
+                let t = { counter: counter, leftval: leftval, val: val, ref: tickref, transform: scale } as Tick;
                 this.tickvals.push(t);
             }
             counter++;
@@ -1294,6 +1296,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @observable firstround: boolean = false;
 
+    callback(t: Tick) {
+        if (t.counter % 100 === 0) {
+            return (<div className="max" ref={t.ref} style={{
+                position: "absolute", top: "0%", left: t.leftval * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound)), zIndex: 1, writingMode: "vertical-rl",
+                textOrientation: "mixed",
+            }
+            }> <div style={{ paddingTop: "10px" }}>{t.val}</div></div>);
+        }
+        else if (t.counter % 50 === 0) {
+            return (<div className="max2" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound)), zIndex: 1 }} />);
+        }
+        else if (t.counter % 10 === 0) {
+            return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound)), zIndex: 1 }} />);
+        }
+    }
+
+
     render() {
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
@@ -1316,14 +1335,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>
                         }>
                         <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-                    </Flyout> */}
-                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", transform: `translateX(${-this.leftbound}px) scaleX(${this.barwidth / (this.barwidth - this.leftbound - this.rightbound)})`, height: "100%", width: "100%", }}>
+                    </Flyout> */}transform
+                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound}px)`, }}>
                         {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "100%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
                         {this.thumbnails.map(node =>
                             <Thumbnail
                                 key={node.doc[Id]}
                                 scale={this.rowscale}
+                                transform={this.barwidth / (this.barwidth - this.leftbound - this.rightbound)}
                                 scrollTop={document.body.scrollTop}
                                 renderDepth={this.props.renderDepth}
                                 CollectionView={this.props.CollectionView}
@@ -1351,21 +1371,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
                             position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
                         }}>
-                            {this.tickvals.map(function (t) {
-                                if (t.counter % 100 === 0) {
-                                    return (<div className="max" ref={t.ref} style={{
-                                        position: "absolute", top: "0%", left: t.leftval, zIndex: 1, writingMode: "vertical-rl",
-                                        textOrientation: "mixed",
-                                    }
-                                    }> <div style={{ paddingTop: "10px" }}>{t.val}</div></div>);
-                                }
-                                else if (t.counter % 50 === 0) {
-                                    return (<div className="max2" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: 1 }} />);
-                                }
-                                else if (t.counter % 10 === 0) {
-                                    return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval, zIndex: 1 }} />);
-                                }
-                            })}
+                            {this.tickvals.map((t) => this.callback(t))}
                         </div>
                     </div>
                 </div >
