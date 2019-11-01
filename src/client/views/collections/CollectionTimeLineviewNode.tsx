@@ -198,11 +198,11 @@ export class
                 }}>
                     <div style=
                         {{
-                            position: "absolute", left: this.props.leftval, top: "0px", height: "100%", overflow: "hidden", writingMode: "vertical-rl",
+                            position: "absolute", left: this.props.leftval * this.props.transform, top: "0px", height: "100%", overflow: "hidden", writingMode: "vertical-rl",
                             textOrientation: "mixed", borderLeft: "1px black solid",
                         }} />
                     < div style={{
-                        position: "absolute", width: this.props.scale, left: this.props.leftval - this.props.scale, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
+                        position: "absolute", width: this.props.scale, left: this.props.leftval * this.props.transform - this.props.scale, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
                         textOrientation: "mixed",
                     }}>{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
                 </div>

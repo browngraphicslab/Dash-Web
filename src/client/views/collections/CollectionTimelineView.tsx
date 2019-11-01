@@ -142,6 +142,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             () => this.props.Document.sortstate,
             () => {
                 console.log("DIDMOUNT");
+                this.initiallyPopulateThumbnails();
                 this.createticks();
             }
         );
@@ -501,6 +502,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     initiallyPopulateThumbnails() {
         console.log("POPULATING");
+        this.thumbnails = [];
         const childDocs = this.childDocs;
         let validatedChildren = childDocs.filter(doc => doc[this.currentSortingKey]);
 
@@ -610,7 +612,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         // }
         // this.thumbnails = this.filterDocs(this.thumbnails);
         // console.log(this.thumbnails.length);
-        // this.removeOverlap();
+        this.removeOverlap();
     }
 
     private thumbnailrenders: Thumbnail[] | undefined;
@@ -646,20 +648,22 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         }
                         overlap = false;
                     }
-                    if (thumbnail1.row !== thumbnail2.row) {
-                        if (thumbnail1.doc[this.verticalSortingKey] < thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row > thumbnail2.row) {
-                            let row1 = thumbnail1.row
-                            let row2 = thumbnail2.row
-                            thumbnail1.row = row2;
-                            thumbnail2.row = row1;
-                        }
-                        else if (thumbnail1.doc[this.verticalSortingKey] > thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row < thumbnail2.row) {
-                            let row1 = thumbnail1.row
-                            let row2 = thumbnail2.row
-                            thumbnail1.row = row2;
-                            thumbnail2.row = row1;
-                        }
-                    }
+                    // if (thumbnail1.row !== thumbnail2.row) {
+                    //     if (thumbnail1.doc[this.verticalSortingKey] < thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row > thumbnail2.row) {
+                    //         let row1 = thumbnail1.row;
+                    //         let row2 = thumbnail2.row;
+                    //         thumbnail1.row = row2;
+                    //         thumbnail2.row = row1;
+                    //         console.log(thumbnail1.row, thumbnail2.row);
+                    //     }
+                    //     else if (thumbnail1.doc[this.verticalSortingKey] > thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row < thumbnail2.row) {
+                    //         let row1 = thumbnail1.row;
+                    //         let row2 = thumbnail2.row;
+                    //         thumbnail1.row = row2;
+                    //         thumbnail2.row = row1;
+                    //         console.log(thumbnail1.row, thumbnail2.row);
+                    //     }
+                    // }
                 }
                 for (let thumbnail1 of this.thumbnails) {
                     if (thumbnail1.row === Math.round(this.rowval.length / 2)) {
@@ -1316,9 +1320,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     render() {
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
-        this.createdownbool();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        console.log(this.leftbound);
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
@@ -1335,7 +1337,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>
                         }>
                         <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-                    </Flyout> */}transform
+                    </Flyout> */}
                     <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound}px)`, }}>
                         {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "100%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
