@@ -5,6 +5,8 @@
   top: 0;
   left:0;
   border-radius: inherit;
+  transition : outline .3s linear;
+  cursor: grab;
                     
  // background: $light-color; //overflow: hidden;
   transform-origin: left top;
@@ -44,9 +46,6 @@
         position: absolute;
     }
   }
-}
-.documentView-node-topmost {
-    background: white;
 }
 
 .documentView-styleWrapper {

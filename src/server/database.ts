@@ -4,6 +4,7 @@ import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
+import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 
 export namespace Database {
 
@@ -131,7 +132,7 @@ export namespace Database {
             }
         }
 
-        public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
+        public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = "newDocuments") {
             if (this.db) {
                 this.db.collection(collectionName).findOne({ _id: id }, (err, result) => {
                     if (result) {
@@ -165,7 +166,7 @@ export namespace Database {
             }
         }
 
-        public async visit(ids: string[], fn: (result: any) => string[], collectionName = "newDocuments"): Promise<void> {
+        public async visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName = "newDocuments"): Promise<void> {
             if (this.db) {
                 const visited = new Set<string>();
                 while (ids.length) {
@@ -179,10 +180,9 @@ export namespace Database {
                     for (const doc of docs) {
                         const id = doc.id;
                         visited.add(id);
-                        ids.push(...fn(doc));
+                        ids.push(...(await fn(doc)));
                     }
                 }
-
             } else {
                 return new Promise(res => {
                     this.onConnect.push(() => {
@@ -260,8 +260,8 @@ export namespace Database {
                 return SanitizedSingletonQuery<StoredCredentials>({ userId }, GoogleAuthentication, removeId);
             };
 
-            export const Write = async (userId: string, token: any) => {
-                return Instance.insert({ userId, canAccess: [], ...token }, GoogleAuthentication);
+            export const Write = async (userId: string, enrichedCredentials: GoogleApiServerUtils.EnrichedCredentials) => {
+                return Instance.insert({ userId, canAccess: [], ...enrichedCredentials }, GoogleAuthentication);
             };
 
             export const Update = async (userId: string, access_token: string, expiry_date: number) => {

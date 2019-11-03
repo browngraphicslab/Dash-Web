@@ -15,27 +15,28 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
-import { CollectionViewType } from "../CollectionBaseView";
+import { CollectionViewType } from "../CollectionView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import { SubCollectionViewProps } from "../CollectionSubView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
-    container: CollectionFreeFormView;
-    addDocument: (doc: Doc, allowDuplicates: false) => boolean;
+    addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
     selectDocuments: (docs: Doc[]) => void;
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay: boolean;
+    extensionDoc: Doc;
+    isAnnotationOverlay?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
 @observer
-export class MarqueeView extends React.Component<MarqueeViewProps>
+export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
     private _mainCont = React.createRef<HTMLDivElement>();
     @observable _lastX: number = 0;
@@ -83,7 +84,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 ns.map(line => {
                     let indent = line.search(/\S|$/);
                     let newBox = Docs.Create.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
-                    this.props.addDocument(newBox, false);
+                    this.props.addDocument(newBox);
                     y += 40 * this.props.getTransform().Scale;
                 });
             })();
@@ -92,7 +93,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
                 } else {
                     this.pasteTable(ns, x, y);
                 }
@@ -146,7 +147,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group", "#f1efeb")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c, "#f1efeb"))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
-            this.props.addDocument(newCol, false);
+            this.props.addDocument(newCol);
         }
     }
     @action
@@ -187,13 +188,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
+        if (!this.props.active()) this.props.selectDocuments([this.props.Document]);
         if (this._visible) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
-                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.Document);
             }
-            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+            this.props.selectDocuments(mselect.length ? mselect : [this.props.Document]);
         }
         this.cleanupInteractions(true);
 
@@ -202,7 +203,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
     }
 
-    setPreviewCursor = (x: number, y: number, drag: boolean) => {
+    setPreviewCursor = action((x: number, y: number, drag: boolean) => {
         if (drag) {
             this._downX = this._lastX = x;
             this._downY = this._lastY = y;
@@ -217,7 +218,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._downY = y;
             PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
         }
-    }
+    });
 
     @action
     onClick = (e: React.MouseEvent): void => {
@@ -246,13 +247,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.
-        let cprops = this.props.container.props;
-        return Cast(Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink, InkField);
+        return this.props.extensionDoc && Cast(this.props.extensionDoc.ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
-        let cprops = this.props.container.props;
-        Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink = value;
+        this.props.extensionDoc && (this.props.extensionDoc.ink = value);
     }
 
     @undoBatch
@@ -285,18 +284,18 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
+                    d.displayTimecode = undefined;
                     return d;
                 });
             }
             let defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
                 "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
-            let colorPalette = Cast(this.props.container.props.Document.colorPalette, listSpec("string"));
-            if (!colorPalette) this.props.container.props.Document.colorPalette = new List<string>(defaultPalette);
-            let palette = Array.from(Cast(this.props.container.props.Document.colorPalette, listSpec("string")) as string[]);
+            let colorPalette = Cast(this.props.Document.colorPalette, listSpec("string"));
+            if (!colorPalette) this.props.Document.colorPalette = new List<string>(defaultPalette);
+            let palette = Array.from(Cast(this.props.Document.colorPalette, listSpec("string")) as string[]);
             let usedPaletted = new Map<string, number>();
-            [...this.props.activeDocuments(), this.props.container.props.Document].map(child => {
-                let bg = StrCast(child.layout instanceof Doc ? child.layout.backgroundColor : child.backgroundColor);
+            [...this.props.activeDocuments(), this.props.Document].map(child => {
+                let bg = StrCast(Doc.Layout(child).backgroundColor);
                 if (palette.indexOf(bg) !== -1) {
                     palette.splice(palette.indexOf(bg), 1);
                     if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
@@ -350,7 +349,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
             }
             else {
-                this.props.addDocument(newCollection, false);
+                this.props.addDocument(newCollection);
                 this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);
@@ -394,20 +393,22 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Doc[] = [];
         this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+            let layoutDoc = Doc.Layout(doc);
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);
-            var w = NumCast(doc.width);
-            var h = NumCast(doc.height);
+            var w = NumCast(layoutDoc.width);
+            var h = NumCast(layoutDoc.height);
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
         });
         if (!selection.length && selectBackgrounds) {
             this.props.activeDocuments().filter(doc => doc.z === undefined).map(doc => {
+                let layoutDoc = Doc.Layout(doc);
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);
-                var w = NumCast(doc.width);
-                var h = NumCast(doc.height);
+                var w = NumCast(layoutDoc.width);
+                var h = NumCast(layoutDoc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                     selection.push(doc);
                 }
@@ -420,10 +421,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let size = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
             let otherBounds = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
             this.props.activeDocuments().filter(doc => doc.z !== undefined).map(doc => {
+                let layoutDoc = Doc.Layout(doc);
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);
-                var w = NumCast(doc.width);
-                var h = NumCast(doc.height);
+                var w = NumCast(layoutDoc.width);
+                var h = NumCast(layoutDoc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
                     selection.push(doc);
                 }
@@ -434,21 +436,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @computed
     get marqueeDiv() {
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
             <span className="marquee-legend" />
         </div>;
     }
 
     render() {
-        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                {this._visible ? this.marqueeDiv : null}
-                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
-                    {this.props.children}
-                </div>
-            </div>
+        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            {this._visible ? this.marqueeDiv : null}
+            {this.props.children}
         </div>;
     }
 }

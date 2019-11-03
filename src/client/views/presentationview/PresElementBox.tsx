@@ -5,18 +5,19 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne } from "../../../Utils";
+import { createSchema, makeInterface } from '../../../new_fields/Schema';
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, returnFalse } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Transform } from "../../util/Transform";
-import { CollectionViewType } from '../collections/CollectionBaseView';
-import { DocumentView } from "../nodes/DocumentView";
+import { CollectionViewType } from '../collections/CollectionView';
+import { CollectionSchemaPreview } from '../collections/CollectionSchemaView';
+import { DocComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
-import { CollectionSchemaPreview } from '../collections/CollectionSchemaView';
-
 
 library.add(faArrowUp);
 library.add(fileSolid);
@@ -24,34 +25,34 @@ library.add(faLocationArrow);
 library.add(fileRegular as any);
 library.add(faSearch);
 library.add(faArrowDown);
+
+export const presSchema = createSchema({
+    presentationTargetDoc: Doc,
+    presBox: Doc,
+    presBoxKey: "string",
+    showButton: "boolean",
+    navButton: "boolean",
+    hideTillShownButton: "boolean",
+    fadeButton: "boolean",
+    hideAfterButton: "boolean",
+    groupButton: "boolean",
+    embedOpen: "boolean"
+});
+
+type PresDocument = makeInterface<[typeof presSchema, typeof documentSchema]>;
+const PresDocument = makeInterface(presSchema, documentSchema);
 /**
  * This class models the view a document added to presentation will have in the presentation.
  * It involves some functionality for its buttons and options.
  */
 @observer
-export class PresElementBox extends React.Component<FieldViewProps> {
+export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(PresDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
 
-    public static LayoutString() { return FieldView.LayoutString(PresElementBox); }
-
-    @computed get myIndex() { return DocListCast(this.presentationDoc[this.presentationFieldKey]).indexOf(this.props.Document); }
-    @computed get presentationDoc() { return this.props.Document.presBox as Doc; }
-    @computed get presentationFieldKey() { return StrCast(this.props.Document.presBoxKey); }
+    @computed get indexInPres() { return DocListCast(this.presentationDoc[this.Document.presBoxKey || ""]).indexOf(this.props.Document); }
+    @computed get presentationDoc() { return Cast(this.Document.presBox, Doc) as Doc; }
+    @computed get targetDoc() { return this.Document.presentationTargetDoc as Doc; }
     @computed get currentIndex() { return NumCast(this.presentationDoc.selectedDoc); }
-    @computed get showButton() { return BoolCast(this.props.Document.showButton); }
-    @computed get navButton() { return BoolCast(this.props.Document.navButton); }
-    @computed get hideTillShownButton() { return BoolCast(this.props.Document.hideTillShownButton); }
-    @computed get fadeButton() { return BoolCast(this.props.Document.fadeButton); }
-    @computed get hideAfterButton() { return BoolCast(this.props.Document.hideAfterButton); }
-    @computed get groupButton() { return BoolCast(this.props.Document.groupButton); }
-    @computed get embedOpen() { return BoolCast(this.props.Document.embedOpen); }
-
-    set embedOpen(value: boolean) { this.props.Document.embedOpen = value; }
-    set showButton(val: boolean) { this.props.Document.showButton = val; }
-    set navButton(val: boolean) { this.props.Document.navButton = val; }
-    set hideTillShownButton(val: boolean) { this.props.Document.hideTillShownButton = val; }
-    set fadeButton(val: boolean) { this.props.Document.fadeButton = val; }
-    set hideAfterButton(val: boolean) { this.props.Document.hideAfterButton = val; }
-    set groupButton(val: boolean) { this.props.Document.groupButton = val; }
 
     /**
      * The function that is called on click to turn Hiding document till press option on/off.
@@ -60,16 +61,14 @@ export class PresElementBox extends React.Component<FieldViewProps> {
     @action
     onHideDocumentUntilPressClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        this.hideTillShownButton = !this.hideTillShownButton;
-        if (!this.hideTillShownButton) {
-            if (this.myIndex >= this.currentIndex) {
-                (this.props.Document.target as Doc).opacity = 1;
+        this.Document.hideTillShownButton = !this.Document.hideTillShownButton;
+        if (!this.Document.hideTillShownButton) {
+            if (this.indexInPres >= this.currentIndex && this.targetDoc) {
+                this.targetDoc.opacity = 1;
             }
         } else {
-            if (this.presentationDoc.presStatus) {
-                if (this.myIndex > this.currentIndex) {
-                    (this.props.Document.target as Doc).opacity = 0;
-                }
+            if (this.presentationDoc.presStatus && this.indexInPres > this.currentIndex && this.targetDoc) {
+                this.targetDoc.opacity = 0;
             }
         }
     }
@@ -82,17 +81,15 @@ export class PresElementBox extends React.Component<FieldViewProps> {
     @action
     onHideDocumentAfterPresentedClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        this.hideAfterButton = !this.hideAfterButton;
-        if (!this.hideAfterButton) {
-            if (this.myIndex <= this.currentIndex) {
-                (this.props.Document.target as Doc).opacity = 1;
+        this.Document.hideAfterButton = !this.Document.hideAfterButton;
+        if (!this.Document.hideAfterButton) {
+            if (this.indexInPres <= this.currentIndex && this.targetDoc) {
+                this.targetDoc.opacity = 1;
             }
         } else {
-            if (this.fadeButton) this.fadeButton = false;
-            if (this.presentationDoc.presStatus) {
-                if (this.myIndex < this.currentIndex) {
-                    (this.props.Document.target as Doc).opacity = 0;
-                }
+            if (this.Document.fadeButton) this.Document.fadeButton = false;
+            if (this.presentationDoc.presStatus && this.indexInPres < this.currentIndex && this.targetDoc) {
+                this.targetDoc.opacity = 0;
             }
         }
     }
@@ -105,17 +102,15 @@ export class PresElementBox extends React.Component<FieldViewProps> {
     @action
     onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        this.fadeButton = !this.fadeButton;
-        if (!this.fadeButton) {
-            if (this.myIndex <= this.currentIndex) {
-                (this.props.Document.target as Doc).opacity = 1;
+        this.Document.fadeButton = !this.Document.fadeButton;
+        if (!this.Document.fadeButton) {
+            if (this.indexInPres <= this.currentIndex && this.targetDoc) {
+                this.targetDoc.opacity = 1;
             }
         } else {
-            this.hideAfterButton = false;
-            if (this.presentationDoc.presStatus) {
-                if (this.myIndex < this.currentIndex) {
-                    (this.props.Document.target as Doc).opacity = 0.5;
-                }
+            this.Document.hideAfterButton = false;
+            if (this.presentationDoc.presStatus && (this.indexInPres < this.currentIndex) && this.targetDoc) {
+                this.targetDoc.opacity = 0.5;
             }
         }
     }
@@ -126,10 +121,10 @@ export class PresElementBox extends React.Component<FieldViewProps> {
     @action
     onNavigateDocumentClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        this.navButton = !this.navButton;
-        if (this.navButton) {
-            this.showButton = false;
-            if (this.currentIndex === this.myIndex) {
+        this.Document.navButton = !this.Document.navButton;
+        if (this.Document.navButton) {
+            this.Document.showButton = false;
+            if (this.currentIndex === this.indexInPres) {
                 this.props.focus(this.props.Document);
             }
         }
@@ -142,12 +137,12 @@ export class PresElementBox extends React.Component<FieldViewProps> {
     onZoomDocumentClick = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        this.showButton = !this.showButton;
-        if (!this.showButton) {
+        this.Document.showButton = !this.Document.showButton;
+        if (!this.Document.showButton) {
             this.props.Document.viewScale = 1;
         } else {
-            this.navButton = false;
-            if (this.currentIndex === this.myIndex) {
+            this.Document.navButton = false;
+            if (this.currentIndex === this.indexInPres) {
                 this.props.focus(this.props.Document);
             }
         }
@@ -162,21 +157,22 @@ export class PresElementBox extends React.Component<FieldViewProps> {
      * presentation element.
      */
     renderEmbeddedInline = () => {
-        if (!this.embedOpen || !(this.props.Document.target instanceof Doc)) {
+        if (!this.Document.embedOpen || !this.targetDoc) {
             return (null);
         }
 
-        let propDocWidth = NumCast(this.props.Document.nativeWidth);
-        let propDocHeight = NumCast(this.props.Document.nativeHeight);
-        let scale = () => 175 / NumCast(this.props.Document.nativeWidth, 175);
+        let propDocWidth = NumCast(this.layoutDoc.nativeWidth);
+        let propDocHeight = NumCast(this.layoutDoc.nativeHeight);
+        let scale = () => 175 / NumCast(this.layoutDoc.nativeWidth, 175);
         return (
             <div className="presElementBox-embedded" style={{
-                height: propDocHeight === 0 ? NumCast(this.props.Document.height) - NumCast(this.props.Document.collapsedHeight) : propDocHeight * scale(),
+                height: propDocHeight === 0 ? NumCast(this.layoutDoc.height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <CollectionSchemaPreview
-                    fitToBox={StrCast(this.props.Document.target.type).indexOf(DocumentType.COL) !== -1}
-                    Document={this.props.Document.target}
+                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
+                    Document={this.targetDoc}
+                    fieldKey={this.props.fieldKey}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
@@ -198,30 +194,27 @@ export class PresElementBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        let p = this.props;
-
         let treecontainer = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.viewType === CollectionViewType.Tree;
-        let className = "presElementBox-item" + (this.currentIndex === this.myIndex ? " presElementBox-selected" : "");
+        let className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
         let pbi = "presElementBox-interaction";
         return (
-            <div className={className} key={p.Document[Id] + this.myIndex}
-                style={{ outlineWidth: Doc.IsBrushed(p.Document.target as Doc) ? `1px` : "0px", }}
-                onClick={e => { p.focus(p.Document); e.stopPropagation(); }}>
+            <div className={className} key={this.props.Document[Id] + this.indexInPres}
+                style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
+                onClick={e => { this.props.focus(this.props.Document); e.stopPropagation(); }}>
                 {treecontainer ? (null) : <>
                     <strong className="presElementBox-name">
-                        {`${this.myIndex + 1}. ${p.Document.title}`}
+                        {`${this.indexInPres + 1}. ${this.Document.title}`}
                     </strong>
-                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument && this.props.removeDocument(p.Document)}>X</button>
+                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument && this.props.removeDocument(this.props.Document)}>X</button>
                     <br />
-                </>
-                }
-                <button title="Zoom" className={pbi + (this.showButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
-                <button title="Navigate" className={pbi + (this.navButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
-                <button title="Hide Before" className={pbi + (this.hideTillShownButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
-                <button title="Fade After" className={pbi + (this.fadeButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
-                <button title="Hide After" className={pbi + (this.hideAfterButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
-                <button title="Group With Up" className={pbi + (this.groupButton ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={action((e: any) => { e.stopPropagation(); this.groupButton = !this.groupButton; })}><FontAwesomeIcon icon={"arrow-up"} /></button>
-                <button title="Expand Inline" className={pbi + (this.embedOpen ? "-selected" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={action((e: any) => { e.stopPropagation(); this.embedOpen = !this.embedOpen; })}><FontAwesomeIcon icon={"arrow-down"} /></button>
+                </>}
+                <button title="Zoom" className={pbi + (this.Document.showButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
+                <button title="Navigate" className={pbi + (this.Document.navButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
+                <button title="Hide Before" className={pbi + (this.Document.hideTillShownButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
+                <button title="Fade After" className={pbi + (this.Document.fadeButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
+                <button title="Hide After" className={pbi + (this.Document.hideAfterButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
+                <button title="Group With Up" className={pbi + (this.Document.groupButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); this.Document.groupButton = !this.Document.groupButton; }}><FontAwesomeIcon icon={"arrow-up"} /></button>
+                <button title="Expand Inline" className={pbi + (this.Document.embedOpen ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); this.Document.embedOpen = !this.Document.embedOpen; }}><FontAwesomeIcon icon={"arrow-down"} /></button>
 
                 <br style={{ lineHeight: 0.1 }} />
                 {this.renderEmbeddedInline()}

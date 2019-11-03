@@ -18,6 +18,7 @@ import { FilterBox } from './FilterBox';
 import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
+import { IconBar } from './IconBar';
 import { string } from 'prop-types';
 
 library.add(faTimes);
@@ -140,7 +141,7 @@ export class SearchBox extends React.Component {
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
         const includeDeleted = FilterBox.Instance.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
     }
 
 
@@ -210,7 +211,7 @@ export class SearchBox extends React.Component {
         });
         let x = 0;
         let y = 0;
-        for (const doc of docs) {
+        for (const doc of docs.map(d => Doc.Layout(d))) {
             doc.x = x;
             doc.y = y;
             const size = 200;
@@ -236,7 +237,7 @@ export class SearchBox extends React.Component {
     }
 
     @action.bound
-    openSearch(e: React.PointerEvent) {
+    openSearch(e: React.SyntheticEvent) {
         e.stopPropagation();
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
@@ -342,12 +343,14 @@ export class SearchBox extends React.Component {
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
-                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
+                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
-                    <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
-                    <button className="searchBox-barChild searchBox-close" title={"Close Search Bar"} onPointerDown={MainView.Instance.toggleSearch}><FontAwesomeIcon icon={faTimes} size="lg" /></button>
+                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
+                {(this._numTotalResults > 0 || !this._searchbarOpen) ? (null) :
+                    (<div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
+                        <div className="filter-panel"><IconBar /></div>
+                    </div>)}
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "560px" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"

@@ -308,8 +308,7 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
 
 
 
-    public static LayoutString() { return FieldView.LayoutString(DashWebCam); }
-
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DashWebCam, fieldKey); }
 
     render() {
         const { state, props } = this;
@@ -328,8 +327,6 @@ export class DashWebCam extends React.Component<CollectionFreeFormDocumentViewPr
             videoConstraints,
             imageSmoothing,
             fieldKey,
-            fieldExt,
-            leaveNativeSize,
             fitToBox,
             ContainingCollectionView,
             Document,

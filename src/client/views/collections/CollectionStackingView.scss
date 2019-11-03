@@ -1,19 +1,31 @@
 @import "../globalCssVariables";
 
 .collectionMasonryView {
-    display:inline;
+    display: inline;
 }
-.collectionStackingView{
+
+.collectionStackingView {
     display: flex;
 }
-.collectionStackingView, .collectionMasonryView{
+.collectionStackingMasonry-cont {
+    position:relative;
+    height:100%;
+    width:100%;
+}
+.collectionStackingView,
+.collectionMasonryView {
     height: 100%;
     width: 100%;
-    position: relative;
+    position: absolute;
     top: 0;
     overflow-y: auto;
     flex-wrap: wrap;
     transition: top .5s;
+    >div {
+        position: relative;
+        display: block;
+    }
+
     .collectionSchemaView-previewDoc {
         height: 100%;
         position: absolute;
@@ -40,10 +52,12 @@
         top: 0;
         left: 0;
     }
+
     .collectionStackingView-masonrySingle {
         height: 100%;
         position: absolute;
     }
+
     .collectionStackingView-masonryGrid {
         margin: auto;
         height: max-content;
@@ -90,18 +104,64 @@
         grid-column-end: span 1;
         height: 100%;
         margin: auto;
+        display: inline-grid;
     }
-    
+
     .collectionStackingView-masonrySection {
         margin: auto;
     }
 
+    .collectionStackingView-collapseBar {
+        margin-left: 2px;
+        margin-right: 2px;
+        margin-top: 2px;
+        background: $main-accent;
+        height: 5px;
+
+        &.active {
+            margin-left: 0;
+            margin-right: 0;
+            background: red;
+        }
+    }
+    .collectionStackingView-miniHeader {
+        width: 100%;
+        .editableView-container-editing-oneLine {
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+        }
+        span::before , span::after{
+            content: "";
+            width: 50%;
+            border-top: dashed gray 1px;
+            position: relative;
+            display: inline-block;
+        }
+        span::before {
+            margin-right: 10px;
+        }
+        span::after{
+            margin-left: 10px;
+        }
+        span {
+            position: relative;
+            text-align: center;
+            white-space: nowrap;
+            overflow: visible;
+            width: 100%;
+            display: flex;
+            color:gray;
+            align-items: center;
+        }
+    }
     .collectionStackingView-sectionHeader {
         text-align: center;
         margin-left: 2px;
         margin-right: 2px;
         margin-top: 10px;
-        background: gray;
+        background: $main-accent;
         // overflow: hidden; overflow is visible so the color menu isn't hidden -ftong
 
         .editableView-input {
@@ -132,7 +192,7 @@
             .editableView-input:hover,
             .editableView-container-editing:hover,
             .editableView-container-editing-oneLine:hover {
-                cursor: text
+                cursor: text;
             }
 
             .editableView-input {
@@ -182,9 +242,43 @@
             }
         }
 
-        .collectionStackingView-sectionDelete {
+        .collectionStackingView-sectionOptions {
             position: absolute;
             right: 0;
+            top: 0;
+            height: 100%;
+
+            [class*="css"] {
+                max-width: 102px;
+            }
+
+            .collectionStackingView-sectionOptionButton {
+                height: 35px;
+            }
+
+            .collectionStackingView-optionPicker {
+
+                .optionOptions {
+                    display: inline;
+                }
+
+                .optionPicker {
+                    cursor: pointer;
+                    height: 20px;
+                    border-radius: 10px;
+                    margin: 3px;
+                    width:max-content;
+
+                    &.active {
+                        color: red;
+                    }
+                }
+            }
+        }
+
+        .collectionStackingView-sectionDelete {
+            position: absolute;
+            right: 25px;
             top: 0;
             height: 100%;
         }
@@ -288,6 +382,4 @@
     .rc-switch-checked .rc-switch-inner {
         left: 8px;
     }
-
-
 }

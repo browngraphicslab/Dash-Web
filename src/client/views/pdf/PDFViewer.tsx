@@ -6,11 +6,10 @@ import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast, FieldResult, WidthSym, Opt, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
+import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import smoothScroll, { Utils, emptyFunction, returnOne } from "../../../Utils";
-import { DocServer } from "../../DocServer";
+import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
@@ -19,41 +18,53 @@ import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
 import * as rp from "request-promise";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import Annotation from "./Annotation";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
+import { DocAnnotatableComponent } from "../DocComponent";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
+export const pageSchema = createSchema({
+    curPage: "number",
+    fitWidth: "boolean",
+    rotation: "number",
+    scrollY: "number",
+    scrollHeight: "number",
+    search_string: "string"
+});
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
+type PdfDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
+const PdfDocument = makeInterface(documentSchema, pageSchema);
 
 interface IViewerProps {
     pdf: Pdfjs.PDFDocumentProxy;
     url: string;
+    fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
-    fieldExtensionDoc: Doc;
-    fieldKey: string;
-    fieldExt: string;
+    ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;
     PanelHeight: () => number;
     ContentScaling: () => number;
     select: (isCtrlPressed: boolean) => void;
     startupLive: boolean;
     renderDepth: number;
+    focus: (doc: Doc) => void;
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
     active: () => boolean;
     GoToPage?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
+    addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     whenActiveChanged: (isActive: boolean) => void;
 }
 
@@ -61,7 +72,8 @@ interface IViewerProps {
  * Handles rendering and virtualization of the pdf
  */
 @observer
-export class PDFViewer extends React.Component<IViewerProps> {
+export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
+    static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
@@ -75,16 +87,17 @@ export class PDFViewer extends React.Component<IViewerProps> {
     @observable private _showWaiting = true;
     @observable private _showCover = false;
     @observable private _zoomed = 1;
+    @observable private _scrollTop = 0;
 
-    public pdfViewer: any;
+    private _pdfViewer: any;
     private _retries = 0; // number of times tried to create the PDF viewer 
-    private _isChildActive = false;
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _selectionReactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
+    private _searchReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
@@ -95,29 +108,44 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _coverPath: any;
 
     @computed get allAnnotations() {
-        return DocListCast(this.props.fieldExtensionDoc.annotations).filter(
-            anno => this._script.run({ this: anno }, console.log, true).result);
+        return this.extensionDoc ? DocListCast(this.extensionDoc.annotations).filter(
+            anno => this._script.run({ this: anno }, console.log, true).result) : [];
     }
 
     @computed get nonDocAnnotations() {
         return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
+    _lastSearch: string = "";
     componentDidMount = async () => {
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
-        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${NumCast(this.props.Document.curPage, 1)}.PNG`)));
+        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.PNG`)));
         runInAction(() => this._showWaiting = this._showCover = true);
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(), () => this.props.isSelected() && SelectionManager.SelectedDocuments().length === 1 && this.setupPdfJsViewer(), { fireImmediately: this.props.startupLive });
+        this.props.startupLive && this.setupPdfJsViewer();
+        this._searchReactionDisposer = reaction(() => this.Document.search_string, searchString => {
+            if (searchString) {
+                this.search(searchString, true);
+                this._lastSearch = searchString;
+            }
+            else {
+                setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
+                this._lastSearch && (this._lastSearch = "mxytzlaf");
+            }
+        }, { fireImmediately: true });
+
+        this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
+            () => (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(),
+            { fireImmediately: true });
         this._reactionDisposer = reaction(
-            () => this.props.Document.scrollY,
+            () => this.Document.scrollY,
             (scrollY) => {
                 if (scrollY !== undefined) {
                     if (this._showCover || this._showWaiting) {
                         this.setupPdfJsViewer();
                     }
-                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, NumCast(this.props.Document.scrollY) || 0);
-                    this.props.Document.scrollY = undefined;
+                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document.scrollY || 0));
+                    this.Document.scrollY = undefined;
                 }
             },
             { fireImmediately: true }
@@ -129,27 +157,21 @@ export class PDFViewer extends React.Component<IViewerProps> {
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
         this._selectionReactionDisposer && this._selectionReactionDisposer();
+        this._searchReactionDisposer && this._searchReactionDisposer();
         document.removeEventListener("copy", this.copy);
     }
 
     copy = (e: ClipboardEvent) => {
         if (this.props.active() && e.clipboardData) {
-            e.clipboardData.setData("text/plain", this._selectionText);
-            e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
-            e.clipboardData.setData("dash/pdfRegion", this.makeAnnotationDocument(undefined, "#0390fc")[Id]);
+            let annoDoc = this.makeAnnotationDocument("rgba(3,144,152,0.3)");  // copied text markup color (blueish)
+            if (annoDoc) {
+                e.clipboardData.setData("text/plain", this._selectionText);
+                e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
+                e.clipboardData.setData("dash/pdfRegion", annoDoc[Id]);
+            }
             e.preventDefault();
         }
     }
-
-    paste = (e: ClipboardEvent) => {
-        if (e.clipboardData && e.clipboardData.getData("dash/pdfOrigin") === this.props.Document[Id]) {
-            let linkDocId = e.clipboardData.getData("dash/linkDoc");
-            linkDocId && DocServer.GetRefField(linkDocId).then(async (link) =>
-                (link instanceof Doc) && (Doc.GetProto(link).anchor2 = this.makeAnnotationDocument(await Cast(Doc.GetProto(link), Doc), "#0390fc", false)));
-        }
-    }
-
-    setSelectionText = (text: string) => this._selectionText = text;
 
     @action
     initialLoad = async () => {
@@ -164,7 +186,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     i === this.props.pdf.numPages - 1 && this.props.loaded((page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]),
                         (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]), i);
                 }))));
-            Doc.GetProto(this.props.Document).scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
+            this.Document.scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
         }
     }
 
@@ -177,12 +199,12 @@ export class PDFViewer extends React.Component<IViewerProps> {
         await this.initialLoad();
 
         this._annotationReactionDisposer = reaction(
-            () => this.props.fieldExtensionDoc && DocListCast(this.props.fieldExtensionDoc.annotations),
+            () => this.extensionDoc && DocListCast(this.extensionDoc.annotations),
             annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
             { fireImmediately: true });
 
         this._filterReactionDisposer = reaction(
-            () => ({ scriptField: Cast(this.props.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
+            () => ({ scriptField: Cast(this.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
             action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
                 let oldScript = this._script.originalScript;
                 this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
@@ -194,13 +216,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             { fireImmediately: true }
         );
 
-        document.removeEventListener("copy", this.copy);
-        document.addEventListener("copy", this.copy);
-        document.addEventListener("pagesinit", action(() => {
-            this.pdfViewer.currentScaleValue = this._zoomed = 1;
-            this.gotoPage(NumCast(this.props.Document.curPage, 1));
-        }));
-        document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         this.createPdfViewer();
     }
 
@@ -212,43 +227,51 @@ export class PDFViewer extends React.Component<IViewerProps> {
             }
             return;
         }
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
+        document.addEventListener("pagesinit", action(() => {
+            this._pdfViewer.currentScaleValue = this._zoomed = 1;
+            this.gotoPage(this.Document.curPage || 1);
+        }));
+        document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
         let pdfFindController = new PDFJSViewer.PDFFindController({
             linkService: pdfLinkService,
         });
-        this.pdfViewer = new PDFJSViewer.PDFViewer({
+        this._pdfViewer = new PDFJSViewer.PDFViewer({
             container: this._mainCont.current,
             viewer: this._viewer.current,
             linkService: pdfLinkService,
             findController: pdfFindController,
             renderer: "canvas",
         });
-        pdfLinkService.setViewer(this.pdfViewer);
+        pdfLinkService.setViewer(this._pdfViewer);
         pdfLinkService.setDocument(this.props.pdf, null);
-        this.pdfViewer.setDocument(this.props.pdf);
+        this._pdfViewer.setDocument(this.props.pdf);
     }
 
+    @undoBatch
     @action
-    makeAnnotationDocument = (sourceDoc: Doc | undefined, color: string, createLink: boolean = true): Doc => {
+    makeAnnotationDocument = (color: string): Opt<Doc> => {
+        if (this._savedAnnotations.size() === 0) return undefined;
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
         let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
         let annoDocs: Doc[] = [];
+        let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
-        if (this._savedAnnotations.size() === 1 && this._savedAnnotations.values()[0].length === 1 && !createLink) {
+        if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             let anno = this._savedAnnotations.values()[0][0];
-            let annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: "rgba(255, 0, 0, 0.1)", title: "Annotation on " + StrCast(this.props.Document.title) });
+            let annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
             if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
             if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
-            annoDoc.target = sourceDoc;
             annoDoc.group = mainAnnoDoc;
-            annoDoc.color = color;
-            annoDoc.type = AnnotationTypes.Region;
-            annoDocs.push(annoDoc);
             annoDoc.isButton = true;
+            annoDocs.push(annoDoc);
             anno.remove();
             mainAnnoDoc = annoDoc;
+            mainAnnoDocProto.type = DocumentType.COL;
             mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
             mainAnnoDocProto.y = annoDoc.y;
         } else {
@@ -258,23 +281,21 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
                 if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
                 if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
-                annoDoc.target = sourceDoc;
                 annoDoc.group = mainAnnoDoc;
-                annoDoc.color = color;
-                annoDoc.type = AnnotationTypes.Region;
+                annoDoc.backgroundColor = color;
                 annoDocs.push(annoDoc);
                 anno.remove();
                 (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
+                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc.width), maxX));
             }));
 
             mainAnnoDocProto.y = Math.max(minY, 0);
+            mainAnnoDocProto.x = Math.max(maxX, 0);
+            mainAnnoDocProto.type = DocumentType.PDFANNO;
             mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         }
-        mainAnnoDocProto.title = "Annotation on " + StrCast(this.props.Document.title);
+        mainAnnoDocProto.title = "Annotation on " + this.Document.title;
         mainAnnoDocProto.annotationOn = this.props.Document;
-        if (sourceDoc && createLink) {
-            DocUtils.MakeLink(sourceDoc, mainAnnoDocProto, undefined, `Annotation from ${StrCast(this.props.Document.title)}`);
-        }
         this._savedAnnotations.clear();
         this.Index = -1;
         return mainAnnoDoc;
@@ -305,36 +326,23 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     gotoPage = (p: number) => {
-        this.pdfViewer && this.pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+        this._pdfViewer && this._pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
     }
 
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
-        this.allAnnotations.forEach(d => Doc.UnBrushDoc(d));
-        let windowHgt = this.props.PanelHeight() / this.props.ContentScaling();
-        let scrollRange = this._mainCont.current!.scrollHeight - windowHgt;
-        let pgScroll = scrollRange / this._pageSizes.length;
-        this._mainCont.current!.scrollTo(0, NumCast(scrollToAnnotation.y) - pgScroll / 2);
-        Doc.BrushDoc(scrollToAnnotation);
-    }
-
-    sendAnnotations = (page: number) => {
-        return this._savedAnnotations.getValue(page);
-    }
-
-    receiveAnnotations = (annotations: HTMLDivElement[], page: number) => {
-        if (page === -1) {
-            this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-            this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, annotations));
-        }
-        else {
-            this._savedAnnotations.setValue(page, annotations);
+        if (scrollToAnnotation) {
+            let offset = this.visibleHeight() / 2 * 96 / 72;
+            this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
+            Doc.linkFollowHighlight(scrollToAnnotation);
         }
     }
+
 
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this.pdfViewer && (this.props.Document.curPage = this.pdfViewer.currentPageNumber);
+        this._scrollTop = this._mainCont.current!.scrollTop;
+        this._pdfViewer && (this.Document.curPage = this._pdfViewer.currentPageNumber);
     }
 
     // get the page index that the vertical offset passed in is on
@@ -354,6 +362,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
             }
             this._annotationLayer.current.append(div);
+            div.style.backgroundColor = "yellow";
+            div.style.opacity = "0.5";
             let savedPage = this._savedAnnotations.getValue(page);
             if (savedPage) {
                 savedPage.push(div);
@@ -370,8 +380,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
         if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
         }
-        else if (this.pdfViewer._pageViewsReady) {
-            this.pdfViewer.findController.executeCommand('findagain', {
+        else if (this._pdfViewer._pageViewsReady) {
+            this._pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: !fwd,
                 highlightAll: true,
@@ -381,7 +391,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         }
         else if (this._mainCont.current) {
             let executeFind = () => {
-                this.pdfViewer.findController.executeCommand('find', {
+                this._pdfViewer.findController.executeCommand('find', {
                     caseSensitive: false,
                     findPrevious: !fwd,
                     highlightAll: true,
@@ -399,36 +409,31 @@ export class PDFViewer extends React.Component<IViewerProps> {
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if (NumCast(this.props.Document.scale, 1) !== 1) return;
+        addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
+        if ((this.Document.scale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active()) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
         }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active()) {
+            // clear out old marquees and initialize menu for new selection
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.Snippet = this.createSnippet;
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
+            this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+            this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
             if (e.target && (e.target as any).parentElement.className === "textLayer") {
-                if (!e.ctrlKey) {
-                    this.receiveAnnotations([], -1);
-                }
+                // start selecting text if mouse down on textLayer spans
             }
-            else {
+            else if (this._mainCont.current) {
                 // set marquee x and y positions to the spatially transformed position
-                if (this._mainCont.current) {
-                    let boundingRect = this._mainCont.current.getBoundingClientRect();
-                    this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width);
-                    this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
-                }
+                let boundingRect = this._mainCont.current.getBoundingClientRect();
+                this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width);
+                this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
+                this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
-                let marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
-                if (marquees && marquees.length) { // make a copy of the marquee
-                    let marquee = marquees[0] as HTMLDivElement;
-                    marquee.style.opacity = "0.2";
-                }
-                this.receiveAnnotations([], -1);
             }
             document.removeEventListener("pointermove", this.onSelectMove);
             document.addEventListener("pointermove", this.onSelectMove);
@@ -463,12 +468,13 @@ export class PDFViewer extends React.Component<IViewerProps> {
             let clientRects = selRange.getClientRects();
             for (let i = 0; i < clientRects.length; i++) {
                 let rect = clientRects.item(i);
-                if (rect/* && rect.width !== this._mainCont.current.getBoundingClientRect().width && rect.height !== this._mainCont.current.getBoundingClientRect().height / this.props.pdf.numPages*/) {
+                if (rect) {
                     let scaleY = this._mainCont.current.offsetHeight / boundingRect.height;
                     let scaleX = this._mainCont.current.offsetWidth / boundingRect.width;
-                    if (rect.width !== this._mainCont.current.clientWidth) {
+                    if (rect.width !== this._mainCont.current.clientWidth &&
+                        (i === 0 || !intersectRect(clientRects[i], clientRects[i - 1]))) {
                         let annoBox = document.createElement("div");
-                        annoBox.className = "pdfPage-annotationBox";
+                        annoBox.className = "pdfViewer-annotationBox";
                         // transforms the positions from screen onto the pdf div
                         annoBox.style.top = ((rect.top - boundingRect.top) * scaleY + this._mainCont.current.scrollTop).toString();
                         annoBox.style.left = ((rect.left - boundingRect.left) * scaleX).toString();
@@ -479,8 +485,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 }
             }
         }
-        let text = selRange.cloneContents().textContent;
-        text && this.setSelectionText(text);
+        this._selectionText = selRange.cloneContents().textContent || "";
 
         // clear selection
         if (sel.empty) {  // Chrome
@@ -492,22 +497,23 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
     @action
     onSelectEnd = (e: PointerEvent): void => {
+        clearStyleSheetRules(PDFViewer._annotationStyle);
+        this._savedAnnotations.clear();
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
                 let marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
-                if (marquees && marquees.length) { // make a copy of the marquee
+                if (marquees && marquees.length) { // copy the marquee and convert it to a permanent annotation. 
+                    let style = (marquees[0] as HTMLDivElement).style;
                     let copy = document.createElement("div");
-                    let marquee = marquees[0] as HTMLDivElement;
-                    let style = marquee.style;
                     copy.style.left = style.left;
                     copy.style.top = style.top;
                     copy.style.width = style.width;
                     copy.style.height = style.height;
                     copy.style.border = style.border;
                     copy.style.opacity = style.opacity;
-                    copy.className = "pdfPage-annotationBox";
+                    (copy as any).marqueeing = true;
+                    copy.className = "pdfViewer-annotationBox";
                     this.createAnnotation(copy, this.getPageFromScroll(this._marqueeY));
-                    marquee.style.opacity = "0";
                 }
 
                 if (!e.ctrlKey) {
@@ -516,8 +522,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 }
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
             }
-
-            this._marqueeHeight = this._marqueeWidth = 0;
+            this._marqueeing = false;
         }
         else {
             let sel = window.getSelection();
@@ -528,8 +533,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
             }
         }
 
-        if (PDFMenu.Instance.Highlighting) {
-            this.highlight(undefined, "goldenrod");
+        if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
+            this.highlight("rgba(245, 230, 95, 0.616)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
         }
         else {
             PDFMenu.Instance.StartDrag = this.startDrag;
@@ -540,10 +545,10 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @action
-    highlight = (targetDoc: Doc | undefined, color: string) => {
+    highlight = (color: string) => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.makeAnnotationDocument(targetDoc, color, false);
-        Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, annotationDoc);
+        let annotationDoc = this.makeAnnotationDocument(color);
+        annotationDoc && this.props.addDocument && this.props.addDocument(annotationDoc);
         return annotationDoc;
     }
 
@@ -555,23 +560,19 @@ export class PDFViewer extends React.Component<IViewerProps> {
     startDrag = (e: PointerEvent, ele: HTMLElement): void => {
         e.preventDefault();
         e.stopPropagation();
-        let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
-        targetDoc.targetPage = this.getPageFromScroll(this._marqueeY);
-        let annotationDoc = this.highlight(undefined, "red");
-        annotationDoc.linkedToDoc = false;
-        let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
-        DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
-            handlers: {
-                dragComplete: () => {
-                    if (!annotationDoc.linkedToDoc) {
-                        let annotations = DocListCast(annotationDoc.annotations);
-                        annotations && annotations.forEach(anno => anno.target = targetDoc);
-                        DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`);
-                    }
-                }
-            },
-            hideSource: false
-        });
+        let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "Note linked to " + this.props.Document.title });
+        const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
+        if (annotationDoc) {
+            let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
+            DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
+                handlers: {
+                    dragComplete: () => !(dragData as any).linkedToDoc &&
+                        DocUtils.MakeLink({ doc: annotationDoc }, { doc: dragData.dropDocument, ctx: dragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF")
+
+                },
+                hideSource: false
+            });
+        }
     }
 
     createSnippet = (marquee: { left: number, top: number, width: number, height: number }): void => {
@@ -580,42 +581,15 @@ export class PDFViewer extends React.Component<IViewerProps> {
         data.title = StrCast(data.title) + "_snippet";
         view.proto = data;
         view.nativeHeight = marquee.height;
-        view.height = (this.props.Document[WidthSym]() / NumCast(this.props.Document.nativeWidth)) * marquee.height;
-        view.nativeWidth = this.props.Document.nativeWidth;
+        view.height = (this.Document[WidthSym]() / (this.Document.nativeWidth || 1)) * marquee.height;
+        view.nativeWidth = this.Document.nativeWidth;
         view.startY = marquee.top;
-        view.width = this.props.Document[WidthSym]();
+        view.width = this.Document[WidthSym]();
         DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view]), 0, 0);
     }
 
-    // this is called with the document that was dragged and the collection to move it into.
-    // if the target collection is the same as this collection, then the move will be allowed.
-    // otherwise, the document being moved must be able to be removed from its container before
-    // moving it into the target.  
-    @action.bound
-    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
-            return true;
-        }
-        return this.removeDocument(doc) ? addDocument(doc) : false;
-    }
-
-
-    @action.bound
-    removeDocument(doc: Doc): boolean {
-        //TODO This won't create the field if it doesn't already exist
-        let targetDataDoc = this.props.fieldExtensionDoc;
-        let targetField = this.props.fieldExt;
-        let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
-        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-        index !== -1 && value.splice(index, 1);
-        return true;
-    }
     scrollXf = () => {
-        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._mainCont.current.scrollTop) : this.props.ScreenToLocalTransform();
-    }
-    setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => {
-        this._setPreviewCursor = func;
+        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._scrollTop) : this.props.ScreenToLocalTransform();
     }
     onClick = (e: React.MouseEvent) => {
         this._setPreviewCursor &&
@@ -624,42 +598,62 @@ export class PDFViewer extends React.Component<IViewerProps> {
             Math.abs(e.clientY - this._downY) < 3 &&
             this._setPreviewCursor(e.clientX, e.clientY, false);
     }
-    whenActiveChanged = (isActive: boolean) => {
-        this._isChildActive = isActive;
-        this.props.whenActiveChanged(isActive);
-    }
-    active = () => {
-        return this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
-    }
+
+    setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
+
 
     getCoverImage = () => {
         if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
-            setTimeout(() => {
-                this.props.Document.height = this.props.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-                this.props.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
-            }, 0);
+            setTimeout((() => {
+                this.Document.height = this.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
+                this.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+            }).bind(this), 0);
         }
-        let nativeWidth = NumCast(this.props.Document.nativeWidth);
-        let nativeHeight = NumCast(this.props.Document.nativeHeight);
+        let nativeWidth = (this.Document.nativeWidth || 0);
+        let nativeHeight = (this.Document.nativeHeight || 0);
         return <img key={this._coverPath.path} src={this._coverPath.path} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
-
 
     @action
     onZoomWheel = (e: React.WheelEvent) => {
         e.stopPropagation();
         if (e.ctrlKey) {
-            let curScale = Number(this.pdfViewer.currentScaleValue);
-            this.pdfViewer.currentScaleValue = Math.max(1, Math.min(10, curScale + curScale * e.deltaY / 1000));
-            this._zoomed = Number(this.pdfViewer.currentScaleValue);
+            let curScale = Number(this._pdfViewer.currentScaleValue);
+            this._pdfViewer.currentScaleValue = Math.max(1, Math.min(10, curScale + curScale * e.deltaY / 1000));
+            this._zoomed = Number(this._pdfViewer.currentScaleValue);
         }
     }
 
     @computed get annotationLayer() {
-        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
+        return <div className="pdfViewer-annotationLayer" style={{ height: (this.Document.nativeHeight || 0) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                <Annotation {...this.props} anno={anno} key={`${anno[Id]}-annotation`} />)}
+                <Annotation {...this.props} focus={this.props.focus} extensionDoc={this.extensionDoc!} anno={anno} key={`${anno[Id]}-annotation`} />)}
+            <div className="pdfViewer-overlay" id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
+                <CollectionFreeFormView {...this.props}
+                    annotationsKey={this.annotationsKey}
+                    setPreviewCursor={this.setPreviewCursor}
+                    PanelHeight={() => (this.Document.scrollHeight || this.Document.nativeHeight || 0)}
+                    PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document.nativeWidth || 0)}
+                    VisibleHeight={this.visibleHeight}
+                    focus={this.props.focus}
+                    isSelected={this.props.isSelected}
+                    isAnnotationOverlay={true}
+                    select={emptyFunction}
+                    active={this.active}
+                    ContentScaling={returnOne}
+                    whenActiveChanged={this.whenActiveChanged}
+                    removeDocument={this.removeDocument}
+                    moveDocument={this.moveDocument}
+                    addDocument={this.addDocument}
+                    CollectionView={undefined}
+                    ScreenToLocalTransform={this.scrollXf}
+                    ruleProvider={undefined}
+                    renderDepth={this.props.renderDepth + 1}
+                    ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
+                    chromeCollapsed={true}>
+                </CollectionFreeFormView>
+            </div>
         </div>;
     }
     @computed get pdfViewerDiv() {
@@ -676,34 +670,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
+    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     render() {
-        return (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
+        return !this.extensionDoc ? (null) : (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")}
+            onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
             {this.pdfViewerDiv}
-            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
-            <div className="pdfViewer-overlay" style={{ transform: `scale(${this._zoomed})` }}>
-                {this.annotationLayer}
-                <CollectionFreeFormView {...this.props}
-                    setPreviewCursor={this.setPreviewCursor}
-                    PanelHeight={() => NumCast(this.props.Document.scrollHeight, NumCast(this.props.Document.nativeHeight))}
-                    PanelWidth={() => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : NumCast(this.props.Document.nativeWidth)}
-                    focus={emptyFunction}
-                    isSelected={this.props.isSelected}
-                    select={emptyFunction}
-                    active={this.active}
-                    ContentScaling={returnOne}
-                    whenActiveChanged={this.whenActiveChanged}
-                    removeDocument={this.removeDocument}
-                    moveDocument={this.moveDocument}
-                    addDocument={(doc: Doc, allow: boolean | undefined) => { Doc.AddDocToList(this.props.fieldExtensionDoc, this.props.fieldExt, doc); return true; }}
-                    CollectionView={this.props.ContainingCollectionView}
-                    ScreenToLocalTransform={this.scrollXf}
-                    ruleProvider={undefined}
-                    renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
-                    chromeCollapsed={true}>
-                </CollectionFreeFormView>
-            </div>
+            {this.annotationLayer}
             {this.standinViews}
+            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
         </div >);
     }
 }
@@ -723,11 +697,9 @@ class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
             style={{
                 left: `${this.props.x()}px`, top: `${this.props.y()}px`,
                 width: `${this.props.width()}px`, height: `${this.props.height()}px`,
-                border: `${this.props.width() === 0 ? "" : "2px dashed black"}`
+                border: `${this.props.width() === 0 ? "" : "2px dashed black"}`,
+                opacity: 0.2
             }}>
         </div>;
     }
 }
-
-
-export enum AnnotationTypes { Region }

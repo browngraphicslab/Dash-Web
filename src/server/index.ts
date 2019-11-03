@@ -53,6 +53,9 @@ import { DashUploadUtils } from './DashUploadUtils';
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { ParsedPDF } from "./PdfTypes";
 import { reject } from 'bluebird';
+import { ExifData } from 'exif';
+import { Result } from '../client/northstar/model/idea/idea';
+import RouteSubscriber from './RouteSubscriber';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -104,6 +107,26 @@ enum Method {
     POST
 }
 
+export type ValidationHandler = (user: DashUserModel, req: express.Request, res: express.Response) => any | Promise<any>;
+export type RejectionHandler = (req: express.Request, res: express.Response) => any | Promise<any>;
+export type ErrorHandler = (req: express.Request, res: express.Response, error: any) => any | Promise<any>;
+
+const LoginRedirect: RejectionHandler = (_req, res) => res.redirect(RouteStore.login);
+
+export interface RouteInitializer {
+    method: Method;
+    subscribers: string | RouteSubscriber | (string | RouteSubscriber)[];
+    onValidation: ValidationHandler;
+    onRejection?: RejectionHandler;
+    onError?: ErrorHandler;
+}
+
+const isSharedDocAccess = (target: string) => {
+    const shared = qs.parse(qs.extract(target), { sort: false }).sharing === "true";
+    const docAccess = target.startsWith("/doc/");
+    return shared && docAccess;
+};
+
 /**
  * Please invoke this function when adding a new route to Dash's server.
  * It ensures that any requests leading to or containing user-sensitive information
@@ -113,22 +136,40 @@ enum Method {
  * @param onRejection an optional callback invoked on return if no user is found to be logged in
  * @param subscribers the forward slash prepended path names (reference and add to RouteStore.ts) that will all invoke the given @param handler 
  */
-function addSecureRoute(method: Method,
-    handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response, req: express.Request) => any = res => res.redirect(RouteStore.login),
-    ...subscribers: string[]
-) {
-    let abstracted = (req: express.Request, res: express.Response) => {
-        let sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
-        sharing = sharing && req.originalUrl.startsWith("/doc/");
-        if (req.user || sharing) {
-            handler(req.user as any, res, req);
+function addSecureRoute(initializer: RouteInitializer) {
+    const { method, subscribers, onValidation, onRejection, onError } = initializer;
+    let abstracted = async (req: express.Request, res: express.Response) => {
+        const { user, originalUrl: target } = req;
+        if (user || isSharedDocAccess(target)) {
+            try {
+                await onValidation(user as any, req, res);
+            } catch (e) {
+                if (onError) {
+                    onError(req, res, e);
+                } else {
+                    _error(res, `The server encountered an internal error handling ${target}.`, e);
+                }
+            }
         } else {
-            req.session!.target = req.originalUrl;
-            onRejection(res, req);
+            req.session!.target = target;
+            try {
+                await (onRejection || LoginRedirect)(req, res);
+            } catch (e) {
+                if (onError) {
+                    onError(req, res, e);
+                } else {
+                    _error(res, `The server encountered an internal error when rejecting ${target}.`, e);
+                }
+            }
         }
     };
-    subscribers.forEach(route => {
+    const subscribe = (subscriber: RouteSubscriber | string) => {
+        let route: string;
+        if (typeof subscriber === "string") {
+            route = subscriber;
+        } else {
+            route = subscriber.build;
+        }
         switch (method) {
             case Method.GET:
                 app.get(route, abstracted);
@@ -137,7 +178,12 @@ function addSecureRoute(method: Method,
                 app.post(route, abstracted);
                 break;
         }
-    });
+    };
+    if (Array.isArray(subscribers)) {
+        subscribers.forEach(subscribe);
+    } else {
+        subscribe(subscribers);
+    }
 }
 
 // STATIC FILE SERVING
@@ -211,7 +257,6 @@ const solrURL = "http://localhost:8983/solr/#/dash";
 
 app.get("/textsearch", async (req, res) => {
     let q = req.query.q;
-    console.log("TEXTSEARCH " + q);
     if (q === undefined) {
         res.send([]);
         return;
@@ -318,6 +363,80 @@ app.get("/serializeDoc/:docId", async (req, res) => {
     const { docs, files } = await getDocs(req.params.docId);
     res.send({ docs, files: Array.from(files) });
 });
+
+export type Hierarchy = { [id: string]: string | Hierarchy };
+export type ZipMutator = (file: Archiver.Archiver) => void | Promise<void>;
+
+addSecureRoute({
+    method: Method.GET,
+    subscribers: new RouteSubscriber(RouteStore.imageHierarchyExport).add('docId'),
+    onValidation: async (_user, req, res) => {
+        const id = req.params.docId;
+        const hierarchy: Hierarchy = {};
+        await targetedVisitorRecursive(id, hierarchy);
+        BuildAndDispatchZip(res, async zip => {
+            await hierarchyTraverserRecursive(zip, hierarchy);
+        });
+    }
+});
+
+const BuildAndDispatchZip = async (res: Response, mutator: ZipMutator): Promise<void> => {
+    const zip = Archiver('zip');
+    zip.pipe(res);
+    await mutator(zip);
+    return zip.finalize();
+};
+
+const targetedVisitorRecursive = async (seedId: string, hierarchy: Hierarchy): Promise<void> => {
+    const local: Hierarchy = {};
+    const { title, data } = await getData(seedId);
+    const label = `${title} (${seedId})`;
+    if (Array.isArray(data)) {
+        hierarchy[label] = local;
+        await Promise.all(data.map(proxy => targetedVisitorRecursive(proxy.fieldId, local)));
+    } else {
+        hierarchy[label + path.extname(data)] = data;
+    }
+};
+
+const getData = async (seedId: string): Promise<{ data: string | any[], title: string }> => {
+    return new Promise<{ data: string | any[], title: string }>((resolve, reject) => {
+        Database.Instance.getDocument(seedId, async (result: any) => {
+            const { data, proto, title } = result.fields;
+            if (data) {
+                if (data.url) {
+                    resolve({ data: data.url, title });
+                } else if (data.fields) {
+                    resolve({ data: data.fields, title });
+                } else {
+                    reject();
+                }
+            }
+            if (proto) {
+                getData(proto.fieldId).then(resolve, reject);
+            }
+        });
+    });
+};
+
+const hierarchyTraverserRecursive = async (file: Archiver.Archiver, hierarchy: Hierarchy, prefix = "Dash Export"): Promise<void> => {
+    for (const key of Object.keys(hierarchy)) {
+        const result = hierarchy[key];
+        if (typeof result === "string") {
+            let path: string;
+            let matches: RegExpExecArray | null;
+            if ((matches = /\:1050\/files\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
+                path = `${__dirname}/public/files/${matches[1]}`;
+            } else {
+                const information = await DashUploadUtils.UploadImage(result);
+                path = information.mediaPaths[0];
+            }
+            file.file(path, { name: key, prefix });
+        } else {
+            await hierarchyTraverserRecursive(file, result, `${prefix}/${key}`);
+        }
+    }
+};
 
 app.get("/downloadId/:docId", async (req, res) => {
     res.set('Content-disposition', `attachment;`);
@@ -505,50 +624,49 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
         });
 }
 
-// anyone attempting to navigate to localhost at this port will
-// first have to login
-addSecureRoute(
-    Method.GET,
-    (user, res) => res.redirect(RouteStore.home),
-    undefined,
-    RouteStore.root
-);
+/**
+ * Anyone attempting to navigate to localhost at this port will
+ * first have to log in.
+ */
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.root,
+    onValidation: (_user, _req, res) => res.redirect(RouteStore.home)
+});
 
-addSecureRoute(
-    Method.GET,
-    async (_, res) => {
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.getUsers,
+    onValidation: async (_user, _req, res) => {
         const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
         const results = await cursor.toArray();
         res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
     },
-    undefined,
-    RouteStore.getUsers
-);
+});
 
-addSecureRoute(
-    Method.GET,
-    (user, res, req) => {
+addSecureRoute({
+    method: Method.GET,
+    subscribers: [RouteStore.home, RouteStore.openDocumentWithId],
+    onValidation: (_user, req, res) => {
         let detector = new mobileDetect(req.headers['user-agent'] || "");
         let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     },
-    undefined,
-    RouteStore.home, RouteStore.openDocumentWithId
-);
+});
 
-addSecureRoute(
-    Method.GET,
-    (user, res) => res.send(user.userDocumentId),
-    (res) => res.send(undefined),
-    RouteStore.getUserDocumentId,
-);
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.getUserDocumentId,
+    onValidation: (user, _req, res) => res.send(user.userDocumentId),
+    onRejection: (_req, res) => res.send(undefined)
+});
 
-addSecureRoute(
-    Method.GET,
-    (user, res) => { res.send(JSON.stringify({ id: user.id, email: user.email })); },
-    (res) => res.send(JSON.stringify({ id: "__guest__", email: "" })),
-    RouteStore.getCurrUser
-);
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.getCurrUser,
+    onValidation: (user, _req, res) => { res.send(JSON.stringify(user)); },
+    onRejection: (_req, res) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
+});
 
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
@@ -556,10 +674,14 @@ const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["handwriting", process.env.HANDWRITING]
 ]);
 
-addSecureRoute(Method.GET, (user, res, req) => {
-    let service = req.params.requestedservice;
-    res.send(ServicesApiKeyMap.get(service));
-}, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
+addSecureRoute({
+    method: Method.GET,
+    subscribers: new RouteSubscriber(RouteStore.cognitiveServices).add('requestedservice'),
+    onValidation: (_user, req, res) => {
+        let service = req.params.requestedservice;
+        res.send(ServicesApiKeyMap.get(service));
+    }
+});
 
 class NodeCanvasFactory {
     create = (width: number, height: number) => {
@@ -590,24 +712,26 @@ const uploadDirectory = __dirname + "/public/files/";
 const pdfDirectory = uploadDirectory + "text";
 DashUploadUtils.createIfNotExists(pdfDirectory);
 
-interface FileResponse {
+interface ImageFileResponse {
     name: string;
     path: string;
     type: string;
+    exif: Opt<DashUploadUtils.EnrichedExifData>;
 }
 
-// SETTERS
-app.post(
-    RouteStore.upload,
-    (req, res) => {
+addSecureRoute({
+    method: Method.POST,
+    subscribers: RouteStore.upload,
+    onValidation: (_user, req, res) => {
         let form = new formidable.IncomingForm();
         form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
         form.parse(req, async (_err, _fields, files) => {
-            let results: FileResponse[] = [];
+            let results: ImageFileResponse[] = [];
             for (const key in files) {
                 const { type, path: location, name } = files[key];
                 const filename = path.basename(location);
+                let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
                 if (filename.endsWith(".pdf")) {
                     let dataBuffer = fs.readFileSync(uploadDirectory + filename);
                     const result: ParsedPDF = await pdf(dataBuffer);
@@ -621,20 +745,37 @@ app.post(
                             }
                         });
                     });
+                } else if (type.indexOf("audio") !== -1) {
+                    // nothing to be done yet-- although transcribing the audio a la pdfs would make sense.
                 } else {
-                    await DashUploadUtils.UploadImage(uploadDirectory + filename, filename).catch(() => console.log(`Unable to process ${filename}`));
+                    uploadInformation = await DashUploadUtils.UploadImage(uploadDirectory + filename, filename);
                 }
-                results.push({ name, type, path: `/files/${filename}` });
+                const exif = uploadInformation ? uploadInformation.exifData : undefined;
+                results.push({ name, type, path: `/files/${filename}`, exif });
 
             }
             _success(res, results);
         });
     }
-);
+});
 
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
+addSecureRoute({
+    method: Method.POST,
+    subscribers: RouteStore.inspectImage,
+    onValidation: async (_user, req, res) => {
+        const { source } = req.body;
+        if (typeof source === "string") {
+            const uploadInformation = await DashUploadUtils.UploadImage(source);
+            return res.send(await DashUploadUtils.InspectImage(uploadInformation.mediaPaths[0]));
+        }
+        res.send({});
+    }
+});
+
+addSecureRoute({
+    method: Method.POST,
+    subscribers: RouteStore.dataUriToImage,
+    onValidation: (_user, req, res) => {
         const uri = req.body.uri;
         const filename = req.body.name;
         if (!uri || !filename) {
@@ -667,10 +808,9 @@ addSecureRoute(
             }
             res.send("/files/" + filename + ext);
         });
-    },
-    undefined,
-    RouteStore.dataUriToImage
-);
+    }
+});
+
 // AUTHENTICATION
 
 // Sign Up
@@ -709,29 +849,27 @@ app.use(RouteStore.corsProxy, (req, res) => {
     }).pipe(res);
 });
 
-addSecureRoute(
-    Method.GET,
-    (user, res, req) => {
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.delete,
+    onValidation: (_user, _req, res) => {
         if (release) {
             return _permission_denied(res, deletionPermissionError);
         }
         deleteFields().then(() => res.redirect(RouteStore.home));
-    },
-    undefined,
-    RouteStore.delete
-);
+    }
+});
 
-addSecureRoute(
-    Method.GET,
-    (_user, res, _req) => {
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.deleteAll,
+    onValidation: (_user, _req, res) => {
         if (release) {
             return _permission_denied(res, deletionPermissionError);
         }
         deleteAll().then(() => res.redirect(RouteStore.home));
-    },
-    undefined,
-    RouteStore.deleteAll
-);
+    }
+});
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
@@ -910,7 +1048,29 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, userId: req.header("userId")! }).then(token => res.send(token)));
+addSecureRoute({
+    method: Method.GET,
+    subscribers: RouteStore.readGoogleAccessToken,
+    onValidation: async (user, _req, res) => {
+        const userId = user.id;
+        const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+        const information = { credentialsPath, userId };
+        if (!token) {
+            return res.send(await GoogleApiServerUtils.GenerateAuthenticationUrl(information));
+        }
+        GoogleApiServerUtils.RetrieveAccessToken(information).then(token => res.send(token));
+    }
+});
+
+addSecureRoute({
+    method: Method.POST,
+    subscribers: RouteStore.writeGoogleAccessToken,
+    onValidation: async (user, req, res) => {
+        const userId = user.id;
+        const information = { credentialsPath, userId };
+        res.send(await GoogleApiServerUtils.ProcessClientSideCode(information, req.body.authenticationCode));
+    }
+});
 
 const tokenError = "Unable to successfully upload bytes for all images!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
@@ -923,45 +1083,50 @@ export interface NewMediaItem {
     };
 }
 
-app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
-    const { media } = req.body;
-    const userId = req.header("userId");
-
-    if (!userId) {
-        return _error(res, userIdError);
-    }
-
-    await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
-
-    let failed = 0;
-
-    const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
-        { magnitude: 100, unit: TimeUnit.Milliseconds },
-        async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
-            const newMediaItems: NewMediaItem[] = [];
-            for (let element of batch) {
-                const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
-                if (!uploadToken) {
-                    failed++;
-                } else {
-                    newMediaItems.push({
-                        description: element.description,
-                        simpleMediaItem: { uploadToken }
-                    });
-                }
-            }
-            return newMediaItems;
+addSecureRoute({
+    method: Method.POST,
+    subscribers: RouteStore.googlePhotosMediaUpload,
+    onValidation: async (user, req, res) => {
+        const { media } = req.body;
+        const userId = user.id;
+        if (!userId) {
+            return _error(res, userIdError);
         }
-    );
 
-    if (failed) {
-        return _error(res, tokenError);
+        await GooglePhotosUploadUtils.initialize({ credentialsPath, userId });
+
+        let failed: number[] = [];
+
+        const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
+            { magnitude: 100, unit: TimeUnit.Milliseconds },
+            async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
+                const newMediaItems: NewMediaItem[] = [];
+                for (let index = 0; index < batch.length; index++) {
+                    const element = batch[index];
+                    const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+                    if (!uploadToken) {
+                        failed.push(index);
+                    } else {
+                        newMediaItems.push({
+                            description: element.description,
+                            simpleMediaItem: { uploadToken }
+                        });
+                    }
+                }
+                return newMediaItems;
+            }
+        );
+
+        const failedCount = failed.length;
+        if (failedCount) {
+            console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
+        }
+
+        GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
+            result => _success(res, { results: result.newMediaItemResults, failed }),
+            error => _error(res, mediaError, error)
+        );
     }
-
-    GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-        result => _success(res, result.newMediaItemResults),
-        error => _error(res, mediaError, error)
-    );
 });
 
 interface MediaItem {

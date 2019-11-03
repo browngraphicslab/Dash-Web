@@ -13,15 +13,12 @@ import { Docs, DocumentOptions } from "../../documents/Documents";
 import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
 import { AssertionError } from "assert";
 import { DocumentView } from "../../views/nodes/DocumentView";
-import { DocumentManager } from "../../util/DocumentManager";
 import { Identified } from "../../Network";
+import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
 
 export namespace GooglePhotos {
 
-    const endpoint = async () => {
-        const accessToken = await Identified.FetchFromServer(RouteStore.googlePhotosAccessToken);
-        return new Photos(accessToken);
-    };
+    const endpoint = async () => new Photos(await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken());
 
     export enum MediaType {
         ALL_MEDIA = 'ALL_MEDIA',
@@ -89,9 +86,14 @@ export namespace GooglePhotos {
             }
             const resolved = title ? title : (StrCast(collection.title) || `Dash Collection (${collection[Id]}`);
             const { id, productUrl } = await Create.Album(resolved);
-            const newMediaItemResults = await Transactions.UploadImages(images, { id }, descriptionKey);
-            if (newMediaItemResults) {
-                const mediaItems = newMediaItemResults.map(item => item.mediaItem);
+            const response = await Transactions.UploadImages(images, { id }, descriptionKey);
+            if (response) {
+                const { results, failed } = response;
+                let index: Opt<number>;
+                while ((index = failed.pop()) !== undefined) {
+                    Doc.RemoveDocFromList(dataDocument, "data", images.splice(index, 1)[0]);
+                }
+                const mediaItems: MediaItem[] = results.map(item => item.mediaItem);
                 if (mediaItems.length !== images.length) {
                     throw new AssertionError({ actual: mediaItems.length, expected: images.length });
                 }
@@ -99,6 +101,9 @@ export namespace GooglePhotos {
                 for (let i = 0; i < images.length; i++) {
                     const image = Doc.GetProto(images[i]);
                     const mediaItem = mediaItems[i];
+                    if (!mediaItem) {
+                        continue;
+                    }
                     image.googlePhotosId = mediaItem.id;
                     image.googlePhotosAlbumUrl = productUrl;
                     image.googlePhotosUrl = mediaItem.productUrl || mediaItem.baseUrl;
@@ -304,17 +309,22 @@ export namespace GooglePhotos {
         };
 
         export const UploadThenFetch = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption") => {
-            const newMediaItems = await UploadImages(sources, album, descriptionKey);
-            if (!newMediaItems) {
+            const response = await UploadImages(sources, album, descriptionKey);
+            if (!response) {
                 return undefined;
             }
-            const baseUrls: string[] = await Promise.all(newMediaItems.map(item => {
+            const baseUrls: string[] = await Promise.all(response.results.map(item => {
                 return new Promise<string>(resolve => Query.GetImage(item.mediaItem.id).then(item => resolve(item.baseUrl)));
             }));
             return baseUrls;
         };
 
-        export const UploadImages = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption"): Promise<Opt<NewMediaItemResult[]>> => {
+        export interface ImageUploadResults {
+            results: NewMediaItemResult[];
+            failed: number[];
+        }
+
+        export const UploadImages = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption"): Promise<Opt<ImageUploadResults>> => {
             if (album && "title" in album) {
                 album = await Create.Album(album.title);
             }
@@ -331,8 +341,8 @@ export namespace GooglePhotos {
                 media.push({ url, description });
             }
             if (media.length) {
-                const uploads: NewMediaItemResult[] = await Identified.PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
-                return uploads;
+                const results = await Identified.PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                return results;
             }
         };
 

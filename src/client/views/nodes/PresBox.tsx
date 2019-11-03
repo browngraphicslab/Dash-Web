@@ -10,7 +10,7 @@ import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
-import { CollectionViewType } from "../collections/CollectionBaseView";
+import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
@@ -31,7 +31,7 @@ library.add(faEdit);
 
 @observer
 export class PresBox extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
     _docListChangedReaction: IReactionDisposer | undefined;
     componentDidMount() {
         this._docListChangedReaction = reaction(() => {
@@ -43,8 +43,8 @@ export class PresBox extends React.Component<FieldViewProps> {
                 value.forEach((item, i) => {
                     if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
                         let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
-                        Doc.GetProto(pinDoc).target = item;
-                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
+                        Doc.GetProto(pinDoc).presentationTargetDoc = item;
+                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
                         value.splice(i, 1, pinDoc);
                     }
                 });
@@ -124,13 +124,13 @@ export class PresBox extends React.Component<FieldViewProps> {
         this.childDocs.forEach((doc, ind) => {
             //the order of cases is aligned based on priority
             if (doc.hideTillShownButton && ind <= index) {
-                (doc.target as Doc).opacity = 1;
+                (doc.presentationTargetDoc as Doc).opacity = 1;
             }
             if (doc.hideAfterButton && ind < index) {
-                (doc.target as Doc).opacity = 0;
+                (doc.presentationTargetDoc as Doc).opacity = 0;
             }
             if (doc.fadeButton && ind < index) {
-                (doc.target as Doc).opacity = 0.5;
+                (doc.presentationTargetDoc as Doc).opacity = 0.5;
             }
         });
     }
@@ -145,13 +145,13 @@ export class PresBox extends React.Component<FieldViewProps> {
             //the order of cases is aligned based on priority
 
             if (key.hideAfterButton && ind >= index) {
-                (key.target as Doc).opacity = 1;
+                (key.presentationTargetDoc as Doc).opacity = 1;
             }
             if (key.fadeButton && ind >= index) {
-                (key.target as Doc).opacity = 1;
+                (key.presentationTargetDoc as Doc).opacity = 1;
             }
             if (key.hideTillShownButton && ind > index) {
-                (key.target as Doc).opacity = 0;
+                (key.presentationTargetDoc as Doc).opacity = 0;
             }
         });
     }
@@ -162,7 +162,7 @@ export class PresBox extends React.Component<FieldViewProps> {
      * te option open, navigates to that element.
      */
     navigateToElement = async (curDoc: Doc, fromDocIndex: number) => {
-        let fromDoc = this.childDocs[fromDocIndex].target as Doc;
+        let fromDoc = this.childDocs[fromDocIndex].presentationTargetDoc as Doc;
         let docToJump = curDoc;
         let willZoom = false;
 
@@ -190,7 +190,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            let target = await curDoc.target as Doc;
+            let target = await curDoc.presentationTargetDoc as Doc;
             if (curDoc.navButton) {
                 DocumentManager.Instance.jumpToDocument(target, false);
             } else if (curDoc.showButton) {
@@ -210,8 +210,8 @@ export class PresBox extends React.Component<FieldViewProps> {
         let curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
 
         //awaiting jump so that new scale can be found, since jumping is async
-        await DocumentManager.Instance.jumpToDocument(await docToJump.target as Doc, willZoom);
-        let newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.target as Doc);
+        await DocumentManager.Instance.jumpToDocument(await docToJump.presentationTargetDoc as Doc, willZoom);
+        let newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on
         if (curScale !== 1) {
@@ -314,12 +314,11 @@ export class PresBox extends React.Component<FieldViewProps> {
     }
 
     toggleMinimize = undoBatch(action((e: React.PointerEvent) => {
-        if (this.props.Document.minimizedView) {
-            this.props.Document.minimizedView = false;
+        if (this.props.Document.inOverlay) {
             Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
             CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
+            this.props.Document.inOverlay = false;
         } else {
-            this.props.Document.minimizedView = true;
             this.props.Document.x = e.clientX + 25;
             this.props.Document.y = e.clientY - 25;
             this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
@@ -370,9 +369,9 @@ export class PresBox extends React.Component<FieldViewProps> {
                         <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
                     </button>
                     <button className="presBox-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
-                    <button className="presBox-button" title={this.props.Document.minimizedView ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
+                    <button className="presBox-button" title={this.props.Document.inOverlay ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
                 </div>
-                {this.props.Document.minimizedView ? (null) :
+                {this.props.Document.inOverlay ? (null) :
                     <div className="presBox-listCont" >
                         <CollectionView {...this.props} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
                     </div>

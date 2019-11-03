@@ -38,6 +38,8 @@ export abstract class URLField extends ObjectField {
     }
 }
 
+export const nullAudio = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
+
 @scriptingGlobal @Deserializable("audio") export class AudioField extends URLField { }
 @scriptingGlobal @Deserializable("image") export class ImageField extends URLField { }
 @scriptingGlobal @Deserializable("video") export class VideoField extends URLField { }

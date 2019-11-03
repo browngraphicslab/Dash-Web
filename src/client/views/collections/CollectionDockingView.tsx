@@ -31,14 +31,14 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { compileFunction } from 'vm';
 import { ComputedField } from '../../../new_fields/ScriptField';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
-    @observable public static Instance: CollectionDockingView;
+    @observable public static Instances: CollectionDockingView[] = [];
+    @computed public static get Instance() { return CollectionDockingView.Instances[0]; }
     public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
         return {
             type: 'react-component',
@@ -66,7 +66,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        !CollectionDockingView.Instance && runInAction(() => CollectionDockingView.Instance = this);
+        runInAction(() => !CollectionDockingView.Instances ? CollectionDockingView.Instances = [this] : CollectionDockingView.Instances.push(this));
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
@@ -318,13 +318,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } catch (e) {
 
         }
-        if (this._goldenLayout) this._goldenLayout.destroy();
-        runInAction(() => this._goldenLayout = null);
+        this._goldenLayout && this._goldenLayout.destroy();
+        runInAction(() => {
+            CollectionDockingView.Instances.splice(CollectionDockingView.Instances.indexOf(this), 1);
+            this._goldenLayout = null;
+        });
         window.removeEventListener('resize', this.onResize);
 
-        if (this.reactionDisposer) {
-            this.reactionDisposer();
-        }
+        this.reactionDisposer && this.reactionDisposer();
     }
     @action
     onResize = (event: any) => {
@@ -574,8 +575,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
             let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
-            Doc.GetProto(pinDoc).target = doc;
-            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.target instanceof Doc) && this.target.title.toString()');
+            Doc.GetProto(pinDoc).presentationTargetDoc = doc;
+            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
             const data = Cast(curPres.data, listSpec(Doc));
             if (data) {
                 data.push(pinDoc);
@@ -614,19 +615,20 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    panelWidth = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => this._document!.ignoreAspect || this._document!.fitWidth ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), this.nativeHeight()));
+    get layoutDoc() { return this._document && Doc.Layout(this._document);}
+    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
+    panelHeight = () => this._panelHeight;
 
-    nativeWidth = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
-        if (this._document!.type === DocumentType.PDF) {
-            if ((this._document && this._document.fitWidth) ||
-                this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
-                return this._panelWidth / NumCast(this._document!.nativeWidth);
+        if (this.layoutDoc!.type === DocumentType.PDF) {
+            if ((this.layoutDoc && this.layoutDoc.fitWidth) ||
+                this._panelHeight / NumCast(this.layoutDoc!.nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!.nativeWidth)) {
+                return this._panelWidth / NumCast(this.layoutDoc!.nativeWidth);
             } else {
-                return this._panelHeight / NumCast(this._document!.nativeHeight);
+                return this._panelHeight / NumCast(this.layoutDoc!.nativeHeight);
             }
         }
         const nativeH = this.nativeHeight();
@@ -644,7 +646,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() / this.ScreenToLocalTransform().Scale) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
         SelectionManager.DeselectAll();
@@ -689,11 +691,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
-        return (!this._isActive || !this._document) ? (null) :
+        return (!this._isActive || !this.layoutDoc) ? (null) :
             (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this._document && this._document.fitWidth ? undefined : "100%"
+                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%"
                 }}>
                 {this.docView}
             </div >);

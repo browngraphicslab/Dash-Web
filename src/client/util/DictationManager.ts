@@ -6,7 +6,7 @@ import { DocumentType } from "../documents/DocumentTypes";
 import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
-import { CollectionViewType } from "../views/collections/CollectionBaseView";
+import { CollectionViewType } from "../views/collections/CollectionView";
 import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
@@ -14,6 +14,7 @@ import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { MainView } from "../views/MainView";
 import { Utils } from "../../Utils";
 import { RichTextField } from "../../new_fields/RichTextField";
+import { DictationOverlay } from "../views/DictationOverlay";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -63,7 +64,7 @@ export namespace DictationManager {
         const intraSession = ". ";
         const interSession = " ... ";
 
-        let isListening = false;
+        export let isListening = false;
         let isManuallyStopped = false;
 
         let current: string | undefined = undefined;
@@ -88,12 +89,11 @@ export namespace DictationManager {
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
-            let main = MainView.Instance;
 
             let overlay = options !== undefined && options.useOverlay;
             if (overlay) {
-                main.dictationOverlayVisible = true;
-                main.isListening = { interim: false };
+                DictationOverlay.Instance.dictationOverlayVisible = true;
+                DictationOverlay.Instance.isListening = { interim: false };
             }
 
             try {
@@ -101,21 +101,21 @@ export namespace DictationManager {
                 if (results) {
                     Utils.CopyText(results);
                     if (overlay) {
-                        main.isListening = false;
+                        DictationOverlay.Instance.isListening = false;
                         let execute = options && options.tryExecute;
-                        main.dictatedPhrase = execute ? results.toLowerCase() : results;
-                        main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                        DictationOverlay.Instance.dictatedPhrase = execute ? results.toLowerCase() : results;
+                        DictationOverlay.Instance.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
                     }
                     options && options.tryExecute && await DictationManager.Commands.execute(results);
                 }
             } catch (e) {
                 if (overlay) {
-                    main.isListening = false;
-                    main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
-                    main.dictationSuccess = false;
+                    DictationOverlay.Instance.isListening = false;
+                    DictationOverlay.Instance.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
+                    DictationOverlay.Instance.dictationSuccess = false;
                 }
             } finally {
-                overlay && main.initiateDictationFade();
+                overlay && DictationOverlay.Instance.initiateDictationFade();
             }
 
             return results;
@@ -146,7 +146,6 @@ export namespace DictationManager {
             recognizer.start();
 
             return new Promise<string>((resolve, reject) => {
-
                 recognizer.onerror = (e: SpeechRecognitionError) => {
                     if (!(indefinite && e.error === "no-speech")) {
                         recognizer.stop();
@@ -201,6 +200,7 @@ export namespace DictationManager {
             if (!isListening || !recognizer) {
                 return;
             }
+            isListening = false;
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
             // let main = MainView.Instance;
@@ -336,7 +336,6 @@ export namespace DictationManager {
                     let newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
                     newBox.autoHeight = true;
                     let proto = newBox.proto!;
-                    proto.page = -1;
                     let prompt = "Press alt + r to start dictating here...";
                     let head = 3;
                     let anchor = head + prompt.length;

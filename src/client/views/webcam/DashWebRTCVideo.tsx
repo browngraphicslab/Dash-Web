@@ -290,7 +290,8 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
 
 
 
-    public static LayoutString() { return FieldView.LayoutString(DashWebRTCVideo); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DashWebRTCVideo, fieldKey); }
+
 
 
     _ignore = 0;

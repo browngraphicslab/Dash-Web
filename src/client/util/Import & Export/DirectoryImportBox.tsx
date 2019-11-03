@@ -22,13 +22,15 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
 import { Identified } from "../../Network";
 import { BatchedArray } from "array-batcher";
+import { ExifData } from "exif";
 
 const unsupported = ["text/html", "text/plain"];
 
-interface FileResponse {
+interface ImageUploadResponse {
     name: string;
     path: string;
     type: string;
+    exif: any;
 }
 
 @observer
@@ -48,7 +50,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     @observable private uploading = false;
     @observable private removeHover = false;
 
-    public static LayoutString() { return FieldView.LayoutString(DirectoryImportBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DirectoryImportBox, fieldKey); }
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -117,7 +119,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
             const responses = await Identified.PostFormDataToServer(RouteStore.upload, formData);
             runInAction(() => this.completed += batch.length);
-            return responses as FileResponse[];
+            return responses as ImageUploadResponse[];
         });
 
         await Promise.all(uploads.map(async upload => {
@@ -129,7 +131,11 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 title: upload.name
             };
             const document = await Docs.Get.DocumentFromType(type, path, options);
-            document && docs.push(document);
+            const { data, error } = upload.exif;
+            if (document) {
+                Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data);
+                docs.push(document);
+            }
         }));
 
         for (let i = 0; i < docs.length; i++) {
