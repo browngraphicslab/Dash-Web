@@ -17,6 +17,7 @@ import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import "./CollectionTimelineView.scss";
 import { Thumbnail } from "./CollectionTimeLineViewNode";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { library } from "@fortawesome/fontawesome-svg-core";
 
 type MarkerUnit = {
     document: Doc,
@@ -138,9 +139,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.createticks();
             }
         );
+        reaction(() => this.props.Document.barwidth,
+            () => {
+                this.createticks();
+                this.initiallyPopulateThumbnails();
+            });
+        reaction(() => this.props.Document.verticalsortstate,
+            () => {
+                this.transtate = true;
+                this.createticks();
+                this.initiallyPopulateThumbnails();
+            });
         reaction(
             () => this.props.Document.sortstate,
             () => {
+                this.transtate = true;
                 console.log("DIDMOUNT");
                 this.initiallyPopulateThumbnails();
                 this.createticks();
@@ -562,10 +575,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         // can we tighten this up? not well defined
         this._range = (sortedPairs.lastElement().value - sortedPairs[0].value);
+        let laststring = undefined;
         if (isNaN(this._range)) {
             this._range = sortedPairs.length;
             for (let i = 0; i < sortedPairs.length; i++) {
-                sortedPairs[i].value = i;
+                if (i !== 0 && sortedPairs[i].value === laststring) {
+                    laststring = sortedPairs[i].value;
+                    sortedPairs[i].value = sortedPairs[i - 1].value;
+                }
+                else {
+                    laststring = sortedPairs[i].value;
+                    sortedPairs[i].value = i;
+                }
             }
         }
 
@@ -648,27 +669,35 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         }
                         overlap = false;
                     }
-                    // if (thumbnail1.row !== thumbnail2.row) {
-                    //     if (thumbnail1.doc[this.verticalSortingKey] < thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row > thumbnail2.row) {
-                    //         let row1 = thumbnail1.row;
-                    //         let row2 = thumbnail2.row;
-                    //         thumbnail1.row = row2;
-                    //         thumbnail2.row = row1;
-                    //         console.log(thumbnail1.row, thumbnail2.row);
-                    //     }
-                    //     else if (thumbnail1.doc[this.verticalSortingKey] > thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row < thumbnail2.row) {
-                    //         let row1 = thumbnail1.row;
-                    //         let row2 = thumbnail2.row;
-                    //         thumbnail1.row = row2;
-                    //         thumbnail2.row = row1;
-                    //         console.log(thumbnail1.row, thumbnail2.row);
-                    //     }
-                    // }
                 }
                 for (let thumbnail1 of this.thumbnails) {
                     if (thumbnail1.row === Math.round(this.rowval.length / 2)) {
                         thumbnail1.row++;
                         overlap = false;
+                    }
+                }
+            }
+            for (let thumbnail1 of this.thumbnails) {
+                for (let thumbnail2 of this.thumbnails) {
+                    if (thumbnail1.row !== thumbnail2.row) {
+                        if (thumbnail1.doc[this.verticalSortingKey] < thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row > thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
+                            console.log(thumbnail1.doc[this.verticalSortingKey]);
+                            console.log(thumbnail2.doc[this.verticalSortingKey]);
+                            let row1 = thumbnail1.row;
+                            let row2 = thumbnail2.row;
+                            thumbnail1.row = row2;
+                            thumbnail2.row = row1;
+                            console.log(thumbnail1.row, thumbnail2.row);
+                        }
+                        else if (thumbnail1.doc[this.verticalSortingKey] > thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row < thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
+                            console.log(thumbnail1.doc[this.verticalSortingKey]);
+                            console.log(thumbnail2.doc[this.verticalSortingKey]);
+                            let row1 = thumbnail1.row;
+                            let row2 = thumbnail2.row;
+                            thumbnail1.row = row2;
+                            thumbnail2.row = row1;
+                            console.log(thumbnail1.row, thumbnail2.row);
+                        }
                     }
                 }
             }
@@ -681,10 +710,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private checkOverlap = (a: Node, b: Node): boolean => {
+
         const { horizontalPos: first } = a;
-        const { horizontalPos: second } = a;
+        const { horizontalPos: second } = b;
         const leftOverlap = first >= second && first - this.rowscale < second;
         const rightOverlap = first <= second && first + this.rowscale > second;
+        console.log(leftOverlap, rightOverlap);
         return leftOverlap || rightOverlap;
     }
 
@@ -926,6 +957,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private set currentSortingKey(string) {
         this.props.Document.sortstate = string;
+
     }
 
     private get verticalSortingKey() {
@@ -933,7 +965,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (!doc.verticalsortstate) {
             this.verticalSortingKey = "y";
         }
-        return String(doc.sortstate);
+        return String(doc.verticalsortstate);
     }
 
     private set verticalSortingKey(string) {
@@ -982,6 +1014,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
+        for (let thumbnails of this.thumbnails) {
+            thumbnails.select = false;
+        }
         e.persist();
         this.thumbnailbools = [];
         this.downbool = false;
@@ -1174,7 +1209,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
         this.downbool = false;
-        document.body.style.cursor = "grabbing";
         document.addEventListener("pointermove", this.onPointerMove_OnBar);
         e.stopPropagation();
         e.preventDefault();
@@ -1338,8 +1372,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         }>
                         <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                     </Flyout> */}
-                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound}px)`, }}>
-                        {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "100%", zIndex: 100 }} />) :
+                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound))}px)`, }}>
+                        {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "1000%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
                         {this.thumbnails.map(node =>
                             <Thumbnail
@@ -1371,7 +1405,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div> */}
                         {this.markerDocs.map(d => this.createmarker(d as Doc))}
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
-                            position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "100%", borderTop: "1px solid black"
+                            position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "1000%", borderTop: "1px solid black"
                         }}>
                             {this.tickvals.map((t) => this.callback(t))}
                         </div>

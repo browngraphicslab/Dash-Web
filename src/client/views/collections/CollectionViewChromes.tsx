@@ -818,9 +818,44 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         }
     }
 
+    @action
+    enter4 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        console.log("update");
+        if (e.key === "Enter") {
+            this._currentKey2 = "";
+            let collection = this.props.CollectionView.props.Document;
+
+            var thing = (parseFloat(this.searchString2!) - NumCast(collection.minvalue)) * NumCast(collection.barwidth) / NumCast(collection._range);
+            if (!isNaN(thing)) {
+                if (thing < 0) {
+                    collection.leftbound = 0;
+                }
+                else if (thing >= NumCast(collection.barwidth) - NumCast(collection.rightbound)) {
+                    collection.leftbound = (NumCast(collection.barwidth) - NumCast(collection.rightbound) - 1);
+                }
+                else {
+                    collection.leftbound = thing;
+                }
+            }
+            this.props.CollectionView.props.Document.bugfix = !BoolCast(this.props.CollectionView.props.Document.bugfix);
+            console.log(this.props.CollectionView.props.Document.bugfix);
+            collection.transtate = true;
+            collection.verticalsortstate = this.searchString4;
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+        }
+    }
+
     @action.bound
     onChange3(e: React.ChangeEvent<HTMLInputElement>) {
         this.searchString3 = e.target.value;
+    }
+
+    @action.bound
+    onChange4(e: React.ChangeEvent<HTMLInputElement>) {
+        this.searchString4 = e.target.value;
     }
 
 
@@ -838,6 +873,8 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     @observable searchString: string | undefined;
     @observable searchString2: string | undefined;
     @observable searchString3: string | undefined;
+    @observable searchString4: string | undefined;
+
 
     @action.bound
     toggleRows(e: React.ChangeEvent<HTMLInputElement>) {
@@ -942,6 +979,85 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         this._suggestionDispser && this._suggestionDispser();
     }
 
+    @observable private _currentKey2: string = "";
+    @observable private _currentValue2: string = "";
+    @observable _allSuggestions2: string[] = [];
+    _suggestionDispser2: IReactionDisposer | undefined;
+    private userModified2 = false;
+    private autosuggestRef2 = React.createRef<Autosuggest>();
+
+    @action
+    onKeyChange2 = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
+        this._currentKey2 = newValue;
+        this.updateString2(newValue);
+        if (!this.userModified2) {
+            this.previewValue2();
+        }
+    }
+
+    @action
+    private updateString2(string: string) {
+        this.searchString4 = string;
+        console.log(this.searchString4);
+    }
+
+    previewValue2 = async () => {
+        let field: Field | undefined | null = null;
+        let onProto: boolean = false;
+        let value: string | undefined = undefined;
+        let docs = this.props.CollectionView.props.Document;
+        await docs[this._currentKey2];
+        value = Field.toKeyValueString(docs, this._currentKey2);
+        if (value === undefined) {
+            if (field !== null && field !== undefined) {
+                value = (onProto ? "" : "= ") + Field.toScriptString(field);
+            } else {
+                value = "";
+            }
+        }
+        const s = value;
+        runInAction(() => this._currentValue2 = s);
+    }
+
+    @action
+    onValueChange2 = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._currentValue = e.target.value;
+        this.userModified = e.target.value.trim() !== "";
+    }
+
+    @undoBatch
+    @action
+    onValueKeyDown2 = async (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            e.stopPropagation();
+            const script = KeyValueBox.CompileKVPScript(this._currentValue2);
+            if (!script) return;
+            let doc = (this.props.CollectionView.props.Document);
+            let success: boolean;
+            success = KeyValueBox.ApplyKVPScript(doc, this._currentKey2, script);
+            this.clearInputs2();
+        }
+    }
+
+    @action
+    clearInputs2 = () => {
+        this._currentKey2 = "";
+        this._currentValue2 = "";
+        this.userModified2 = false;
+        if (this.autosuggestRef.current) {
+            const input: HTMLInputElement = (this.autosuggestRef2.current as any).input;
+            input && input.focus();
+        }
+    }
+
+    getKeySuggestions2 = async (value: string): Promise<string[]> => {
+        value = value.toLowerCase();
+        let docs = this.props.CollectionView.props.Document;
+        return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
+
+    }
+    getSuggestionValue2 = (suggestion: string) => suggestion;
+
     render() {
         return (
             <div className="collectionSchemaViewChrome-cont">
@@ -969,24 +1085,45 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                                 className="searchBox-barChild searchBox-input" />
                         </div>
                     </form>
-                    <div className="metadataEntry-outerDiv">
-                        <div className="metadataEntry-inputArea">
-                            <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange, onKeyPress: this.enter3, placeholder: StrCast(this.props.CollectionView.props.Document.sortstate) }}
-                                getSuggestionValue={this.getSuggestionValue}
-                                suggestions={[]}
-                                alwaysRenderSuggestions={false}
-                                renderSuggestion={this.renderSuggestion}
-                                onSuggestionsFetchRequested={emptyFunction}
-                                onSuggestionsClearRequested={emptyFunction}
-                                ref={this.autosuggestRef} />
-                        </div>
-                        <div className="keys" >
-                            <ul>
-                                {this._allSuggestions.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
-                            </ul>
+                    <div className="sortinput">
+                        <div className="metadataEntry-outerDiv">
+                            <div className="metadataEntry-inputArea">
+                                <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange, onKeyPress: this.enter3, placeholder: StrCast(this.props.CollectionView.props.Document.sortstate) }}
+                                    getSuggestionValue={this.getSuggestionValue}
+                                    suggestions={[]}
+                                    alwaysRenderSuggestions={false}
+                                    renderSuggestion={this.renderSuggestion}
+                                    onSuggestionsFetchRequested={emptyFunction}
+                                    onSuggestionsClearRequested={emptyFunction}
+                                    ref={this.autosuggestRef} />
+                            </div>
+                            <div className="keys" >
+                                <ul>
+                                    {this._allSuggestions.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    <input className="rows" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" />
+                    <div className="rows">
+                        <div className="metadataEntry-outerDiv">
+                            <div className="metadataEntry-inputArea">
+                                <Autosuggest inputProps={{ value: this._currentKey2, onChange: this.onKeyChange2, onKeyPress: this.enter4, placeholder: StrCast(this.props.CollectionView.props.Document.verticalsortstate) }}
+                                    getSuggestionValue={this.getSuggestionValue2}
+                                    suggestions={[]}
+                                    alwaysRenderSuggestions={false}
+                                    renderSuggestion={this.renderSuggestion}
+                                    onSuggestionsFetchRequested={emptyFunction}
+                                    onSuggestionsClearRequested={emptyFunction}
+                                    ref={this.autosuggestRef2} />
+                            </div>
+                            <div className="keys" >
+                                <ul>
+                                    {this._allSuggestions2.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey2 = s; this.previewValue2(); })} >{s}</li>)}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <input className="update" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" />
                     {/* <input className="update" type="checkbox" onChange={this.toggleUpdate} id="add-menu-toggle" /> */}
                 </div >
             </div>
