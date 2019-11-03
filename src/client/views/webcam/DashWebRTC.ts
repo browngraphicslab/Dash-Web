@@ -12,6 +12,9 @@ export namespace DashWebRTC {
     let pc: any;
     let remoteStream: MediaStream | undefined;
     let turnReady;
+    let localVideo: HTMLVideoElement;
+    let remoteVideo: HTMLVideoElement;
+
 
     let pcConfig = {
         'iceServers': [{
@@ -25,42 +28,92 @@ export namespace DashWebRTC {
         offerToReceiveVideo: true
     };
 
+    export function init() {
+        let room = 'test';
 
-    let room = 'test';
+        if (room !== '') {
+            DocServer._socket.emit('create or join', room);
+            console.log('Attempted to create or  join room', room);
 
-    //let socket = io.connect();
+        }
 
-    if (room !== '') {
-        DocServer._socket.emit('create or join', room);
-        console.log('Attempted to create or  join room', room);
+        DocServer._socket.on('created', function (room: string) {
+            console.log('Created room ' + room);
+            isInitiator = true;
+        });
+
+        DocServer._socket.on('full', function (room: string) {
+            console.log('Room ' + room + ' is full');
+        });
+
+        DocServer._socket.on('join', function (room: string) {
+            console.log('Another peer made a request to join room ' + room);
+            console.log('This peer is the initiator of room ' + room + '!');
+            isChannelReady = true;
+        });
+
+
+        DocServer._socket.on('joined', function (room: string) {
+            console.log('joined: ' + room);
+            isChannelReady = true;
+        });
+
+
+        DocServer._socket.on('log', function (array: any) {
+            console.log.apply(console, array);
+        });
+
+        // This client receives a message
+        DocServer._socket.on('message', function (message: any) {
+            console.log('Client received message:', message);
+            if (message === 'got user media') {
+                maybeStart();
+            } else if (message.type === 'offer') {
+                if (!isInitiator && !isStarted) {
+                    maybeStart();
+                }
+                pc.setRemoteDescription(new RTCSessionDescription(message));
+                doAnswer();
+            } else if (message.type === 'answer' && isStarted) {
+                pc.setRemoteDescription(new RTCSessionDescription(message));
+            } else if (message.type === 'candidate' && isStarted) {
+                var candidate = new RTCIceCandidate({
+                    sdpMLineIndex: message.label,
+                    candidate: message.candidate
+                });
+                pc.addIceCandidate(candidate);
+            } else if (message === 'bye' && isStarted) {
+                handleRemoteHangup();
+            }
+        });
+
+        navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: true
+        })
+            .then(gotStream)
+            .catch(function (e) {
+                alert('getUserMedia() error: ' + e.name);
+            });
+
+        //Trying this one out!!!
+        console.log('Getting user media with constraints', constraints);
+
+        if (location.hostname !== 'localhost') {
+            requestTurn(
+                'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+            );
+        }
+
 
     }
 
-    DocServer._socket.on('created', function (room: string) {
-        console.log('Created room ' + room);
-        isInitiator = true;
-    });
-
-    DocServer._socket.on('full', function (room: string) {
-        console.log('Room ' + room + ' is full');
-    });
-
-    DocServer._socket.on('join', function (room: string) {
-        console.log('Another peer made a request to join room ' + room);
-        console.log('This peer is the initiator of room ' + room + '!');
-        isChannelReady = true;
-    });
 
 
-    DocServer._socket.on('joined', function (room: string) {
-        console.log('joined: ' + room);
-        isChannelReady = true;
-    });
+
+    //let socket = io.connect();
 
 
-    DocServer._socket.on('log', function (array: any) {
-        console.log.apply(console, array);
-    });
 
 
     function sendMessage(message: any) {
@@ -69,46 +122,15 @@ export namespace DashWebRTC {
     }
 
 
-    // This client receives a message
-    DocServer._socket.on('message', function (message: any) {
-        console.log('Client received message:', message);
-        if (message === 'got user media') {
-            maybeStart();
-        } else if (message.type === 'offer') {
-            if (!isInitiator && !isStarted) {
-                maybeStart();
-            }
-            pc.setRemoteDescription(new RTCSessionDescription(message));
-            doAnswer();
-        } else if (message.type === 'answer' && isStarted) {
-            pc.setRemoteDescription(new RTCSessionDescription(message));
-        } else if (message.type === 'candidate' && isStarted) {
-            var candidate = new RTCIceCandidate({
-                sdpMLineIndex: message.label,
-                candidate: message.candidate
-            });
-            pc.addIceCandidate(candidate);
-        } else if (message === 'bye' && isStarted) {
-            handleRemoteHangup();
-        }
-    });
 
-    let localVideo: HTMLVideoElement;
-    let remoteVideo: HTMLVideoElement;
+
 
     export function setVideoObjects(localVideo: HTMLVideoElement, remoteVideo: HTMLVideoElement) {
         localVideo = localVideo;
         remoteVideo = remoteVideo;
     }
 
-    navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: true
-    })
-        .then(gotStream)
-        .catch(function (e) {
-            alert('getUserMedia() error: ' + e.name);
-        });
+
 
 
     function gotStream(stream: any) {
@@ -127,14 +149,7 @@ export namespace DashWebRTC {
     };
 
 
-    //Trying this one out!!!
-    console.log('Getting user media with constraints', constraints);
 
-    if (location.hostname !== 'localhost') {
-        requestTurn(
-            'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-        );
-    }
 
 
     function maybeStart() {

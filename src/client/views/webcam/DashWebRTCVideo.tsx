@@ -8,7 +8,7 @@ import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
 import "./DashWebRTC.scss";
 import adapter from 'webrtc-adapter';
-//import { DashWebRTC } from "./DashWebRTC";
+import { DashWebRTC } from "./DashWebRTC";
 
 
 
@@ -37,7 +37,8 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     private hangupButton: HTMLButtonElement | undefined;
 
     componentDidMount() {
-        //DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
+        DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
+        DashWebRTC.init();
     }
 
 
