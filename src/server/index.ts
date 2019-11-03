@@ -573,18 +573,15 @@ function routeSetter(router: RouteManager) {
         onValidation: async ({ req, res, user }) => {
             let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
             let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
-            return GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id).then(endpoint => {
-                let handler = EndpointHandlerMap.get(action);
-                if (endpoint && handler) {
-                    let execute = handler(endpoint, req.body).then(
-                        response => res.send(response.data),
-                        rejection => res.send(rejection)
-                    );
-                    execute.catch(exception => res.send(exception));
-                    return;
-                }
-                res.send(undefined);
-            });
+            const endpoint = await GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id);
+            let handler = EndpointHandlerMap.get(action);
+            if (endpoint && handler) {
+                handler(endpoint, req.body)
+                    .then(response => res.send(response.data))
+                    .catch(exception => res.send(exception));
+                return;
+            }
+            res.send(undefined);
         }
     });
 
@@ -593,11 +590,11 @@ function routeSetter(router: RouteManager) {
         subscription: RouteStore.readGoogleAccessToken,
         onValidation: async ({ user, res }) => {
             const userId = user.id;
-            const token = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+            const token = await GoogleApiServerUtils.retrieveAccessToken(userId);
             if (!token) {
-                return res.send(await GoogleApiServerUtils.generateAuthenticationUrl());
+                return res.send(GoogleApiServerUtils.generateAuthenticationUrl());
             }
-            return GoogleApiServerUtils.retrieveAccessToken(userId).then(token => res.send(token));
+            return res.send(token);
         }
     });
 
@@ -609,8 +606,14 @@ function routeSetter(router: RouteManager) {
         }
     });
 
-    const tokenError = "Unable to successfully upload bytes for all images!";
+    const authenticationError = "Unable to authenticate Google credentials before uploading to Google Photos!";
     const mediaError = "Unable to convert all uploaded bytes to media items!";
+    interface GooglePhotosUploadFailure {
+        batch: number;
+        index: number;
+        url: string;
+        reason: string;
+    }
 
     router.addSupervisedRoute({
         method: Method.POST,
@@ -618,35 +621,40 @@ function routeSetter(router: RouteManager) {
         onValidation: async ({ user, req, res }) => {
             const { media } = req.body;
 
-            let failed: number[] = [];
             const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
-            const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
+            if (!token) {
+                return _error(res, authenticationError);
+            }
+
+            let failed: GooglePhotosUploadFailure[] = [];
+            const batched = BatchedArray.from<GooglePhotosUploadUtils.UploadSource>(media, { batchSize: 25 });
+            const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
                 { magnitude: 100, unit: TimeUnit.Milliseconds },
-                async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
-                    const newMediaItems: NewMediaItem[] = [];
+                async (batch, collector, { completedBatches }) => {
                     for (let index = 0; index < batch.length; index++) {
-                        const element = batch[index];
-                        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(token, element.url);
+                        const { url, description } = batch[index];
+                        const fail = (reason: string) => failed.push({ reason, batch: completedBatches + 1, index, url });
+                        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(token, url).catch(fail);
                         if (!uploadToken) {
-                            failed.push(index);
+                            fail(`${path.extname(url)} is not an accepted extension`);
                         } else {
-                            newMediaItems.push({
-                                description: element.description,
+                            collector.push({
+                                description,
                                 simpleMediaItem: { uploadToken }
                             });
                         }
                     }
-                    return newMediaItems;
                 }
             );
 
             const failedCount = failed.length;
             if (failedCount) {
                 console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
+                console.log(failed.map(({ reason, batch, index, url }) => `@${batch}.${index}: ${url} failed:\n${reason}`).join('\n\n'));
             }
 
             return GooglePhotosUploadUtils.CreateMediaItems(token, newMediaItems, req.body.album).then(
-                result => _success(res, { results: result.newMediaItemResults, failed }),
+                results => _success(res, { results, failed }),
                 error => _error(res, mediaError, error)
             );
         }

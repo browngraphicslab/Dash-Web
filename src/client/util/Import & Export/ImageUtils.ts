@@ -3,7 +3,7 @@ import { ImageField } from "../../../new_fields/URLField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../../server/RouteStore";
 import { Docs } from "../../documents/Documents";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Utils } from "../../../Utils";
 
@@ -15,7 +15,7 @@ export namespace ImageUtils {
             return false;
         }
         const source = field.url.href;
-        const response = await Identified.PostToServer(RouteStore.inspectImage, { source });
+        const response = await Networking.PostToServer(RouteStore.inspectImage, { source });
         const { error, data } = response.exifData;
         document.exif = error || Docs.Get.DocumentHierarchyFromJson(data);
         return data !== undefined;

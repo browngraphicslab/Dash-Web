@@ -60,6 +60,10 @@ export namespace Database {
 
         constructor() {
             this.MongoClient.connect(url, (_err, client) => {
+                if (!client) {
+                    console.error("\nPlease start MongoDB by running 'mongod' in a terminal before continuing...\n");
+                    process.exit(0);
+                }
                 this.db = client.db();
                 this.onConnect.forEach(fn => fn());
             });

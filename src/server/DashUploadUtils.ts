@@ -24,8 +24,12 @@ export namespace DashUploadUtils {
     const gifs = [".gif"];
     const pngs = [".png"];
     const jpgs = [".jpg", ".jpeg"];
-    export const imageFormats = [...pngs, ...jpgs, ...gifs];
+    const imageFormats = [...pngs, ...jpgs, ...gifs];
     const videoFormats = [".mov", ".mp4"];
+
+    export function validateExtension(url: string) {
+        return imageFormats.includes(path.extname(url).toLowerCase());
+    }
 
     const size = "content-length";
     const type = "content-type";
