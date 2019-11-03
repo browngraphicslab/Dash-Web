@@ -98,11 +98,11 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.setAddDocTab(this.props.addDocTab);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-            //if its open
-            // this.openLinkFollower();
+
             console.log("following default");
             console.log(StrCast(this.props.linkDoc.defaultLinkFollow));
-            LinkFollowBox.Instance.defaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow));
+            // LinkFollowBox.Instance.defaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow));
+            LinkFollowBox.Instance.changeDefaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow).split(',')[0]);
         }
     }
 

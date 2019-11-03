@@ -20,7 +20,7 @@ import { CollectionLinearView } from '../CollectionLinearView';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ImageField } from '../../../new_fields/URLField';
 import { DocListCast } from '../../../new_fields/Doc';
-import Lightbox from 'react-image-lightbox-with-rotate';
+// import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 export const COLLECTION_BORDER_WIDTH = 2;
 import { DateField } from '../../../new_fields/DateField';
@@ -224,15 +224,15 @@ export class CollectionView extends React.Component<FieldViewProps> {
         }
     }
 
-    lightbox = (images: string[]) => {
-        return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
-            mainSrc={images[this._curLightboxImg]}
-            nextSrc={images[(this._curLightboxImg + 1) % images.length]}
-            prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
-            onCloseRequest={action(() => this._isLightboxOpen = false)}
-            onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
-            onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
-    }
+    // lightbox = (images: string[]) => {
+    //     return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
+    //         mainSrc={images[this._curLightboxImg]}
+    //         nextSrc={images[(this._curLightboxImg + 1) % images.length]}
+    //         prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
+    //         onCloseRequest={action(() => this._isLightboxOpen = false)}
+    //         onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
+    //         onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
+    // }
     render() {
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
@@ -249,7 +249,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))}
+            {/* {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))} */}
         </div>);
     }
 }

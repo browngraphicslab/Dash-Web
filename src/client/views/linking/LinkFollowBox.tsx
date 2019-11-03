@@ -292,6 +292,26 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     //set this to be the default link behavior, can be any of the above
     public defaultLinkBehavior: (options?: any) => void = this.jumpToLink;
 
+    public changeDefaultLinkBehavior = (newDefault: string) => {
+        if (LinkFollowBox.destinationDoc) {
+            if (newDefault === FollowModes.INPLACE) {
+                this.openLinkInPlace({ shouldZoom: false });
+            }
+            else if (newDefault === FollowModes.OPENFULL) {
+                this.openFullScreen();
+            }
+            else if (newDefault === FollowModes.OPENRIGHT) {
+                this.openLinkRight();
+            }
+            else if (newDefault === FollowModes.OPENTAB) {
+                this.openLinkTab();
+            }
+            else if (newDefault === FollowModes.PAN) {
+                this.jumpToLink({ shouldZoom: true });
+            }
+        }
+    }
+
     @action
     currentLinkBehavior = () => {
         // this.resetPan();
