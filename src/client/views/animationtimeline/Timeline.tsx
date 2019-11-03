@@ -321,14 +321,14 @@ export class Timeline extends React.Component<FieldViewProps> {
                 <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
                 <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
                 <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>                
-                <div key="overview-text" className="animation-text"><p>Timeline Overview</p></div>
-                <TimelineOverview scale={scale} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
-                <div key="animation-text" className="animation-text"><p>Mode: {this.props.Document.isAnimating ? "Authoring" : "Play"}</p></div>
+                <div key="overview-text" className="animation-text">Timeline Overview</div>
+                <TimelineOverview isAuthoring = {BoolCast(this.props.Document.isAnimating)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                <div key="animation-text" className="animation-text">Mode: {this.props.Document.isAnimating ? "Authoring" : "Play"}</div>
                 <div key="round-toggle" ref={this._roundToggleContainerRef} className="round-toggle">
                     <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
                 </div>
-                <div key="time-text" className="animation-text"><p>Length: </p></div>
-                <input placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
+                <div key="time-text" className="animation-text" style ={{visibility: this.props.Document.isAnimating ? "visible" : "hidden"}}>Length: </div>
+                <input className="time-input" style={{visibility: this.props.Document.isAnimating ? "visible" : "hidden"}} placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
             </div>
         );
     }

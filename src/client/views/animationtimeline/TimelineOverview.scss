@@ -1,38 +1,85 @@
 @import "./../globalCssVariables.scss"; 
 
-.timeline-overview-container{
+
+.timeline-overview-container{ 
+    padding: 0px; 
+    margin: 0px; 
     width: 300px; 
     height: 40px;
-    margin-top: 10px; 
-    margin-left: 20px;  
     background: white; 
+    position: relative; 
     border: 2px solid black; 
-    padding: 0px; 
-    display:inline-block; 
+    
     .timeline-overview-visible{
+        position: absolute; 
         height: 100%; 
         background: green; 
+        display: inline-block;
         margin: 0px; 
+        padding: 0px; 
     }
-    .timeline-overview-scrubber-container{
+    .timeline-overview-scrubber-container{   
+        margin: 0px; 
+        padding: 0px; 
+        position: absolute; 
         height: 100%;
-        margin-top: -40px;  
-        margin-left: 0px; 
         width: 2px; 
+        top: 0px; 
+        left: 0px; 
         z-index: 1001;
         background-color:black; 
         display: inline-block; 
-        .timeline-overview-scrubber-head{
+
+        .timeline-overview-scrubber-head{   
+            padding: 0px; 
+            margin: 0px; 
             position:absolute; 
             height: 30px; 
             width: 30px;
             background-color:transparent; 
             border-radius: 50%; 
             border: 5px solid black; 
-            margin-left: -15px; 
-            top: -15px; 
-
+            left: -15px;
+            top: -30px; 
         }
-        
     }
+}
+
+
+
+.timeline-play-bar{
+    position: relative; 
+    padding: 0px; 
+    margin: 0px; 
+    width: 300px; 
+    height: 4px; 
+    background-color: grey;
+    border-radius: 20px;
+    cursor: pointer; 
+    
+    .timeline-play-head{
+        position: absolute; 
+        padding: 0px; 
+        margin: 0px; 
+        width: 20px; 
+        height: 20px; 
+        border-radius: 50%; 
+        background-color: white; 
+        border: 3px grey solid; 
+        left: 0px; 
+        top: -10px; 
+        cursor: pointer; 
+    }
+}  
+.timeline-play-tail{
+    position: absolute; 
+    padding: 0px; 
+    margin: 0px; 
+    height: 4px; 
+    width: 0px;   
+    z-index: 1000; 
+    background-color: green;
+    border-radius: 20px;
+    margin-top: -4px; 
+    cursor: pointer; 
 }

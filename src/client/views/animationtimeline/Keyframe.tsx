@@ -138,7 +138,6 @@ export class Keyframe extends React.Component<IProps> {
     @observable private _gain = 20; //default
     @observable private _mouseToggled = false; 
     @observable private _doubleClickEnabled = false; 
-    @observable private _index:number = 0; 
 
     @computed private get regiondata() { return RegionData(this.regions[this.regions.indexOf(this.props.RegionData)] as Doc);}
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;}
