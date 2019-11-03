@@ -107,7 +107,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         added && this.updateCluster(newBox);
         return added;
     }
-    private selectDocuments = (docs: Doc[], ink: Map<any, any>[]) => {
+    private selectDocuments = (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
         ink.forEach(i => SelectionManager.SelectInk(i, true));

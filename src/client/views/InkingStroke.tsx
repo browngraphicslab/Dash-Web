@@ -5,6 +5,7 @@ import React = require("react");
 import { InkTool } from "../../new_fields/InkField";
 import "./InkingStroke.scss";
 import { AudioBox } from "./nodes/AudioBox";
+import { Doc } from "../../new_fields/Doc";
 
 
 interface StrokeProps {
@@ -19,6 +20,11 @@ interface StrokeProps {
     creationTime: number;
     deleteCallback: (index: string) => void;
 }
+
+export type InkDocAndStroke = {
+    Document: Doc;
+    Ink: Map<any, any>;
+};
 
 @observer
 export class InkingStroke extends React.Component<StrokeProps> {

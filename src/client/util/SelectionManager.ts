@@ -4,6 +4,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { NumCast, StrCast } from "../../new_fields/Types";
 import { InkingControl } from "../views/InkingControl";
+import { InkDocAndStroke } from "../views/InkingStroke";
 
 export namespace SelectionManager {
 
@@ -11,7 +12,7 @@ export namespace SelectionManager {
 
         @observable IsDragging: boolean = false;
         @observable SelectedDocuments: Array<DocumentView> = [];
-        @observable SelectedInk: Array<Map<any, any>> = [];
+        @observable SelectedInk: Array<{ Document: Doc, Ink: Map<any, any> }> = [];
 
 
         @action
@@ -46,7 +47,7 @@ export namespace SelectionManager {
         }
 
         @action
-        SelectInk(ink: Map<any, any>, ctrlPressed: boolean): void {
+        SelectInk(ink: { Document: Doc, Ink: Map<any, any> }, ctrlPressed: boolean): void {
             if (manager.SelectedInk.indexOf(ink) === -1) {
                 if (!ctrlPressed) {
                     this.DeselectAll();
@@ -68,7 +69,7 @@ export namespace SelectionManager {
         manager.SelectDoc(docView, ctrlPressed);
     }
 
-    export function SelectInk(ink: Map<any, any>, ctrlPressed: boolean): void {
+    export function SelectInk(ink: { Document: Doc, Ink: Map<any, any> }, ctrlPressed: boolean): void {
         manager.SelectInk(ink, ctrlPressed);
     }
 
@@ -95,12 +96,12 @@ export namespace SelectionManager {
         return manager.SelectedDocuments.slice();
     }
 
-    export function SelectedInk(): Array<Map<any, any>> {
+    export function SelectedInk(): Array<{ Document: Doc, Ink: Map<any, any> }> {
         return manager.SelectedInk.slice();
     }
 
-    export function AllSelected(): Array<DocumentView | Map<any, any>> {
-        let arr: Array<DocumentView | Map<any, any>> = [];
+    export function AllSelected(): Array<DocumentView | InkDocAndStroke> {
+        let arr: Array<DocumentView | InkDocAndStroke> = [];
         arr = SelectionManager.SelectedDocuments();
         arr.push(...SelectionManager.SelectedInk());
         return arr;

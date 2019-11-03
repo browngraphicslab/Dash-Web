@@ -617,7 +617,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    get layoutDoc() { return this._document && Doc.Layout(this._document);}
+    get layoutDoc() { return this._document && Doc.Layout(this._document); }
     panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
     panelHeight = () => this._panelHeight;
 

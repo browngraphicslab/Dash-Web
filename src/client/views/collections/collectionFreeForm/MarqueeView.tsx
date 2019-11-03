@@ -28,7 +28,7 @@ interface MarqueeViewProps {
     getTransform: () => Transform;
     addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
-    selectDocuments: (docs: Doc[], ink: Map<any, any>[]) => void;
+    selectDocuments: (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => void;
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
@@ -198,8 +198,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.Document);
             }
-            this.props.selectDocuments(mselect.length ? mselect : [this.props.Document],
-                this.ink ? [this.marqueeInkSelect(this.ink.inkData)] : []);
+            let inkselect = this.ink ? this.marqueeInkSelect(this.ink.inkData) : new Map();
+            let inks = inkselect.size ? [{ Document: this.inkDoc, Ink: inkselect }] : [];
+            let docs = mselect.length ? mselect : (inks.length ? [] : [this.props.Document]);
+            this.props.selectDocuments(docs, inks);
         }
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
@@ -264,6 +266,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         let topLeft = this.props.getTransform().transformPoint(left, top);
         let size = this.props.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
+    }
+
+    get inkDoc() {
+        return this.props.extensionDoc;
     }
 
     get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.

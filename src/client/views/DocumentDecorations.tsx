@@ -186,8 +186,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let top = bounds.y;
                 let right = bounds.r;
                 let bottom = bounds.b;
-                docViewOrInk.forEach((value: StrokeData, key: string) => {
+                let ink;
+                docViewOrInk.Ink.forEach((value: StrokeData, key: string) => {
                     value.pathData.map(val => {
+                        ink = docViewOrInk.Document.ink;
                         left = Math.min(val.x, left);
                         top = Math.min(val.y, top);
                         right = Math.max(val.x, right);
@@ -224,7 +226,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onBackgroundUp);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.AllSelected().map(docOrInk => docOrInk instanceof DocumentView ? docOrInk.ContentDiv! : (document.createElement("div"))), dragData, e.x, e.y, {
             handlers: { dragComplete: action(() => this._hidden = this.Interacting = false) },
             hideSource: true
         });
@@ -548,15 +550,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @computed
     get selectionTitle(): string {
-        if (SelectionManager.SelectedDocuments().length === 1) {
-            let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
-            if (typeof field === "string") {
-                return field;
+        if (SelectionManager.AllSelected().length === 1) {
+            let selected = SelectionManager.AllSelected()[0];
+            if (selected instanceof DocumentView) {
+                let field = selected.props.Document[this._fieldKey];
+                if (typeof field === "string") {
+                    return field;
+                }
+                else if (typeof field === "number") {
+                    return field.toString();
+                }
             }
-            else if (typeof field === "number") {
-                return field.toString();
+            else {
+                return "-ink strokes-";
             }
-        } else if (SelectionManager.SelectedDocuments().length > 1) {
+        } else if (SelectionManager.AllSelected().length > 1) {
             return "-multiple-";
         }
         return "-unset-";
@@ -581,7 +589,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         let minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
-                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
+                {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
+                {(SelectionManager.SelectedDocuments().length === 1 && SelectionManager.SelectedInk().length === 0) ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
