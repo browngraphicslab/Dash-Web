@@ -4,7 +4,6 @@ import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { percent2frac } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import "./CollectionFreeFormDocumentView.scss";
@@ -71,12 +70,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         let ld = this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] instanceof Doc ? this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] as Doc : undefined;
         let br = StrCast((ld || this.props.Document).borderRounding);
-        br = !br && ruleRounding ? ruleRounding : br;
-        if (br.endsWith("%")) {
-            let nativeDim = Math.min(NumCast(this.layoutDoc.nativeWidth), NumCast(this.layoutDoc.nativeHeight));
-            return percent2frac(br) * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
-        }
-        return undefined;
+        return !br && ruleRounding ? ruleRounding : br;
     }
 
     @computed

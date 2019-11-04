@@ -38,6 +38,7 @@ import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { Scripting } from '../util/Scripting';
 import { LinkManager } from '../util/LinkManager';
+import { AudioBox } from './nodes/AudioBox';
 
 @observer
 export class MainView extends React.Component {
@@ -136,6 +137,7 @@ export class MainView extends React.Component {
 
     globalPointerDown = action((e: PointerEvent) => {
         this.isPointerDown = true;
+        AudioBox.AudioEnabled = true;
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();

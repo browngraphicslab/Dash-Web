@@ -668,7 +668,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
             >
                 {this.Document.links && DocListCast(this.Document.links).filter((d) => !DocListCast(this.layoutDoc.hiddenLinks).some(hidden => Doc.AreProtosEqual(hidden, d))).filter(this.isNonTemporalLink).map((d, i) =>
-                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
+                    <div key={`${d[Id]}`} style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
                         <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} removeDocument={undoBatch((doc: Doc) => Doc.AddDocToList(this.layoutDoc, "hiddenLinks", doc))} layoutKey={this.linkEndpoint(d)} />
                     </div>)}
                 {!showTitle && !showCaption ?

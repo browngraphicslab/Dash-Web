@@ -393,7 +393,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let entries = Array.from(this.Sections.entries());
             sections = entries.sort(this.sortFunc);
         }
-        console.log("NUM = " + this.numGroupColumns);
         return (
             <div className="collectionStackingMasonry-cont" >
                 <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
