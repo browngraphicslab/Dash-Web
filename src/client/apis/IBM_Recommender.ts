@@ -5,6 +5,8 @@ const { IamAuthenticator } = require('ibm-watson/auth');
 
 export namespace IBM_Recommender {
 
+    // pass to IBM account is Browngfx1
+
     const naturalLanguageUnderstanding = new NaturalLanguageUnderstandingV1({
         version: '2019-07-12',
         authenticator: new IamAuthenticator({
