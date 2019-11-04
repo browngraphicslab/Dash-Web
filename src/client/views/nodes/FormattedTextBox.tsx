@@ -1059,7 +1059,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                         e.stopPropagation();
                     }} >
                     <FontAwesomeIcon className="formattedTExtBox-audioFont"
-                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.2 }} icon={"file-audio"} size="sm" />
+                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.2 }} icon={"microphone"} size="sm" />
                 </div>
             </div>
         );

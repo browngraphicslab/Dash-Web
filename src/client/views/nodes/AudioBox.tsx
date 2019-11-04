@@ -193,6 +193,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     setRef = (e: HTMLAudioElement | null) => {
         e && e.addEventListener("timeupdate", this.timecodeChanged);
+        e && e.addEventListener("ended", this.pause);
         this._ele = e;
     }
 
