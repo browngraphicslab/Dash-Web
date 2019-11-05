@@ -14,6 +14,7 @@ import { CollectionView } from "../collections/CollectionView";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionTimelineView.scss";
 import React = require("react");
+import { Id } from "../../../new_fields/FieldSymbols";
 
 
 @observer
@@ -177,7 +178,7 @@ export class
     render() {
         this.maketransition();
         this.getCaption();
-        this.tog();
+        console.log("RENDER", this.props.doc[Id]);
         return (
             <div>
                 <div onPointerDown={(e) => this.toggleSelection(e)} style={{
@@ -187,7 +188,6 @@ export class
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
                             <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
-                                {/* {this.props.pointerDown ? this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3) : null} */}
                                 {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
                             </div>
                         </div>
@@ -220,9 +220,8 @@ export interface NodeProps {
     transform: number;
     doc: Doc;
     top: number;
-    timelinetop: number;
     renderDepth: number;
-    createportal: () => void;
+    createportal: (() => void) | undefined;
     CollectionView: Opt<CollectionView>;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -231,11 +230,8 @@ export interface NodeProps {
     scrollTop: number;
     transition: boolean;
     toggleopac: boolean;
-    tog: (booelan: boolean) => void;
-    pointerDown: boolean;
     timelineTop: number;
     select: boolean;
     update: boolean;
     range: number;
-    appenddoc: (doc: Doc) => void;
 }

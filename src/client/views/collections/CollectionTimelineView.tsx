@@ -8,7 +8,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "../../../new_fields/URLField";
-import { Utils } from "../../../Utils";
+import { Utils, returnFalse } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -18,6 +18,7 @@ import "./CollectionTimelineView.scss";
 import { Thumbnail } from "./CollectionTimeLineViewNode";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { number } from "prop-types";
 
 type MarkerUnit = {
     document: Doc,
@@ -100,16 +101,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        reaction(
-            () => this.props.Document.barwidth,
-            barwidth => {
-                const loaded = barwidth !== undefined && barwidth > 0;
-                if (!loaded) {
-                    return;
-                }
-                this.disposer && this.disposer();
-            }
-        );
     }
 
     componentWillMount() {
@@ -121,8 +112,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         });
         this.initiallyPopulateThumbnails();
         this.initializeMarkers();
-        this.thumbnailbools = [];
-        this.updateWidth();
+        //Sthis.updateWidth();
         this.createRows();
         this.createticks();
         this.filtermenu();
@@ -638,9 +628,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private thumbnailrenders: Thumbnail[] | undefined;
 
-    @observable
-    private thumbnailbools: Doc[] | undefined;
-
     @action
     removeOverlap() {
         for (let thumbnail1 of this.thumbnails) {
@@ -864,12 +851,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private get barwidth() {
         let doc = this.props.Document;
-        doc.barwidth = this.props.PanelWidth();
+        let width = 0;
+        if (doc.bardwith) {
+            width = NumCast(doc.barwidth);
+        }
+        else {
+            width = this.props.PanelWidth();
+        }
         // const { current } = this.barref;
         // if (current) {
         //     doc.barwidth = current.getBoundingClientRect().width;
         // }
-        return NumCast(doc.barwidth);
+        return width;
     }
 
     private set windowheight(number) {
@@ -1015,11 +1008,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
         for (let thumbnails of this.thumbnails) {
-            thumbnails.select = false;
+            if (thumbnails.select !== false) {
+                thumbnails.select = false;
+            }
         }
         e.persist();
-        this.thumbnailbools = [];
-        this.downbool = false;
         this._downX = e.pageX;
         this._downY = e.pageY;
         if (e.button === 2) {
@@ -1133,7 +1126,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     newselects.includes(thumbnails.doc) && newselects.splice(newselects.indexOf(thumbnails.doc), 1);
                 }
             }
-            this.thumbnailbools = newselects;
         }
     }
     private newselect: (HTMLDivElement | undefined)[] = [];
@@ -1323,14 +1315,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.stopPropagation();
     }
 
-    appenddoc(doc: Doc) {
-        if (this.thumbnailbools && this.thumbnailbools.includes(doc)) {
-            this.thumbnailbools.splice(this.thumbnailbools.indexOf(doc), 1);
-        }
-        else if (this.thumbnailbools) {
-            this.thumbnailbools.push(doc);
-        }
-    }
 
     @observable firstround: boolean = false;
 
@@ -1348,6 +1332,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         else if (t.counter % 10 === 0) {
             return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound)), zIndex: 1 }} />);
         }
+    }
+
+    @computed
+    private get nodeoffset() {
+        return this.barwidth / (this.barwidth - this.leftbound - this.rightbound);
     }
 
 
@@ -1372,31 +1361,32 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         }>
                         <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                     </Flyout> */}
-                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound))}px)`, }}>
+                    <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound * this.nodeoffset}px)`, }}>
                         {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "1000%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
                         {this.thumbnails.map(node =>
                             <Thumbnail
                                 key={node.doc[Id]}
                                 scale={this.rowscale}
-                                transform={this.barwidth / (this.barwidth - this.leftbound - this.rightbound)}
+                                transform={this.nodeoffset}
                                 scrollTop={document.body.scrollTop}
                                 renderDepth={this.props.renderDepth}
                                 CollectionView={this.props.CollectionView}
                                 active={this.props.active}
-                                whenActiveChanged={this.props.whenActiveChanged}
+                                whenActiveChanged={returnFalse}
                                 addDocTab={this.props.addDocTab}
                                 pinToPres={this.props.pinToPres}
-                                createportal={() => this.makeportal()} leftval={node.horizontalPos} doc={node.doc} sortstate={this.currentSortingKey} top={this.rowval[node.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}
+                                createportal={(undefined)}
+                                leftval={node.horizontalPos}
+                                doc={node.doc}
+                                sortstate={this.currentSortingKey}
+                                top={this.rowval[node.row]}
                                 transition={this.transtate}
                                 toggleopac={BoolCast(this.opac)}
-                                tog={this.opacset}
-                                pointerDown={this.downbool ? this.downbool : false}
                                 timelineTop={this.rowval[Math.round(this.rowval.length / 2)]}
                                 select={node.select ? node.select : false}
                                 update={this.update}
                                 range={this._range}
-                                appenddoc={this.appenddoc}
                             />
                         )
                         }
@@ -1411,22 +1401,24 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>
                     </div>
                 </div >
-                {this.previewflag && <div ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, height: "50px", bottom: "0px", width: "100%", position: "fixed", }}>
-                    {this.thumbnails.map(item => <div
-                        style={{
-                            position: "absolute",
-                            background: "black",
-                            zIndex: 90,
-                            top: "25%", left: item.mapleft + "px", width: "5px", border: "3px solid"
-                        }}>
-                    </div>)}
-                    {/*this.markermap*/}
-                    <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.leftbound, height: "100%" }}></div>
-                    <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", left: this.props.PanelWidth() - this.rightbound, height: "100%", zIndex: 100 }}></div>
-                    <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.leftbound, width: this.barwidth - this.rightbound - this.leftbound, height: "100%", position: "absolute" }}>
+                {
+                    this.previewflag && <div ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, height: "50px", bottom: "0px", width: "100%", position: "fixed", }}>
+                        {this.thumbnails.map(item => <div
+                            style={{
+                                position: "absolute",
+                                background: "black",
+                                zIndex: 90,
+                                top: "25%", left: item.mapleft + "px", width: "5px", border: "3px solid"
+                            }}>
+                        </div>)}
+                        {/*this.markermap*/}
+                        <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.leftbound, height: "100%" }}></div>
+                        <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", left: this.props.PanelWidth() - this.rightbound, height: "100%", zIndex: 100 }}></div>
+                        <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.leftbound, width: this.barwidth - this.rightbound - this.leftbound, height: "100%", position: "absolute" }}>
+                        </div>
                     </div>
-                </div>}
-            </div>
+                }
+            </div >
         );
     }
 }
