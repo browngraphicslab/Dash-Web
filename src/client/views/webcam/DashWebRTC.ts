@@ -1,7 +1,9 @@
 import { DocServer } from '../../DocServer';
 
 
-
+/**
+ * This namespace will have the code required to have functionality code for the usage of webRTC.
+ */
 export namespace DashWebRTC {
 
 
@@ -128,6 +130,14 @@ export namespace DashWebRTC {
     export function setVideoObjects(localVideo: HTMLVideoElement, remoteVideo: HTMLVideoElement) {
         localVideo = localVideo;
         remoteVideo = remoteVideo;
+    }
+
+    export function setLocalVideoObject(localVideoRef: HTMLVideoElement) {
+        localVideo = localVideoRef;
+    }
+
+    export function setRemoteVideoObject(remoteVideoRef: HTMLVideoElement) {
+        remoteVideo = remoteVideoRef;
     }
 
 
@@ -284,38 +294,6 @@ export namespace DashWebRTC {
         pc.close();
         pc = null;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 }

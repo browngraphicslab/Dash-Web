@@ -983,8 +983,8 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
 }
 
 function HandleRoommateNotification(socket: Socket, message: RoomMessage) {
-    //socket.broadcast.emit('message', message);
-    server.sockets.in(message.room).emit('message', message.message);
+    socket.broadcast.emit('message', message);
+    //server.sockets.in(message.room).emit('message', message.message);
 
 }
 

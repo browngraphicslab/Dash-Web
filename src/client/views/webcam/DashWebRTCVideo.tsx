@@ -21,7 +21,9 @@ const offerOptions = {
     offerToReceiveVideo: 1,
 };
 
-
+/**
+ * This models the component that will be rendered, that can be used as a doc that will reflect the video cams.
+ */
 @observer
 export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentViewProps & FieldViewProps> {
 
@@ -37,7 +39,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     private hangupButton: HTMLButtonElement | undefined;
 
     componentDidMount() {
-        DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
+        // DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
         DashWebRTC.init();
     }
 
@@ -317,8 +319,14 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     render() {
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
-                <video id="localVideo" autoPlay playsInline ref={(e) => this.localVideoEl = e!}></video>
-                <video id="remoteVideo" autoPlay playsInline ref={(e) => this.peerVideoEl = e!}></video>
+                <video id="localVideo" autoPlay playsInline ref={(e) => {
+                    this.localVideoEl = e!;
+                    DashWebRTC.setLocalVideoObject(e!);
+                }}></video>
+                <video id="remoteVideo" autoPlay playsInline ref={(e) => {
+                    this.peerVideoEl = e!;
+                    DashWebRTC.setRemoteVideoObject(e!);
+                }}></video>
                 {/* <button id="startButton" ref={(e) => this.startButton = e!} onClick={this.startAction}>Start</button>
                 <button id="callButton" ref={(e) => this.callButton = e!} onClick={this.callAction}>Call</button>
                 <button id="hangupButton" ref={(e) => this.hangupButton = e!} onClick={this.hangupAction}>Hang Up</button> */}
