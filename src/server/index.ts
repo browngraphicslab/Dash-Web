@@ -1074,7 +1074,7 @@ addSecureRoute({
         }
 
         GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-            result => _success(res, { results: result.newMediaItemResults, failed }),
+            results => _success(res, { results, failed }),
             error => _error(res, mediaError, error)
         );
     }
