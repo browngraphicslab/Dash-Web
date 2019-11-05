@@ -59,7 +59,6 @@ interface IViewerProps {
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
     active: () => boolean;
-    GoToPage?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc) => boolean;
@@ -220,7 +219,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     createPdfViewer() {
-        if (!this._mainCont.current) {
+        if (!this._mainCont.current) { // bcz: I don't think this is ever triggered or needed
             if (this._retries < 5) {
                 this._retries++;
                 setTimeout(() => this.createPdfViewer(), 1000);
@@ -235,9 +234,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         }));
         document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         var pdfLinkService = new PDFJSViewer.PDFLinkService();
-        let pdfFindController = new PDFJSViewer.PDFFindController({
-            linkService: pdfLinkService,
-        });
+        let pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService });
         this._pdfViewer = new PDFJSViewer.PDFViewer({
             container: this._mainCont.current,
             viewer: this._viewer.current,
@@ -626,6 +623,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     @computed get annotationLayer() {
+        trace();
         return <div className="pdfViewer-annotationLayer" style={{ height: (this.Document.nativeHeight || 0) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                 <Annotation {...this.props} focus={this.props.focus} extensionDoc={this.extensionDoc!} anno={anno} key={`${anno[Id]}-annotation`} />)}
@@ -672,13 +670,14 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     marqueeing = () => this._marqueeing;
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     render() {
-        return !this.extensionDoc ? (null) : (<div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")}
-            onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
-            {this.pdfViewerDiv}
-            {this.annotationLayer}
-            {this.standinViews}
-            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
-        </div >);
+        trace();
+        return !this.extensionDoc ? (null) :
+            <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
+                {this.pdfViewerDiv}
+                {this.annotationLayer}
+                {this.standinViews}
+                <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
+            </div >;
     }
 }
 

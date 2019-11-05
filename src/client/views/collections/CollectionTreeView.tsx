@@ -221,10 +221,10 @@ class TreeView extends React.Component<TreeViewProps> {
             }
             let movedDocs = (de.data.options === this.props.treeViewId ? de.data.draggedDocuments : de.data.droppedDocuments);
             return (de.data.dropAction || de.data.userDropAction) ?
-                de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, undefined, before) || added, false)
+                de.data.droppedDocuments.reduce((added, d) => addDoc(d) || added, false)
                 : de.data.moveDocument ?
                     movedDocs.reduce((added, d) => de.data.moveDocument(d, undefined, addDoc) || added, false)
-                    : de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, undefined, before), false);
+                    : de.data.droppedDocuments.reduce((added, d) => addDoc(d), false);
         }
         return false;
     }
@@ -474,7 +474,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 let aspect = NumCast(childLayout.nativeWidth, 0) / NumCast(childLayout.nativeHeight, 0);
                 return aspect ? Math.min(childLayout[WidthSym](), rowWidth()) / aspect : childLayout[HeightSym]();
             };
-            return <TreeView
+            return !(child instanceof Doc) ? (null) : <TreeView
                 document={pair.layout}
                 dataDoc={pair.data}
                 containingCollection={containingCollection}
