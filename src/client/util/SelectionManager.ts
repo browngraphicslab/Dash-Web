@@ -27,7 +27,6 @@ export namespace SelectionManager {
             } else if (!ctrlPressed && manager.SelectedDocuments.length > 1) {
                 manager.SelectedDocuments.map(dv => dv !== docView && dv.props.whenActiveChanged(false));
                 manager.SelectedDocuments = [docView];
-                FormattedTextBox.InputBoxOverlay = undefined;
             }
         }
         @action
@@ -42,22 +41,10 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
-            FormattedTextBox.InputBoxOverlay = undefined;
         }
     }
 
     const manager = new Manager();
-    reaction(() => manager.SelectedDocuments, sel => {
-        let targetColor = "#FFFFFF";
-        if (sel.length > 0) {
-            let firstView = sel[0];
-            let doc = firstView.props.Document;
-            let targetDoc = doc.isTemplate ? doc : Doc.GetProto(doc);
-            let stored = StrCast(targetDoc.backgroundColor);
-            stored.length > 0 && (targetColor = stored);
-        }
-        InkingControl.Instance.updateSelectedColor(targetColor);
-    }, { fireImmediately: true });
 
     export function DeselectDoc(docView: DocumentView): void {
         manager.DeselectDoc(docView);
@@ -87,21 +74,5 @@ export namespace SelectionManager {
 
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments.slice();
-    }
-    export function ViewsSortedHorizontally(): DocumentView[] {
-        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
-            if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
-            if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-            return 0;
-        });
-        return sorted;
-    }
-    export function ViewsSortedVertically(): DocumentView[] {
-        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
-            if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
-            if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;
-            return 0;
-        });
-        return sorted;
     }
 }

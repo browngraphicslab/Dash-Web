@@ -1,8 +1,5 @@
 @import "../../views/globalCssVariables.scss";
 
-.collectiondockingview-content {
-    height: 100%;
-}
 .lm_active .messageCounter{
     color:white;
     background: #999999;
@@ -21,13 +18,16 @@
 
 .collectiondockingview-container {
     width: 100%;
-    height: 100%;
+    height:100%;
     border-style: solid;
     border-width: $COLLECTION_BORDER_WIDTH;
     position: absolute;
     top: 0;
     left: 0;
     overflow: hidden;
+    .lm_content {
+        background: white;
+    }
     .lm_controls>li {
         opacity: 0.6;
         transform: scale(1.2);

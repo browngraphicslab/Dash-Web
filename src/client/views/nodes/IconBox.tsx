@@ -24,8 +24,10 @@ library.add(faFilm, faTag, faTextHeight);
 
 @observer
 export class IconBox extends React.Component<FieldViewProps> {
-    public static LayoutString() { return FieldView.LayoutString(IconBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(IconBox, fieldKey); }
 
+    @observable _panelWidth: number = 0;
+    @observable _panelHeight: number = 0;
     @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
 
@@ -69,17 +71,15 @@ export class IconBox extends React.Component<FieldViewProps> {
             cm.addItem({ description: "Use Target Title", event: () => IconBox.AutomaticTitle(this.props.Document), icon: "text-height" });
         }
     }
-    @observable _panelWidth: number = 0;
-    @observable _panelHeight: number = 0;
     render() {
         let label = this.props.Document.hideLabel ? "" : this.props.Document.title;
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}
                 <Measure offset onResize={(r) => runInAction(() => {
-                    if (r.offset!.width || BoolCast(this.props.Document.hideLabel)) {
-                        this.props.Document.nativeWidth = (r.offset!.width + Number(MINIMIZED_ICON_SIZE));
-                        if (this.props.Document.height === Number(MINIMIZED_ICON_SIZE)) this.props.Document.width = this.props.Document.nativeWidth;
+                    if (r.offset!.width || this.props.Document.hideLabel) {
+                        this.props.Document.iconWidth = (r.offset!.width + Number(MINIMIZED_ICON_SIZE));
+                        if (this.props.Document.height === Number(MINIMIZED_ICON_SIZE)) this.props.Document.width = this.props.Document.iconWidth;
                     }
                 })}>
                     {({ measureRef }) =>

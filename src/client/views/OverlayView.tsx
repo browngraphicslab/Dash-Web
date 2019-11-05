@@ -12,6 +12,7 @@ import { Transform } from "../util/Transform";
 import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { NumCast } from "../../new_fields/Types";
+import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 
 export type OverlayDisposer = () => void;
 
@@ -141,7 +142,11 @@ export class OverlayView extends React.Component {
     }
 
     @computed get overlayDocs() {
+        if (!CurrentUserUtils.UserDocument) {
+            return (null);
+        }
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
+            d.inOverlay = true;
             let offsetx = 0, offsety = 0;
             let onPointerMove = action((e: PointerEvent) => {
                 if (e.buttons === 1) {
@@ -167,14 +172,14 @@ export class OverlayView extends React.Component {
                 document.addEventListener("pointerup", onPointerUp);
             };
             return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)`, display: d.isMinimized ? "none" : "" }}>
-                <DocumentContentsView
+                <DocumentView
                     Document={d}
                     ChromeHeight={returnZero}
-                    isSelected={returnFalse}
-                    select={emptyFunction}
-                    ruleProvider={undefined}
-                    layoutKey={"layout"}
+                    // isSelected={returnFalse}
+                    // select={emptyFunction}
+                    // layoutKey={"layout"}
                     bringToFront={emptyFunction}
+                    ruleProvider={undefined}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={returnOne}
@@ -202,6 +207,7 @@ export class OverlayView extends React.Component {
                 <div>
                     {this._elements}
                 </div>
+                <CollectionFreeFormLinksView key="freeformLinks" />
                 {this.overlayDocs}
             </div>
         );

@@ -9,6 +9,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
+import { StrCast } from "../../new_fields/Types";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -100,7 +101,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     clearTemplates = (event: React.MouseEvent) => {
         Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
         ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
-            if (d.Document.isTemplate && d.props.DataDoc) {
+            if (d.Document.isTemplateDoc && d.props.DataDoc) {
                 d.Document[field] = undefined;
             } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
                 d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;
@@ -117,18 +118,18 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleChrome = (): void => {
         this.props.docs.map(dv => {
-            let layout = dv.Document.layout instanceof Doc ? dv.Document.layout as Doc : dv.Document;
+            let layout = Doc.Layout(dv.Document);
             layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
 
     render() {
-        let layout = this.props.docs[0].Document.layout instanceof Doc ? this.props.docs[0].Document.layout as Doc : this.props.docs[0].Document;
+        let layout = Doc.Layout(this.props.docs[0].Document);
         let templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
-        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={typeof this.props.docs[0].Document.layout === "string" ? false : true} toggle={this.toggleCustom} />);
+        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
             <div className="templating-menu" >

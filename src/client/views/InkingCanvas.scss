@@ -1,14 +1,15 @@
 @import "globalCssVariables";
 
 .inkingCanvas {
-    opacity: 0.99;
+   // opacity: 0.99;
     touch-action: none;
 
     .jsx-parser {
         position: absolute;
         width: 100%;
         height: 100%;
-        z-index: -1; // allows annotations to appear on videos when screen is full-size & ... 
+        background: inherit;
+        //z-index: -1; // allows annotations to appear on videos when screen is full-size & ... 
     }
 }
 
@@ -35,7 +36,7 @@
 
 .inkingCanvas-noSelect {
     pointer-events: none;
-    cursor: "arrow";
+    cursor: "crosshair";
 }
 
 .inkingCanvas-paths-ink,

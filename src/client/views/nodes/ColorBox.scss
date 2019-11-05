@@ -1,0 +1,22 @@
+.colorBox-container, .colorBox-container-interactive {
+     width:100%;
+     height:100%;
+     position: relative;
+     pointer-events: none;
+     
+    .sketch-picker {
+        margin:auto;
+        div {
+            cursor: crosshair;
+        }
+        .flexbox-fix {
+            cursor: pointer;
+            div {
+                cursor:pointer;
+            }
+        }
+    }
+}
+.colorBox-container-interactive {
+    pointer-events:all;
+}

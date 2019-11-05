@@ -6,7 +6,6 @@ import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { RichTextField } from '../../new_fields/RichTextField';
 import { NumCast } from "../../new_fields/Types";
-import { URLField } from '../../new_fields/URLField';
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
@@ -45,10 +44,9 @@ const fetch: IconProp = "sync-alt";
 export class DocumentButtonBar extends React.Component<{ views: DocumentView[], stack?: any }, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
-    private _embedButton = React.createRef<HTMLDivElement>();
+    private _aliasButton = React.createRef<HTMLDivElement>();
     private _tooltipoff = React.createRef<HTMLDivElement>();
     private _textDoc?: Doc;
-    private _linkDrag?: UndoManager.Batch;
     public static Instance: DocumentButtonBar;
 
     constructor(props: { views: DocumentView[] }) {
@@ -111,13 +109,13 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         document.addEventListener("pointerup", this.onLinkerButtonUp);
     }
 
-    onEmbedButtonDown = (e: React.PointerEvent): void => {
+    onAliasButtonDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-        document.addEventListener("pointermove", this.onEmbedButtonMoved);
-        document.removeEventListener("pointerup", this.onEmbedButtonUp);
-        document.addEventListener("pointerup", this.onEmbedButtonUp);
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.addEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        document.addEventListener("pointerup", this.onAliasButtonUp);
     }
 
     onLinkerButtonUp = (e: PointerEvent): void => {
@@ -126,9 +124,9 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         e.stopPropagation();
     }
 
-    onEmbedButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-        document.removeEventListener("pointerup", this.onEmbedButtonUp);
+    onAliasButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
         e.stopPropagation();
     }
 
@@ -140,16 +138,10 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
             let selDoc = this.props.views[0];
             let container = selDoc.props.ContainingCollectionDoc ? selDoc.props.ContainingCollectionDoc.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
-            FormattedTextBox.InputBoxOverlay = undefined;
-            this._linkDrag = UndoManager.StartBatch("Drag Link");
+            let _linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: () => {
-                        if (this._linkDrag) {
-                            this._linkDrag.end();
-                            this._linkDrag = undefined;
-                        }
-                    },
+                    dragComplete: () => _linkDrag && _linkDrag.end()
                 },
                 hideSource: false
             });
@@ -158,15 +150,20 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
     }
 
     @action
-    onEmbedButtonMoved = (e: PointerEvent): void => {
-        if (this._embedButton.current !== null) {
-            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
-            document.removeEventListener("pointerup", this.onEmbedButtonUp);
+    onAliasButtonMoved = (e: PointerEvent): void => {
+        if (this._aliasButton.current !== null) {
+            document.removeEventListener("pointermove", this.onAliasButtonMoved);
+            document.removeEventListener("pointerup", this.onAliasButtonUp);
 
             let dragDocView = this.props.views[0];
-            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
-
-            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
+            let dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
+            dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.clientX - left, e.clientY - top);
+            dragData.embedDoc = true;
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, e.x, e.y, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -200,17 +197,12 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         e.stopPropagation();
     }
 
-    considerEmbed = () => {
-        let thisDoc = this.props.views[0].props.Document;
-        let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
-        if (!canEmbed) return (null);
-        return (
-            <div className="linkButtonWrapper">
-                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
-                </div>
+    aliasDragger = () => {
+        return (<div className="linkButtonWrapper">
+            <div title="Drag Alias" className="linkButton-linker" ref={this._aliasButton} onPointerDown={this.onAliasButtonDown}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
             </div>
-        );
+        </div>);
     }
 
     private get targetDoc() {
@@ -225,7 +217,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         return (
             <div className={"linkButtonWrapper"}>
                 <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
-                    DocumentDecorations.hasPushedHack = false;
+                    DocumentButtonBar.hasPushedHack = false;
                     this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
                 }}>
                     <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
@@ -259,7 +251,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
                             window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
                         } else {
                             this.clearPullColor();
-                            DocumentDecorations.hasPulledHack = false;
+                            DocumentButtonBar.hasPulledHack = false;
                             this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
                             dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
                         }
@@ -354,7 +346,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
                 <TemplateMenu docs={this.props.views} templates={templates} />
             </div>
             {this.metadataMenu}
-            {this.considerEmbed()}
+            {this.aliasDragger()}
             {this.considerGoogleDocsPush()}
             {this.considerGoogleDocsPull()}
             <ParentDocSelector Document={this.props.views[0].props.Document} addDocTab={(doc, data, where) => {

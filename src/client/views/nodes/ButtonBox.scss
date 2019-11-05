@@ -13,6 +13,8 @@
     border-radius: inherit;
     text-align: center;
     display: table;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .buttonBox-mainButtonCenter {
     height: 100%;

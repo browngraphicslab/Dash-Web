@@ -11,6 +11,20 @@ const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : 
 
 export type KeyMap = { [key: string]: any };
 
+export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string) => {
+    let fontSize: number | undefined = undefined;
+    tx2.doc.descendants((node: any, offset: any, index: any) => {
+        if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
+            let path = (tx2.doc.resolve(offset) as any).path;
+            let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
+            if (node.type === schema.nodes.ordered_list) depth++;
+            fontSize = depth === 1 && node.attrs.setFontSize ? Number(node.attrs.setFontSize) : fontSize;
+            let fsize = fontSize && node.type === schema.nodes.ordered_list ? Math.max(6, fontSize - (depth - 1) * 4) : undefined;
+            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle ? mapStyle : node.attrs.mapStyle, bulletStyle: depth, inheritedFontSize: fsize }, node.marks);
+        }
+    });
+    return tx2;
+};
 export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: KeyMap): KeyMap {
     let keys: { [key: string]: any } = {}, type;
 
@@ -93,35 +107,23 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Mod-s", TooltipTextMenu.insertStar);
 
-    let updateBullets = (tx2: Transaction) => {
-        tx2.doc.descendants((node: any, offset: any, index: any) => {
-            if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
-                let path = (tx2.doc.resolve(offset) as any).path;
-                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
-                if (node.type === schema.nodes.ordered_list) depth++;
-                tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: node.attrs.mapStyle, bulletStyle: depth }, node.marks);
-            }
-        });
-    };
-
-
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
         var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
-            updateBullets(tx2);
-            marks && tx2.ensureMarks([...marks]);
-            marks && tx2.setStoredMarks([...marks]);
-            dispatch(tx2);
+            let tx3 = updateBullets(tx2, schema);
+            marks && tx3.ensureMarks([...marks]);
+            marks && tx3.setStoredMarks([...marks]);
+            dispatch(tx3);
         })) { // couldn't sink into an existing list, so wrap in a new one
             let newstate = state.applyTransaction(state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end)));
             if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
-                updateBullets(tx2);
+                let tx3 = updateBullets(tx2, schema);
                 // when promoting to a list, assume list will format things so don't copy the stored marks.
-                marks && tx2.ensureMarks([...marks]);
-                marks && tx2.setStoredMarks([...marks]);
-                dispatch(tx2);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
+                dispatch(tx3);
             })) {
                 console.log("bullet promote fail");
             }
@@ -132,10 +134,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
 
         if (!liftListItem(schema.nodes.list_item)(state.tr, (tx2: Transaction) => {
-            updateBullets(tx2);
-            marks && tx2.ensureMarks([...marks]);
-            marks && tx2.setStoredMarks([...marks]);
-            dispatch(tx2);
+            let tx3 = updateBullets(tx2, schema);
+            marks && tx3.ensureMarks([...marks]);
+            marks && tx3.setStoredMarks([...marks]);
+            dispatch(tx3);
         })) {
             console.log("bullet demote fail");
         }

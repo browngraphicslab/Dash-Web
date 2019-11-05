@@ -1,6 +1,6 @@
 import { action, runInAction } from "mobx";
 import { Doc, Field } from "../../new_fields/Doc";
-import { Cast, StrCast } from "../../new_fields/Types";
+import { Cast, StrCast, ScriptCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -10,10 +10,12 @@ import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { Docs } from "../documents/Documents";
-import { CompileScript } from "./Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
+import { listSpec } from "../../new_fields/Schema";
+import { Scripting } from "./Scripting";
+import { convertDropDataToButtons } from "./DropConverter";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -87,12 +89,12 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     }
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc, singleLink?: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
     if (srcTarg) {
-        let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
+        let linkDocs = singleLink ? [singleLink] : LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
             draggedDocs = linkDocs.map(link => {
                 let opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
@@ -211,7 +213,9 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
+        embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
         applyAsTemplate?: boolean;
         [id: string]: any;
     }
@@ -236,14 +240,16 @@ export namespace DragManager {
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
+        dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
-                (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
-                    dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
-                    dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
-                        dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-                        dragData.draggedDocuments
+                (dropData.droppedDocuments =
+                    dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
+                        dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
+                            dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
                 );
+                dropData.droppedDocuments.forEach((drop: Doc, i: number) =>
+                    Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => drop[prop] = undefined));
             });
     }
 
@@ -302,16 +308,6 @@ export namespace DragManager {
         [id: string]: any;
     }
 
-    export class EmbedDragData {
-        constructor(embeddableSourceDoc: Doc) {
-            this.embeddableSourceDoc = embeddableSourceDoc;
-            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
-        }
-        embeddableSourceDoc: Doc;
-        urlField?: URLField;
-        [id: string]: any;
-    }
-
     // for column dragging in schema view
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -322,10 +318,6 @@ export namespace DragManager {
     }
 
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
-        StartDrag([ele], dragData, downX, downY, options);
-    }
-
-    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
@@ -349,8 +341,8 @@ export namespace DragManager {
         let xs: number[] = [];
         let ys: number[] = [];
 
-        const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
+        const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments :
+            dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -379,22 +371,20 @@ export namespace DragManager {
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
-            // bcz: if PDFs are rendered with svg's, then this code isn't needed
-            // bcz: PDFs don't show up if you clone them when rendered using a canvas. 
-            //      however, PDF's have a thumbnail field that contains an image of their canvas.
-            //      So we replace the pdf's canvas with the image thumbnail
-            // if (docs.length) {
-            //     var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
-            //     let thumbnail = docs[0].GetT(KeyStore.Thumbnail, ImageField);
-            //     if (pdfBox && pdfBox.childElementCount && thumbnail) {
-            //         let img = new Image();
-            //         img.src = thumbnail.toString();
-            //         img.style.position = "absolute";
-            //         img.style.width = `${rect.width / scaleX}px`;
-            //         img.style.height = `${rect.height / scaleY}px`;
-            //         pdfBox.replaceChild(img, pdfBox.children[0])
-            //     }
-            // }
+            if (docs.length) {
+                var pdfBox = dragElement.getElementsByTagName("canvas");
+                var pdfBoxSrc = ele.getElementsByTagName("canvas");
+                Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
+                var pdfView = dragElement.getElementsByClassName("pdfViewer-viewer");
+                var pdfViewSrc = ele.getElementsByClassName("pdfViewer-viewer");
+                let tops = Array.from(pdfViewSrc).map(p => p.scrollTop);
+                let oldopacity = dragElement.style.opacity;
+                dragElement.style.opacity = "0";
+                setTimeout(() => {
+                    dragElement.style.opacity = oldopacity;
+                    Array.from(pdfView).map((v, i) => v.scrollTo({ top: tops[i] }));
+                }, 0);
+            }
             let set = dragElement.getElementsByTagName('*');
             if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
             // tslint:disable-next-line: prefer-for-of
@@ -418,24 +408,25 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        eles.map(ele => (ele.hidden = hideSource) &&
-            (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource)));
+
+        eles.map(ele => ele.hidden = hideSource);
 
         let lastX = downX;
         let lastY = downY;
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
-                dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
+                dragData.userDropAction = e.ctrlKey ? "alias" : undefined;
             }
             if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
+                finishDrag && finishDrag(dragData);
                 CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                }, docs);
+                }, dragData.droppedDocuments);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
             let moveX = e.pageX - lastX;
@@ -447,12 +438,9 @@ export namespace DragManager {
             );
         };
 
-        let hideDragElements = () => {
+        let hideDragShowOriginalElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => {
-                ele.hidden = false;
-                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = false));
-            });
+            eles.map(ele => ele.hidden = false);
         };
         let endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
@@ -463,12 +451,12 @@ export namespace DragManager {
         };
 
         AbortDrag = () => {
-            hideDragElements();
+            hideDragShowOriginalElements();
             SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
-            hideDragElements();
+            hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
             SelectionManager.SetIsDragging(false);
             endDrag();
@@ -511,3 +499,4 @@ export namespace DragManager {
         }
     }
 }
+Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); });

@@ -10,12 +10,11 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils, emptyFunction } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
-import { CompileScript } from "../../util/Scripting";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 import { DocLike } from "../MetadataEntryMenu";
-import { CollectionViewType } from "./CollectionBaseView";
+import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import * as Autosuggest from 'react-autosuggest';
@@ -41,9 +40,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
     _templateCommand = {
-        title: "set template", script: "this.target.childLayout = this.source ? this.source[0] : undefined", params: ["target", "source"],
+        title: "set template", script: "setChildLayout(this.target, this.source && this.source.length ? this.source[0]:undefined)", params: ["target", "source"],
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => this.props.CollectionView.props.Document.childLayout = draggedDocs.length ? draggedDocs[0] : undefined
+        immediate: (draggedDocs: Doc[]) => Doc.setChildLayout(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
     };
     _contentCommand = {
         // title: "set content", script: "getProto(this.target).data = aliasDocs(this.source.map(async p => await p));", params: ["target", "source"],  // bcz: doesn't look like we can do async stuff in scripting...
@@ -242,6 +241,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
@@ -260,7 +260,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @observable private pivotKeyDisplay = this.pivotKey;
     getPivotInput = () => {
-        if (!this.document.usePivotLayout) {
+        if (StrCast(this.document.freeformLayoutEngine) !== "pivot") {
             return (null);
         }
         return (<input className="collectionViewBaseChrome-viewSpecsInput"
@@ -373,7 +373,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
-            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0 }}>
+            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
                 <div className="collectionViewChrome">
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
@@ -396,6 +396,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Pivot View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Linear View</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
@@ -476,12 +478,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
-        let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
-            = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
-        if (typeof docs === "function") {
-            docs = docs();
-        }
-        docs = await docs;
+        let docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
         if (docs instanceof Doc) {
             return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
         } else {
@@ -587,19 +584,9 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
         if (textwrappedRows.length) {
             this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>([]);
         } else {
-            let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
-                = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
-            if (typeof docs === "function") {
-                docs = docs();
-            }
-            docs = await docs;
-            if (docs instanceof Doc) {
-                let allRows = [docs[Id]];
-                this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
-            } else {
-                let allRows = docs.map(doc => doc[Id]);
-                this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
-            }
+            let docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
+            let allRows = docs instanceof Doc ? [docs[Id]] : docs.map(doc => doc[Id]);
+            this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
         }
     }
 
@@ -634,63 +621,14 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 
 @observer
 export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
-    @observable private _currentKey: string = "";
-    @observable private suggestions: string[] = [];
 
     @computed private get descending() { return Cast(this.props.CollectionView.props.Document.sortAscending, "boolean", null); }
-    @computed get sectionFilter() { return StrCast(this.props.CollectionView.props.Document.sectionFilter); }
-
-    getKeySuggestions = async (value: string): Promise<string[]> => {
-        value = value.toLowerCase();
-        let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
-            = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
-        if (typeof docs === "function") {
-            docs = docs();
-        }
-        docs = await docs;
-        if (docs instanceof Doc) {
-            return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
-        } else {
-            const keys = new Set<string>();
-            docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
-            return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
-        }
-    }
-
-    @action
-    onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
-        this._currentKey = newValue;
-    }
-
-    getSuggestionValue = (suggestion: string) => suggestion;
-
-    renderSuggestion = (suggestion: string) => {
-        return <p>{suggestion}</p>;
-    }
-
-    onSuggestionFetch = async ({ value }: { value: string }) => {
-        const sugg = await this.getKeySuggestions(value);
-        runInAction(() => {
-            this.suggestions = sugg;
-        });
-    }
-
-    @action
-    onSuggestionClear = () => {
-        this.suggestions = [];
-    }
-
-    setValue = (value: string) => {
-        this.props.CollectionView.props.Document.sectionFilter = value;
-        return true;
-    }
 
     @action toggleSort = () => {
         if (this.props.CollectionView.props.Document.sortAscending) this.props.CollectionView.props.Document.sortAscending = undefined;
         else if (this.props.CollectionView.props.Document.sortAscending === undefined) this.props.CollectionView.props.Document.sortAscending = false;
         else this.props.CollectionView.props.Document.sortAscending = true;
     }
-    @action resetValue = () => { this._currentKey = this.sectionFilter; };
 
     render() {
         return (

@@ -3,21 +3,20 @@ import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { RouteStore } from './server/RouteStore';
-import requestPromise = require('request-promise');
 
-export class Utils {
+export namespace Utils {
 
-    public static DRAG_THRESHOLD = 4;
+    export const DRAG_THRESHOLD = 4;
 
-    public static GenerateGuid(): string {
+    export function GenerateGuid(): string {
         return v4();
     }
 
-    public static GenerateDeterministicGuid(seed: string): string {
+    export function GenerateDeterministicGuid(seed: string): string {
         return v5(seed, v5.URL);
     }
 
-    public static GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
+    export function GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
         if (!ele) {
             return { scale: 1, translateX: 1, translateY: 1 };
         }
@@ -34,15 +33,23 @@ export class Utils {
      * requested extension
      * @param extension the specified sub-path to append to the window origin
      */
-    public static prepend(extension: string): string {
+    export function prepend(extension: string): string {
         return window.location.origin + extension;
     }
 
-    public static CorsProxy(url: string): string {
-        return this.prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
+    export function fileUrl(filename: string): string {
+        return prepend(`/files/${filename}`);
     }
 
-    public static CopyText(text: string) {
+    export function shareUrl(documentId: string): string {
+        return prepend(`/doc/${documentId}?sharing=true`);
+    }
+
+    export function CorsProxy(url: string): string {
+        return prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
+    }
+
+    export function CopyText(text: string) {
         var textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -54,22 +61,23 @@ export class Utils {
         document.body.removeChild(textArea);
     }
 
-    public static fromRGBAstr(rgba: string) {
-        let rm = rgba.match(/rgb[a]?\(([0-9]+)/);
+    export function fromRGBAstr(rgba: string) {
+        let rm = rgba.match(/rgb[a]?\(([ 0-9]+)/);
         let r = rm ? Number(rm[1]) : 0;
-        let gm = rgba.match(/rgb[a]?\([0-9]+,([0-9]+)/);
+        let gm = rgba.match(/rgb[a]?\([ 0-9]+,([ 0-9]+)/);
         let g = gm ? Number(gm[1]) : 0;
-        let bm = rgba.match(/rgb[a]?\([0-9]+,[0-9]+,([0-9]+)/);
+        let bm = rgba.match(/rgb[a]?\([ 0-9]+,[ 0-9]+,([ 0-9]+)/);
         let b = bm ? Number(bm[1]) : 0;
-        let am = rgba.match(/rgba?\([0-9]+,[0-9]+,[0-9]+,([0-9]+)/);
-        let a = am ? Number(am[1]) : 0;
+        let am = rgba.match(/rgba?\([ 0-9]+,[ 0-9]+,[ 0-9]+,([ .0-9]+)/);
+        let a = am ? Number(am[1]) : 1;
         return { r: r, g: g, b: b, a: a };
     }
-    public static toRGBAstr(col: { r: number, g: number, b: number, a?: number }) {
+
+    export function toRGBAstr(col: { r: number, g: number, b: number, a?: number }) {
         return "rgba(" + col.r + "," + col.g + "," + col.b + (col.a !== undefined ? "," + col.a : "") + ")";
     }
 
-    public static HSLtoRGB(h: number, s: number, l: number) {
+    export function HSLtoRGB(h: number, s: number, l: number) {
         // Must be fractions of 1
         // s /= 100;
         // l /= 100;
@@ -99,7 +107,7 @@ export class Utils {
         return { r: r, g: g, b: b };
     }
 
-    public static RGBToHSL(r: number, g: number, b: number) {
+    export function RGBToHSL(r: number, g: number, b: number) {
         // Make r, g, and b fractions of 1
         r /= 255;
         g /= 255;
@@ -141,7 +149,30 @@ export class Utils {
     }
 
 
-    public static GetClipboardText(): string {
+    export function clamp(n: number, lower: number, upper: number) {
+        return Math.max(lower, Math.min(upper, n));
+    }
+
+    export function getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
+        var r = l + w,
+            b = t + h;
+
+        var x = clamp(x, l, r),
+            y = clamp(y, t, b);
+
+        var dl = Math.abs(x - l),
+            dr = Math.abs(x - r),
+            dt = Math.abs(y - t),
+            db = Math.abs(y - b);
+
+        var m = Math.min(dl, dr, dt, db);
+
+        return (m === dt) ? [x, t] :
+            (m === db) ? [x, b] :
+                (m === dl) ? [l, y] : [r, y];
+    }
+
+    export function GetClipboardText(): string {
         var textArea = document.createElement("textarea");
         document.body.appendChild(textArea);
         textArea.focus();
@@ -154,51 +185,53 @@ export class Utils {
         return val;
     }
 
-    public static loggingEnabled: Boolean = false;
-    public static logFilter: number | undefined = undefined;
-    private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
-        if (!this.loggingEnabled) {
+    export const loggingEnabled: Boolean = false;
+    export const logFilter: number | undefined = undefined;
+
+    function log(prefix: string, messageName: string, message: any, receiving: boolean) {
+        if (!loggingEnabled) {
             return;
         }
         message = message || {};
-        if (this.logFilter !== undefined && this.logFilter !== message.type) {
+        if (logFilter !== undefined && logFilter !== message.type) {
             return;
         }
         let idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
         console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
     }
-    private static loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
+
+    function loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
         return (args: any) => {
-            this.log(prefix, messageName, args, true);
+            log(prefix, messageName, args, true);
             func(args);
         };
     }
 
-    public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
-        this.log("Emit", message.Name, args, false);
+    export function Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
+        log("Emit", message.Name, args, false);
         socket.emit(message.Message, args);
     }
 
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
-        this.log("Emit", message.Name, args, false);
+    export function EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
+    export function EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
+    export function EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
+        log("Emit", message.Name, args, false);
         if (fn) {
-            socket.emit(message.Message, args, this.loggingCallback('Receiving', fn, message.Name));
+            socket.emit(message.Message, args, loggingCallback('Receiving', fn, message.Name));
         } else {
-            return new Promise<any>(res => socket.emit(message.Message, args, this.loggingCallback('Receiving', res, message.Name)));
+            return new Promise<any>(res => socket.emit(message.Message, args, loggingCallback('Receiving', res, message.Name)));
         }
     }
 
-    public static AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
-        socket.on(message.Message, this.loggingCallback('Incoming', handler, message.Name));
+    export function AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
+        socket.on(message.Message, loggingCallback('Incoming', handler, message.Name));
     }
 
-    public static AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
+    export function AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
         socket.on(message.Message, (arg: T, fn: (res: any) => any) => {
-            this.log('S receiving', message.Name, arg, true);
-            handler([arg, this.loggingCallback('S sending', fn, message.Name)]);
+            log('S receiving', message.Name, arg, true);
+            handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
     }
 }
@@ -235,11 +268,28 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
+export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[]) {
+    return boundsList.reduce((bounds, b) => {
+        var [sptX, sptY] = [b.x, b.y];
+        let [bptX, bptY] = [sptX + b.width, sptY + b.height];
+        return {
+            x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+            r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+        };
+    }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+}
+export function intersectRect(r1: { left: number, top: number, width: number, height: number },
+    r2: { left: number, top: number, width: number, height: number }) {
+    return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+}
+
 export function percent2frac(percent: string) {
     return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+
+export function returnTransparent() { return "transparent"; }
 
 export function returnTrue() { return true; }
 
@@ -284,12 +334,56 @@ export namespace JSONUtils {
 
 }
 
-export function PostToServer(relativeRoute: string, body: any) {
-    let options = {
-        method: "POST",
-        uri: Utils.prepend(relativeRoute),
-        json: true,
-        body: body
+const easeInOutQuad = (currentTime: number, start: number, change: number, duration: number) => {
+    let newCurrentTime = currentTime / (duration / 2);
+
+    if (newCurrentTime < 1) {
+        return (change / 2) * newCurrentTime * newCurrentTime + start;
+    }
+
+    newCurrentTime -= 1;
+    return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
+};
+
+export function smoothScroll(duration: number, element: HTMLElement, to: number) {
+    const start = element.scrollTop;
+    const change = to - start;
+    const startDate = new Date().getTime();
+
+    const animateScroll = () => {
+        const currentDate = new Date().getTime();
+        const currentTime = currentDate - startDate;
+        element.scrollTop = easeInOutQuad(currentTime, start, change, duration);
+
+        if (currentTime < duration) {
+            requestAnimationFrame(animateScroll);
+        } else {
+            element.scrollTop = to;
+        }
     };
-    return requestPromise.post(options);
+    animateScroll();
+}
+export function addStyleSheet(styleType: string = "text/css") {
+    let style = document.createElement("style");
+    style.type = styleType;
+    var sheets = document.head.appendChild(style);
+    return (sheets as any).sheet;
+}
+export function addStyleSheetRule(sheet: any, selector: any, css: any) {
+    var propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
+    return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
+}
+export function removeStyleSheetRule(sheet: any, rule: number) {
+    if (sheet.rules.length) {
+        sheet.removeRule(rule);
+        return true;
+    }
+    return false;
+}
+export function clearStyleSheetRules(sheet: any) {
+    if (sheet.rules.length) {
+        numberRange(sheet.rules.length).map(n => sheet.removeRule(0));
+        return true;
+    }
+    return false;
 }
