@@ -1097,23 +1097,22 @@ addSecureRoute({
 
         let failed: number[] = [];
 
-        const newMediaItems = await BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 }).batchedMapPatientInterval(
+        const batched = BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 });
+        const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch: GooglePhotosUploadUtils.MediaInput[]) => {
-                const newMediaItems: NewMediaItem[] = [];
+            async (batch, collector) => {
                 for (let index = 0; index < batch.length; index++) {
-                    const element = batch[index];
-                    const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
+                    const { url, description } = batch[index];
+                    const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(url);
                     if (!uploadToken) {
                         failed.push(index);
                     } else {
-                        newMediaItems.push({
-                            description: element.description,
+                        collector.push({
+                            description,
                             simpleMediaItem: { uploadToken }
                         });
                     }
                 }
-                return newMediaItems;
             }
         );
 
@@ -1123,7 +1122,7 @@ addSecureRoute({
         }
 
         GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-            result => _success(res, { results: result.newMediaItemResults, failed }),
+            results => _success(res, { results, failed }),
             error => _error(res, mediaError, error)
         );
     }
