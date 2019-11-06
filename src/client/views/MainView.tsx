@@ -138,7 +138,7 @@ export class MainView extends React.Component {
 
     globalPointerDown = action((e: PointerEvent) => {
         this.isPointerDown = true;
-        AudioBox.AudioEnabled = true;
+        AudioBox.Enabled = true;
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();

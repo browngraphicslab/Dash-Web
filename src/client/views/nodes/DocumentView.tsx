@@ -668,7 +668,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     {searchHighlight}
                 </div>
             }
-        </div>
+        </div>;
     }
 }
 

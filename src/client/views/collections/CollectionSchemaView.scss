@@ -10,6 +10,7 @@
     top: 0;
     width: 100%;
     height: 100%;
+    margin-top: 0;
     transition: top 0.5s;
     display: flex;
     justify-content: space-between;
@@ -43,9 +44,8 @@
     height: auto !important;
 
     .collectionSchemaView-previewDoc {
-        height: 100%;
-        width: 100%;
         position: absolute;
+        display: inline;
     }
 
     .collectionSchemaView-input {
@@ -469,7 +469,7 @@ button.add-column {
     overflow: visible;
 }
 
-.sub {
+.reactTable-sub {
     padding: 10px 30px;
     background-color: rgb(252, 252, 252);
     width: calc(100% - 50px);
