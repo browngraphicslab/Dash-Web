@@ -229,7 +229,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
                 <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     <ReactTableDefaults.TrComponent>
                         <div className="row-dragger">
-                            <div className="row-option" onClick={() => this.props.removeDoc(this.props.rowInfo.original)}><FontAwesomeIcon icon="trash" size="sm" /></div>
+                            <div className="row-option" onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
                             <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
                         </div>
                         {children}

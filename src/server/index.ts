@@ -1049,34 +1049,42 @@ addSecureRoute({
 
         let failed: number[] = [];
 
-        const batched = BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 });
-        const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
-            { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch, collector) => {
-                for (let index = 0; index < batch.length; index++) {
-                    const { url, description } = batch[index];
-                    const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(url);
-                    if (!uploadToken) {
-                        failed.push(index);
-                    } else {
-                        collector.push({
-                            description,
-                            simpleMediaItem: { uploadToken }
-                        });
-                    }
-                }
-            }
-        );
+        // bcz: this doesn't compile:
+        // Using ts-node version 7.0.1, typescript version 3.5.3
+        // [ERROR] 09:54:48 ⨯ Unable to compile TypeScript:
+        //  src/server/index.ts(1055,13): error TS2345: Argument of type '(batch: MediaInput[], collector: BatchContext) => Promise<void>' is not assignable to parameter of type 'BatchFunction<MediaInput, NewMediaItem[] | Promise<NewMediaItem[]>>'.
+        //   Type 'Promise<void>' is not assignable to type 'NewMediaItem[] | Promise<NewMediaItem[]>'.
+        //     Type 'Promise<void>' is not assignable to type 'Promise<NewMediaItem[]>'.
+        //       Type 'void' is not assignable to type 'NewMediaItem[]'.
+        // src/server/index.ts(1062,35): error TS2339: Property 'push' does not exist on type 'BatchContext'.
+        // const batched = BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 });
+        // const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
+        //     { magnitude: 100, unit: TimeUnit.Milliseconds },
+        //     async (batch, collector) => {
+        //         for (let index = 0; index < batch.length; index++) {
+        //             const { url, description } = batch[index];
+        //             const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(url);
+        //             if (!uploadToken) {
+        //                 failed.push(index);
+        //             } else {
+        //                 collector.push({
+        //                     description,
+        //                     simpleMediaItem: { uploadToken }
+        //                 });
+        //             }
+        //         }
+        //     }
+        // );
 
-        const failedCount = failed.length;
-        if (failedCount) {
-            console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
-        }
+        // const failedCount = failed.length;
+        // if (failedCount) {
+        //     console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
+        // }
 
-        GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-            results => _success(res, { results, failed }),
-            error => _error(res, mediaError, error)
-        );
+        // GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
+        //     results => _success(res, { results, failed }),
+        //     error => _error(res, mediaError, error)
+        // );
     }
 });
 
