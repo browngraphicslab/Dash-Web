@@ -675,7 +675,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
 
     private childViews = () => [
-        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
     ]
     render() {
