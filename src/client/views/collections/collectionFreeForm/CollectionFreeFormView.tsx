@@ -38,6 +38,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { Timeline } from "../../animationtimeline/Timeline";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
+import { number } from "prop-types";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -65,17 +66,17 @@ const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSch
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastX: number = 0;
     private _lastY: number = 0;
-    private _timelineRef = React.createRef<Timeline>();
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     @observable _clusterSets: (Doc[])[] = [];
+    @observable _timelineRef = React.createRef<Timeline>();
 
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)); }
     @computed get nativeWidth() { return this.Document.fitToContent ? 0 : this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.fitToContent ? 0 : this.Document.nativeHeight || 0; }
-    private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
+    private get isAnnotationOverlay() { return this.props.fieldExt ? true : false; } // fieldExt will be "" or "annotation". should maybe generalize this, or make it more specific (ie, 'annotation' instead of 'fieldExt')
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private easing = () => this.props.Document.panTransformType === "Ease";
     private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document.panX || 0;
@@ -673,13 +674,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
 
-    private childViews = () => {
-        let children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
-        return [
-            ...children,
-            ...this.views,
-        ];
-    }
+    private childViews = () => [
+        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
+        ...this.views
+    ]
     render() {
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.Document.fitX = this.contentBounds && this.contentBounds.x;

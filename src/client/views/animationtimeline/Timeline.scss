@@ -1,31 +1,84 @@
 @import "./../globalCssVariables.scss"; 
 
-.minimize{
-    position:relative; 
-    z-index: 1000; 
-    height: 30px; 
-    width: 100px; 
-}
+
 
 .timeline-toolbox{
     position:absolute; 
+    margin: 0px; 
+    padding: 0px; 
     display:flex;
     align-items: flex-start; 
-    flex-direction: row;  
-    top: 10px;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    top: 15px;
     div{
+        padding: 0px; 
         margin-left:10px; 
     }
+    .animation-text{
+        font-size: 20px; 
+        height: auto; 
+        width: auto; 
+        white-space: nowrap;
+        font-size: 16px;
+        color: grey;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .round-toggle {
+        height: 40px;
+        width: 80px;
+        background-color: white;
+        border: 2px solid grey;
+        border-radius: 20px;
+        animation-fill-mode: forwards; 
+        animation-duration: 500ms;
+        top: 30px; 
+        input{
+            position:absolute; 
+            opacity: 0; 
+            height: 0; 
+            width: 0; 
+        }
+        .round-toggle-slider{
+            height: 35px; 
+            width: 35px; 
+            background-color: white;
+            border:1px solid grey;
+            border-radius: 20px; 
+            transition: transform 500ms ease-in-out; 
+            margin-left: 0px; 
+            margin-top: 0.5px; 
+        } 
+    }
+    
 }
+.time-input{
+    height: 40px; 
+    width: 100px; 
+    white-space: nowrap;
+    font-size: 16px;
+    color: grey;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    
+}
+.tick{
+    height:100%; 
+    width: 1px; 
+    background-color:black; 
+}   
 .timeline-container{
     width:100%;
     height:300px; 
     position:absolute;
     background-color: $light-color-secondary;
     box-shadow: 0px 10px 20px; 
+    transition: transform 500ms ease; 
 
     .info-container{ 
-        margin-top: 50px; 
+        margin-top: 80px; 
         right:20px; 
         position:absolute; 
         height: calc(100% - 100px); 
@@ -37,13 +90,7 @@
             background-color: transparent; 
             height: 30px;
             width:100%; 
-            
-            .tick{
-                height:100%; 
-                width: 1px; 
-                background-color:black; 
-
-            }   
+          
         }
         .scrubber{
             top:30px; 
@@ -77,7 +124,7 @@
         
     }
     .title-container{
-        margin-top: 80px; 
+        margin-top: 110px; 
         margin-left: 20px; 
         height: calc(100% - 100px - 30px); 
         width: 100px; 
@@ -116,7 +163,28 @@
         float: left 0px; 
         top: 25%; 
         height: 75%; 
-        width: 100%; 
+        width: 100%;     
         background-color: grey; 
+    }
+}
+
+
+.timeline-checker{
+    height: auto; 
+    width: auto; 
+    overflow: hidden; 
+    position: absolute; 
+    display: flex; 
+    padding: 10px 10px; 
+    div{
+        height: auto; 
+        width: auto;
+        overflow: hidden; 
+        margin: 0px 10px; 
+        cursor: pointer
+    }
+    .check{
+        width: 50px; 
+        height: 50px; 
     }
 }

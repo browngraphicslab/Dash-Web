@@ -730,3 +730,4 @@ export namespace DocUtils {
 }
 
 Scripting.addGlobal("Docs", Docs);
+

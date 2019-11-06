@@ -20,7 +20,10 @@ interface IProps {
     tickIncrement: number;
     tickSpacing: number;
     timelineVisible: boolean; 
+    check: string; 
     changeCurrentBarX: (x: number) => void;
+    checkCallBack: (visible: boolean) => void; 
+
 }
 
 @observer
@@ -32,18 +35,24 @@ export class Track extends React.Component<IProps> {
     @observable private _onKeyframe: (Doc | undefined) = undefined;
     @observable private _onRegionData: (Doc | undefined) = undefined;
     @observable private _storedState: (Doc | undefined) = undefined;
-    
-    @computed
-    private get regions() {
-        return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
-    }
+    @observable private filterList = [
+        "regions", 
+        "cursors", 
+        "hidden", 
+        "nativeHeight", 
+        "nativeWidth", 
+        "schemaColumns", 
+        "baseLayout", 
+        "backgroundLayout", 
+        "layout", 
+    ]; 
+        
+    @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;}
 
     componentWillMount() {
-        if (!this.props.node.regions) {
-            this.props.node.regions = new List<Doc>();            
-        }
-      
-        
+        runInAction(() => {
+            if (!this.props.node.regions) this.props.node.regions = new List<Doc>();            
+        });
     }
 
     componentDidMount() {
@@ -54,11 +63,11 @@ export class Track extends React.Component<IProps> {
             this.props.node.hidden = false;                   
             this.props.node.opacity = 1; 
         });
-
     }
 
     componentWillUnmount() {
         runInAction(() => {
+            //disposing reactions 
             if (this._currentBarXReaction) this._currentBarXReaction();
             if (this._timelineVisibleReaction) this._timelineVisibleReaction(); 
         });
@@ -166,17 +175,7 @@ export class Track extends React.Component<IProps> {
         });
     }
 
-    private filterList = [
-        "regions", 
-        "cursors", 
-        "hidden", 
-        "nativeHeight", 
-        "nativeWidth", 
-        "schemaColumns", 
-        "baseLayout", 
-        "backgroundLayout", 
-        "layout", 
-    ]; 
+ 
 
     @action
     private filterKeys = (keys: string[]): string[] => {
@@ -274,6 +273,7 @@ export class Track extends React.Component<IProps> {
         let inner = this._inner.current!;
         let offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
         this.createRegion(KeyframeFunc.convertPixelTime(offsetX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+        this.forceUpdate(); 
     }
 
     createRegion = (position: number) => {
@@ -294,7 +294,7 @@ export class Track extends React.Component<IProps> {
         return (
             <div className="track-container">
                 <div className="track">
-                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
+                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerOver = {() => {Doc.BrushDoc(this.props.node);}}onPointerOut={() => {Doc.UnBrushDoc(this.props.node);}}>
                         {DocListCast(this.regions).map((region) => {
                             return <Keyframe {...this.props} RegionData={region} />;
                         })}
