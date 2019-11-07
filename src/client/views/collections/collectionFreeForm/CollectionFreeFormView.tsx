@@ -673,10 +673,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
-
-    private childViews = () => [
-        ...this.views
-    ]
+    private childViews = () => {
+        let children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
+        return [
+            ...children,
+            ...this.views,
+        ];
+    }
     render() {
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.Document.fitX = this.contentBounds && this.contentBounds.x;
