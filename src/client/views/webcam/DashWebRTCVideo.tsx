@@ -9,6 +9,7 @@ import "../../views/nodes/WebBox.scss";
 import "./DashWebRTC.scss";
 import adapter from 'webrtc-adapter';
 import { DashWebRTC } from "./DashWebRTC";
+import { DocServer } from "../../DocServer";
 
 
 
@@ -37,11 +38,12 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     private callButton: HTMLButtonElement | undefined;
     private startButton: HTMLButtonElement | undefined;
     private hangupButton: HTMLButtonElement | undefined;
+    private roomText: HTMLInputElement | undefined;
 
-    componentDidMount() {
-        // DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
-        DashWebRTC.init();
-    }
+    // componentDidMount() {
+    //     // DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
+    //     //DashWebRTC.init();
+    // }
 
 
     // componentDidMount() {
@@ -279,6 +281,19 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     // }
 
 
+    /**
+      * Function that submits the title entered by user on enter press.
+      */
+    onEnterKeyDown = (e: React.KeyboardEvent) => {
+        if (e.keyCode === 13) {
+            let submittedTitle = this.roomText!.value;
+            this.roomText!.value = "";
+            this.roomText!.blur();
+            DashWebRTC.init(submittedTitle);
+        }
+    }
+
+
 
 
 
@@ -319,6 +334,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     render() {
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
+                <input type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
                 <video id="localVideo" autoPlay playsInline ref={(e) => {
                     this.localVideoEl = e!;
                     DashWebRTC.setLocalVideoObject(e!);

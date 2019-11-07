@@ -1,4 +1,7 @@
 import { DocServer } from '../../DocServer';
+import { Utils } from '../../../Utils';
+import { MessageStore } from '../../../server/Message';
+
 
 
 /**
@@ -30,8 +33,7 @@ export namespace DashWebRTC {
         offerToReceiveVideo: true
     };
 
-    export function init() {
-        let room = 'test';
+    export function init(room: string) {
 
         if (room !== '') {
             DocServer._socket.emit('create or join', room);
@@ -68,20 +70,21 @@ export namespace DashWebRTC {
         // This client receives a message
         DocServer._socket.on('message', function (message: any) {
             console.log('Client received message:', message);
-            if (message === 'got user media') {
+            if (message.message === 'got user media') {
                 maybeStart();
-            } else if (message.type === 'offer') {
+            } else if (message.message.type === 'offer') {
+                console.log("I have entered here bro!!!");
                 if (!isInitiator && !isStarted) {
                     maybeStart();
                 }
-                pc.setRemoteDescription(new RTCSessionDescription(message));
+                pc.setRemoteDescription(new RTCSessionDescription(message.message));
                 doAnswer();
-            } else if (message.type === 'answer' && isStarted) {
-                pc.setRemoteDescription(new RTCSessionDescription(message));
-            } else if (message.type === 'candidate' && isStarted) {
+            } else if (message.message.type === 'answer' && isStarted) {
+                pc.setRemoteDescription(new RTCSessionDescription(message.message));
+            } else if (message.message.type === 'candidate' && isStarted) {
                 var candidate = new RTCIceCandidate({
-                    sdpMLineIndex: message.label,
-                    candidate: message.candidate
+                    sdpMLineIndex: message.message.label,
+                    candidate: message.message.candidate
                 });
                 pc.addIceCandidate(candidate);
             } else if (message === 'bye' && isStarted) {
@@ -120,7 +123,8 @@ export namespace DashWebRTC {
 
     function sendMessage(message: any) {
         console.log('Client sending message: ', message);
-        DocServer._socket.emit('message', message);
+        Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: "" });
+        //DocServer._socket.emit('message', message);
     }
 
 
