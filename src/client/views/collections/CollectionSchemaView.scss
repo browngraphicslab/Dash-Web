@@ -39,28 +39,6 @@
     }
 }
 
-.collectionSchemaView-previewRegion {
-    position: relative;
-    height: auto !important;
-
-    .collectionSchemaView-previewDoc {
-        position: absolute;
-        display: inline;
-    }
-
-    .collectionSchemaView-input {
-        position: absolute;
-        max-width: 150px;
-        width: 100%;
-        bottom: 0px;
-    }
-
-    .documentView-node:first-child {
-        position: relative;
-        background: $light-color;
-    }
-}
-
 .ReactTable {
     width: 100%;
     background: white;

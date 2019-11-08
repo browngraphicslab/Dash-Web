@@ -24,7 +24,7 @@ import { MainView } from '../MainView';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 import { Templates } from '../Templates';
 import { CollectionViewType } from './CollectionView';
-import { CollectionSchemaPreview } from './CollectionSchemaView';
+import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
@@ -314,7 +314,7 @@ class TreeView extends React.Component<TreeViewProps> {
         } else {
             let layoutDoc = Doc.Layout(this.props.document);
             return <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
-                <CollectionSchemaPreview
+                <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
                     fieldKey={this.fieldKey}
