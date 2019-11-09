@@ -323,7 +323,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
                 >
                     <FontAwesomeIcon className="imageBox-audioFont"
-                        style={{ color: [DocListCast(extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
+                        style={{ color: [DocListCast(extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={!DocListCast(extensionDoc.audioAnnotations).length ? "microphone" : faFileAudio} size="sm" />
                 </div>
                 {this.considerGooglePhotosLink()}
                 <FaceRectangles document={extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />

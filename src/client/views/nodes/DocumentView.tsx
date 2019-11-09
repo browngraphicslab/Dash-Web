@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction } from "mobx";
+import { action, computed, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -41,30 +41,10 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
-import { link } from 'fs';
 
-library.add(fa.faEdit);
-library.add(fa.faTrash);
-library.add(fa.faShare);
-library.add(fa.faDownload);
-library.add(fa.faExpandArrowsAlt);
-library.add(fa.faCompressArrowsAlt);
-library.add(fa.faLayerGroup);
-library.add(fa.faExternalLinkAlt);
-library.add(fa.faAlignCenter);
-library.add(fa.faCaretSquareRight);
-library.add(fa.faSquare);
-library.add(fa.faConciergeBell);
-library.add(fa.faWindowRestore);
-library.add(fa.faFolder);
-library.add(fa.faMapPin);
-library.add(fa.faLink);
-library.add(fa.faFingerprint);
-library.add(fa.faCrosshairs);
-library.add(fa.faDesktop);
-library.add(fa.faUnlock);
-library.add(fa.faLock);
-library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
+library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
+    fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
+    fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
@@ -599,26 +579,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
-    render() {
-        if (!this.props.Document) return (null);
-        const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
-        const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
-        const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
-        const colorSet = this.setsLayoutProp("backgroundColor");
-        const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
-        const backgroundColor = this.Document.isBackground || (clusterCol && !colorSet) ?
-            this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
-            ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
-
-        const nativeWidth = this.layoutDoc.fitWidth ? this.props.PanelWidth() - 2 : this.nativeWidth > 0 && !this.layoutDoc.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.layoutDoc.fitWidth ? this.props.PanelHeight() - 2 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+    @computed get innards() {
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
         const showTextTitle = showTitle && StrCast(this.Document.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
-        const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        const borderRounding = this.getLayoutPropStr("borderRounding") || ruleRounding;
-        const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
                 {this.Document.searchFields}
@@ -633,10 +598,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const titleView = (!showTitle ? (null) :
             <div className="documentView-titleWrapper" style={{
+                width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})`,
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
-                width: `${100 * this.props.ContentScaling()}%`,
-                transform: `scale(${1 / this.props.ContentScaling()})`
             }}>
                 <EditableView
                     contents={this.Document[showTitle]}
@@ -645,55 +609,72 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     SetValue={(value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true}
                 />
             </div>);
+        return <>
+            {this.Document.links && DocListCast(this.Document.links).filter((d) => !DocListCast(this.layoutDoc.hiddenLinks).some(hidden => Doc.AreProtosEqual(hidden, d))).filter(this.isNonTemporalLink).map((d, i) =>
+                <div className="documentView-docuLinkWrapper" key={`${d[Id]}`} style={{ transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
+                    <DocumentView {...this.props} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => Doc.AddDocToList(this.layoutDoc, "hiddenLinks", doc))} />
+                </div>)}
+            {!showTitle && !showCaption ?
+                this.Document.searchFields ?
+                    (<div className="documentView-searchWrapper">
+                        {this.contents}
+                        {searchHighlight}
+                    </div>)
+                    :
+                    this.contents
+                :
+                <div className="documentView-styleWrapper" >
+                    <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 29px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
+                        {this.contents}
+                    </div>
+                    {titleView}
+                    {captionView}
+                    {searchHighlight}
+                </div>
+            }
+        </>
+    }
+    render() {
+        if (!this.props.Document) return (null);
+        trace();
+        const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
+        const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
+        const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
+        const colorSet = this.setsLayoutProp("backgroundColor");
+        const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
+        const backgroundColor = this.Document.isBackground || (clusterCol && !colorSet) ?
+            this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
+            ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
+
+        const nativeWidth = this.layoutDoc.fitWidth ? this.props.PanelWidth() - 2 : this.nativeWidth > 0 && !this.layoutDoc.ignoreAspect ? `${this.nativeWidth}px` : "100%";
+        const nativeHeight = this.layoutDoc.fitWidth ? this.props.PanelHeight() - 2 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
+        const borderRounding = this.getLayoutPropStr("borderRounding") || ruleRounding;
+        const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
+
         let animheight = animDims ? animDims[1] : nativeHeight;
         let animwidth = animDims ? animDims[0] : nativeWidth;
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
-        return (
-            <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
-                ref={this._mainCont}
-                style={{
-                    transition: this.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
-                    pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
-                    color: StrCast(this.Document.color),
-                    outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                    border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                    background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
-                    width: animwidth,
-                    height: animheight,
-                    transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
-                    opacity: this.Document.opacity
-                }}
-                onTouchStart={this.onTouchStart}
-                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-                onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={() => Doc.UnBrushDoc(this.props.Document)}
-            >
-                {this.Document.links && DocListCast(this.Document.links).filter((d) => !DocListCast(this.layoutDoc.hiddenLinks).some(hidden => Doc.AreProtosEqual(hidden, d))).filter(this.isNonTemporalLink).map((d, i) =>
-                    <div style={{ pointerEvents: "none", position: "absolute", transformOrigin: "top left", width: "100%", height: "100%", transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
-                        <DocumentView {...this.props} backgroundColor={returnTransparent} Document={d} removeDocument={undoBatch((doc: Doc) => Doc.AddDocToList(this.layoutDoc, "hiddenLinks", doc))} layoutKey={this.linkEndpoint(d)} />
-                    </div>)}
-                {!showTitle && !showCaption ?
-                    this.Document.searchFields ?
-                        (<div className="documentView-searchWrapper">
-                            {this.contents}
-                            {searchHighlight}
-                        </div>)
-                        :
-                        this.contents
-                    :
-                    <div className="documentView-styleWrapper" >
-                        <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 29px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
-                            {this.contents}
-                        </div>
-                        {titleView}
-                        {captionView}
-                        {searchHighlight}
-                    </div>
-                }
-            </div>
-        );
+        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
+            onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+            onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
+            style={{
+                transition: this.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
+                pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
+                color: StrCast(this.Document.color),
+                outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
+                border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
+                background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
+                width: animwidth,
+                height: animheight,
+                transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
+                opacity: this.Document.opacity
+            }} >
+            {this.innards}
+        </div>;
     }
 }
 

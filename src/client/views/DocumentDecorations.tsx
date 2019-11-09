@@ -583,8 +583,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     render() {
         var bounds = this.Bounds;
+<<<<<<< HEAD
         let seldoc = SelectionManager.AllSelected().length ? SelectionManager.AllSelected()[0] : undefined;
         if (bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+=======
+        let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        if (SelectionManager.GetIsDragging() || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+>>>>>>> 5c6dc8fb25c2ac65a9efa534ee86211ac6d68301
             return (null);
         }
         let minimizeIcon = (

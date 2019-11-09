@@ -40,6 +40,7 @@ import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsM
 import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { LinkManager } from '../util/LinkManager';
+import { AudioBox } from './nodes/AudioBox';
 
 @observer
 export class MainView extends React.Component {
@@ -140,6 +141,7 @@ export class MainView extends React.Component {
 
     globalPointerDown = action((e: PointerEvent) => {
         this.isPointerDown = true;
+        AudioBox.Enabled = true;
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();

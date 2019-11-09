@@ -16,7 +16,7 @@ import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
-import { CollectionSchemaPreview } from "./CollectionSchemaView";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
@@ -165,7 +165,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let layoutDoc = Doc.Layout(doc);
         let height = () => this.getDocHeight(doc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
-        return <CollectionSchemaPreview
+        return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
             fieldKey={this.props.fieldKey}
@@ -189,7 +189,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             pinToPres={this.props.pinToPres}
             setPreviewScript={emptyFunction}
             previewScript={undefined}>
-        </CollectionSchemaPreview>;
+        </ContentFittingDocumentView>;
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
@@ -393,7 +393,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let entries = Array.from(this.Sections.entries());
             sections = entries.sort(this.sortFunc);
         }
-        console.log("NUM = " + this.numGroupColumns);
         return (
             <div className="collectionStackingMasonry-cont" >
                 <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
