@@ -26,7 +26,9 @@ import UploadManager from "./ApiManagers/UploadManager";
 export const publicDirectory = __dirname + RouteStore.public;
 export const filesDirectory = publicDirectory + "/files/";
 export enum Partitions {
-    PdfText = "pdf_text"
+    pdf_text,
+    images,
+    videos
 }
 
 /**
