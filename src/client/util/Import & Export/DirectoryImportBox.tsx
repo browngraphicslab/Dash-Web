@@ -22,6 +22,9 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
 import { Networking } from "../../Network";
 import { BatchedArray } from "array-batcher";
+import * as path from 'path';
+import { DashUploadUtils } from "../../../server/DashUploadUtils";
+import { SharedMediaTypes } from "../../../server/SharedMediaTypes";
 
 const unsupported = ["text/html", "text/plain"];
 
@@ -94,7 +97,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
             let file = files.item(i);
-            file && !unsupported.includes(file.type) && validated.push(file);
+            if (file && !unsupported.includes(file.type)) {
+                const ext = path.extname(file.name).toLowerCase();
+                if (SharedMediaTypes.imageFormats.includes(ext)) {
+                    validated.push(file);
+                }
+            }
         }
 
         runInAction(() => {
