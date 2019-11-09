@@ -46,7 +46,7 @@ type Node = {
 };
 
 interface DocValuePair<T> {
-    childDoc: Doc;
+    childDoc: Doc | undefined;
     value: T;
 }
 
@@ -131,14 +131,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
         reaction(() => this.props.Document.barwidth,
             () => {
-                this.createticks();
                 this.initiallyPopulateThumbnails();
+                this.createticks();
+
             });
         reaction(() => this.props.Document.verticalsortstate,
             () => {
                 this.transtate = true;
-                this.createticks();
                 this.initiallyPopulateThumbnails();
+                this.createticks();
             });
         reaction(
             () => this.props.Document.sortstate,
@@ -582,6 +583,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         this._values = sortedPairs;
 
+
         let { value: first } = sortedPairs[0];
         for (const { value, childDoc } of sortedPairs) {
             this.thumbnails.push({
@@ -594,6 +596,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
         this.removeOverlap();
+        if (sortedPairs.length === 0) {
+            this._values.push({ childDoc: undefined, value: 0 });
+        }
     }
 
     private computeMapPosition(first: number, current: number): number {
