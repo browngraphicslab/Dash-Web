@@ -6,6 +6,10 @@ import { InkTool } from "../../new_fields/InkField";
 import "./InkingStroke.scss";
 import { AudioBox } from "./nodes/AudioBox";
 import { Doc } from "../../new_fields/Doc";
+import { createSchema, makeInterface } from "../../new_fields/Schema";
+import { documentSchema } from "../../new_fields/documentSchemas";
+import { DocExtendableComponent } from "./DocComponent";
+import { FieldViewProps, FieldView } from "./nodes/FieldView";
 
 
 interface StrokeProps {
@@ -21,13 +25,12 @@ interface StrokeProps {
     deleteCallback: (index: string) => void;
 }
 
-export type InkDocAndStroke = {
-    Document: Doc;
-    Ink: Map<any, any>;
-};
+type InkDocument = makeInterface<[typeof documentSchema]>;
+const InkDocument = makeInterface(documentSchema);
 
 @observer
-export class InkingStroke extends React.Component<StrokeProps> {
+export class InkingStroke extends DocExtendableComponent<FieldViewProps & StrokeProps, InkDocument>(InkDocument) {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
     @observable private _strokeTool: InkTool = this.props.tool;
     @observable private _strokeColor: string = this.props.color;

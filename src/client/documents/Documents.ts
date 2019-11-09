@@ -411,6 +411,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
+        export function InkDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.INK), "", options);
+        }
+
         export function IconDocument(icon: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.ICON), new IconField(icon), options);
         }

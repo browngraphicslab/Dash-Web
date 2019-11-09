@@ -170,37 +170,37 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
         this.inkData = data;
     }
 
-    @computed
-    get drawnPaths() {
-        let curTimecode = NumCast(this.props.Document.currentTimecode, -1);
-        let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.displayTimecode === -1 || (Math.abs(Math.round(strokeData.displayTimecode) - Math.round(curTimecode)) < 3)) {
-                paths.push(<InkingStroke key={id} id={id}
-                    line={strokeData.pathData}
-                    count={strokeData.pathData.length}
-                    offsetX={this.maxCanvasDim - this.inkMidX}
-                    offsetY={this.maxCanvasDim - this.inkMidY}
-                    color={strokeData.color}
-                    width={strokeData.width}
-                    tool={strokeData.tool}
-                    creationTime={strokeData.creationTime}
-                    deleteCallback={this.removeLine} />);
-            }
-            return paths;
-        }, [] as JSX.Element[]);
-        let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
-        let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
-        return [!penPaths.length ? (null) :
-            <svg className={`inkingCanvas-paths-ink`} key="Pens"
-                style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-                {penPaths}
-            </svg>,
-        !markerPaths.length ? (null) :
-            <svg className={`inkingCanvas-paths-markers`} key="Markers"
-                style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
-                {markerPaths}
-            </svg>];
-    }
+    // @computed
+    // get drawnPaths() {
+    //     let curTimecode = NumCast(this.props.Document.currentTimecode, -1);
+    //     let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
+    //         if (strokeData.displayTimecode === -1 || (Math.abs(Math.round(strokeData.displayTimecode) - Math.round(curTimecode)) < 3)) {
+    //             paths.push(<InkingStroke key={id} id={id}
+    //                 line={strokeData.pathData}
+    //                 count={strokeData.pathData.length}
+    //                 offsetX={this.maxCanvasDim - this.inkMidX}
+    //                 offsetY={this.maxCanvasDim - this.inkMidY}
+    //                 color={strokeData.color}
+    //                 width={strokeData.width}
+    //                 tool={strokeData.tool}
+    //                 creationTime={strokeData.creationTime}
+    //                 deleteCallback={this.removeLine} />);
+    //         }
+    //         return paths;
+    //     }, [] as JSX.Element[]);
+    //     let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
+    //     let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
+    //     return [!penPaths.length ? (null) :
+    //         <svg className={`inkingCanvas-paths-ink`} key="Pens"
+    //             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
+    //             {penPaths}
+    //         </svg>,
+    //     !markerPaths.length ? (null) :
+    //         <svg className={`inkingCanvas-paths-markers`} key="Markers"
+    //             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
+    //             {markerPaths}
+    //         </svg>];
+    // }
 
     render() {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None && !this.props.Document.isBackground ? "canSelect" : "noSelect";
@@ -210,7 +210,7 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
             <div className="inkingCanvas">
                 <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart} style={{ cursor: cursor }} />
                 {this.props.children()}
-                {this.drawnPaths}
+                {/* {this.drawnPaths} */}
             </div >
         );
     }

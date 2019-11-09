@@ -99,7 +99,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
-                    ColorBox, DocuLinkBox
+                    ColorBox, DocuLinkBox, InkingStroke
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

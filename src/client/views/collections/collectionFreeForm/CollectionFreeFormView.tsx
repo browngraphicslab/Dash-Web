@@ -5,7 +5,7 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { InkField, StrokeData, InkTool } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
@@ -39,6 +39,7 @@ import { InteractionUtils } from "../../../util/InteractionUtils";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import PDFMenu from "../../pdf/PDFMenu";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
+import { InkingControl } from "../../InkingControl";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -263,6 +264,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return clusterColor;
     }
 
+    @observable private _points: { x: number, y: number }[] = [];
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.nativeEvent.cancelBubble) return;
@@ -272,8 +275,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
-            this._lastX = e.pageX;
-            this._lastY = e.pageY;
+            if (InkingControl.Instance.selectedTool === InkTool.None) {
+                this._lastX = e.pageX;
+                this._lastY = e.pageY;
+            }
+            else {
+                e.stopPropagation();
+                e.preventDefault();
+
+                if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
+                    this._points.push({ x: e.pageX, y: e.pageY });
+                }
+            }
         }
     }
 
@@ -340,14 +353,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return;
         }
         if (!e.cancelBubble) {
-            if (this._hitCluster && this.tryDragCluster(e)) {
-                e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
-                e.preventDefault();
-                document.removeEventListener("pointermove", this.onPointerMove);
-                document.removeEventListener("pointerup", this.onPointerUp);
-                return;
+            if (InkingControl.Instance.selectedTool === InkTool.None) {
+                if (this._hitCluster && this.tryDragCluster(e)) {
+                    e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+                    e.preventDefault();
+                    document.removeEventListener("pointermove", this.onPointerMove);
+                    document.removeEventListener("pointerup", this.onPointerUp);
+                    return;
+                }
+                this.pan(e);
             }
-            this.pan(e);
+            if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
+                this._points.push({ x: e.clientX, y: e.clientY });
+            }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
         }
@@ -789,9 +807,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         {!this.extensionDoc ? (null) :
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
-                                {this.childViews}
-                            </InkingCanvas>}
+                            // <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
+                            this.childViews
+                            // </InkingCanvas>
+                        }
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
