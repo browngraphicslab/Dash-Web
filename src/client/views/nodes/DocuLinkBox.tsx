@@ -72,7 +72,10 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
         let c = StrCast(this.props.Document.backgroundColor, "lightblue");
-        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={StrCast((this.props.Document[this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1"]! as Doc).title)}
+        let anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
+        let timecode = this.props.Document[anchor + "Timecode"];
+        let targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
+        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle}
             ref={this._ref} style={{
                 background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
                 transform: `scale(${hasAnchor ? 0.333 : 1 / this.props.ContentScaling()})`

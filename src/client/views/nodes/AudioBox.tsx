@@ -37,6 +37,7 @@ const AudioDocument = makeInterface(documentSchema, audioSchema);
 @observer
 export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
+    public static Enabled = false;
 
     _linkPlayDisposer: IReactionDisposer | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
@@ -98,7 +99,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     });
 
     playFrom = (seekTimeInSeconds: number) => {
-        if (this._ele) {
+        if (this._ele && AudioBox.Enabled) {
             if (seekTimeInSeconds < 0) {
                 this.pause();
             } else if (seekTimeInSeconds <= this._ele.duration) {
@@ -193,6 +194,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     setRef = (e: HTMLAudioElement | null) => {
         e && e.addEventListener("timeupdate", this.timecodeChanged);
+        e && e.addEventListener("ended", this.pause);
         this._ele = e;
     }
 
@@ -242,16 +244,17 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                         la2 = l.anchor1 as Doc;
                                         linkTime = NumCast(l.anchor1Timecode);
                                     }
-                                    return !linkTime ? (null) : <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
-                                        <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
-                                            <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
-                                                parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
-                                                backgroundColor={returnTransparent} />
-                                        </div>
-                                        <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
-                                            onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(linkTime); e.stopPropagation(); } }}
-                                            onClick={e => { if (e.button === 0 && !e.ctrlKey) { this.pause(); e.stopPropagation(); } }} />
-                                    </div>;
+                                    return !linkTime ? (null) :
+                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                            <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
+                                                <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
+                                                    parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
+                                                    backgroundColor={returnTransparent} />
+                                            </div>
+                                            <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
+                                                onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(linkTime); e.stopPropagation(); } }}
+                                                onClick={e => { if (e.button === 0 && !e.ctrlKey) { this.pause(); e.stopPropagation(); } }} />
+                                        </div>;
                                 })}
                                 <div className="audiobox-current" style={{ left: `${NumCast(this.Document.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
                                 {this.audio}

@@ -24,7 +24,7 @@ import { MainView } from '../MainView';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 import { Templates } from '../Templates';
 import { CollectionViewType } from './CollectionView';
-import { CollectionSchemaPreview } from './CollectionSchemaView';
+import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
@@ -221,10 +221,10 @@ class TreeView extends React.Component<TreeViewProps> {
             }
             let movedDocs = (de.data.options === this.props.treeViewId ? de.data.draggedDocuments : de.data.droppedDocuments);
             return (de.data.dropAction || de.data.userDropAction) ?
-                de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, undefined, before) || added, false)
+                de.data.droppedDocuments.reduce((added, d) => addDoc(d) || added, false)
                 : de.data.moveDocument ?
                     movedDocs.reduce((added, d) => de.data.moveDocument(d, undefined, addDoc) || added, false)
-                    : de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, undefined, before), false);
+                    : de.data.droppedDocuments.reduce((added, d) => addDoc(d), false);
         }
         return false;
     }
@@ -314,7 +314,7 @@ class TreeView extends React.Component<TreeViewProps> {
         } else {
             let layoutDoc = Doc.Layout(this.props.document);
             return <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
-                <CollectionSchemaPreview
+                <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
                     fieldKey={this.fieldKey}
@@ -474,7 +474,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 let aspect = NumCast(childLayout.nativeWidth, 0) / NumCast(childLayout.nativeHeight, 0);
                 return aspect ? Math.min(childLayout[WidthSym](), rowWidth()) / aspect : childLayout[HeightSym]();
             };
-            return <TreeView
+            return !(child instanceof Doc) ? (null) : <TreeView
                 document={pair.layout}
                 dataDoc={pair.data}
                 containingCollection={containingCollection}

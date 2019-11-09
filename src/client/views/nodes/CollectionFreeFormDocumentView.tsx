@@ -1,10 +1,9 @@
 import { random } from "animejs";
-import { computed, IReactionDisposer, observable, reaction } from "mobx";
+import { computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { percent2frac } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import "./CollectionFreeFormDocumentView.scss";
@@ -71,12 +70,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         let ld = this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] instanceof Doc ? this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] as Doc : undefined;
         let br = StrCast((ld || this.props.Document).borderRounding);
-        br = !br && ruleRounding ? ruleRounding : br;
-        if (br.endsWith("%")) {
-            let nativeDim = Math.min(NumCast(this.layoutDoc.nativeWidth), NumCast(this.layoutDoc.nativeHeight));
-            return percent2frac(br) * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
-        }
-        return undefined;
+        return !br && ruleRounding ? ruleRounding : br;
     }
 
     @computed
@@ -90,30 +84,29 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
 
     render() {
-        return (
-            <div className="collectionFreeFormDocumentView-container"
-                style={{
-                    boxShadow:
-                        this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
-                            this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                                this.clusterColor ? (`${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                                    this.layoutDoc.isBackground ? `1px 1px 1px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
-                                        StrCast(this.layoutDoc.boxShadow, ""),
-                    borderRadius: this.borderRounding(),
-                    transform: this.transform,
-                    transition: this.Document.isAnimating !== undefined ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
-                    width: this.width,
-                    height: this.height,
-                    zIndex: this.Document.zIndex || 0,
-                }} >
-                <DocumentView {...this.props}
-                    ContentScaling={this.contentScaling}
-                    ScreenToLocalTransform={this.getTransform}
-                    backgroundColor={this.clusterColorFunc}
-                    PanelWidth={this.finalPanelWidth}
-                    PanelHeight={this.finalPanelHeight}
-                />
-            </div>
-        );
+        trace();
+        return <div className="collectionFreeFormDocumentView-container"
+            style={{
+                boxShadow:
+                    this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
+                        this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
+                            this.clusterColor ? (`${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                this.layoutDoc.isBackground ? `1px 1px 1px ${this.clusterColor}` :  // if it's a background & has a cluster color, make the shadow spread really big
+                                    StrCast(this.layoutDoc.boxShadow, ""),
+                borderRadius: this.borderRounding(),
+                transform: this.transform,
+                transition: this.Document.isAnimating !== undefined ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
+                width: this.width,
+                height: this.height,
+                zIndex: this.Document.zIndex || 0,
+            }} >
+            <DocumentView {...this.props}
+                ContentScaling={this.contentScaling}
+                ScreenToLocalTransform={this.getTransform}
+                backgroundColor={this.clusterColorFunc}
+                PanelWidth={this.finalPanelWidth}
+                PanelHeight={this.finalPanelHeight}
+            />
+        </div>;
     }
 }

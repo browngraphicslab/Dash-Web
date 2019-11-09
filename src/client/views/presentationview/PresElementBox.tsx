@@ -13,7 +13,7 @@ import { emptyFunction, returnFalse } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
-import { CollectionSchemaPreview } from '../collections/CollectionSchemaView';
+import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
@@ -169,7 +169,7 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                 height: propDocHeight === 0 ? NumCast(this.layoutDoc.height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
-                <CollectionSchemaPreview
+                <ContentFittingDocumentView
                     fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.targetDoc}
                     fieldKey={this.props.fieldKey}
