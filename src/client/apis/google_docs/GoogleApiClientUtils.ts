@@ -1,5 +1,4 @@
 import { docs_v1, slides_v1 } from "googleapis";
-import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
@@ -77,7 +76,7 @@ export namespace GoogleApiClientUtils {
         * @returns the documentId of the newly generated document, or undefined if the creation process fails.
         */
         export const create = async (options: CreateOptions): Promise<CreationResult> => {
-            const path = `${RouteStore.googleDocs}/Documents/${Actions.Create}`;
+            const path = `/googleDocs/Documents/${Actions.Create}`;
             const parameters = {
                 requestBody: {
                     title: options.title || `Dash Export (${new Date().toDateString()})`
@@ -154,7 +153,7 @@ export namespace GoogleApiClientUtils {
         }
 
         export const retrieve = async (options: RetrieveOptions): Promise<RetrievalResult> => {
-            const path = `${RouteStore.googleDocs}/Documents/${Actions.Retrieve}`;
+            const path = `/googleDocs/Documents/${Actions.Retrieve}`;
             try {
                 const parameters = { documentId: options.documentId };
                 const schema: RetrievalResult = await Networking.PostToServer(path, parameters);
@@ -165,7 +164,7 @@ export namespace GoogleApiClientUtils {
         };
 
         export const update = async (options: UpdateOptions): Promise<UpdateResult> => {
-            const path = `${RouteStore.googleDocs}/Documents/${Actions.Update}`;
+            const path = `/googleDocs/Documents/${Actions.Update}`;
             const parameters = {
                 documentId: options.documentId,
                 requestBody: {

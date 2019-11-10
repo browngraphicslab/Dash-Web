@@ -2,7 +2,6 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
-import { RouteStore } from './server/RouteStore';
 
 export namespace Utils {
 
@@ -46,7 +45,7 @@ export namespace Utils {
     }
 
     export function CorsProxy(url: string): string {
-        return prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
+        return prepend("/corsProxy/") + encodeURIComponent(url);
     }
 
     export function CopyText(text: string) {

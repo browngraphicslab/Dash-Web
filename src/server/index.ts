@@ -3,7 +3,6 @@ import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
 import { Database } from './database';
-import { RouteStore } from './RouteStore';
 const serverPort = 4321;
 import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 import { Opt } from '../new_fields/Doc';
@@ -23,7 +22,7 @@ import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
 
-export const publicDirectory = __dirname + RouteStore.public;
+export const publicDirectory = __dirname + "/public";
 export const filesDirectory = publicDirectory + "/files/";
 export enum Partitions {
     pdf_text,
@@ -73,13 +72,12 @@ function routeSetter(router: RouteManager) {
     WebSocket.initialize(serverPort, router.isRelease);
 
     /**
-     * Anyone attempting to navigate to localhost at this port will
-     * first have to log in.
+     * Accessing root index redirects to home
      */
     router.addSupervisedRoute({
         method: Method.GET,
-        subscription: RouteStore.root,
-        onValidation: ({ res }) => res.redirect(RouteStore.home)
+        subscription: "/",
+        onValidation: ({ res }) => res.redirect("/home")
     });
 
     const serve: OnUnauthenticated = ({ req, res }) => {
@@ -90,7 +88,7 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.GET,
-        subscription: [RouteStore.home, new RouteSubscriber("/doc").add("docId")],
+        subscription: ["/home", new RouteSubscriber("doc").add("docId")],
         onValidation: serve,
         onUnauthenticated: ({ req, ...remaining }) => {
             const { originalUrl: target } = req;
@@ -110,9 +108,9 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.GET,
-        subscription: new RouteSubscriber(RouteStore.cognitiveServices).add('requestedservice'),
+        subscription: new RouteSubscriber("cognitiveServices").add('requestedService'),
         onValidation: ({ req, res }) => {
-            let service = req.params.requestedservice;
+            let service = req.params.requestedService;
             res.send(ServicesApiKeyMap.get(service));
         }
     });
@@ -125,7 +123,7 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.POST,
-        subscription: new RouteSubscriber(RouteStore.googleDocs).add("sector", "action"),
+        subscription: new RouteSubscriber("googleDocs").add("sector", "action"),
         onValidation: async ({ req, res, user }) => {
             let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
             let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
@@ -143,7 +141,7 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.GET,
-        subscription: RouteStore.readGoogleAccessToken,
+        subscription: "/readGoogleAccessToken",
         onValidation: async ({ user, res }) => {
             const userId = user.id;
             const token = await GoogleApiServerUtils.retrieveAccessToken(userId);
@@ -156,7 +154,7 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.POST,
-        subscription: RouteStore.writeGoogleAccessToken,
+        subscription: "/writeGoogleAccessToken",
         onValidation: async ({ user, req, res }) => {
             res.send(await GoogleApiServerUtils.processNewUser(user.id, req.body.authenticationCode));
         }
@@ -173,7 +171,7 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.POST,
-        subscription: RouteStore.googlePhotosMediaUpload,
+        subscription: "/googlePhotosMediaUpload",
         onValidation: async ({ user, req, res }) => {
             const { media } = req.body;
 
@@ -228,7 +226,7 @@ function routeSetter(router: RouteManager) {
     const UploadError = (count: number) => `Unable to upload ${count} images to Dash's server`;
     router.addSupervisedRoute({
         method: Method.POST,
-        subscription: RouteStore.googlePhotosMediaDownload,
+        subscription: "/googlePhotosMediaDownload",
         onValidation: async ({ req, res }) => {
             const contents: { mediaItems: MediaItem[] } = req.body;
             let failed = 0;

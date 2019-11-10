@@ -1,7 +1,6 @@
 import "fs";
 import React = require("react");
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { RouteStore } from "../../../server/RouteStore";
 import { action, observable, autorun, runInAction, computed, reaction, IReactionDisposer } from "mobx";
 import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
@@ -124,7 +123,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            collector.push(...(await Networking.PostFormDataToServer(RouteStore.upload, formData)));
+            collector.push(...(await Networking.PostFormDataToServer("/upload", formData)));
             runInAction(() => this.completed += batch.length);
         });
 

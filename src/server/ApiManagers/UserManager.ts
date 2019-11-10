@@ -1,7 +1,6 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import { WebSocket } from "../Websocket/Websocket";
-import { RouteStore } from "../RouteStore";
 import { Database } from "../database";
 
 export default class UserManager extends ApiManager {
@@ -10,7 +9,7 @@ export default class UserManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: RouteStore.getUsers,
+            subscription: "/getUsers",
             onValidation: async ({ res }) => {
                 const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
                 const results = await cursor.toArray();
@@ -20,13 +19,13 @@ export default class UserManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: RouteStore.getUserDocumentId,
+            subscription: "/getUserDocumentId",
             onValidation: ({ res, user }) => res.send(user.userDocumentId)
         });
 
         register({
             method: Method.GET,
-            subscription: RouteStore.getCurrUser,
+            subscription: "/getCurrentUser",
             onValidation: ({ res, user }) => res.send(JSON.stringify(user)),
             onUnauthenticated: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
         });

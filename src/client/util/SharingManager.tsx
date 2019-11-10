@@ -4,7 +4,6 @@ import MainViewModal from "../views/MainViewModal";
 import { Doc, Opt, DocCastAsync } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../new_fields/Types";
-import { RouteStore } from "../../server/RouteStore";
 import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
 import "./SharingManager.scss";
@@ -104,7 +103,7 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     populateUsers = async () => {
-        let userList = await RequestPromise.get(Utils.prepend(RouteStore.getUsers));
+        let userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
             let isCandidate = user.email !== Doc.CurrentUserEmail;

@@ -2,7 +2,6 @@ import * as request from "request-promise";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
-import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 import { InkData } from "../../new_fields/InkField";
 import { UndoManager } from "../util/UndoManager";
@@ -39,7 +38,7 @@ export enum Confidence {
 export namespace CognitiveServices {
 
     const ExecuteQuery = async <D>(service: Service, manager: APIManager<D>, data: D): Promise<any> => {
-        return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
+        return fetch(Utils.prepend(`cognitiveServices/${service}`)).then(async response => {
             let apiKey = await response.text();
             if (!apiKey) {
                 console.log(`No API key found for ${service}: ensure index.ts has access to a .env file in your root directory`);

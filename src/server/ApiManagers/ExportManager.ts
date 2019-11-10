@@ -1,7 +1,6 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import RouteSubscriber from "../RouteSubscriber";
-import { RouteStore } from "../RouteStore";
 import * as Archiver from 'archiver';
 import * as express from 'express';
 import { Database } from "../database";
@@ -32,7 +31,7 @@ export default class DownloadManager extends ApiManager {
          */
         register({
             method: Method.GET,
-            subscription: new RouteSubscriber(RouteStore.imageHierarchyExport).add('docId'),
+            subscription: new RouteSubscriber("imageHierarchyExport").add('docId'),
             onValidation: async ({ req, res }) => {
                 const id = req.params.docId;
                 const hierarchy: Hierarchy = {};
@@ -43,7 +42,7 @@ export default class DownloadManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: new RouteSubscriber("/downloadId").add("docId"),
+            subscription: new RouteSubscriber("downloadId").add("docId"),
             onValidation: async ({ req, res }) => {
                 return BuildAndDispatchZip(res, async zip => {
                     const { id, docs, files } = await getDocs(req.params.docId);

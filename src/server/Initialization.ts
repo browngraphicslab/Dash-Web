@@ -9,7 +9,6 @@ import flash = require('connect-flash');
 import { Database } from './database';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 const MongoStore = require('connect-mongo')(session);
-import { RouteStore } from './RouteStore';
 import RouteManager from './RouteManager';
 import * as webpack from 'webpack';
 const config = require('../../webpack.config');
@@ -18,6 +17,8 @@ import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as fs from 'fs';
 import * as request from 'request';
+import RouteSubscriber from './RouteSubscriber';
+import { publicDirectory } from '.';
 
 export type RouteSetter = (server: RouteManager) => void;
 export interface InitializationOptions {
@@ -29,8 +30,8 @@ export default async function InitializeServer(options: InitializationOptions) {
     const { listenAtPort, routeSetter } = options;
     const server = buildWithMiddleware(express());
 
-    server.use(express.static(__dirname + RouteStore.public));
-    server.use(RouteStore.images, express.static(__dirname + RouteStore.public));
+    server.use(express.static(publicDirectory));
+    server.use("/images", express.static(publicDirectory));
 
     server.use(wdm(compiler, { publicPath: config.output.publicPath }));
     server.use(whm(compiler));
@@ -87,24 +88,25 @@ function determineEnvironment() {
 }
 
 function registerAuthenticationRoutes(server: express.Express) {
-    server.get(RouteStore.signup, getSignup);
-    server.post(RouteStore.signup, postSignup);
+    server.get("/signup", getSignup);
+    server.post("/signup", postSignup);
 
-    server.get(RouteStore.login, getLogin);
-    server.post(RouteStore.login, postLogin);
+    server.get("/login", getLogin);
+    server.post("/login", postLogin);
 
-    server.get(RouteStore.logout, getLogout);
+    server.get("/logout", getLogout);
 
-    server.get(RouteStore.forgot, getForgot);
-    server.post(RouteStore.forgot, postForgot);
+    server.get("/forgotPassword", getForgot);
+    server.post("/forgotPassword", postForgot);
 
-    server.get(RouteStore.reset, getReset);
-    server.post(RouteStore.reset, postReset);
+    const reset = new RouteSubscriber("resetPassword").add("token").build;
+    server.get(reset, getReset);
+    server.post(reset, postReset);
 }
 
 function registerCorsProxy(server: express.Express) {
     const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
-    server.use(RouteStore.corsProxy, (req, res) => {
+    server.use("/corsProxy", (req, res) => {
         req.pipe(request(decodeURIComponent(req.url.substring(1)))).on("response", res => {
             const headers = Object.keys(res.headers);
             headers.forEach(headerName => {
