@@ -109,10 +109,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             for (let i = 0; i < this.filtered.length; i++) {
                 this.types[i] = true;
             }
+            this.leftbound = 0;
+            this.rightbound = 4;
         });
         this.initiallyPopulateThumbnails();
         this.initializeMarkers();
-        //Sthis.updateWidth();
         this.createRows();
         this.createticks();
         this.filtermenu();
@@ -121,6 +122,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     componentDidMount() {
+        reaction(
+            () => this.childDocs,
+            () => {
+                console.log("CHILDREN");
+                this.initiallyPopulateThumbnails();
+                this.createticks();
+            }
+        );
         reaction(
             () => this.props.Document.windowheight,
             () => {
@@ -131,6 +140,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
         reaction(() => this.props.Document.barwidth,
             () => {
+                console.log("UPDATED");
+                this.rightbound = 4;
+                this.leftbound = 0;
                 this.initiallyPopulateThumbnails();
                 this.createticks();
 
@@ -211,11 +223,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerMove_RightResize = (e: PointerEvent): void => {
-
         e.stopPropagation();
         this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) + e.movementX;
         document.addEventListener("pointerup", this.onPointerUp);
-
     }
 
     @action
@@ -375,7 +385,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let markers = DocListCast(this.markerDocs);
         markers.forEach(doc => {
             let newscale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-            doc.initialLeft = (NumCast(doc.initialLeft) * newscale / NumCast(doc.initialScale)) - newscale * (this.leftbound - NumCast(doc.initialX));
+            doc.initialLeft = (NumCast(doc.initialLeft) * (newscale / NumCast(doc.initialScale)));
+            //doc.initialLeft = (NumCast(doc.initialLeft) * newscale / NumCast(doc.initialScale)) - newscale * (this.leftbound - NumCast(doc.initialX));
             doc.initialX = this.leftbound;
             doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale));
             doc.initialScale = newscale;
@@ -469,7 +480,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    private _values: DocValuePair<number>[] = [];
+    private _values: DocValuePair<number>[] = [{ childDoc: undefined, value: 0 }];
     @observable private thumbnails: Node[] = [];
     private filterDocs = (thumbnail: Node[]): Node[] => {
         let thumbnails = [];
@@ -583,7 +594,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         this._values = sortedPairs;
 
-
         let { value: first } = sortedPairs[0];
         for (const { value, childDoc } of sortedPairs) {
             this.thumbnails.push({
@@ -616,22 +626,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     updateThumbnailValues() {
-        // let leftval = 0;
-
-        // for (let i = 0; i < this.thumbnails.length; i++) {
-        //     leftval = ((((this._range * 0.05) + this._values[i].value - this._values[0].value) * this.barwidth / (this._range * 1.1)) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound)));
-        //     let select = false;
-        //     let newNode = {
-        //         mapleft: this.thumbnails[i].mapleft, horizontalPos: leftval, doc: this.thumbnails[i].doc, row: Math.round(this.rowval.length / 2) - 1, select: select
-        //     } as Node;
-        //     this.thumbnails[i] = newNode;
-        // }
-        // this.thumbnails = this.filterDocs(this.thumbnails);
-        // console.log(this.thumbnails.length);
         this.removeOverlap();
     }
-
-    private thumbnailrenders: Thumbnail[] | undefined;
 
     @action
     removeOverlap() {
@@ -712,12 +708,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private tickrefs: React.RefObject<HTMLDivElement>[] = [];
-    //@observable
     private tickvals: Tick[] = [];
     createticks = () => {
         //Creates the array of tick marks.
         console.log("CREATING TICKS!");
-
         let counter = 0;
         this.tickvals = [];
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
@@ -746,9 +740,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     createRows(number?: number) {
-        //let adjust = 0;
-        //this.screenref.current ? adjust = this.screenref.current.getBoundingClientRect().height : null;
-
         this.rowval = [];
         this.windowheight = this.props.PanelHeight();
         for (let i = 0; i < this.windowheight; i
@@ -800,7 +791,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-
     @action
     onPointerMove_AdjustScale = (e: PointerEvent): void => {
         this.downbool = false;
@@ -827,7 +817,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             return NumCast(doc.leftbound);
         } else {
             return 0;
-            //doc.leftbound = 0;
         }
         return NumCast(doc.leftbound);
     }
@@ -843,8 +832,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             return NumCast(doc.rightbound);
         } else {
-            return 0;
-            //doc.rightbound = 0;
+            return 4;
         }
         return NumCast(doc.rightbound);
     }
@@ -856,18 +844,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private get barwidth() {
         let doc = this.props.Document;
-        let width = 0;
-        if (doc.bardwith) {
-            width = NumCast(doc.barwidth);
-        }
-        else {
-            width = this.props.PanelWidth();
-        }
-        // const { current } = this.barref;
-        // if (current) {
-        //     doc.barwidth = current.getBoundingClientRect().width;
-        // }
-        return width;
+        doc.barwidth = this.props.PanelWidth();
+        return NumCast(doc.barwidth);
     }
 
     private set windowheight(number) {
@@ -988,14 +966,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private set minvalue(number) {
-        //this.props.Document.minvalue = this._values[0] - this._range * 0.05;
         this.props.Document.minvalue = number;
     }
 
-    @action
-    updateWidth() {
-        this.barwidth = (this.barref.current ? this.barref.current.getBoundingClientRect().width : (952));
-    }
 
     @action
     leftboundSet = (number: number) => {
@@ -1034,7 +1007,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let leftval = 0;
         if (this.screenref.current) {
 
-            leftval = (e.pageX - this.screenref.current.getBoundingClientRect().left);
+            leftval = (e.pageX - this.screenref.current.getBoundingClientRect().left + this.leftbound * this.nodeoffset);
         }
         let mintick: React.RefObject<HTMLDivElement>;
 
@@ -1230,7 +1203,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         //this.createticks();
         document.addEventListener("pointerup", this.onPointerUp);
-        this.markerrender();
     }
 
     @action
@@ -1316,7 +1288,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.leftbound = (newx + newx2);
             this.rightbound = (4);
         }
-        //this.createticks();
         e.stopPropagation();
     }
 
@@ -1339,7 +1310,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    @computed
     private get nodeoffset() {
         return this.barwidth / (this.barwidth - this.leftbound - this.rightbound);
     }
@@ -1395,9 +1365,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             />
                         )
                         }
-                        {/* <div className="HELP">
-                            {this.thumbnailrenders}
-                        </div> */}
                         {this.markerDocs.map(d => this.createmarker(d as Doc))}
                         <div onPointerDown={this.onPointerDown_Timeline} style={{
                             position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], height: this.rowscale, width: "1000%", borderTop: "1px solid black"
@@ -1416,7 +1383,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                                 top: "25%", left: item.mapleft + "px", width: "5px", border: "3px solid"
                             }}>
                         </div>)}
-                        {/*this.markermap*/}
                         <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.leftbound, height: "100%" }}></div>
                         <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", left: this.props.PanelWidth() - this.rightbound, height: "100%", zIndex: 100 }}></div>
                         <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.leftbound, width: this.barwidth - this.rightbound - this.leftbound, height: "100%", position: "absolute" }}>

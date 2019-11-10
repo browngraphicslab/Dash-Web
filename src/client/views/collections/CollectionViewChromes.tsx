@@ -1123,8 +1123,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                             </div>
                         </div>
                     </div>
-                    <input className="update" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" />
-                    {/* <input className="update" type="checkbox" onChange={this.toggleUpdate} id="add-menu-toggle" /> */}
+                    <input className="update" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" value="Visible rows" />
                 </div >
             </div>
         );

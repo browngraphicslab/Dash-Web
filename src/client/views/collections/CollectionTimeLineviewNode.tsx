@@ -86,16 +86,16 @@ export class
     }
     @action
     toggleSelection(e: React.PointerEvent) {
-        e.stopPropagation();
-        this.selectclass = !this.selectclass;
-        if (e.button === 2) {
-            e.preventDefault();
-            this.props.createportal();
-        }
-        else if (this.props.update === true) {
-            document.addEventListener("pointermove", (this.adjust));
-            document.addEventListener("pointerup", (this.onPointerUp));
-        }
+        // e.stopPropagation();
+        // this.selectclass = !this.selectclass;
+        // if (e.button === 2) {
+        //     e.preventDefault();
+        //     this.props.createportal();
+        // }
+        // else if (this.props.update === true) {
+        //     document.addEventListener("pointermove", (this.adjust));
+        //     document.addEventListener("pointerup", (this.onPointerUp));
+        // }
 
     }
 
@@ -175,16 +175,29 @@ export class
         this.left = number;
     }
 
+    @observable
+    private visible: boolean = false;
+
+    @action
+    private setvisible() {
+        this.visible = true;
+        console.log(this.visible);
+    }
+    @action
+    private setvisible2() {
+        this.visible = false;
+        console.log(this.visible);
+    }
     render() {
         this.maketransition();
         this.getCaption();
         console.log("RENDER", this.props.doc[Id]);
         return (
             <div>
-                <div onPointerDown={(e) => this.toggleSelection(e)} style={{
+                <div onPointerEnter={() => this.setvisible()} onPointerLeave={() => this.setvisible2()} onPointerDown={(e) => this.toggleSelection(e)} style={{
                     zIndex: 1, transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval * this.props.transform, top: this.props.top, width: this.props.scale, height: this.props.scale,
                 }}>
-                    <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
+                    <div className="unselected" style={{ position: "absolute", zIndex: 11, width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
                             <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
@@ -192,6 +205,9 @@ export class
                             </div>
                         </div>
                     </div>
+                </div>
+                <div className="hover" style={{ position: "absolute", zIndex: 999, top: this.props.top - this.props.scale * 3, left: this.props.leftval * this.props.transform + this.props.scale, visibility: this.visible === true ? "visible" : "hidden" }}>
+                    {this.documentDisplay(this.props.doc, this.props.scale * 4, this.props.scale * 4)}
                 </div>
                 <div ref={this.classref} className={this.selectclass === true ? "selection " : "unselection"} style={{
                     zIndex: 98, position: "absolute", height: "100%",
