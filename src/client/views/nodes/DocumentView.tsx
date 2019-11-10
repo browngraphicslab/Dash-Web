@@ -634,7 +634,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     render() {
         if (!this.props.Document) return (null);
-        trace();
+        // trace();
         const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;

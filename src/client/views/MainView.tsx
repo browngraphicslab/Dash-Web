@@ -39,6 +39,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { Scripting } from '../util/Scripting';
 import { LinkManager } from '../util/LinkManager';
 import { AudioBox } from './nodes/AudioBox';
+import SettingsManager from '../util/SettingsManager';
 
 @observer
 export class MainView extends React.Component {
@@ -412,6 +413,9 @@ export class MainView extends React.Component {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}>
                 </DocumentView>
+                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                    Settings
+                </button>
                 <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
@@ -507,6 +511,7 @@ export class MainView extends React.Component {
         return (<div className="mainView-container">
             <DictationOverlay />
             <SharingManager />
+            <SettingsManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
             {this.mainContent}
