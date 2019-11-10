@@ -83,7 +83,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Tools", targetContainer: sidebarContainer,
+            width: 35, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, lockedPosition: true, chromeStatus: "disabled", title: "tools stack"
             }),
@@ -108,19 +108,19 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library",
+            width: 50, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Library", fontSize: 10,
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
                 title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
             }),
             targetContainer: sidebarContainer,
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
         });
     }
 
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Search",
+            width: 50, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Search", fontSize: 10,
             sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
             }),

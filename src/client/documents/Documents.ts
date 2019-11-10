@@ -110,6 +110,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
+    color?: string;
     // [key: string]: Opt<Field>;
 }
 
