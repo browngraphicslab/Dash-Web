@@ -162,19 +162,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         let x = this._forceUpdate;
-        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, docView) => {
-            if (docView.props.renderDepth === 0 ||
-                Doc.AreProtosEqual(docView.props.Document, CurrentUserUtils.UserDocument)) {
+        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+            if (documentView.props.renderDepth === 0 ||
+                Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
-            let transform = (docView.props.ScreenToLocalTransform().scale(docView.props.ContentScaling())).inverse();
+            let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             if (transform.TranslateX === 0 && transform.TranslateY === 0) {
                 setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
                 return this._lastBox;
             }
 
             var [sptX, sptY] = transform.transformPoint(0, 0);
-            let [bptX, bptY] = transform.transformPoint(docView.props.PanelWidth(), docView.props.PanelHeight());
+            let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
@@ -205,7 +205,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onBackgroundUp);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
             handlers: { dragComplete: action(() => this._hidden = this.Interacting = false) },
             hideSource: true
         });
@@ -564,7 +564,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
                 {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                {(SelectionManager.SelectedDocuments().length === 1) ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
+                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
@@ -614,7 +614,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
                 <div className="link-button-container">
-                    {(SelectionManager.SelectedDocuments.length && SelectionManager.SelectedDocuments()[0]) ? <DocumentButtonBar views={SelectionManager.SelectedDocuments()} /> : (null)}
+                    <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
                 </div>
             </div >
         </div>
