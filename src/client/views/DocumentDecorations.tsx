@@ -24,7 +24,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
-import { StrokeData } from '../../new_fields/InkField';
+import { PointData } from '../../new_fields/InkField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -162,44 +162,23 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         let x = this._forceUpdate;
-        this._lastBox = SelectionManager.AllSelected().reduce((bounds, docViewOrInk) => {
-            if (docViewOrInk instanceof DocumentView) {
-                if (docViewOrInk.props.renderDepth === 0 ||
-                    Doc.AreProtosEqual(docViewOrInk.props.Document, CurrentUserUtils.UserDocument)) {
-                    return bounds;
-                }
-                let transform = (docViewOrInk.props.ScreenToLocalTransform().scale(docViewOrInk.props.ContentScaling())).inverse();
-                if (transform.TranslateX === 0 && transform.TranslateY === 0) {
-                    setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
-                    return this._lastBox;
-                }
+        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, docView) => {
+            if (docView.props.renderDepth === 0 ||
+                Doc.AreProtosEqual(docView.props.Document, CurrentUserUtils.UserDocument)) {
+                return bounds;
+            }
+            let transform = (docView.props.ScreenToLocalTransform().scale(docView.props.ContentScaling())).inverse();
+            if (transform.TranslateX === 0 && transform.TranslateY === 0) {
+                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
+                return this._lastBox;
+            }
 
-                var [sptX, sptY] = transform.transformPoint(0, 0);
-                let [bptX, bptY] = transform.transformPoint(docViewOrInk.props.PanelWidth(), docViewOrInk.props.PanelHeight());
-                return {
-                    x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-                    r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-                };
-            }
-            else {
-                let left = bounds.x;
-                let top = bounds.y;
-                let right = bounds.r;
-                let bottom = bounds.b;
-                let ink;
-                docViewOrInk.Ink.forEach((value: StrokeData, key: string) => {
-                    value.pathData.map(val => {
-                        ink = docViewOrInk.Document.ink;
-                        left = Math.min(val.x, left);
-                        top = Math.min(val.y, top);
-                        right = Math.max(val.x, right);
-                        bottom = Math.max(val.y, bottom);
-                    });
-                });
-                return {
-                    x: left, y: top, r: right, b: bottom
-                };
-            }
+            var [sptX, sptY] = transform.transformPoint(0, 0);
+            let [bptX, bptY] = transform.transformPoint(docView.props.PanelWidth(), docView.props.PanelHeight());
+            return {
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+            };
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
         return this._lastBox;
     }
@@ -226,7 +205,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onBackgroundUp);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
-        DragManager.StartDocumentDrag(SelectionManager.AllSelected().map(docOrInk => docOrInk instanceof DocumentView ? docOrInk.ContentDiv! : (document.createElement("div"))), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: { dragComplete: action(() => this._hidden = this.Interacting = false) },
             hideSource: true
         });
@@ -550,21 +529,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @computed
     get selectionTitle(): string {
-        if (SelectionManager.AllSelected().length === 1) {
-            let selected = SelectionManager.AllSelected()[0];
-            if (selected instanceof DocumentView) {
-                let field = selected.props.Document[this._fieldKey];
-                if (typeof field === "string") {
-                    return field;
-                }
-                else if (typeof field === "number") {
-                    return field.toString();
-                }
+        if (SelectionManager.SelectedDocuments().length === 1) {
+            let selected = SelectionManager.SelectedDocuments()[0];
+            let field = selected.props.Document[this._fieldKey];
+            if (typeof field === "string") {
+                return field;
             }
-            else {
-                return "-ink strokes-";
+            else if (typeof field === "number") {
+                return field.toString();
             }
-        } else if (SelectionManager.AllSelected().length > 1) {
+        } else if (SelectionManager.SelectedDocuments().length > 1) {
             return "-multiple-";
         }
         return "-unset-";
@@ -590,7 +564,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
                 {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                {(SelectionManager.SelectedDocuments().length === 1 && SelectionManager.SelectedInk().length === 0) ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
+                {(SelectionManager.SelectedDocuments().length === 1) ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
@@ -611,7 +585,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.AllSelected().length > 1 ? 900 : 0,
+                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             <div className="documentDecorations-container" ref={this.setTextBar} style={{

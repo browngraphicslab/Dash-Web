@@ -7,7 +7,7 @@ import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
 import { UndoManager } from "../util/UndoManager";
-import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
+import { PointData, InkField, InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 import { Touchable } from "./Touchable";
@@ -26,15 +26,15 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
     maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
     @observable inkMidX: number = 0;
     @observable inkMidY: number = 0;
-    private previousState?: Map<string, StrokeData>;
+    private previousState?: Map<string, PointData>;
     private _currentStrokeId: string = "";
-    public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
+    public static IntersectStrokeRect(stroke: PointData, selRect: { left: number, top: number, width: number, height: number }): boolean {
         return stroke.pathData.reduce((inside: boolean, val) => inside ||
             (selRect.left < val.x && selRect.left + selRect.width > val.x &&
                 selRect.top < val.y && selRect.top + selRect.height > val.y)
             , false);
     }
-    public static StrokeRect(stroke: StrokeData): { left: number, top: number, right: number, bottom: number } {
+    public static StrokeRect(stroke: PointData): { left: number, top: number, right: number, bottom: number } {
         return stroke.pathData.reduce((bounds: { left: number, top: number, right: number, bottom: number }, val) =>
             ({
                 left: Math.min(bounds.left, val.x), top: Math.min(bounds.top, val.y),
@@ -58,12 +58,12 @@ export class InkingCanvas extends Touchable<InkCanvasProps> {
     }
 
     @computed
-    get inkData(): Map<string, StrokeData> {
+    get inkData(): Map<string, PointData> {
         let map = Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField);
         return !map ? new Map : new Map(map.inkData);
     }
 
-    set inkData(value: Map<string, StrokeData>) {
+    set inkData(value: Map<string, PointData>) {
         this.props.AnnotationDocument[this.props.inkFieldKey] = new InkField(value);
     }
 

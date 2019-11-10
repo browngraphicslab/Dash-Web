@@ -48,6 +48,8 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
+import { InkingStroke } from "../views/InkingStroke";
+import { InkField } from "../../new_fields/InkField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -107,6 +109,7 @@ export interface DocumentOptions {
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
+    strokeWidth?: number;
     // [key: string]: Opt<Field>;
 }
 
@@ -209,6 +212,9 @@ export namespace Docs {
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: data }
             }],
+            [DocumentType.INK, {
+                layout: { view: InkingStroke, dataField: data }
+            }]
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -411,8 +417,12 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
-        export function InkDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.INK), "", options);
+        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { x: number, y: number }[], options: DocumentOptions = {}) {
+            let doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
+            doc.color = color;
+            doc.strokeWidth = strokeWidth;
+            doc.tool = tool;
+            return doc;
         }
 
         export function IconDocument(icon: string, options: DocumentOptions = {}) {

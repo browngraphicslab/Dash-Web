@@ -5,7 +5,7 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkField, StrokeData, InkTool } from "../../../../new_fields/InkField";
+import { InkField, PointData, InkTool } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
@@ -40,6 +40,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import PDFMenu from "../../pdf/PDFMenu";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { InkingControl } from "../../InkingControl";
+import { InkingStroke, CreatePolyline } from "../../InkingStroke";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -108,10 +109,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         added && this.updateCluster(newBox);
         return added;
     }
-    private selectDocuments = (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => {
+    private selectDocuments = (docs: Doc[]) => {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
-        ink.forEach(i => SelectionManager.SelectInk(i, true));
     }
     public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
@@ -284,14 +284,25 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 e.preventDefault();
 
                 if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
-                    this._points.push({ x: e.pageX, y: e.pageY });
+                    let point = this.getTransform().transformPoint(e.pageX, e.pageY);
+                    this._points.push({ x: point[0], y: point[1] });
                 }
             }
         }
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) return;
+
+        if (this._points.length > 1) {
+            let B = this.svgBounds;
+            let points = this._points.map(p => ({ x: p.x - B.left, y: p.y - B.top }));
+            let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
+            this.addDocument(inkDoc);
+            this._points = [];
+        }
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.removeEventListener("touchmove", this.onTouch);
@@ -324,11 +335,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }, [[minx, maxx], [miny, maxy]]);
             let ink = this.extensionDoc && Cast(this.extensionDoc.ink, InkField);
             if (ink && ink.inkData) {
-                ink.inkData.forEach((value: StrokeData, key: string) => {
-                    let bounds = InkingCanvas.StrokeRect(value);
-                    ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
-                    ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
-                });
+                // ink.inkData.forEach((value: PointData, key: string) => {
+                //     let bounds = InkingCanvas.StrokeRect(value);
+                //     ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
+                //     ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
+                // });
             }
 
             let cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
@@ -363,8 +374,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
                 this.pan(e);
             }
-            if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
-                this._points.push({ x: e.clientX, y: e.clientY });
+            else if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
+                let point = this.getTransform().transformPoint(e.clientX, e.clientY);
+                this._points.push({ x: point[0], y: point[1] });
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
@@ -470,7 +482,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         else if (this.props.active()) {
             e.stopPropagation();
-            this.zoom(e.clientX, e.clientY, e.deltaY)
+            this.zoom(e.clientX, e.clientY, e.deltaY);
         }
     }
 
@@ -790,6 +802,31 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ...this.views,
         ];
     }
+
+    @computed get svgBounds() {
+        let xs = this._points.map(p => p.x);
+        let ys = this._points.map(p => p.y);
+        let right = Math.max(...xs);
+        let left = Math.min(...xs);
+        let bottom = Math.max(...ys);
+        let top = Math.min(...ys);
+        return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
+    }
+
+    @computed get currentStroke() {
+        if (this._points.length <= 1) {
+            return (null);
+        }
+
+        let B = this.svgBounds;
+
+        return (
+            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)` }}>
+                {CreatePolyline(this._points, B.left, B.top)}
+            </svg>
+        );
+    }
+
     render() {
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.Document.fitX = this.contentBounds && this.contentBounds.x;
@@ -808,9 +845,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         {!this.extensionDoc ? (null) :
                             // <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
-                            this.childViews
+                            this.childViews()
                             // </InkingCanvas>
                         }
+                        {this.currentStroke}
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>

@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../../new_fields/Doc";
-import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { InkField, PointData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
@@ -198,10 +198,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.Document);
             }
-            let inkselect = this.ink ? this.marqueeInkSelect(this.ink.inkData) : new Map();
-            let inks = inkselect.size ? [{ Document: this.inkDoc, Ink: inkselect }] : [];
-            let docs = mselect.length ? mselect : (inks.length ? [] : [this.props.Document]);
-            this.props.selectDocuments(docs, inks);
+            // let inkselect = this.ink ? this.marqueeInkSelect(this.ink.inkData) : new Map();
+            // let inks = inkselect.size ? [{ Document: this.inkDoc, Ink: inkselect }] : [];
+            let docs = mselect.length ? mselect : [this.props.Document];
+            this.props.selectDocuments(docs, []);
         }
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
@@ -217,7 +217,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.hideMarquee();
             MarqueeOptionsMenu.Instance.fadeOut(true);
             document.removeEventListener("pointerdown", hideMarquee);
-        }
+        };
         document.addEventListener("pointerdown", hideMarquee);
 
         if (e.altKey) {
@@ -294,7 +294,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     delete = () => {
         this.marqueeSelect(false).map(d => this.props.removeDocument(d));
         if (this.ink) {
-            this.marqueeInkDelete(this.ink.inkData);
+            // this.marqueeInkDelete(this.ink.inkData);
         }
         SelectionManager.DeselectAll();
         this.cleanupInteractions(false);
@@ -336,8 +336,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             title: "a nested collection",
         });
         let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
-        dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
-        this.marqueeInkDelete(inkData);
+        // dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
+        // this.marqueeInkDelete(inkData);
         this.hideMarquee();
         return newCollection;
     }
@@ -422,45 +422,45 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.cleanupInteractions(false);
         }
     }
-    @action
-    marqueeInkSelect(ink: Map<any, any>) {
-        let idata = new Map();
-        let centerShiftX = 0 - (this.Bounds.left + this.Bounds.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
-        let centerShiftY = 0 - (this.Bounds.top + this.Bounds.height / 2);
-        ink.forEach((value: StrokeData, key: string, map: any) => {
-            if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
-                // let transform = this.props.container.props.ScreenToLocalTransform().scale(this.props.container.props.ContentScaling());
-                idata.set(key,
-                    {
-                        pathData: value.pathData.map(val => {
-                            let tVal = this.props.getTransform().inverse().transformPoint(val.x, val.y);
-                            return { x: tVal[0], y: tVal[1] };
-                            // return { x: val.x + centerShiftX, y: val.y + centerShiftY }
-                        }),
-                        color: value.color,
-                        width: value.width,
-                        tool: value.tool,
-                        page: -1
-                    });
-            }
-        });
-        // InkSelectDecorations.Instance.SetSelected(idata);
-        return idata;
-    }
+    // @action
+    // marqueeInkSelect(ink: Map<any, any>) {
+    //     let idata = new Map();
+    //     let centerShiftX = 0 - (this.Bounds.left + this.Bounds.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
+    //     let centerShiftY = 0 - (this.Bounds.top + this.Bounds.height / 2);
+    //     ink.forEach((value: PointData, key: string, map: any) => {
+    //         if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
+    //             // let transform = this.props.container.props.ScreenToLocalTransform().scale(this.props.container.props.ContentScaling());
+    //             idata.set(key,
+    //                 {
+    //                     pathData: value.pathData.map(val => {
+    //                         let tVal = this.props.getTransform().inverse().transformPoint(val.x, val.y);
+    //                         return { x: tVal[0], y: tVal[1] };
+    //                         // return { x: val.x + centerShiftX, y: val.y + centerShiftY }
+    //                     }),
+    //                     color: value.color,
+    //                     width: value.width,
+    //                     tool: value.tool,
+    //                     page: -1
+    //                 });
+    //         }
+    //     });
+    //     // InkSelectDecorations.Instance.SetSelected(idata);
+    //     return idata;
+    // }
 
-    @action
-    marqueeInkDelete(ink?: Map<any, any>) {
-        // bcz: this appears to work but when you restart all the deleted strokes come back -- InkField isn't observing its changes so they aren't written to the DB.
-        // ink.forEach((value: StrokeData, key: string, map: any) =>
-        //     InkingCanvas.IntersectStrokeRect(value, this.Bounds) && ink.delete(key));
+    // @action
+    // marqueeInkDelete(ink?: Map<any, any>) {
+    //     // bcz: this appears to work but when you restart all the deleted strokes come back -- InkField isn't observing its changes so they aren't written to the DB.
+    //     // ink.forEach((value: StrokeData, key: string, map: any) =>
+    //     //     InkingCanvas.IntersectStrokeRect(value, this.Bounds) && ink.delete(key));
 
-        if (ink) {
-            let idata = new Map();
-            ink.forEach((value: StrokeData, key: string, map: any) =>
-                !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
-            this.ink = new InkField(idata);
-        }
-    }
+    //     if (ink) {
+    //         let idata = new Map();
+    //         ink.forEach((value: PointData, key: string, map: any) =>
+    //             !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
+    //         this.ink = new InkField(idata);
+    //     }
+    // }
 
     marqueeSelect(selectBackgrounds: boolean = true) {
         let selRect = this.Bounds;

@@ -1,6 +1,6 @@
 import React = require("react");
 import { Touchable } from "./Touchable";
-import { StrokeData } from "../../new_fields/InkField";
+import { PointData } from "../../new_fields/InkField";
 import { observer } from "mobx-react";
 import { computed, observable, action, runInAction } from "mobx";
 import "./InkSelectDecorations.scss"
@@ -33,13 +33,13 @@ export default class InkSelectDecorations extends Touchable {
         let top = Number.MAX_VALUE;
         let right = -Number.MAX_VALUE;
         let bottom = -Number.MAX_VALUE;
-        this._selectedInkNodes.forEach((value: StrokeData, key: string) => {
-            value.pathData.map(val => {
-                left = Math.min(val.x, left);
-                top = Math.min(val.y, top);
-                right = Math.max(val.x, right);
-                bottom = Math.max(val.y, bottom);
-            });
+        this._selectedInkNodes.forEach((value: PointData, key: string) => {
+            // value.pathData.map(val => {
+            //     left = Math.min(val.x, left);
+            //     top = Math.min(val.y, top);
+            //     right = Math.max(val.x, right);
+            //     bottom = Math.max(val.y, bottom);
+            // });
         });
         return { x: left, y: top, b: bottom, r: right };
     }
