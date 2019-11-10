@@ -19,6 +19,7 @@ export namespace DashWebRTC {
     let turnReady;
     let localVideo: HTMLVideoElement;
     let remoteVideo: HTMLVideoElement;
+    let curRoom: string = "";
 
 
     let pcConfig = {
@@ -34,6 +35,8 @@ export namespace DashWebRTC {
     };
 
     export function init(room: string) {
+
+        curRoom = room;
 
         if (room !== '') {
             DocServer._socket.emit('create or join', room);
@@ -73,7 +76,6 @@ export namespace DashWebRTC {
             if (message.message === 'got user media') {
                 maybeStart();
             } else if (message.message.type === 'offer') {
-                console.log("I have entered here bro!!!");
                 if (!isInitiator && !isStarted) {
                     maybeStart();
                 }
@@ -82,7 +84,7 @@ export namespace DashWebRTC {
             } else if (message.message.type === 'answer' && isStarted) {
                 pc.setRemoteDescription(new RTCSessionDescription(message.message));
             } else if (message.message.type === 'candidate' && isStarted) {
-                var candidate = new RTCIceCandidate({
+                let candidate = new RTCIceCandidate({
                     sdpMLineIndex: message.message.label,
                     candidate: message.message.candidate
                 });
@@ -123,7 +125,7 @@ export namespace DashWebRTC {
 
     function sendMessage(message: any) {
         console.log('Client sending message: ', message);
-        Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: "" });
+        Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: curRoom });
         //DocServer._socket.emit('message', message);
     }
 
