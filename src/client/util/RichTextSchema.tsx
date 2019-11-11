@@ -241,6 +241,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         },
         toDOM(node: Node<any>) {
             const bs = node.attrs.bulletStyle;
+            if (node.attrs.mapStyle === "bullet") return ['ul', 0];
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
@@ -273,7 +274,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             const bs = node.attrs.bulletStyle;
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
-            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            let map = node.attrs.mapStyle === "decimal" ? decMap : node.attrs.mapStyle === "multi" ? multiMap : "";
             return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
             //return ["li", { class: `${map}` }, 0];
         }

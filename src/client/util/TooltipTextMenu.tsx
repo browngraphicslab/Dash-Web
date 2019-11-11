@@ -171,7 +171,8 @@ export class TooltipTextMenu {
 
         //list types
         this.listTypeToIcon = new Map();
-        this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
+        //this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "bullet" }), ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1");
         this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A");
         // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
@@ -539,14 +540,14 @@ export class TooltipTextMenu {
         } else {
             var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
             if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                let tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
                 view.dispatch(tx2);
             })) {
                 let tx2 = view.state.tr;
-                let tx3 = nodeType ? updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle) : tx2;
+                let tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
