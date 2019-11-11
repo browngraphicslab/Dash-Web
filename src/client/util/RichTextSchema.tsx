@@ -483,72 +483,26 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM() { return codeDOM; }
     },
 
-    // pFontFamily: {
-    //     attrs: {
-    //         style: { default: 'font-family: "Times New Roman", Times, serif;' },
-    //     },
-    //     parseDOM: [{
-    //         tag: "span", getAttrs(dom: any) {
-    //             if (getComputedStyle(dom).font === "Times New Roman") return { style: `font-family: "Times New Roman", Times, serif;` };
-    //             if (getComputedStyle(dom).font === "Arial, Helvetica") return { style: `font-family: Arial, Helvetica, sans-serif;` };
-    //             if (getComputedStyle(dom).font === "Georgia") return { style: `font-family: Georgia, serif;` };
-    //             if (getComputedStyle(dom).font === "Comic Sans") return { style: `font-family: "Comic Sans MS", cursive, sans-serif;` };
-    //             if (getComputedStyle(dom).font === "Tahoma, Geneva") return { style: `font-family: Tahoma, Geneva, sans-serif;` };
-    //         }
-    //     }],
-    //     toDOM: (node: any) => ['span', {
-    //         style: node.attrs.style
-    //     }]
-    // },
-
-
     /* FONTS */
-    timesNewRoman: {
-        parseDOM: [{ style: 'font-family: "Times New Roman", Times, serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: "Times New Roman", Times, serif;'
-        }]
-    },
-
-    arial: {
-        parseDOM: [{ style: 'font-family: Arial, Helvetica, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Arial, Helvetica, sans-serif;'
-        }]
-    },
-
-    georgia: {
-        parseDOM: [{ style: 'font-family: Georgia, serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Georgia, serif;'
-        }]
-    },
-
-    comicSans: {
-        parseDOM: [{ style: 'font-family: "Comic Sans MS", cursive, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: "Comic Sans MS", cursive, sans-serif;'
-        }]
-    },
-
-    tahoma: {
-        parseDOM: [{ style: 'font-family: Tahoma, Geneva, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Tahoma, Geneva, sans-serif;'
-        }]
-    },
-
-    impact: {
-        parseDOM: [{ style: 'font-family: Impact, Charcoal, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Impact, Charcoal, sans-serif;'
-        }]
-    },
-
-    crimson: {
-        parseDOM: [{ style: 'font-family: "Crimson Text", sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: "Crimson Text", sans-serif;'
+    pFontFamily: {
+        attrs: {
+            family: { default: "Crimson Text" },
+        },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                let cstyle = getComputedStyle(dom);
+                if (cstyle.font) {
+                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
+                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
+                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
+                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
+                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
+                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
+                }
+            }
+        }],
+        toDOM: (node) => ['span', {
+            style: `font-family: "${node.attrs.family}";`
         }]
     },
 
@@ -572,76 +526,6 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ style: 'font-size: 10px;' }],
         toDOM: (node) => ['span', {
             style: `font-size: ${node.attrs.fontSize}px;`
-        }]
-    },
-
-    p10: {
-        parseDOM: [{ style: 'font-size: 10px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 10px;'
-        }]
-    },
-
-    p12: {
-        parseDOM: [{ style: 'font-size: 12px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 12px;'
-        }]
-    },
-
-    p14: {
-        parseDOM: [{ style: 'font-size: 14px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 14px;'
-        }]
-    },
-
-    p16: {
-        parseDOM: [{ style: 'font-size: 16px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 16px;'
-        }]
-    },
-
-    p18: {
-        parseDOM: [{ style: 'font-size: 18px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 18px;'
-        }]
-    },
-
-    p20: {
-        parseDOM: [{ style: 'font-size: 20px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 20px;'
-        }]
-    },
-
-    p24: {
-        parseDOM: [{ style: 'font-size: 24px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 24px;'
-        }]
-    },
-
-    p32: {
-        parseDOM: [{ style: 'font-size: 32px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 32px;'
-        }]
-    },
-
-    p48: {
-        parseDOM: [{ style: 'font-size: 48px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 48px;'
-        }]
-    },
-
-    p72: {
-        parseDOM: [{ style: 'font-size: 72px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 72px;'
         }]
     },
 };

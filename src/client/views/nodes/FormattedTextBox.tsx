@@ -93,8 +93,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     private _pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @observable private _fontSize = 13;
-    @observable private _fontFamily = "Arial";
+    @observable private _ruleFontSize = 0;
+    @observable private _ruleFontFamily = "Arial";
     @observable private _fontAlign = "";
     @observable private _entered = false;
     public static SelectOnLoad = "";
@@ -187,9 +187,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             }
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
-                FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
-            }
 
             let tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
@@ -552,8 +549,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             return undefined;
         },
             action((rules: any) => {
-                this._fontFamily = rules ? rules.font : "Arial";
-                this._fontSize = rules ? rules.size : NumCast(this.layoutDoc.fontSize, 13);
+                this._ruleFontFamily = rules ? rules.font : "Arial";
+                this._ruleFontSize = rules ? rules.size : 0;
                 rules && setTimeout(() => {
                     const view = this._editorView!;
                     if (this._proseRef) {
@@ -1035,8 +1032,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive,
-                    fontSize: this._fontSize,
-                    fontFamily: this._fontFamily,
+                    fontSize: this._ruleFontSize ? this._ruleFontSize : NumCast(this.layoutDoc.fontSize, 13),
+                    fontFamily: this._ruleFontFamily ? this._ruleFontFamily : StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
                 }}
                 onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}
