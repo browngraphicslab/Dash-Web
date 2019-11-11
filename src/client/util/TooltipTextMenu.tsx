@@ -531,8 +531,9 @@ export class TooltipTextMenu {
     }
 
     //remove all node typeand apply the passed-in one to the selected text
-    changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
+    changeToNodeType = (nodeType: NodeType | undefined) => {
         //remove oldif (nodeType) { //add new
+        let view = this.view;
         if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
         } else {
