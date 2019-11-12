@@ -884,38 +884,38 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
-        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
-            let href = (e.target as any).href;
-            let location: string;
-            if ((e.target as any).attributes.location) {
-                location = (e.target as any).attributes.location.value;
-            }
-            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
-            if (node) {
-                let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
-                if (link && !(link.attrs.docref && link.attrs.title)) {  // bcz: getting hacky.  this indicates that we clicked on a PDF excerpt quotation.  In this case, we don't want to follow the link (we follow only the actual hyperlink for the quotation which is handled above).
-                    href = link && link.attrs.href;
-                    location = link && link.attrs.location;
-                }
-            }
-            if (href) {
-                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    let linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    if (linkClicked) {
-                        DocServer.GetRefField(linkClicked).then(async linkDoc => {
-                            (linkDoc instanceof Doc) &&
-                                DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false);
-                        });
-                    }
-                } else {
-                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.layoutDoc.x, 0) + NumCast(this.layoutDoc.width, 0), y: NumCast(this.layoutDoc.y) });
-                    this.props.addDocument && this.props.addDocument(webDoc);
-                }
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        }
+        // if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+        //     let href = (e.target as any).href;
+        //     let location: string;
+        //     if ((e.target as any).attributes.location) {
+        //         location = (e.target as any).attributes.location.value;
+        //     }
+        //     let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+        //     let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
+        //     if (node) {
+        //         let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
+        //         if (link && !(link.attrs.docref && link.attrs.title)) {  // bcz: getting hacky.  this indicates that we clicked on a PDF excerpt quotation.  In this case, we don't want to follow the link (we follow only the actual hyperlink for the quotation which is handled above).
+        //             href = link && link.attrs.href;
+        //             location = link && link.attrs.location;
+        //         }
+        //     }
+        //     if (href) {
+        //         if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+        //             let linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+        //             if (linkClicked) {
+        //                 DocServer.GetRefField(linkClicked).then(async linkDoc => {
+        //                     (linkDoc instanceof Doc) &&
+        //                         DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false);
+        //                 });
+        //             }
+        //         } else {
+        //             let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.layoutDoc.x, 0) + NumCast(this.layoutDoc.width, 0), y: NumCast(this.layoutDoc.y) });
+        //             this.props.addDocument && this.props.addDocument(webDoc);
+        //         }
+        //         e.stopPropagation();
+        //         e.preventDefault();
+        //     }
+        // }
 
         this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey);
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);

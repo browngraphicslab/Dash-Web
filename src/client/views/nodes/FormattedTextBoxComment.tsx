@@ -9,6 +9,9 @@ import { Utils } from "../../../Utils";
 import { StrCast, Cast, FieldValue } from "../../../new_fields/Types";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { DocUtils } from "../../documents/Documents";
+import { isBuffer } from "util";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -52,6 +55,7 @@ export class FormattedTextBoxComment {
     static mark: Mark;
     static opened: boolean;
     static textBox: FormattedTextBox | undefined;
+    static linkDoc: Doc | undefined;
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
             const root = document.getElementById("root");
@@ -66,10 +70,15 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(input);
             FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
                 let keep = e.target && (e.target as any).type === "checkbox" ? true : false;
+                if (FormattedTextBoxComment.linkDoc && !keep && FormattedTextBoxComment.textBox) {
+                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, FormattedTextBoxComment.textBox.props.Document,
+                        (doc: Doc, maxLocation: string) => FormattedTextBoxComment.textBox!.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
+                }
                 FormattedTextBoxComment.opened = keep || !FormattedTextBoxComment.opened;
                 FormattedTextBoxComment.textBox && FormattedTextBoxComment.start !== undefined && FormattedTextBoxComment.textBox.setAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark,
                     FormattedTextBoxComment.opened, keep);
+                e.stopPropagation();
             };
             root && root.appendChild(FormattedTextBoxComment.tooltip);
         }
@@ -96,6 +105,7 @@ export class FormattedTextBoxComment {
             lastState.selection.eq(state.selection)) {
             return;
         }
+        FormattedTextBoxComment.linkDoc = undefined;
 
         const textBox = FormattedTextBoxComment.textBox;
         if (!textBox || !textBox.props) {
@@ -132,10 +142,11 @@ export class FormattedTextBoxComment {
                     let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
                         if (linkDoc instanceof Doc) {
+                            FormattedTextBoxComment.linkDoc = linkDoc;
                             let target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
-                            let ext = (target && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
+                            let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
                             let text = ext && StrCast(ext.text);
-                            ext && (FormattedTextBoxComment.tooltipText.textContent = "=> " + (text || StrCast(ext.title)));
+                            ext && (FormattedTextBoxComment.tooltipText.textContent = (target && target.type === DocumentType.PDFANNO ? "Quoted from " : "") + "=> " + (text || StrCast(ext.title)));
                         }
                     });
                 }
