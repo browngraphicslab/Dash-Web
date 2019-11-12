@@ -1,16 +1,12 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method, _error, _success, _invalid } from "../RouteManager";
-import { uploadDirectory, NewMediaItem } from "..";
-import { path } from "animejs";
-import { RouteStore } from "../RouteStore";
+import * as path from "path";
 import { GoogleApiServerUtils } from "../apis/google/GoogleApiServerUtils";
 import { BatchedArray, TimeUnit } from "array-batcher";
 import { GooglePhotosUploadUtils } from "../apis/google/GooglePhotosUploadUtils";
-import { MediaItem } from "../apis/google/SharedTypes";
 import { Opt } from "../../new_fields/Doc";
 import { DashUploadUtils } from "../DashUploadUtils";
 import { Database } from "../database";
-import { prefix } from "@fortawesome/free-solid-svg-icons";
 
 const authenticationError = "Unable to authenticate Google credentials before uploading to Google Photos!";
 const mediaError = "Unable to convert all uploaded bytes to media items!";
@@ -23,6 +19,17 @@ interface GooglePhotosUploadFailure {
     url: string;
     reason: string;
 }
+interface MediaItem {
+    baseUrl: string;
+    filename: string;
+}
+interface NewMediaItem {
+    description: string;
+    simpleMediaItem: {
+        uploadToken: string;
+    };
+}
+const prefix = "google_photos_";
 
 export default class GooglePhotosManager extends ApiManager {
 
@@ -30,20 +37,18 @@ export default class GooglePhotosManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: RouteStore.googlePhotosMediaUpload,
+            subscription: "/googlePhotosMediaUpload",
             onValidation: async ({ user, req, res }) => {
                 const { media } = req.body;
-
                 const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
                 if (!token) {
                     return _error(res, authenticationError);
                 }
-
                 let failed: GooglePhotosUploadFailure[] = [];
                 const batched = BatchedArray.from<GooglePhotosUploadUtils.UploadSource>(media, { batchSize: 25 });
                 const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
                     { magnitude: 100, unit: TimeUnit.Milliseconds },
-                    async (batch, collector, { completedBatches }) => {
+                    async (batch: any, collector: any, { completedBatches }: any) => {
                         for (let index = 0; index < batch.length; index++) {
                             const { url, description } = batch[index];
                             const fail = (reason: string) => failed.push({ reason, batch: completedBatches + 1, index, url });
@@ -59,13 +64,11 @@ export default class GooglePhotosManager extends ApiManager {
                         }
                     }
                 );
-
                 const failedCount = failed.length;
                 if (failedCount) {
                     console.error(`Unable to upload ${failedCount} image${failedCount === 1 ? "" : "s"} to Google's servers`);
                     console.log(failed.map(({ reason, batch, index, url }) => `@${batch}.${index}: ${url} failed:\n${reason}`).join('\n\n'));
                 }
-
                 return GooglePhotosUploadUtils.CreateMediaItems(token, newMediaItems, req.body.album).then(
                     results => _success(res, { results, failed }),
                     error => _error(res, mediaError, error)
@@ -75,7 +78,7 @@ export default class GooglePhotosManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: RouteStore.googlePhotosMediaDownload,
+            subscription: "/googlePhotosMediaDownload",
             onValidation: async ({ req, res }) => {
                 const contents: { mediaItems: MediaItem[] } = req.body;
                 let failed = 0;

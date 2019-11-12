@@ -4,10 +4,7 @@ import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
 import { Database } from './database';
 const serverPort = 4321;
-import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
-import { Opt } from '../new_fields/Doc';
 import { DashUploadUtils } from './DashUploadUtils';
-import { BatchedArray, TimeUnit } from 'array-batcher';
 import RouteSubscriber from './RouteSubscriber';
 import initializeServer from './Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
@@ -21,6 +18,8 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
+import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
+import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 
 export const publicDirectory = __dirname + "/public";
 export const filesDirectory = publicDirectory + "/files/";
@@ -64,7 +63,9 @@ function routeSetter(router: RouteManager) {
         new SearchManager(),
         new PDFManager(),
         new DeleteManager(),
-        new UtilManager()
+        new UtilManager(),
+        new GeneralGoogleManager(),
+        new GooglePhotosManager(),
     ].forEach(manager => manager.register(router));
 
     // initialize the web socket (bidirectional communication: if a user changes
