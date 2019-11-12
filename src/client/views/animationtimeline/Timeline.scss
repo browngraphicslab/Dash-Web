@@ -11,7 +11,7 @@
     flex-direction: row;
     justify-content: space-evenly;
     align-items: center;
-    top: 15px;
+    top: 20px;
     div{
         padding: 0px; 
         margin-left:10px; 
@@ -56,12 +56,13 @@
 }
 .time-input{
     height: 40px; 
-    width: 100px; 
+    width: 120px; 
     white-space: nowrap;
     font-size: 16px;
     color: grey;
     letter-spacing: 2px;
     text-transform: uppercase;
+    padding-left: 5px; 
     
 }
 .tick{

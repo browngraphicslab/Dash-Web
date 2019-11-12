@@ -572,11 +572,11 @@ export class Keyframe extends React.Component<IProps> {
                 keyframeDivs.push(
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>
-                        <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
+                        <div className="keyframeCircle" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
                             e.preventDefault();
                             e.stopPropagation();
                             this.makeKeyframeMenu(kf, e.nativeEvent); 
-                        }}></div>
+                        }} onDoubleClick={(e) => {e.preventDefault(); e.stopPropagation(); }}></div>
                     </div>
                 );
             }
@@ -595,7 +595,8 @@ export class Keyframe extends React.Component<IProps> {
     drawKeyframeDividers = () =>  {
         let keyframeDividers:JSX.Element[] = []; 
         DocListCast(this.regiondata.keyframes).forEach(kf => {
-            if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
+            let index = this.keyframes.indexOf(kf); 
+            if(index !== this.keyframes.length - 1 ) {
                 let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
                 let bodyRef = React.createRef<HTMLDivElement>(); 
                 let kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); 
@@ -606,8 +607,10 @@ export class Keyframe extends React.Component<IProps> {
                     onPointerOut={(e) => { e.preventDefault(); e.stopPropagation(); this.onContainerOut(e, bodyRef); }}
                     onContextMenu={(e) => {
                         e.preventDefault(); 
-                        e.stopPropagation(); 
-                        this._mouseToggled = true; 
+                        e.stopPropagation();
+                        if (index !== 0 || index !== this.keyframes.length - 2){
+                            this._mouseToggled = true; 
+                        }
                         this.makeRegionMenu(kf, e.nativeEvent); 
                     }}>
                     </div>

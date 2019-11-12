@@ -315,12 +315,12 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     private timelineToolBox = (scale: number) => {
-        let size = 50 * scale; //50 is default
+        let size = 40 * scale; //50 is default
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
-                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
-                <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
-                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>                
+                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px`, color:"grey"}} /> </div>
+                <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px`, color:"grey"}} /> </div>
+                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px`, color: "grey"}} /> </div>                
                 <div key="overview-text" className="animation-text">Timeline Overview</div>
                 <TimelineOverview isAuthoring = {BoolCast(this.props.Document.isAnimating)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
                 <div key="animation-text" className="animation-text">Mode: {this.props.Document.isAnimating ? "Authoring" : "Play"}</div>
@@ -358,12 +358,14 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
             roundToggleContainer.style.animationName = "turnoff";
+            roundToggleContainer.style.backgroundColor = "white"; 
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isAnimating = false;
         } else {
             roundToggle.style.transform = "translate(45px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
+            roundToggleContainer.style.backgroundColor = "green"; 
             timelineContainer.style.top = "0px"; 
             this.props.Document.isAnimating = true;
         }
