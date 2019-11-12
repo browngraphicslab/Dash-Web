@@ -1,5 +1,4 @@
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { ImageField } from "../../../new_fields/URLField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { Doc, Opt, DocListCastAsync } from "../../../new_fields/Doc";
@@ -307,7 +306,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await Networking.PostToServer(RouteStore.googlePhotosMediaDownload, body);
+            const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", body);
             return uploads;
         };
 
@@ -345,7 +344,7 @@ export namespace GooglePhotos {
                 media.push({ url, description });
             }
             if (media.length) {
-                const results = await Networking.PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                const results = await Networking.PostToServer("/googlePhotosMediaUpload", { media, album });
                 return results;
             }
         };

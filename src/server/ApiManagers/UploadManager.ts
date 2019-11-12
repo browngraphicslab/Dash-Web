@@ -6,7 +6,6 @@ var AdmZip = require('adm-zip');
 import * as path from 'path';
 import { createReadStream, createWriteStream, unlink, readFileSync } from "fs";
 import { publicDirectory, filesDirectory, Partitions } from "..";
-import { RouteStore } from "../RouteStore";
 import { Database } from "../database";
 import { DashUploadUtils } from "../DashUploadUtils";
 import { Opt } from "../../new_fields/Doc";
@@ -85,12 +84,8 @@ export default class UploadManager extends ApiManager {
                                     let dirname = path.dirname(entry.entryName) + "/";
                                     let extname = path.extname(entry.entryName);
                                     let basename = path.basename(entry.entryName).split(".")[0];
-                                    // zip.extractEntryTo(dirname + basename + "_o" + extname, __dirname + RouteStore.public, true, false);
-                                    // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
-                                    // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
-                                    // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
                                     try {
-                                        zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                                        zip.extractEntryTo(entry.entryName, publicDirectory, true, false);
                                         dirname = "/" + dirname;
 
                                         createReadStream(publicDirectory + dirname + basename + extname).pipe(createWriteStream(publicDirectory + dirname + basename + "_o" + extname));
@@ -131,7 +126,7 @@ export default class UploadManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: RouteStore.upload,
+            subscription: "/upload",
             onValidation: async ({ req, res }) => {
                 let form = new formidable.IncomingForm();
                 form.uploadDir = filesDirectory;
@@ -147,7 +142,7 @@ export default class UploadManager extends ApiManager {
                                 let dataBuffer = readFileSync(filesDirectory + filename);
                                 const result: ParsedPDF = await pdf(dataBuffer);
                                 await new Promise<void>((resolve, reject) => {
-                                    const path = filesDirectory + Partitions.PdfText + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
+                                    const path = filesDirectory + Partitions.pdf_text + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
                                     createWriteStream(path).write(result.text, error => {
                                         if (!error) {
                                             resolve();
@@ -171,7 +166,7 @@ export default class UploadManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: RouteStore.inspectImage,
+            subscription: "/inspectImage",
             onValidation: async ({ req, res }) => {
                 const { source } = req.body;
                 if (typeof source === "string") {
@@ -184,7 +179,7 @@ export default class UploadManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: RouteStore.dataUriToImage,
+            subscription: "/uploadURI",
             onValidation: ({ req, res }) => {
                 const uri = req.body.uri;
                 const filename = req.body.name;

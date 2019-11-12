@@ -1,6 +1,5 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied } from "../RouteManager";
-import { RouteStore } from "../RouteStore";
 import { WebSocket } from "../Websocket/Websocket";
 import { Database } from "../database";
 
@@ -10,25 +9,25 @@ export default class DeleteManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: RouteStore.delete,
+            subscription: "/delete",
             onValidation: async ({ res, isRelease }) => {
                 if (isRelease) {
                     return _permission_denied(res, deletionPermissionError);
                 }
                 await WebSocket.deleteFields();
-                res.redirect(RouteStore.home);
+                res.redirect("/home");
             }
         });
 
         register({
             method: Method.GET,
-            subscription: RouteStore.deleteAll,
+            subscription: "/deleteAll",
             onValidation: async ({ res, isRelease }) => {
                 if (isRelease) {
                     return _permission_denied(res, deletionPermissionError);
                 }
                 await WebSocket.deleteAll();
-                res.redirect(RouteStore.home);
+                res.redirect("/home");
             }
         });
 
@@ -41,7 +40,7 @@ export default class DeleteManager extends ApiManager {
                     return _permission_denied(res, deletionPermissionError);
                 }
                 await Database.Auxiliary.DeleteAll();
-                res.redirect(RouteStore.delete);
+                res.redirect("/delete");
             }
         });
 
@@ -53,7 +52,7 @@ export default class DeleteManager extends ApiManager {
                     return _permission_denied(res, deletionPermissionError);
                 }
                 await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
-                res.redirect(RouteStore.delete);
+                res.redirect("/delete");
             }
         });
 

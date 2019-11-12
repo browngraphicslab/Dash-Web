@@ -3,7 +3,6 @@ import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
 import { Database } from './database';
-import { RouteStore } from './RouteStore';
 const serverPort = 4321;
 import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 import { Opt } from '../new_fields/Doc';
@@ -23,7 +22,7 @@ import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
 
-export const publicDirectory = __dirname + RouteStore.public;
+export const publicDirectory = __dirname + "/public";
 export const filesDirectory = publicDirectory + "/files/";
 export enum Partitions {
     pdf_text,
@@ -73,13 +72,12 @@ function routeSetter(router: RouteManager) {
     WebSocket.initialize(serverPort, router.isRelease);
 
     /**
-     * Anyone attempting to navigate to localhost at this port will
-     * first have to log in.
+     * Accessing root index redirects to home
      */
     router.addSupervisedRoute({
         method: Method.GET,
-        subscription: RouteStore.root,
-        onValidation: ({ res }) => res.redirect(RouteStore.home)
+        subscription: "/",
+        onValidation: ({ res }) => res.redirect("/home")
     });
 
     const serve: OnUnauthenticated = ({ req, res }) => {
@@ -90,7 +88,7 @@ function routeSetter(router: RouteManager) {
 
     router.addSupervisedRoute({
         method: Method.GET,
-        subscription: [RouteStore.home, new RouteSubscriber("/doc").add("docId")],
+        subscription: ["/home", new RouteSubscriber("doc").add("docId")],
         onValidation: serve,
         onUnauthenticated: ({ req, ...remaining }) => {
             const { originalUrl: target } = req;

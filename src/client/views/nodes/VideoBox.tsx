@@ -6,7 +6,6 @@ import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface, createSchema, listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { RouteStore } from "../../../server/RouteStore";
 import { Utils, emptyFunction, returnOne } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
@@ -183,7 +182,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend(RouteStore.dataUriToImage);
+            let posting = Utils.prepend("/uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,

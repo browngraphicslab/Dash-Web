@@ -4,7 +4,6 @@ import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { Opt } from "../../new_fields/Doc";
 import { Networking } from "../Network";
-import { RouteStore } from "../../server/RouteStore";
 import "./GoogleAuthenticationManager.scss";
 
 const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -31,7 +30,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     }
 
     public fetchOrGenerateAccessToken = async () => {
-        let response = await Networking.FetchFromServer(RouteStore.readGoogleAccessToken);
+        let response = await Networking.FetchFromServer("/readGoogleAccessToken");
         // if this is an authentication url, activate the UI to register the new access token
         if (new RegExp(AuthenticationUrl).test(response)) {
             this.isOpen = true;
@@ -44,7 +43,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                             return;
                         }
                         const { access_token, avatar, name } = await Networking.PostToServer(
-                            RouteStore.writeGoogleAccessToken,
+                            "/writeGoogleAccessToken",
                             { authenticationCode }
                         );
                         runInAction(() => {

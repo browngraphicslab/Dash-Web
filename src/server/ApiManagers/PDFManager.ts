@@ -15,7 +15,7 @@ export default class PDFManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: new RouteSubscriber("/thumbnail").add("filename"),
+            subscription: new RouteSubscriber("thumbnail").add("filename"),
             onValidation: ({ req, res }) => {
                 let filename = req.params.filename;
                 let noExt = filename.substring(0, filename.length - ".png".length);

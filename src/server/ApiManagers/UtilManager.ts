@@ -2,10 +2,17 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import { exec } from 'child_process';
 import { command_line } from "../ActionUtilities";
+import RouteSubscriber from "../RouteSubscriber";
 
 export default class UtilManager extends ApiManager {
 
     protected initialize(register: Registration): void {
+
+        register({
+            method: Method.GET,
+            subscription: new RouteSubscriber("environment").add("key"),
+            onValidation: ({ req, res }) => res.send(process.env[req.params.key])
+        });
 
         register({
             method: Method.GET,

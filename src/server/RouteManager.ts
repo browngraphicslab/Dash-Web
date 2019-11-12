@@ -1,5 +1,4 @@
 import RouteSubscriber from "./RouteSubscriber";
-import { RouteStore } from "./RouteStore";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
 
@@ -67,10 +66,10 @@ export default class RouteManager {
                 if (onUnauthenticated) {
                     await tryExecute(onUnauthenticated, core);
                     if (!res.headersSent) {
-                        res.redirect(RouteStore.login);
+                        res.redirect("/login");
                     }
                 } else {
-                    res.redirect(RouteStore.login);
+                    res.redirect("/login");
                 }
             }
             setTimeout(() => {

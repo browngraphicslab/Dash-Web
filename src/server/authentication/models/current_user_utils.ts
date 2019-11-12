@@ -11,7 +11,6 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../RouteStore";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { ButtonBox } from "../../../client/views/nodes/ButtonBox";
 import { UndoManager } from "../../../client/util/UndoManager";
@@ -198,8 +197,8 @@ export class CurrentUserUtils {
         return doc;
     }
 
-    public static loadCurrentUser() {
-        return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
+    public static async loadCurrentUser() {
+        return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
                 const result: { id: string, email: string } = JSON.parse(response);
                 return result;
@@ -212,7 +211,7 @@ export class CurrentUserUtils {
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
-        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
+        await rp.get(Utils.prepend("/getUserDocumentId")).then(id => {
             if (id && id !== "guest") {
                 return DocServer.GetRefField(id).then(async field => {
                     if (field instanceof Doc) {

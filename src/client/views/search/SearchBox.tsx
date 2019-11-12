@@ -8,7 +8,6 @@ import * as rp from 'request-promise';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { Cast, NumCast } from '../../../new_fields/Types';
-import { RouteStore } from '../../../server/RouteStore';
 import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
@@ -90,7 +89,7 @@ export class SearchBox extends React.Component {
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend(RouteStore.dataUriToImage);
+            let posting = Utils.prepend("uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,

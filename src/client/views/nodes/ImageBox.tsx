@@ -12,7 +12,6 @@ import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schem
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
-import { RouteStore } from '../../../server/RouteStore';
 import { Utils, returnOne, emptyFunction } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
@@ -152,7 +151,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(Utils.prepend(RouteStore.upload), {
+                const res = await fetch(Utils.prepend("/upload"), {
                     method: 'POST',
                     body: formData
                 });
