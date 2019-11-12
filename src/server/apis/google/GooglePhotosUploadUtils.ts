@@ -1,7 +1,6 @@
 import request = require('request-promise');
 import * as path from 'path';
-import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
-import { NewMediaItem } from "../../index";
+import { NewMediaItemResult } from './SharedTypes';
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { DashUploadUtils } from '../../DashUploadUtils';
 
@@ -26,6 +25,22 @@ export namespace GooglePhotosUploadUtils {
     export interface UploadSource {
         url: string;
         description: string;
+    }
+
+    /**
+     * This is the format needed to pass
+     * into the BatchCreate API request
+     * to take a reference to raw uploaded bytes
+     * and actually create an image in Google Photos.
+     * 
+     * So, to instantiate this interface you must have already dispatched an upload
+     * and received an upload token.
+     */
+    export interface NewMediaItem {
+        description: string;
+        simpleMediaItem: {
+            uploadToken: string;
+        };
     }
 
     /**

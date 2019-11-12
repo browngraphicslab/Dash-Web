@@ -5,6 +5,7 @@ import * as sharp from 'sharp';
 import request = require('request-promise');
 import { ExifData, ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
+import { SharedMediaTypes } from './SharedMediaTypes';
 
 const uploadDirectory = path.join(__dirname, './public/files/');
 
@@ -15,20 +16,21 @@ export namespace DashUploadUtils {
         suffix: string;
     }
 
+    export interface ImageFileResponse {
+        name: string;
+        path: string;
+        type: string;
+        exif: Opt<DashUploadUtils.EnrichedExifData>;
+    }
+
     export const Sizes: { [size: string]: Size } = {
         SMALL: { width: 100, suffix: "_s" },
         MEDIUM: { width: 400, suffix: "_m" },
         LARGE: { width: 900, suffix: "_l" },
     };
 
-    const gifs = [".gif"];
-    const pngs = [".png"];
-    const jpgs = [".jpg", ".jpeg"];
-    const imageFormats = [...pngs, ...jpgs, ...gifs];
-    const videoFormats = [".mov", ".mp4"];
-
     export function validateExtension(url: string) {
-        return imageFormats.includes(path.extname(url).toLowerCase());
+        return SharedMediaTypes.imageFormats.includes(path.extname(url).toLowerCase());
     }
 
     const size = "content-length";
@@ -132,6 +134,7 @@ export namespace DashUploadUtils {
             contentSize,
             contentType,
         };
+        const { pngs, imageFormats, jpgs, videoFormats } = SharedMediaTypes;
         return new Promise<UploadInformation>(async (resolve, reject) => {
             const resizers = [
                 { resizer: sharp().rotate(), suffix: "_o" },

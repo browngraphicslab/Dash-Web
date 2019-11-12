@@ -1,12 +1,11 @@
 import { google } from "googleapis";
-import { readFile } from "fs";
 import { OAuth2Client, Credentials, OAuth2ClientOptions } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';
 import { Database } from "../../database";
-import * as path from "path";
+import { GoogleCredentialsLoader } from "../../credentials/CredentialsLoader";
 
 /**
  * Scopes give Google users fine granularity of control
@@ -62,6 +61,23 @@ export namespace GoogleApiServerUtils {
     let worker: OAuth2Client;
 
     /**
+     * This function is called once before the server is started,
+     * reading in Dash's project-specific credentials (client secret
+     * and client id) for later repeated access. It also sets up the
+     * global, intentionally unauthenticated worker OAuth2 client instance. 
+     */
+    export function processProjectCredentials(): void {
+        const { client_secret, client_id, redirect_uris } = GoogleCredentialsLoader.ProjectCredentials;
+        // initialize the global authorization client
+        installed = {
+            clientId: client_id,
+            clientSecret: client_secret,
+            redirectUri: redirect_uris[0]
+        };
+        worker = generateClient();
+    }
+
+    /**
      * A briefer format for the response from a 'googleapis' API request
      */
     export type ApiResponse = Promise<GaxiosResponse>;
@@ -94,32 +110,6 @@ export namespace GoogleApiServerUtils {
         get: ApiHandler;
         create: ApiHandler;
         batchUpdate: ApiHandler;
-    }
-
-    /**
-     * This function is called once before the server is started,
-     * reading in Dash's project-specific credentials (client secret
-     * and client id) for later repeated access. It also sets up the
-     * global, intentionally unauthenticated worker OAuth2 client instance. 
-     */
-    export async function loadClientSecret(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            readFile(path.join(__dirname, "../../credentials/google_docs_credentials.json"), async (err, projectCredentials) => {
-                if (err) {
-                    reject(err);
-                    return console.log('Error loading client secret file:', err);
-                }
-                const { client_secret, client_id, redirect_uris } = JSON.parse(projectCredentials.toString()).installed;
-                // initialize the global authorization client
-                installed = {
-                    clientId: client_id,
-                    clientSecret: client_secret,
-                    redirectUri: redirect_uris[0]
-                };
-                worker = generateClient();
-                resolve();
-            });
-        });
     }
 
     /**
