@@ -6,8 +6,9 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "./SelectionManager";
 import "./SettingsManager.scss";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-library.add(fa.faCopy);
+library.add(fa.faWindowClose);
 
 @observer
 export default class SettingsManager extends React.Component<{}> {
@@ -33,8 +34,20 @@ export default class SettingsManager extends React.Component<{}> {
     private get settingsInterface() {
         return (
             <div className={"settings-interface"}>
-                <p>sdfsldkfhlksdjf</p>
-                <div className={"close-button"} onClick={this.close}>Done</div>
+                <div className={"close-button"} onClick={this.close}>
+                    <FontAwesomeIcon icon={fa.faWindowClose} />
+                </div>
+                <h1>settings</h1>
+
+                <div>toggle
+                    second toggle
+                </div>
+                <div>hellow
+                    heree
+                    s
+                    a
+                    lot of information hahahahahahahah
+                </div>
             </div>
         );
     }
