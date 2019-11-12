@@ -24,6 +24,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
+import { DocumentType } from '../documents/DocumentTypes';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -112,7 +113,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
-                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = true;
+                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._title.startsWith("-");
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
                         SelectionManager.SelectedDocuments().forEach(d => {
@@ -174,6 +175,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
+            if (documentView.props.Document.type === DocumentType.LINK) {
+                let rect = documentView.ContentDiv!.getElementsByClassName("docuLinkBox-cont")[0].getBoundingClientRect();
+                sptX = rect.left;
+                sptY = rect.top;
+                bptX = rect.right;
+                bptY = rect.bottom;
+            }
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)

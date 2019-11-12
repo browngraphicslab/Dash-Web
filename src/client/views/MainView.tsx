@@ -37,7 +37,6 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { Scripting } from '../util/Scripting';
-import { LinkManager } from '../util/LinkManager';
 import { AudioBox } from './nodes/AudioBox';
 import SettingsManager from '../util/SettingsManager';
 
@@ -198,11 +197,6 @@ export class MainView extends React.Component {
         var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
         let mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), {}, id);
         if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
-            if (!this.userDoc.linkManagerDoc) {
-                let linkManagerDoc = new Doc();
-                linkManagerDoc.allLinks = new List<Doc>([]);
-                this.userDoc.linkManagerDoc = linkManagerDoc;
-            }
             Doc.AddDocToList(workspaces, "data", mainDoc);
             mainDoc.title = `Workspace ${DocListCast(workspaces.data).length}`;
         }
@@ -508,7 +502,7 @@ export class MainView extends React.Component {
     }
 
     render() {
-        return (<div className="mainView-container">
+        return (<div id="mainView-container">
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />

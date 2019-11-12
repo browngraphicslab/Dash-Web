@@ -93,8 +93,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     private _pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @observable private _fontSize = 13;
-    @observable private _fontFamily = "Arial";
+    @observable private _ruleFontSize = 0;
+    @observable private _ruleFontFamily = "Arial";
     @observable private _fontAlign = "";
     @observable private _entered = false;
     public static SelectOnLoad = "";
@@ -187,9 +187,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             }
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
-                FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
-            }
 
             let tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
@@ -552,8 +549,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             return undefined;
         },
             action((rules: any) => {
-                this._fontFamily = rules ? rules.font : "Arial";
-                this._fontSize = rules ? rules.size : NumCast(this.layoutDoc.fontSize, 13);
+                this._ruleFontFamily = rules ? rules.font : "Arial";
+                this._ruleFontSize = rules ? rules.size : 0;
                 rules && setTimeout(() => {
                     const view = this._editorView!;
                     if (this._proseRef) {
@@ -845,6 +842,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         this._editorView && this._editorView.destroy();
     }
     onPointerDown = (e: React.PointerEvent): void => {
+        FormattedTextBoxComment.textBox = this;
         let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
         pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
         if (this.props.onClick && e.button === 0) {
@@ -886,38 +884,38 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
-        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
-            let href = (e.target as any).href;
-            let location: string;
-            if ((e.target as any).attributes.location) {
-                location = (e.target as any).attributes.location.value;
-            }
-            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
-            if (node) {
-                let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
-                if (link && !(link.attrs.docref && link.attrs.title)) {  // bcz: getting hacky.  this indicates that we clicked on a PDF excerpt quotation.  In this case, we don't want to follow the link (we follow only the actual hyperlink for the quotation which is handled above).
-                    href = link && link.attrs.href;
-                    location = link && link.attrs.location;
-                }
-            }
-            if (href) {
-                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    let linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    if (linkClicked) {
-                        DocServer.GetRefField(linkClicked).then(async linkDoc => {
-                            (linkDoc instanceof Doc) &&
-                                DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false);
-                        });
-                    }
-                } else {
-                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.layoutDoc.x, 0) + NumCast(this.layoutDoc.width, 0), y: NumCast(this.layoutDoc.y) });
-                    this.props.addDocument && this.props.addDocument(webDoc);
-                }
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        }
+        // if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+        //     let href = (e.target as any).href;
+        //     let location: string;
+        //     if ((e.target as any).attributes.location) {
+        //         location = (e.target as any).attributes.location.value;
+        //     }
+        //     let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+        //     let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
+        //     if (node) {
+        //         let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
+        //         if (link && !(link.attrs.docref && link.attrs.title)) {  // bcz: getting hacky.  this indicates that we clicked on a PDF excerpt quotation.  In this case, we don't want to follow the link (we follow only the actual hyperlink for the quotation which is handled above).
+        //             href = link && link.attrs.href;
+        //             location = link && link.attrs.location;
+        //         }
+        //     }
+        //     if (href) {
+        //         if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+        //             let linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+        //             if (linkClicked) {
+        //                 DocServer.GetRefField(linkClicked).then(async linkDoc => {
+        //                     (linkDoc instanceof Doc) &&
+        //                         DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false);
+        //                 });
+        //             }
+        //         } else {
+        //             let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.layoutDoc.x, 0) + NumCast(this.layoutDoc.width, 0), y: NumCast(this.layoutDoc.y) });
+        //             this.props.addDocument && this.props.addDocument(webDoc);
+        //         }
+        //         e.stopPropagation();
+        //         e.preventDefault();
+        //     }
+        // }
 
         this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey);
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
@@ -1021,11 +1019,13 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     }
 
     render() {
+        trace();
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground
-            ? "none" : "all";
+        let interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
             FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+        } else if (FormattedTextBoxComment.textBox === this) {
+            FormattedTextBoxComment.Hide();
         }
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
@@ -1034,9 +1034,9 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
-                    pointerEvents: interactive,
-                    fontSize: this._fontSize,
-                    fontFamily: this._fontFamily,
+                    pointerEvents: interactive ? "none" : "all",
+                    fontSize: this._ruleFontSize ? this._ruleFontSize : NumCast(this.layoutDoc.fontSize, 13),
+                    fontFamily: this._ruleFontFamily ? this._ruleFontFamily : StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
                 }}
                 onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}

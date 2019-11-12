@@ -48,6 +48,7 @@
     }
     .pdfViewer-text {
         .textLayer {
+            will-change: transform;
             span {
                 user-select: none;
             }
@@ -59,6 +60,7 @@
     pointer-events: all;
     .pdfViewer-text {
         .textLayer {
+            will-change: transform;
             span {
                 user-select: text;
             }
