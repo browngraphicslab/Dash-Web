@@ -72,7 +72,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             this._totalLength = this._tickSpacing * (this._time / this._tickIncrement);
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width;
             this._visibleStart = this._infoContainer.current!.scrollLeft;
-            this.props.Document.isAnimating = !this.props.Document.isAnimating; 
+            this.props.Document.isATOn = !this.props.Document.isATOn; 
             this.toggleHandle(); 
         });
     }
@@ -322,13 +322,13 @@ export class Timeline extends React.Component<FieldViewProps> {
                 <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px`, color:"grey"}} /> </div>
                 <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px`, color: "grey"}} /> </div>                
                 <div key="overview-text" className="animation-text">Timeline Overview</div>
-                <TimelineOverview isAuthoring = {BoolCast(this.props.Document.isAnimating)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
-                <div key="animation-text" className="animation-text">Mode: {this.props.Document.isAnimating ? "Authoring" : "Play"}</div>
+                <TimelineOverview isAuthoring = {BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                <div key="animation-text" className="animation-text">Mode: {this.props.Document.isATOn ? "Authoring" : "Play"}</div>
                 <div key="round-toggle" ref={this._roundToggleContainerRef} className="round-toggle">
                     <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
                 </div>
-                <div key="time-text" className="animation-text" style ={{visibility: this.props.Document.isAnimating ? "visible" : "hidden"}}>Length: </div>
-                <input className="time-input" style={{visibility: this.props.Document.isAnimating ? "visible" : "hidden"}} placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
+                <div key="time-text" className="animation-text" style ={{visibility: this.props.Document.isATOn ? "visible" : "hidden"}}>Length: </div>
+                <input className="time-input" style={{visibility: this.props.Document.isATOn ? "visible" : "hidden"}} placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
             </div>
         );
     }
@@ -354,20 +354,20 @@ export class Timeline extends React.Component<FieldViewProps> {
         let roundToggle = this._roundToggleRef.current!;
         let roundToggleContainer = this._roundToggleContainerRef.current!;
         let timelineContainer = this._timelineContainer.current!;
-        if (BoolCast(this.props.Document.isAnimating)) {
+        if (BoolCast(this.props.Document.isATOn)) {
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
             roundToggleContainer.style.animationName = "turnoff";
             roundToggleContainer.style.backgroundColor = "white"; 
             timelineContainer.style.top = `${-this._containerHeight}px`;
-            this.props.Document.isAnimating = false;
+            this.props.Document.isATOn = false;
         } else {
             roundToggle.style.transform = "translate(45px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
             roundToggleContainer.style.backgroundColor = "green"; 
             timelineContainer.style.top = "0px"; 
-            this.props.Document.isAnimating = true;
+            this.props.Document.isATOn = true;
         }
     }
 
@@ -396,7 +396,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         return (
             <div>
                 <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
-                    <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isAnimating && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
+                    <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
                         <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
                             <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
                                 {this.drawTicks()}
