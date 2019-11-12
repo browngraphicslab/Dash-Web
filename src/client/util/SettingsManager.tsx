@@ -4,8 +4,8 @@ import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { DocumentView } from "../views/nodes/DocumentView";
 import { SelectionManager } from "./SelectionManager";
+import "./SettingsManager.scss";
 
 library.add(fa.faCopy);
 
@@ -19,12 +19,7 @@ export default class SettingsManager extends React.Component<{}> {
     public open = action(() => {
         SelectionManager.DeselectAll();
         this.isOpen = true;
-        console.log('oppin');
     });
-
-    // public open = (target: DocumentView) => {
-    //     SelectionManager.DeselectAll();
-    // }
 
     public close = action(() => {
         this.isOpen = false;
@@ -39,6 +34,7 @@ export default class SettingsManager extends React.Component<{}> {
         return (
             <div className={"settings-interface"}>
                 <p>sdfsldkfhlksdjf</p>
+                <div className={"close-button"} onClick={this.close}>Done</div>
             </div>
         );
     }
