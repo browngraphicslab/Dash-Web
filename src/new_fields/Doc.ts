@@ -669,8 +669,8 @@ export namespace Doc {
         return doc;
     }
 
-    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
 
+    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
     export function linkFollowUnhighlight() {
         Doc.UnhighlightAll();
         document.removeEventListener("pointerdown", linkFollowUnhighlight);

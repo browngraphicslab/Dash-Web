@@ -842,6 +842,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         this._editorView && this._editorView.destroy();
     }
     onPointerDown = (e: React.PointerEvent): void => {
+        FormattedTextBoxComment.textBox = this;
         let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
         pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
         if (this.props.onClick && e.button === 0) {
@@ -1018,11 +1019,13 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     }
 
     render() {
+        trace();
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground
-            ? "none" : "all";
+        let interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
             FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+        } else if (FormattedTextBoxComment.textBox === this) {
+            FormattedTextBoxComment.Hide();
         }
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
@@ -1031,7 +1034,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
-                    pointerEvents: interactive,
+                    pointerEvents: interactive ? "none" : "all",
                     fontSize: this._ruleFontSize ? this._ruleFontSize : NumCast(this.layoutDoc.fontSize, 13),
                     fontFamily: this._ruleFontFamily ? this._ruleFontFamily : StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
                 }}

@@ -305,8 +305,8 @@ export const marks: { [index: string]: MarkSpec } = {
         }],
         toDOM(node: any) {
             return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs }, 0];
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
+                ["a", { ...node.attrs, title: `${node.attrs.title}` }, 0];
         }
     },
 

@@ -17,7 +17,7 @@ import { DragManager } from "./DragManager";
 import { LinkManager } from "./LinkManager";
 import { schema } from "./RichTextSchema";
 import "./TooltipTextMenu.scss";
-import { Cast, NumCast } from '../../new_fields/Types';
+import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { updateBullets } from './ProsemirrorExampleTransfer';
 import { DocumentDecorations } from '../views/DocumentDecorations';
 const { toggleMark, setBlockType } = require("prosemirror-commands");
@@ -284,7 +284,7 @@ export class TooltipTextMenu {
                                     if (proto && docView) {
                                         proto.sourceContext = docView.props.ContainingCollectionDoc;
                                     }
-                                    let text = this.makeLink(linkDoc, ctrlKey ? "onRight" : "inTab");
+                                    let text = this.makeLink(linkDoc, StrCast(linkDoc.anchor2.title), ctrlKey ? "onRight" : "inTab");
                                     if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
                                         proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
                                     }
@@ -374,25 +374,20 @@ export class TooltipTextMenu {
     //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     // }
 
-    makeLink = (targetDoc: Doc, location: string): string => {
-        let target = Utils.prepend("/doc/" + targetDoc[Id]);
+    makeLink = (targetDoc: Doc, title: string, location: string): string => {
+        let link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + targetDoc[Id]), title: title, location: location });
+        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
+            addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: targetDoc[Id] });
-        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
-        this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
-        node = this.view.state.selection.$from.nodeAfter;
-        link = node && node.marks.find(m => m.type.name === "link");
-        if (node) {
-            if (node.text) {
-                return node.text;
-            }
+        if (node && node.text) {
+            return node.text;
         }
         return "";
     }
 
     deleteLink = () => {
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = node && node.marks.find(m => m.type.name === "link");
+        let link = node && node.marks.find(m => m.type === this.view.state.schema.marks.link);
         let href = link!.attrs.href;
         if (href) {
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
