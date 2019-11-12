@@ -6,6 +6,12 @@ import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
+import SharingManager from "../util/SharingManager";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { Cast, PromiseValue } from "../../new_fields/Types";
+import { ScriptField } from "../../new_fields/ScriptField";
+import { InkingControl } from "./InkingControl";
+import { InkTool } from "../../new_fields/InkField";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -60,6 +66,7 @@ export default class KeyManager {
         switch (keyname) {
             case "escape":
                 let main = MainView.Instance;
+                InkingControl.Instance.switchTool(InkTool.None);
                 if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
@@ -69,9 +76,9 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
-                main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
+                SharingManager.Instance.close();
                 break;
             case "delete":
             case "backspace":
@@ -118,10 +125,10 @@ export default class KeyManager {
         let preventDefault = true;
 
         switch (keyname) {
-            case "n":
-                let toggle = MainView.Instance.addMenuToggle.current!;
-                toggle.checked = !toggle.checked;
-                break;
+            // case "n":
+            //     let toggle = MainView.Instance.addMenuToggle.current!;
+            //     toggle.checked = !toggle.checked;
+            //     break;
         }
 
         return {
@@ -158,8 +165,29 @@ export default class KeyManager {
                     }
                 }
                 break;
+            case "t":
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 240) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 240;
+                }
+                break;
+            case "l":
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 250) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 250;
+                }
+                break;
             case "f":
-                MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
+                PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                if (MainView.Instance.flyoutWidth === 400) {
+                    MainView.Instance.flyoutWidth = 0;
+                } else {
+                    MainView.Instance.flyoutWidth = 400;
+                }
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];

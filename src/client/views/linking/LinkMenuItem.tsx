@@ -8,7 +8,6 @@ import { Cast, StrCast } from '../../../new_fields/Types';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
-import { MainView } from '../MainView';
 import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenu.scss';
 import React = require("react");
@@ -70,7 +69,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.Instance.props.Document.isMinimized = false;
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-            LinkFollowBox.Instance.setAddDocTab(this.props.addDocTab);
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
         }
         e.stopPropagation();
     }
@@ -95,6 +94,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action.bound
     async followDefault() {
         if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             LinkFollowBox.Instance.defaultLinkBehavior();
         }
@@ -104,7 +104,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     async openLinkFollower() {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.Instance.props.Document.isMinimized = false;
-            MainView.Instance.toggleLinkFollowBox(false);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         }
     }

@@ -1,12 +1,11 @@
+
 import request = require('request-promise');
 import { GoogleApiServerUtils } from './GoogleApiServerUtils';
-import * as fs from 'fs';
-import { Utils } from '../../../Utils';
 import * as path from 'path';
-import { Opt } from '../../../new_fields/Doc';
-import * as sharp from 'sharp';
-
-const uploadDirectory = path.join(__dirname, "../../public/files/");
+import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
+import { NewMediaItem } from "../../index";
+import { BatchedArray, TimeUnit } from 'array-batcher';
+import { DashUploadUtils } from '../../DashUploadUtils';
 
 export namespace GooglePhotosUploadUtils {
 
@@ -28,16 +27,16 @@ export namespace GooglePhotosUploadUtils {
     });
 
     let Bearer: string;
-    let Paths: Paths;
 
-    export const initialize = async (paths: Paths) => {
-        Paths = paths;
-        const { tokenPath, credentialsPath } = paths;
-        const token = await GoogleApiServerUtils.RetrieveAccessToken({ tokenPath, credentialsPath });
+    export const initialize = async (information: GoogleApiServerUtils.CredentialInformation) => {
+        const token = await GoogleApiServerUtils.RetrieveAccessToken(information);
         Bearer = `Bearer ${token}`;
     };
 
     export const DispatchGooglePhotosUpload = async (url: string) => {
+        if (!DashUploadUtils.imageFormats.includes(path.extname(url))) {
+            return undefined;
+        }
         const body = await request(url, { encoding: null });
         const parameters = {
             method: 'POST',
@@ -49,128 +48,39 @@ export namespace GooglePhotosUploadUtils {
             uri: prepend('uploads'),
             body
         };
-        return new Promise<any>(resolve => request(parameters, (error, _response, body) => resolve(error ? undefined : body)));
-    };
-
-    export const CreateMediaItems = (newMediaItems: any[], album?: { id: string }) => {
-        return new Promise<any>((resolve, reject) => {
-            const parameters = {
-                method: 'POST',
-                headers: headers('json'),
-                uri: prepend('mediaItems:batchCreate'),
-                body: { newMediaItems } as any,
-                json: true
-            };
-            album && (parameters.body.albumId = album.id);
-            request(parameters, (error, _response, body) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(body);
-                }
-            });
-        });
-    };
-
-}
-
-export namespace DownloadUtils {
-
-    export interface Size {
-        width: number;
-        suffix: string;
-    }
-
-    export const Sizes: { [size: string]: Size } = {
-        SMALL: { width: 100, suffix: "_s" },
-        MEDIUM: { width: 400, suffix: "_m" },
-        LARGE: { width: 900, suffix: "_l" },
-    };
-
-    const png = ".png";
-    const pngs = [".png", ".PNG"];
-    const jpgs = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-    const formats = [".jpg", ".png", ".gif"];
-    const size = "content-length";
-    const type = "content-type";
-
-    export interface UploadInformation {
-        mediaPaths: string[];
-        fileNames: { [key: string]: string };
-        contentSize?: number;
-        contentType?: string;
-    }
-
-    const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
-    const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
-
-    export const UploadImage = async (url: string, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
-        const resolved = filename ? sanitize(filename) : generate(prefix, url);
-        const extension = path.extname(url) || path.extname(resolved) || png;
-        let information: UploadInformation = {
-            mediaPaths: [],
-            fileNames: { clean: resolved }
-        };
-        const { isLocal, stream, normalized } = classify(url);
-        url = normalized;
-        if (!isLocal) {
-            const metadata = (await new Promise<any>((resolve, reject) => {
-                request.head(url, async (error, res) => {
-                    if (error) {
-                        return reject(error);
-                    }
-                    resolve(res);
-                });
-            })).headers;
-            information.contentSize = parseInt(metadata[size]);
-            information.contentType = metadata[type];
-        }
-        return new Promise<UploadInformation>(async (resolve, reject) => {
-            const resizers = [
-                { resizer: sharp().rotate(), suffix: "_o" },
-                ...Object.values(Sizes).map(size => ({
-                    resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
-                    suffix: size.suffix
-                }))
-            ];
-            if (pngs.includes(extension)) {
-                resizers.forEach(element => element.resizer = element.resizer.png());
-            } else if (jpgs.includes(extension)) {
-                resizers.forEach(element => element.resizer = element.resizer.jpeg());
-            } else if (!formats.includes(extension.toLowerCase())) {
-                return reject();
+        return new Promise<any>((resolve, reject) => request(parameters, (error, _response, body) => {
+            if (error) {
+                console.log(error);
+                return reject(error);
             }
-            for (let resizer of resizers) {
-                const suffix = resizer.suffix;
-                let mediaPath: string;
-                await new Promise<void>(resolve => {
-                    const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
-                    information.mediaPaths.push(mediaPath = uploadDirectory + filename);
-                    information.fileNames[suffix] = filename;
-                    stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
-                        .on('close', resolve)
-                        .on('error', reject);
-                });
+            resolve(body);
+        }));
+    };
+
+    export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<NewMediaItemResult[]> => {
+        const batched = BatchedArray.from(newMediaItems, { batchSize: 50 });
+        return batched.batchedMapPatientInterval(
+            { magnitude: 100, unit: TimeUnit.Milliseconds },
+            async (batch, collector) => {
+                const parameters = {
+                    method: 'POST',
+                    headers: headers('json'),
+                    uri: prepend('mediaItems:batchCreate'),
+                    body: { newMediaItems: batch } as any,
+                    json: true
+                };
+                album && (parameters.body.albumId = album.id);
+                collector.push(...(await new Promise<NewMediaItemResult[]>((resolve, reject) => {
+                    request(parameters, (error, _response, body) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(body.newMediaItemResults);
+                        }
+                    });
+                })));
             }
-            resolve(information);
-        });
+        );
     };
 
-    const classify = (url: string) => {
-        const isLocal = /Dash-Web(\\|\/)src(\\|\/)server(\\|\/)public(\\|\/)files/g.test(url);
-        return {
-            isLocal,
-            stream: isLocal ? fs.createReadStream : request,
-            normalized: isLocal ? path.normalize(url) : url
-        };
-    };
-
-    export const createIfNotExists = async (path: string) => {
-        if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
-            return true;
-        }
-        return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
-    };
-
-    export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
 }

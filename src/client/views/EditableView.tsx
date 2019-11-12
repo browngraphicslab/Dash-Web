@@ -4,6 +4,7 @@ import { observable, action, trace } from 'mobx';
 import "./EditableView.scss";
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
+import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 
 export interface EditableProps {
     /**
@@ -42,6 +43,10 @@ export interface EditableProps {
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
+    HeadingObject?: SchemaHeaderField | undefined;
+    HeadingsHack?: number;
+    toggle?: () => void;
+    color?: string | undefined;
 }
 
 /**
@@ -52,6 +57,7 @@ export interface EditableProps {
 @observer
 export class EditableView extends React.Component<EditableProps> {
     @observable _editing: boolean = false;
+    @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
         super(props);

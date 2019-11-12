@@ -6,7 +6,12 @@ import { Doc } from "../../../new_fields/Doc";
 import { schema } from "../../util/RichTextSchema";
 import { DocServer } from "../../DocServer";
 import { Utils } from "../../../Utils";
-import { StrCast } from "../../../new_fields/Types";
+import { StrCast, Cast, FieldValue } from "../../../new_fields/Types";
+import { FormattedTextBox } from "./FormattedTextBox";
+import { DocUtils } from "../../documents/Documents";
+import { isBuffer } from "util";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -49,7 +54,8 @@ export class FormattedTextBoxComment {
     static end: number;
     static mark: Mark;
     static opened: boolean;
-    static textBox: any;
+    static textBox: FormattedTextBox | undefined;
+    static linkDoc: Doc | undefined;
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
             const root = document.getElementById("root");
@@ -60,13 +66,19 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "350px";
             FormattedTextBoxComment.tooltip.appendChild(input);
             FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
-                let keep = e.target && (e.target as any).type === "checkbox";
+                let keep = e.target && (e.target as any).type === "checkbox" ? true : false;
+                if (FormattedTextBoxComment.linkDoc && !keep && FormattedTextBoxComment.textBox) {
+                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, FormattedTextBoxComment.textBox.props.Document,
+                        (doc: Doc, maxLocation: string) => FormattedTextBoxComment.textBox!.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
+                }
                 FormattedTextBoxComment.opened = keep || !FormattedTextBoxComment.opened;
-                FormattedTextBoxComment.textBox && FormattedTextBoxComment.textBox.setAnnotation(
+                FormattedTextBoxComment.textBox && FormattedTextBoxComment.start !== undefined && FormattedTextBoxComment.textBox.setAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark,
                     FormattedTextBoxComment.opened, keep);
+                e.stopPropagation();
             };
             root && root.appendChild(FormattedTextBoxComment.tooltip);
         }
@@ -90,60 +102,68 @@ export class FormattedTextBoxComment {
         let state = view.state;
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
-            lastState.selection.eq(state.selection)) return;
+            lastState.selection.eq(state.selection)) {
+            return;
+        }
+        FormattedTextBoxComment.linkDoc = undefined;
 
+        const textBox = FormattedTextBoxComment.textBox;
+        if (!textBox || !textBox.props) {
+            return;
+        }
         let set = "none";
+        let nbef = 0;
+        // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
-            let nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
+            nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
             let naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
-            const spos = state.selection.$from.pos - nbef;
-            const epos = state.selection.$from.pos + naft;
-            let child = state.selection.$from.nodeBefore;
-            let mark = child && findOtherUserMark(child.marks);
             let noselection = view.state.selection.$from === view.state.selection.$to;
+            let child: any = null;
+            state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
+            let mark = child && findOtherUserMark(child.marks);
             if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
-                FormattedTextBoxComment.SetState(this, mark.attrs.opened, spos, epos, mark);
+                FormattedTextBoxComment.SetState(FormattedTextBoxComment.textBox, mark.attrs.opened, state.selection.$from.pos - nbef, state.selection.$from.pos + naft, mark);
             }
-            if (mark && child && nbef && naft) {
-                FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " " + mark.attrs.modified;
-                // These are in screen coordinates
-                // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
-                let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
-                // The box in which the tooltip is positioned, to use as base
-                let box = (document.getElementById("main-div") as any).getBoundingClientRect();
-                // Find a center-ish x position from the selection endpoints (when
-                // crossing lines, end may be more to the left)
-                let left = Math.max((start.left + end.left) / 2, start.left + 3);
-                FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
-                FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
+            if (mark && child && ((nbef && naft) || !noselection)) {
+                FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " date=" + (new Date(mark.attrs.modified * 5000)).toDateString();
                 set = "";
             }
         }
+        // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
         if (set === "none" && state.selection.$from) {
-            FormattedTextBoxComment.textBox = undefined;
-            let nbef = findStartOfMark(state.selection.$from, view, findLinkMark);
+            nbef = findStartOfMark(state.selection.$from, view, findLinkMark);
             let naft = findEndOfMark(state.selection.$from, view, findLinkMark);
-            let child = state.selection.$from.nodeBefore;
+            let child: any = null;
+            state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             let mark = child && findLinkMark(child.marks);
             if (mark && child && nbef && naft) {
-                FormattedTextBoxComment.tooltipText.textContent = "link : " + (mark.attrs.title || mark.attrs.href);
+                FormattedTextBoxComment.tooltipText.textContent = "external => " + mark.attrs.href;
                 if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
                     let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    docTarget && DocServer.GetRefField(docTarget).then(linkDoc =>
-                        (linkDoc as Doc) && (FormattedTextBoxComment.tooltipText.textContent = "link :" + StrCast((linkDoc as Doc).title)));
+                    docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
+                        if (linkDoc instanceof Doc) {
+                            FormattedTextBoxComment.linkDoc = linkDoc;
+                            let target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
+                            let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
+                            let text = ext && StrCast(ext.text);
+                            ext && (FormattedTextBoxComment.tooltipText.textContent = (target && target.type === DocumentType.PDFANNO ? "Quoted from " : "") + "=> " + (text || StrCast(ext.title)));
+                        }
+                    });
                 }
-                // These are in screen coordinates
-                // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
-                let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
-                // The box in which the tooltip is positioned, to use as base
-                let box = (document.getElementById("main-div") as any).getBoundingClientRect();
-                // Find a center-ish x position from the selection endpoints (when
-                // crossing lines, end may be more to the left)
-                let left = Math.max((start.left + end.left) / 2, start.left + 3);
-                FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
-                FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
                 set = "";
             }
+        }
+        if (set !== "none") {
+            // These are in screen coordinates
+            // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
+            let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
+            // The box in which the tooltip is positioned, to use as base
+            let box = (document.getElementById("mainView-container") as any).getBoundingClientRect();
+            // Find a center-ish x position from the selection endpoints (when
+            // crossing lines, end may be more to the left)
+            let left = Math.max((start.left + end.left) / 2, start.left + 3);
+            FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
+            FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
         }
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = set);
     }

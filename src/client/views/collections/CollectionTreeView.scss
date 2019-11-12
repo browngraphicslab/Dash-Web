@@ -8,14 +8,14 @@
     box-sizing: border-box;
     height: 100%;
     width:100%;
-    position: absolute;
+    position: relative;
     top:0;
-    padding-top: 20px;
     padding-left: 10px;
-    padding-right: 0px;
+    padding-right: 10px;
     background: $light-color-secondary;
     font-size: 13px;
     overflow: auto;
+    cursor: default;
 
     ul {
         list-style: none;
@@ -51,7 +51,7 @@
     .editableView-container-editing {
         display: block;
         text-overflow: ellipsis;
-        font-size: 24px;
+        font-size: 1vw;
         white-space: nowrap;
     }
 }

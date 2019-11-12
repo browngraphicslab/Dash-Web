@@ -1,39 +1,34 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog, faPlus, faTable, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, trace, untracked } from "mobx";
+import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, Column, RowInfo, ResizedChangeFunction, Resize } from "react-table";
+import ReactTable, { CellInfo, Column, ComponentPropsGetterR, Resize, SortingRule } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnOne, returnEmptyString } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { Gateway } from "../../northstar/manager/Gateway";
-import { DragManager } from "../../util/DragManager";
-import { CompileScript, ts, Transformer } from "../../util/Scripting";
+import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { DocumentView } from "../nodes/DocumentView";
-import { CollectionPDFView } from "./CollectionPDFView";
+import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
+import { CollectionSchemaAddColumnHeader, CollectionSchemaHeader } from "./CollectionSchemaHeaders";
+import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
-import { undoBatch } from "../../util/UndoManager";
-import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
-import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
-import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { DocumentType } from "../../documents/DocumentTypes";
-
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -51,7 +46,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["zIndex", ColumnType.Number]
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -75,20 +70,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         super.CreateDropTarget(ele);
     }
 
-    isFocused = (doc: Doc): boolean => {
-        if (!this.props.isSelected()) return false;
-        return doc === this._focusedTable;
-    }
+    isFocused = (doc: Doc): boolean => this.props.isSelected() && doc === this._focusedTable;
 
-    @action
-    setFocused = (doc: Doc): void => {
-        this._focusedTable = doc;
-    }
+    @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
-    @action
-    setPreviewDoc = (doc: Doc): void => {
-        this.previewDoc = doc;
-    }
+    @action setPreviewDoc = (doc: Doc) => this.previewDoc = doc;
+
+    @undoBatch
+    @action setPreviewScript = (script: string) => this.previewScript = script
 
     //toggles preview side-panel of schema
     @action
@@ -130,17 +119,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         }
     }
 
-    onWheel = (e: React.WheelEvent): void => {
-        if (this.props.active()) {
-            e.stopPropagation();
-        }
-    }
-
     @computed
     get previewDocument(): Doc | undefined {
-        let selected = this.previewDoc;
-        let pdc = selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
-        return pdc;
+        return this.previewDoc ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(this.previewDoc[this.previewScript], Doc)) : this.previewDoc) : undefined;
     }
 
     getPreviewTransform = (): Transform => {
@@ -157,15 +138,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewPanel() {
         let layoutDoc = this.previewDocument ? Doc.expandTemplateLayout(this.previewDocument, this.props.DataDoc) : undefined;
         return <div ref={this.createTarget}>
-            <CollectionSchemaPreview
+            <ContentFittingDocumentView
                 Document={layoutDoc}
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                fieldKey={this.props.fieldKey}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
-                width={this.previewWidth}
-                height={this.previewHeight}
+                PanelWidth={this.previewWidth}
+                PanelHeight={this.previewHeight}
                 getTransform={this.getPreviewTransform}
+                CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
                 CollectionView={this.props.CollectionView}
                 moveDocument={this.props.moveDocument}
                 addDocument={this.props.addDocument}
@@ -180,63 +163,51 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
     }
 
-    @undoBatch
-    @action
-    setPreviewScript = (script: string) => {
-        this.previewScript = script;
-    }
-
     @computed
     get schemaTable() {
-        return (
-            <SchemaTable
-                Document={this.props.Document}
-                PanelHeight={this.props.PanelHeight}
-                PanelWidth={this.props.PanelWidth}
-                childDocs={this.childDocs}
-                CollectionView={this.props.CollectionView}
-                ContainingCollectionView={this.props.ContainingCollectionView}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                fieldKey={this.props.fieldKey}
-                renderDepth={this.props.renderDepth}
-                moveDocument={this.props.moveDocument}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                active={this.props.active}
-                onDrop={this.onDrop}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-                isSelected={this.props.isSelected}
-                isFocused={this.isFocused}
-                setFocused={this.setFocused}
-                setPreviewDoc={this.setPreviewDoc}
-                deleteDocument={this.props.removeDocument}
-                dataDoc={this.props.DataDoc}
-            />
-        );
+        return <SchemaTable
+            Document={this.props.Document}
+            PanelHeight={this.props.PanelHeight}
+            PanelWidth={this.props.PanelWidth}
+            childDocs={this.childDocs}
+            CollectionView={this.props.CollectionView}
+            ContainingCollectionView={this.props.ContainingCollectionView}
+            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            fieldKey={this.props.fieldKey}
+            renderDepth={this.props.renderDepth}
+            moveDocument={this.props.moveDocument}
+            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            active={this.props.active}
+            onDrop={this.onDrop}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            isSelected={this.props.isSelected}
+            isFocused={this.isFocused}
+            setFocused={this.setFocused}
+            setPreviewDoc={this.setPreviewDoc}
+            deleteDocument={this.props.removeDocument}
+            addDocument={this.props.addDocument}
+            dataDoc={this.props.DataDoc}
+        />;
     }
 
     @computed
     public get schemaToolbar() {
-        return (
-            <div className="collectionSchemaView-toolbar">
-                <div className="collectionSchemaView-toolbar-item">
-                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
-                </div>
+        return <div className="collectionSchemaView-toolbar">
+            <div className="collectionSchemaView-toolbar-item">
+                <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
             </div>
-        );
+        </div>;
     }
 
     render() {
-        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
-        return (
-            <div className="collectionSchemaView-container" style={{ height: "100%", marginTop: "0", }}>
-                <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
-                    {this.schemaTable}
-                </div>
-                {this.dividerDragger}
-                {!this.previewWidth() ? (null) : this.previewPanel}
+        return <div className="collectionSchemaView-container">
+            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active() && e.stopPropagation()} onDrop={e => this.onDrop(e, {})} ref={this.createTarget}>
+                {this.schemaTable}
             </div>
-        );
+            {this.dividerDragger}
+            {!this.previewWidth() ? (null) : this.previewPanel}
+        </div>;
     }
 }
 
@@ -246,12 +217,13 @@ export interface SchemaTableProps {
     PanelHeight: () => number;
     PanelWidth: () => number;
     childDocs?: Doc[];
-    CollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+    CollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
     deleteDocument: (document: Doc) => boolean;
+    addDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
@@ -302,21 +274,17 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.props.Document.textwrappedSchemaRows = new List<string>(textWrappedRows);
     }
 
-    @computed get resized(): { "id": string, "value": number }[] {
+    @computed get resized(): { id: string, value: number }[] {
         return this.columns.reduce((resized, shf) => {
-            if (shf.width > -1) {
-                resized.push({ "id": shf.heading, "value": shf.width });
-            }
+            (shf.width > -1) && resized.push({ id: shf.heading, value: shf.width });
             return resized;
-        }, [] as { "id": string, "value": number }[]);
+        }, [] as { id: string, value: number }[]);
     }
-    @computed get sorted(): { id: string, desc: boolean }[] {
+    @computed get sorted(): SortingRule[] {
         return this.columns.reduce((sorted, shf) => {
-            if (shf.desc) {
-                sorted.push({ "id": shf.heading, "desc": shf.desc });
-            }
+            shf.desc && sorted.push({ id: shf.heading, desc: shf.desc });
             return sorted;
-        }, [] as { id: string, desc: boolean }[]);
+        }, [] as SortingRule[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
@@ -326,11 +294,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let tableIsFocused = this.props.isFocused(this.props.Document);
         let focusedRow = this._focusedCell.row;
         let focusedCol = this._focusedCell.col;
-        let isEditable = !this._headerIsEditing;// && this.props.isSelected();
+        let isEditable = !this._headerIsEditing;
 
-        let children = this.childDocs;
-
-        if (children.reduce((found, doc) => found || doc.type === "collection", false)) {
+        if (this.childDocs.reduce((found, doc) => found || doc.type === "collection", false)) {
             columns.push(
                 {
                     expander: true,
@@ -438,26 +404,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
     }
 
-    tableRemoveDoc = (document: Doc): boolean => {
-
-        let children = this.childDocs;
-        if (children.indexOf(document) !== -1) {
-            children.splice(children.indexOf(document), 1);
-            this.childDocs = children;
-            return true;
-        }
-        return false;
-    }
-
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
-        const that = this;
-        if (!rowInfo) {
-            return {};
-        }
-        return {
+        return !rowInfo ? {} : {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
             addDoc: this.tableAddDoc,
-            removeDoc: this.tableRemoveDoc,
+            removeDoc: this.props.deleteDocument,
             rowInfo,
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
             textWrapRow: this.toggleTextWrapRow,
@@ -466,14 +417,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     private getTdProps: ComponentPropsGetterR = (state, rowInfo, column, instance) => {
-        if (!rowInfo) return {};
-        if (!column) return {};
+        if (!rowInfo || column) return {};
 
         let row = rowInfo.index;
         //@ts-ignore
         let col = this.columns.map(c => c.heading).indexOf(column!.id);
         let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
-        let isEditing = this.props.isFocused(this.props.Document) && this._cellIsEditing;
         // TODO: editing border doesn't work :(
         return {
             style: {
@@ -483,113 +432,68 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    onExpandCollection = (collection: Doc): void => {
-        this._openCollections.push(collection[Id]);
-    }
-
-    @action
     onCloseCollection = (collection: Doc): void => {
         let index = this._openCollections.findIndex(col => col === collection[Id]);
         if (index > -1) this._openCollections.splice(index, 1);
     }
 
-    @action
-    setCellIsEditing = (isEditing: boolean): void => {
-        this._cellIsEditing = isEditing;
-    }
-
-    @action
-    setHeaderIsEditing = (isEditing: boolean): void => {
-        this._headerIsEditing = isEditing;
-    }
+    @action onExpandCollection = (collection: Doc) => this._openCollections.push(collection[Id]);
+    @action setCellIsEditing = (isEditing: boolean) => this._cellIsEditing = isEditing;
+    @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
 
     onPointerDown = (e: React.PointerEvent): void => {
         this.props.setFocused(this.props.Document);
-        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            if (this.props.isSelected()) e.stopPropagation();
-        }
-    }
-
-    onWheel = (e: React.WheelEvent): void => {
-        if (this.props.active()) {
+        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected()) {
             e.stopPropagation();
         }
     }
 
+    @action
     onKeyDown = (e: KeyboardEvent): void => {
         if (!this._cellIsEditing && !this._headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected()) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
-            this.changeFocusedCellByDirection(direction);
+            this._focusedCell = this.changeFocusedCellByDirection(direction, this._focusedCell.row, this._focusedCell.col);
 
-            let children = this.childDocs;
-            const pdoc = FieldValue(children[this._focusedCell.row]);
+            const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
         }
     }
 
-    @action
-    changeFocusedCellByDirection = (direction: string): void => {
-        let children = this.childDocs;
+    changeFocusedCellByDirection = (direction: string, curRow: number, curCol: number) => {
         switch (direction) {
-            case "tab":
-                if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === children.length) {
-                    this._focusedCell = { row: 0, col: 0 };
-                } else if (this._focusedCell.col + 1 === this.columns.length) {
-                    this._focusedCell = { row: this._focusedCell.row + 1, col: 0 };
-                } else {
-                    this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col + 1 };
-                }
-                break;
-            case "right":
-                this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col + 1 === this.columns.length ? this._focusedCell.col : this._focusedCell.col + 1 };
-                break;
-            case "left":
-                this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col === 0 ? this._focusedCell.col : this._focusedCell.col - 1 };
-                break;
-            case "up":
-                this._focusedCell = { row: this._focusedCell.row === 0 ? this._focusedCell.row : this._focusedCell.row - 1, col: this._focusedCell.col };
-                break;
-            case "down":
-                this._focusedCell = { row: this._focusedCell.row + 1 === children.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
-                break;
+            case "tab": return { row: (curRow + 1 === this.childDocs.length ? 0 : curRow + 1), col: curCol + 1 === this.columns.length ? 0 : curCol + 1 };
+            case "right": return { row: curRow, col: curCol + 1 === this.columns.length ? curCol : curCol + 1 };
+            case "left": return { row: curRow, col: curCol === 0 ? curCol : curCol - 1 };
+            case "up": return { row: curRow === 0 ? curRow : curRow - 1, col: curCol };
+            case "down": return { row: curRow + 1 === this.childDocs.length ? curRow : curRow + 1, col: curCol };
         }
+        return this._focusedCell;
     }
 
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
-        this._focusedCell = { row: row, col: col };
+        if (this._focusedCell.row !== row || this._focusedCell.col !== col) {
+            this._focusedCell = { row: row, col: col };
+        }
         this.props.setFocused(this.props.Document);
     }
 
     @undoBatch
     createRow = () => {
-        let children = this.childDocs;
-
-        let newDoc = Docs.Create.TextDocument({ width: 100, height: 30 });
-        let proto = Doc.GetProto(newDoc);
-        proto.title = "";
-        children.push(newDoc);
-
-        this.childDocs = children;
+        let newDoc = Docs.Create.TextDocument({ title: "", width: 100, height: 30 });
+        this.props.addDocument(newDoc);
     }
 
     @undoBatch
     @action
     createColumn = () => {
         let index = 0;
-        let columns = this.columns;
-        let found = columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
-        if (!found) {
-            columns.push(new SchemaHeaderField("New field", "#f1efeb"));
-            this.columns = columns;
-            return;
-        }
+        let found = this.columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
         while (found) {
             index++;
-            found = columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
+            found = this.columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
         }
-        columns.push(new SchemaHeaderField("New field (" + index + ")", "#f1efeb"));
-        this.columns = columns;
+        this.columns.push(new SchemaHeaderField(`New field ${index ? "(" + index + ")" : ""}`, "#f1efeb"));
     }
 
     @undoBatch
@@ -682,9 +586,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    setColumns = (columns: SchemaHeaderField[]) => {
-        this.columns = columns;
-    }
+    setColumns = (columns: SchemaHeaderField[]) => this.columns = columns
 
     @undoBatch
     reorderColumns = (toMove: SchemaHeaderField, relativeTo: SchemaHeaderField, before: boolean, columnsValues: SchemaHeaderField[]) => {
@@ -730,11 +632,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let textWrapped = this.textWrappedRows;
         let index = textWrapped.findIndex(id => doc[Id] === id);
 
-        if (index > -1) {
-            textWrapped.splice(index, 1);
-        } else {
-            textWrapped.push(doc[Id]);
-        }
+        index > -1 ? textWrapped.splice(index, 1) : textWrapped.push(doc[Id]);
 
         this.textWrappedRows = textWrapped;
     }
@@ -764,13 +662,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             expanded={expanded}
             resized={this.resized}
             onResizedChange={this.onResizedChange}
-            SubComponent={hasCollectionChild ?
-                row => {
-                    if (row.original.type === "collection") {
-                        return <div className="sub"><SchemaTable {...this.props} Document={row.original} childDocs={undefined} /></div>;
-                    }
-                }
-                : undefined}
+            SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
+                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} childDocs={undefined} /></div>}
 
         />;
     }
@@ -886,143 +779,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     render() {
-        return (
-            <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
-                onDrop={(e: React.DragEvent) => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
-                {this.reactTable}
-                <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
-            </div>
-        );
-    }
-}
-
-
-interface CollectionSchemaPreviewProps {
-    Document?: Doc;
-    DataDocument?: Doc;
-    childDocs?: Doc[];
-    renderDepth: number;
-    fitToBox?: boolean;
-    width: () => number;
-    height: () => number;
-    ruleProvider: Doc | undefined;
-    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
-    CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
-    onClick?: ScriptField;
-    getTransform: () => Transform;
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
-    moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
-    removeDocument: (document: Doc) => boolean;
-    active: () => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
-    pinToPres: (document: Doc) => void;
-    setPreviewScript: (script: string) => void;
-    previewScript?: string;
-}
-
-@observer
-export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
-    private dropDisposer?: DragManager.DragDropDisposer;
-    _mainCont?: HTMLDivElement;
-    private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.width()); }
-    private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.height()); }
-    private contentScaling = () => {
-        let wscale = this.props.width() / (this.nativeWidth ? this.nativeWidth : this.props.width());
-        if (wscale * this.nativeHeight > this.props.height()) {
-            return this.props.height() / (this.nativeHeight ? this.nativeHeight : this.props.height());
-        }
-        return wscale;
-    }
-    protected createDropTarget = (ele: HTMLDivElement) => {
-    }
-    private createTarget = (ele: HTMLDivElement) => {
-        this._mainCont = ele;
-        this.dropDisposer && this.dropDisposer();
-        if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
-        }
-    }
-
-    @undoBatch
-    @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                let target = Doc.GetProto(otherdoc);
-                let layoutNative = Doc.MakeTitled("layoutNative");
-                layoutNative.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layoutNative = layoutNative;
-                target.layoutCUstom = target.layout = Doc.MakeDelegate(de.data.draggedDocuments[0]);
-            });
-            e.stopPropagation();
-        }
-        return true;
-    }
-    private PanelWidth = () => this.nativeWidth ? this.nativeWidth * this.contentScaling() : this.props.width();
-    private PanelHeight = () => this.nativeHeight ? this.nativeHeight * this.contentScaling() : this.props.height();
-    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling());
-    get centeringOffset() { return this.nativeWidth ? (this.props.width() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
-    @action
-    onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.props.setPreviewScript(e.currentTarget.value);
-    }
-    @computed get borderRounding() {
-        let br = StrCast(this.props.Document!.borderRounding);
-        if (br.endsWith("%")) {
-            let percent = Number(br.substr(0, br.length - 1)) / 100;
-            let nativeDim = Math.min(NumCast(this.props.Document!.nativeWidth), NumCast(this.props.Document!.nativeHeight));
-            let minDim = percent * (nativeDim ? nativeDim : Math.min(this.PanelWidth(), this.PanelHeight()));
-            return minDim;
-        }
-        return undefined;
-    }
-
-
-    render() {
-        let input = this.props.previewScript === undefined ? (null) :
-            <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
-                style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
-        return (<div className="collectionSchemaView-previewRegion"
-            style={{ width: this.props.width(), height: this.props.height() }}>
-            {!this.props.Document || !this.props.width ? (null) : (
-                <div className="collectionSchemaView-previewDoc"
-                    style={{
-                        transform: `translate(${this.centeringOffset}px, 0px)`,
-                        borderRadius: this.borderRounding,
-                        display: "inline",
-                        height: this.props.height(),
-                        width: this.props.width()
-                    }}>
-                    <DocumentView
-                        DataDoc={this.props.DataDocument}
-                        Document={this.props.Document}
-                        fitToBox={this.props.fitToBox}
-                        onClick={this.props.onClick}
-                        ruleProvider={this.props.ruleProvider}
-                        showOverlays={this.props.showOverlays}
-                        addDocument={this.props.addDocument}
-                        removeDocument={this.props.removeDocument}
-                        moveDocument={this.props.moveDocument}
-                        whenActiveChanged={this.props.whenActiveChanged}
-                        ContainingCollectionView={this.props.CollectionView}
-                        ContainingCollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
-                        addDocTab={this.props.addDocTab}
-                        pinToPres={this.props.pinToPres}
-                        parentActive={this.props.active}
-                        ScreenToLocalTransform={this.getTransform}
-                        renderDepth={this.props.renderDepth + 1}
-                        ContentScaling={this.contentScaling}
-                        PanelWidth={this.PanelWidth}
-                        PanelHeight={this.PanelHeight}
-                        focus={emptyFunction}
-                        backgroundColor={returnEmptyString}
-                        bringToFront={emptyFunction}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}
-                    />
-                </div>)}
-            {input}
-        </div>);
+        return <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={e => this.props.active() && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
+            {this.reactTable}
+            <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+        </div>;
     }
 }
