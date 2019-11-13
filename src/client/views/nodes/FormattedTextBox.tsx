@@ -85,7 +85,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     private _searchReactionDisposer?: Lambda;
     private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
     private _rulesReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
@@ -191,9 +190,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             let tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
-            this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
-            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
             this.updateTitle();
             this.tryUpdateHeight();
@@ -250,7 +248,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             // replace text contents whend dragging with Alt
             if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "AltKey") {
                 if (draggedDoc.data instanceof RichTextField) {
-                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data, draggedDoc.data.Text);
                     e.stopPropagation();
                 }
                 // apply as template when dragging with Meta
@@ -509,17 +507,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             () => [this.layoutDoc[WidthSym](), this.layoutDoc.autoHeight],
             () => this.tryUpdateHeight()
         );
-
-        this._textReactionDisposer = reaction(
-            () => this.extensionDoc,
-            () => {
-                if (this.extensionDoc && (this.dataDoc.text || this.dataDoc.lastModified)) {
-                    this.extensionDoc.text = this.dataDoc.text;
-                    this.extensionDoc.lastModified = DateCast(this.dataDoc.lastModified)[Copy]();
-                    this.dataDoc.text = undefined;
-                    this.dataDoc.lastModified = undefined;
-                }
-            }, { fireImmediately: true });
 
 
         this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
@@ -834,7 +821,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
-        this._textReactionDisposer && this._textReactionDisposer();
         this._pushReactionDisposer && this._pushReactionDisposer();
         this._pullReactionDisposer && this._pullReactionDisposer();
         this._heightReactionDisposer && this._heightReactionDisposer();
