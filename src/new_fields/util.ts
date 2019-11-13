@@ -76,7 +76,8 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
-        UndoManager.AddEvent({
+        UndoManager.
+        AddEvent({
             redo: () => receiver[prop] = value,
             undo: () => receiver[prop] = curValue
         });
