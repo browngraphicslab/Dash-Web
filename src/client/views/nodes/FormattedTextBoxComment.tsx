@@ -1,20 +1,18 @@
-import { Plugin, EditorState } from "prosemirror-state";
-import './FormattedTextBoxComment.scss';
-import { ResolvedPos, Mark } from "prosemirror-model";
+import { Mark, ResolvedPos } from "prosemirror-model";
+import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, WidthSym } from "../../../new_fields/Doc";
-import { schema } from "../../util/RichTextSchema";
-import { DocServer } from "../../DocServer";
-import { Utils, returnTrue, returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
-import { StrCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { FormattedTextBox } from "./FormattedTextBox";
-import { DocumentManager } from "../../util/DocumentManager";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { DocumentView } from "./DocumentView";
-import React = require("react");
 import * as ReactDOM from 'react-dom';
+import { Doc } from "../../../new_fields/Doc";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, Utils } from "../../../Utils";
+import { DocServer } from "../../DocServer";
+import { DocumentManager } from "../../util/DocumentManager";
+import { schema } from "../../util/RichTextSchema";
 import { Transform } from "../../util/Transform";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { FormattedTextBox } from "./FormattedTextBox";
+import './FormattedTextBoxComment.scss';
+import React = require("react");
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -107,7 +105,7 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "");
     }
 
-    update(view: EditorView, lastState?: EditorState) {
+    static update(view: EditorView, lastState?: EditorState) {
         let state = view.state;
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
@@ -122,6 +120,8 @@ export class FormattedTextBoxComment {
         }
         let set = "none";
         let nbef = 0;
+        FormattedTextBoxComment.tooltip.style.width = "";
+        FormattedTextBoxComment.tooltip.style.height = "";
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
@@ -152,32 +152,35 @@ export class FormattedTextBoxComment {
                     docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
                         if (linkDoc instanceof Doc) {
                             FormattedTextBoxComment.linkDoc = linkDoc;
-                            let target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
+                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
                             try {
                                 ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
                             } catch (e) {
 
                             }
-                            target && ReactDOM.render(<ContentFittingDocumentView
-                                fitToBox={true}
-                                Document={target}
-                                fieldKey={"data"}
-                                moveDocument={returnFalse}
-                                getTransform={Transform.Identity}
-                                active={returnFalse}
-                                setPreviewScript={returnEmptyString}
-                                addDocument={returnFalse}
-                                removeDocument={returnFalse}
-                                ruleProvider={undefined}
-                                addDocTab={returnFalse}
-                                pinToPres={returnFalse}
-                                dontRegisterView={true}
-                                renderDepth={1}
-                                PanelWidth={() => 350}
-                                PanelHeight={() => 250}
-                                focus={emptyFunction}
-                                whenActiveChanged={returnFalse}
-                            />, FormattedTextBoxComment.tooltipText);
+                            if (target) {
+                                ReactDOM.render(<ContentFittingDocumentView
+                                    fitToBox={true}
+                                    Document={target}
+                                    moveDocument={returnFalse}
+                                    getTransform={Transform.Identity}
+                                    active={returnFalse}
+                                    setPreviewScript={returnEmptyString}
+                                    addDocument={returnFalse}
+                                    removeDocument={returnFalse}
+                                    ruleProvider={undefined}
+                                    addDocTab={returnFalse}
+                                    pinToPres={returnFalse}
+                                    dontRegisterView={true}
+                                    renderDepth={1}
+                                    PanelWidth={() => Math.min(350, NumCast(target.width, 350))}
+                                    PanelHeight={() => Math.min(250, NumCast(target.height, 250))}
+                                    focus={emptyFunction}
+                                    whenActiveChanged={returnFalse}
+                                />, FormattedTextBoxComment.tooltipText);
+                                FormattedTextBoxComment.tooltip.style.width = NumCast(target.width) ? `${NumCast(target.width)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.height = NumCast(target.height) ? `${NumCast(target.height)}` : "100%";
+                            }
                             // let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
                             // let text = ext && StrCast(ext.text);
                             // ext && (FormattedTextBoxComment.tooltipText.textContent = (target && target.type === DocumentType.PDFANNO ? "Quoted from " : "") + "=> " + (text || StrCast(ext.title)));

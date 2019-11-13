@@ -20,7 +20,6 @@ interface ContentFittingDocumentViewProps {
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
-    fieldKey: string;
     PanelWidth: () => number;
     PanelHeight: () => number;
     ruleProvider: Doc | undefined;

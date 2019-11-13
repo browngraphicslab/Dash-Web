@@ -843,7 +843,10 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        if (!(e.nativeEvent as any).formattedHandled) { FormattedTextBoxComment.textBox = this; }
+        if (!(e.nativeEvent as any).formattedHandled) {
+            FormattedTextBoxComment.textBox = this;
+            FormattedTextBoxComment.update(this._editorView!);
+        }
         (e.nativeEvent as any).formattedHandled = true;
 
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
