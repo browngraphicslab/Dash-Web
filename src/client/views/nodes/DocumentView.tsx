@@ -74,6 +74,7 @@ export interface DocumentViewProps {
     getScale: () => number;
     animateBetweenIcon?: (maximize: boolean, target: number[]) => void;
     ChromeHeight?: () => number;
+    dontRegisterView?: boolean;
     layoutKey?: string;
 }
 
@@ -98,7 +99,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } }));
-        DocumentManager.Instance.DocumentViews.push(this);
+
+        !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
 
     @action
@@ -111,7 +113,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
         Doc.UnBrushDoc(this.props.Document);
-        DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+        !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
     startDragging(x: number, y: number, dropAction: dropActionType, applyAsTemplate?: boolean) {
