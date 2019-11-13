@@ -774,7 +774,9 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                     while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
                     let r1 = refNode && refNode.getBoundingClientRect();
                     let r3 = self._ref.current!.getBoundingClientRect();
-                    r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    if (r1.top < r3.top || r1.top > r3.bottom) {
+                        r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    }
                     return true;
                 },
                 dispatchTransaction: this.dispatchTransaction,

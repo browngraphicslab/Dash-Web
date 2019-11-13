@@ -679,6 +679,7 @@ export class DashDocView {
                     bringToFront={emptyFunction}
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
+                    dontRegisterView={true}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={this.contentScaling}
