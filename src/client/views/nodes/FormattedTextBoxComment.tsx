@@ -14,6 +14,7 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
 import React = require("react");
 import { Docs } from "../../documents/Documents";
+import wiki from "wikijs";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -66,8 +67,6 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltipInput.type = "checkbox";
             FormattedTextBoxComment.tooltip = document.createElement("div");
             FormattedTextBoxComment.tooltipText = document.createElement("div");
-            FormattedTextBoxComment.tooltipText.style.whiteSpace = "pre";
-            FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
             FormattedTextBoxComment.tooltipText.style.width = "100%";
             FormattedTextBoxComment.tooltipText.style.height = "100%";
             FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
@@ -133,6 +132,8 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip.style.width = "";
         FormattedTextBoxComment.tooltip.style.height = "";
         (FormattedTextBoxComment.tooltipText as any).href = "";
+        FormattedTextBoxComment.tooltipText.style.whiteSpace = "";
+        FormattedTextBoxComment.tooltipText.style.overflow = "";
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
@@ -159,6 +160,12 @@ export class FormattedTextBoxComment {
             let mark = child && findLinkMark(child.marks);
             if (mark && child && nbef && naft) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + mark.attrs.href;
+                if (mark.attrs.href.startsWith("https://en.wikipedia.org/wiki/")) {
+                    wiki().page(mark.attrs.href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
+                } else {
+                    FormattedTextBoxComment.tooltipText.style.whiteSpace = "pre";
+                    FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
+                }
                 (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                 if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
                     let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
