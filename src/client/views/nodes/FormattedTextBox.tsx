@@ -18,7 +18,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from '../../../Utils';
+import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, returnOne } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -33,7 +33,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocExtendableComponent } from "../DocComponent";
+import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
 import { DocumentDecorations } from '../DocumentDecorations';
 import { InkingControl } from "../InkingControl";
@@ -46,6 +46,7 @@ import { ContextMenu } from '../ContextMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { AudioBox } from './AudioBox';
+import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -70,7 +71,7 @@ const RichTextDocument = makeInterface(richTextSchema, documentSchema);
 type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => void;
 
 @observer
-export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
+export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
@@ -359,6 +360,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%"; }, icon: "expand-arrows-alt" });
         funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
@@ -1010,6 +1012,9 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         }
     }
 
+    @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidth, "0%"); }
+    @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
+    @computed get annotationsKey() { return "annotations"; }
     render() {
         trace();
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
@@ -1042,8 +1047,32 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
-
+                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
+                    <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                </div>
+                {this.sidebarWidthPercent === "0%" ? (null) : <div style={{ borderLeft: "solid 1px black", width: `${this.sidebarWidthPercent}`, height: "100%", display: "inline-block" }}>
+                    <CollectionFreeFormView {...this.props}
+                        PanelHeight={() => this.props.PanelHeight()}
+                        PanelWidth={() => this.sidebarWidth}
+                        annotationsKey={this.annotationsKey}
+                        isAnnotationOverlay={true}
+                        focus={this.props.focus}
+                        isSelected={this.props.isSelected}
+                        select={emptyFunction}
+                        active={this.active}
+                        ContentScaling={returnOne}
+                        whenActiveChanged={this.whenActiveChanged}
+                        removeDocument={this.removeDocument}
+                        moveDocument={this.moveDocument}
+                        addDocument={this.addDocument}
+                        CollectionView={undefined}
+                        ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
+                        ruleProvider={undefined}
+                        renderDepth={this.props.renderDepth + 1}
+                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                        chromeCollapsed={true}>
+                    </CollectionFreeFormView>
+                </div>}
                 <div className="formattedTextBox-dictation"
                     onClick={e => {
                         this._recording ? this.stopDictation(true) : this.recordDictation();
