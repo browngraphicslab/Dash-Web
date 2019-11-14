@@ -288,6 +288,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         if (context === node) return { from: offset, to: offset + node.nodeSize };
 
         if (node.isBlock) {
+            // tslint:disable-next-line: prefer-for-of
             for (let i = 0; i < (context.content as any).content.length; i++) {
                 let result = this.getNodeEndpoints((context.content as any).content[i], node);
                 if (result) {

@@ -13,6 +13,7 @@ import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
 import React = require("react");
+import { Docs } from "../../documents/Documents";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -51,6 +52,7 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
 export class FormattedTextBoxComment {
     static tooltip: HTMLElement;
     static tooltipText: HTMLElement;
+    static tooltipInput: HTMLInputElement;
     static start: number;
     static end: number;
     static mark: Mark;
@@ -60,10 +62,15 @@ export class FormattedTextBoxComment {
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
             const root = document.getElementById("root");
-            let input = document.createElement("input");
-            input.type = "checkbox";
+            FormattedTextBoxComment.tooltipInput = document.createElement("input");
+            FormattedTextBoxComment.tooltipInput.type = "checkbox";
             FormattedTextBoxComment.tooltip = document.createElement("div");
             FormattedTextBoxComment.tooltipText = document.createElement("div");
+            FormattedTextBoxComment.tooltipText.style.whiteSpace = "pre";
+            FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
+            FormattedTextBoxComment.tooltipText.style.width = "100%";
+            FormattedTextBoxComment.tooltipText.style.height = "100%";
+            FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
@@ -73,13 +80,15 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
             FormattedTextBoxComment.tooltip.style.display = "none";
-            FormattedTextBoxComment.tooltip.appendChild(input);
+            FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
             FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
                 let keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
                     DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                         (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
+                } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { width: 200, height: 400 }), undefined, "onRight");
                 }
                 FormattedTextBoxComment.opened = keep || !FormattedTextBoxComment.opened;
                 textBox && FormattedTextBoxComment.start !== undefined && textBox.setAnnotation(
@@ -120,8 +129,10 @@ export class FormattedTextBoxComment {
         }
         let set = "none";
         let nbef = 0;
+        FormattedTextBoxComment.tooltipInput.style.display = "none";
         FormattedTextBoxComment.tooltip.style.width = "";
         FormattedTextBoxComment.tooltip.style.height = "";
+        (FormattedTextBoxComment.tooltipText as any).href = "";
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
@@ -136,6 +147,7 @@ export class FormattedTextBoxComment {
             if (mark && child && ((nbef && naft) || !noselection)) {
                 FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " date=" + (new Date(mark.attrs.modified * 5000)).toDateString();
                 set = "";
+                FormattedTextBoxComment.tooltipInput.style.display = "";
             }
         }
         // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
@@ -147,6 +159,7 @@ export class FormattedTextBoxComment {
             let mark = child && findLinkMark(child.marks);
             if (mark && child && nbef && naft) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + mark.attrs.href;
+                (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                 if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
                     let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
@@ -155,9 +168,7 @@ export class FormattedTextBoxComment {
                             const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
                             try {
                                 ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
-                            } catch (e) {
-
-                            }
+                            } catch (e) { }
                             if (target) {
                                 ReactDOM.render(<ContentFittingDocumentView
                                     fitToBox={true}

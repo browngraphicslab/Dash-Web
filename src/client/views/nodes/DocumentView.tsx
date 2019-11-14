@@ -639,7 +639,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     {searchHighlight}
                 </div>
             }
-        </>
+        </>;
     }
     render() {
         if (!this.props.Document) return (null);

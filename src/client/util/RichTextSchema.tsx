@@ -575,8 +575,8 @@ export class ImageResizeView {
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
-            let wid = Number(getComputedStyle(self._img).width!.replace(/px/, ""));
-            let hgt = Number(getComputedStyle(self._img).height!.replace(/px/, ""));
+            let wid = Number(getComputedStyle(self._img).width.replace(/px/, ""));
+            let hgt = Number(getComputedStyle(self._img).height.replace(/px/, ""));
             const startX = e.pageX;
             const startWidth = parseFloat(node.attrs.width);
             const onpointermove = (e: any) => {

@@ -82,7 +82,7 @@ export class FilterBox extends React.Component {
                     var panel = this.nextElementSibling as HTMLElement;
                     if (panel.style.maxHeight) {
                         panel.style.overflow = "hidden";
-                        panel.style.maxHeight = null;
+                        panel.style.maxHeight = "";
                         panel.style.opacity = "0";
                     } else {
                         setTimeout(() => {
@@ -114,7 +114,7 @@ export class FilterBox extends React.Component {
                     acc[i].classList.toggle("active");
                     var panel = acc[i].nextElementSibling as HTMLElement;
                     panel.style.overflow = "hidden";
-                    panel.style.maxHeight = null;
+                    panel.style.maxHeight = "";
                 }
             }
         });

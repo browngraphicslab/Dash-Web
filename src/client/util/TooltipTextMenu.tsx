@@ -1000,12 +1000,10 @@ export class TooltipTextMenu {
         let activeMarks: MarkType[];
         if (!empty) {
             activeMarks = markGroup.filter(mark => {
-                if (dispatch) {
-                    let has = false;
-                    for (let i = 0; !has && i < ranges.length; i++) {
-                        let { $from, $to } = ranges[i];
-                        return state.doc.rangeHasMark($from.pos, $to.pos, mark);
-                    }
+                let has = false;
+                for (let i = 0; !has && i < ranges.length; i++) {
+                    let { $from, $to } = ranges[i];
+                    return state.doc.rangeHasMark($from.pos, $to.pos, mark);
                 }
                 return false;
             });
@@ -1024,13 +1022,11 @@ export class TooltipTextMenu {
                 }
                 this._activeMarks = ref_node.marks;
                 activeMarks = markGroup.filter(mark_type => {
-                    if (dispatch) {
-                        if (mark_type === state.schema.marks.pFontSize) {
-                            return ref_node.marks.some(m => m.type.name === state.schema.marks.pFontSize.name);
-                        }
-                        let mark = state.schema.mark(mark_type);
-                        return ref_node.marks.includes(mark);
+                    if (mark_type === state.schema.marks.pFontSize) {
+                        return ref_node.marks.some(m => m.type.name === state.schema.marks.pFontSize.name);
                     }
+                    let mark = state.schema.mark(mark_type);
+                    return ref_node.marks.includes(mark);
                     return false;
                 });
             }
