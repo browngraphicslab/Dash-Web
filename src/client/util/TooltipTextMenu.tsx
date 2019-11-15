@@ -30,9 +30,8 @@ export class TooltipTextMenu {
 
     public static Toolbar: HTMLDivElement | undefined;
 
-    // editor state
+    // editor state properties
     private view: EditorView;
-    // private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
     private fontStyles: MarkType[] = [];
     private fontSizes: MarkType[] = [];
     private listTypes: (NodeType | any)[] = [];
@@ -42,13 +41,16 @@ export class TooltipTextMenu {
     private _activeMarks: Mark[] = [];
     private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
     private _collapsed: boolean = false;
-    //private link: HTMLAnchorElement;
 
     // editor doms
     public tooltip: HTMLElement = document.createElement("div");
     private wrapper: HTMLDivElement = document.createElement("div");
 
     // editor button doms
+    private colorDom?: Node;
+    private colorDropdownDom?: Node;
+    private highlightDom?: Node;
+    private highlightDropdownDom?: Node;
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
     private linkDrag?: HTMLImageElement;
@@ -58,42 +60,32 @@ export class TooltipTextMenu {
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
-    private colorDom?: Node;
-    private colorDropdownDom?: Node;
-    private highlightDom?: Node;
-    private highlightDropdownDom?: Node;
-
-
-    // private _collapseBtn?: MenuItem;
-    // private _brushIsEmpty: boolean = true;
-
+    private basicTools?: HTMLElement;
 
 
     constructor(view: EditorView) {
         this.view = view;
 
-        // // replace old active menu with this
-        // if (TooltipTextMenuManager.Instance.activeMenu) {
-        //     TooltipTextMenuManager.Instance.activeMenu.wrapper.remove();
-        // }
-        // TooltipTextMenuManager.Instance.activeMenu = this;
-
-        // initialize the tooltip
-        this.createTooltip(view);
+        // initialize the tooltip -- sets this.tooltip
+        this.initTooltip(view);
 
         // initialize the wrapper
         this.wrapper = document.createElement("div");
         this.wrapper.className = "wrapper";
         this.wrapper.appendChild(this.tooltip);
 
-        // positioning?
+        // initialize the dragger -- appends it to the wrapper
+        this.createDragger();
+
         TooltipTextMenu.Toolbar = this.wrapper;
     }
 
-    private async createTooltip(view: EditorView) {
+    private async initTooltip(view: EditorView) {
         // initialize tooltip dom
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
+        this.basicTools = document.createElement("div");
+        this.basicTools.className = "basic-tools";
 
         // init buttons to the tooltip -- paths to svgs are obtained from fontawesome
         let items = [
@@ -113,12 +105,15 @@ export class TooltipTextMenu {
             switch (dom.title) {
                 case "Bold":
                     this._marksToDoms.set(schema.mark(schema.marks.strong), dom);
+                    this.basicTools && this.basicTools.appendChild(dom.cloneNode(true));
                     break;
                 case "Italic":
                     this._marksToDoms.set(schema.mark(schema.marks.em), dom);
+                    this.basicTools && this.basicTools.appendChild(dom.cloneNode(true));
                     break;
                 case "Underline":
                     this._marksToDoms.set(schema.mark(schema.marks.underline), dom);
+                    this.basicTools && this.basicTools.appendChild(dom.cloneNode(true));
                     break;
             }
 
@@ -172,19 +167,12 @@ export class TooltipTextMenu {
         this.tooltip.appendChild(this._brushDropdownDom);
 
         // star
-        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
-        //
+        // list types dropdown
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
-        //
         await this.updateFromDash(view, undefined, undefined);
-        // TooltipTextMenu.Toolbar = this.wrapper;
-
-        // dragger
-        // TODO: onclick handler in drag handles collapsing
-        this.createDragger();
     }
 
     initFontStyles() {
@@ -224,12 +212,14 @@ export class TooltipTextMenu {
         this.listTypes = Array.from(this.listTypeToIcon.keys());
     }
 
+    // creates dragger element that allows dragging and collapsing (on double click) 
+    // of editor and appends it to the wrapper
     createDragger() {
-        const dragger = document.createElement("div");
-        dragger.className = "dragger";
-
         let draggerWrapper = document.createElement("div");
         draggerWrapper.className = "dragger-wrapper";
+
+        let dragger = document.createElement("div");
+        dragger.className = "dragger";
 
         let line1 = document.createElement("span");
         line1.className = "dragger-line";
@@ -238,14 +228,72 @@ export class TooltipTextMenu {
         let line3 = document.createElement("span");
         line3.className = "dragger-line";
 
-        draggerWrapper.appendChild(line1);
-        draggerWrapper.appendChild(line2);
-        draggerWrapper.appendChild(line3);
+        dragger.appendChild(line1);
+        dragger.appendChild(line2);
+        dragger.appendChild(line3);
 
-        dragger.appendChild(draggerWrapper);
+        draggerWrapper.appendChild(dragger);
 
-        this.tooltip.appendChild(dragger);
-        this.dragElement(dragger);
+        this.wrapper.appendChild(draggerWrapper);
+        this.dragElement(draggerWrapper);
+    }
+
+    dragElement(elmnt: HTMLElement) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (elmnt) {
+            // if present, the header is where you move the DIV from:
+            elmnt.onpointerdown = dragMouseDown;
+            elmnt.ondblclick = onClick;
+        }
+        const self = this;
+
+        function dragMouseDown(e: PointerEvent) {
+            e = e || window.event;
+            //e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onpointerup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onpointermove = elementDrag;
+        }
+
+        function onClick(e: MouseEvent) {
+            self._collapsed = !self._collapsed;
+            const children = self.wrapper.childNodes;
+            if (self._collapsed && children.length > 0) {
+                self.wrapper.removeChild(self.tooltip);
+                self.basicTools && self.wrapper.prepend(self.basicTools);
+            }
+            else {
+                self.wrapper.prepend(self.tooltip);
+                self.basicTools && self.wrapper.removeChild(self.basicTools);
+            }
+        }
+
+        function elementDrag(e: PointerEvent) {
+            e = e || window.event;
+            //e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            // elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            // elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+
+            self.wrapper.style.top = (self.wrapper.offsetTop - pos2) + "px";
+            self.wrapper.style.left = (self.wrapper.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onpointerup = null;
+            document.onpointermove = null;
+            //self.highlightSearchTerms(self.state, ["hello"]);
+            //FormattedTextBox.Instance.unhighlightSearchTerms();
+        }
     }
 
     //label of dropdown will change to given label
@@ -261,7 +309,7 @@ export class TooltipTextMenu {
 
         let newfontSizeDom = (new Dropdown(cut(fontSizeBtns), {
             label: label,
-            css: "color:black; min-width: 60px; padding-left: 5px; margin-right: 0;"
+            css: "color:black; min-width: 60px;"
         }) as MenuItem).render(this.view).dom;
         if (this.fontSizeDom) { this.tooltip.replaceChild(newfontSizeDom, this.fontSizeDom); }
         else {
@@ -269,8 +317,6 @@ export class TooltipTextMenu {
         }
         this.fontSizeDom = newfontSizeDom;
     }
-
-    // Make the DIV element draggable
 
     //label of dropdown will change to given label
     updateFontStyleDropdown(label: string) {
@@ -285,7 +331,7 @@ export class TooltipTextMenu {
 
         let newfontStyleDom = (new Dropdown(cut(fontBtns), {
             label: label,
-            css: "color:black; width: 125px; margin-left: -3px; padding-left: 2px;"
+            css: "color:black; width: 125px;"
         }) as MenuItem).render(this.view).dom;
         if (this.fontStyleDom) { this.tooltip.replaceChild(newfontStyleDom, this.fontStyleDom); }
         else {
@@ -299,11 +345,7 @@ export class TooltipTextMenu {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
             this.linkEditor.className = "ProseMirror-icon menuicon";
-            // this.linkEditor.style.color = "black";
             this.linkText = document.createElement("div");
-            // this.linkText.style.cssFloat = "left";
-            // this.linkText.style.marginRight = "5px";
-            // this.linkText.style.marginLeft = "5px";
             this.linkText.setAttribute("contenteditable", "true");
             this.linkText.style.whiteSpace = "nowrap";
             this.linkText.style.width = "150px";
@@ -391,13 +433,11 @@ export class TooltipTextMenu {
                 e.preventDefault();
             }
         };
-        // this.tooltip.appendChild(this.linkEditor);
     }
 
     async getTextLinkTargetTitle() {
         let node = this.view.state.selection.$from.nodeAfter;
         let link = node && node.marks.find(m => m.type.name === "link");
-        // let href = link!.attrs.href;
         if (link) {
             let href = link.attrs.href;
             if (href) {
@@ -445,7 +485,6 @@ export class TooltipTextMenu {
 
                 input.type = "text";
                 input.placeholder = "Enter URL";
-                console.log(targetTitle);
                 if (targetTitle) input.value = targetTitle;
                 input.onclick = (e: MouseEvent) => {
                     input.select();
@@ -514,62 +553,6 @@ export class TooltipTextMenu {
         return linkDropdown;
     }
 
-    dragElement(elmnt: HTMLElement) {
-        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        if (elmnt) {
-            // if present, the header is where you move the DIV from:
-            elmnt.onpointerdown = dragMouseDown;
-            elmnt.ondblclick = onClick;
-        }
-        const self = this;
-
-        function dragMouseDown(e: PointerEvent) {
-            e = e || window.event;
-            //e.preventDefault();
-            // get the mouse cursor position at startup:
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onpointerup = closeDragElement;
-            // call a function whenever the cursor moves:
-            document.onpointermove = elementDrag;
-        }
-
-        function onClick(e: MouseEvent) {
-            self._collapsed = !self._collapsed;
-            const children = self.wrapper.childNodes;
-            if (self._collapsed && children.length > 1) {
-                self.wrapper.removeChild(self.tooltip);
-            }
-            else {
-                self.wrapper.appendChild(self.tooltip);
-            }
-        }
-
-        function elementDrag(e: PointerEvent) {
-            e = e || window.event;
-            //e.preventDefault();
-            // calculate the new cursor position:
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            // set the element's new position:
-            // elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            // elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-
-            self.wrapper.style.top = (self.wrapper.offsetTop - pos2) + "px";
-            self.wrapper.style.left = (self.wrapper.offsetLeft - pos1) + "px";
-        }
-
-        function closeDragElement() {
-            // stop moving when mouse button is released:
-            document.onpointerup = null;
-            document.onpointermove = null;
-            //self.highlightSearchTerms(self.state, ["hello"]);
-            //FormattedTextBox.Instance.unhighlightSearchTerms();
-        }
-    }
-
     // makeLinkWithState = (state: EditorState, target: string, location: string) => {
     //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     // }
@@ -616,10 +599,70 @@ export class TooltipTextMenu {
                 }
             }
         }
-
-
     }
 
+    deleteLinkItem() {
+        const icon = {
+            height: 16, width: 16,
+            path: "M15.898,4.045c-0.271-0.272-0.713-0.272-0.986,0l-4.71,4.711L5.493,4.045c-0.272-0.272-0.714-0.272-0.986,0s-0.272,0.714,0,0.986l4.709,4.711l-4.71,4.711c-0.272,0.271-0.272,0.713,0,0.986c0.136,0.136,0.314,0.203,0.492,0.203c0.179,0,0.357-0.067,0.493-0.203l4.711-4.711l4.71,4.711c0.137,0.136,0.314,0.203,0.494,0.203c0.178,0,0.355-0.067,0.492-0.203c0.273-0.273,0.273-0.715,0-0.986l-4.711-4.711l4.711-4.711C16.172,4.759,16.172,4.317,15.898,4.045z"
+        };
+        return new MenuItem({
+            title: "Delete Link",
+            label: "X",
+            icon: icon,
+            css: "color: red",
+            class: "summarize",
+            execEvent: "",
+            run: (state, dispatch) => {
+                this.deleteLink();
+            }
+        });
+    }
+
+    createLink() {
+        let markType = schema.marks.link;
+        return new MenuItem({
+            title: "Add or remove link",
+            label: "Add or remove link",
+            execEvent: "",
+            icon: icons.link,
+            css: "color:white;",
+            class: "menuicon",
+            enable(state) { return !state.selection.empty; },
+            run: (state, dispatch, view) => {
+                // to remove link
+                let curLink = "";
+                if (this.markActive(state, markType)) {
+
+                    let { from, $from, to, empty } = state.selection;
+                    let node = state.doc.nodeAt(from);
+                    node && node.marks.map(m => {
+                        m.type === markType && (curLink = m.attrs.href);
+                    });
+                    //toggleMark(markType)(state, dispatch);
+                    //return true;
+                }
+                // to create link
+                openPrompt({
+                    title: "Create a link",
+                    fields: {
+                        href: new TextField({
+                            value: curLink,
+                            label: "Link Target",
+                            required: true
+                        }),
+                        title: new TextField({ label: "Title" })
+                    },
+                    callback(attrs: any) {
+                        toggleMark(markType, attrs)(view.state, view.dispatch);
+                        view.focus();
+                    },
+                    flyout_top: 0,
+                    flyout_left: 0
+                });
+            }
+        });
+    }
 
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
     updateListItemDropdown(label: string, listTypeBtn: any) {
@@ -644,108 +687,6 @@ export class TooltipTextMenu {
         return listTypeBtn;
     }
 
-    //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
-    changeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
-        let { $cursor, ranges } = view.state.selection as TextSelection;
-        let state = view.state;
-        let dispatch = view.dispatch;
-
-        //remove all other active font marks
-        fontMarks.forEach((type) => {
-            if (dispatch) {
-                if ($cursor) {
-                    if (type.isInSet(state.storedMarks || $cursor.marks())) {
-                        dispatch(state.tr.removeStoredMark(type));
-                    }
-                } else {
-                    let has = false;
-                    for (let i = 0; !has && i < ranges.length; i++) {
-                        let { $from, $to } = ranges[i];
-                        has = state.doc.rangeHasMark($from.pos, $to.pos, type);
-                    }
-                    for (let i of ranges) {
-                        if (has) {
-                            toggleMark(type)(view.state, view.dispatch, view);
-                        }
-                    }
-                }
-            }
-        });
-
-        if (markType) {
-            // fontsize
-            if (markType.name[0] === 'p') {
-                let size = this.fontSizeToNum.get(markType);
-                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-                if (this.editorProps) {
-                    let ruleProvider = this.editorProps.ruleProvider;
-                    let heading = NumCast(this.editorProps.Document.heading);
-                    if (ruleProvider && heading) {
-                        ruleProvider["ruleSize_" + heading] = size;
-                    }
-                }
-            }
-            else {
-                let fontName = this.fontStylesToName.get(markType);
-                if (fontName) { this.updateFontStyleDropdown(fontName); }
-                if (this.editorProps) {
-                    let ruleProvider = this.editorProps.ruleProvider;
-                    let heading = NumCast(this.editorProps.Document.heading);
-                    if (ruleProvider && heading) {
-                        ruleProvider["ruleFont_" + heading] = fontName;
-                    }
-                }
-            }
-            //actually apply font
-            if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
-                let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
-                    { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: markType.name, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema);
-                view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
-            }
-            else toggleMark(markType)(view.state, view.dispatch, view);
-        }
-    }
-
-    //remove all node typeand apply the passed-in one to the selected text
-    changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
-        //remove oldif (nodeType) { //add new
-        if (nodeType === schema.nodes.bullet_list) {
-            wrapInList(nodeType)(view.state, view.dispatch);
-        } else {
-            var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
-            if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
-                marks && tx3.ensureMarks([...marks]);
-                marks && tx3.setStoredMarks([...marks]);
-
-                view.dispatch(tx2);
-            })) {
-                let tx2 = view.state.tr;
-                let tx3 = nodeType ? updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle) : tx2;
-                marks && tx3.ensureMarks([...marks]);
-                marks && tx3.setStoredMarks([...marks]);
-
-                view.dispatch(tx3);
-            }
-        }
-    }
-
-    //makes a button for the drop down FOR MARKS
-    //css is the style you want applied to the button
-    dropdownMarkBtn(label: string, css: string, markType: MarkType, view: EditorView, changeToMarkInGroup: (markType: MarkType<any>, view: EditorView, groupMarks: MarkType[]) => any, groupMarks: MarkType[]) {
-        return new MenuItem({
-            title: "",
-            label: label,
-            execEvent: "",
-            class: "menuicon",
-            css: css,
-            enable() { return true; },
-            run() {
-                changeToMarkInGroup(markType, view, groupMarks);
-            }
-        });
-    }
-
     createStar() {
         return new MenuItem({
             title: "Summarize",
@@ -762,6 +703,17 @@ export class TooltipTextMenu {
     }
 
     public static insertStar(state: EditorState<any>, dispatch: any) {
+        if (state.selection.empty) return false;
+        let mark = state.schema.marks.highlight.create();
+        let tr = state.tr;
+        tr.addMark(state.selection.from, state.selection.to, mark);
+        let content = tr.selection.content();
+        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
+        return true;
+    }
+
+    public static insertComment(state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
         let mark = state.schema.marks.highlight.create();
         let tr = state.tr;
@@ -975,24 +927,6 @@ export class TooltipTextMenu {
         return colorDropdown;
     }
 
-    deleteLinkItem() {
-        const icon = {
-            height: 16, width: 16,
-            path: "M15.898,4.045c-0.271-0.272-0.713-0.272-0.986,0l-4.71,4.711L5.493,4.045c-0.272-0.272-0.714-0.272-0.986,0s-0.272,0.714,0,0.986l4.709,4.711l-4.71,4.711c-0.272,0.271-0.272,0.713,0,0.986c0.136,0.136,0.314,0.203,0.492,0.203c0.179,0,0.357-0.067,0.493-0.203l4.711-4.711l4.71,4.711c0.137,0.136,0.314,0.203,0.494,0.203c0.178,0,0.355-0.067,0.492-0.203c0.273-0.273,0.273-0.715,0-0.986l-4.711-4.711l4.711-4.711C16.172,4.759,16.172,4.317,15.898,4.045z"
-        };
-        return new MenuItem({
-            title: "Delete Link",
-            label: "X",
-            icon: icon,
-            css: "color: red",
-            class: "summarize",
-            execEvent: "",
-            run: (state, dispatch) => {
-                this.deleteLink();
-            }
-        });
-    }
-
     createBrush(active: boolean = false) {
         const icon = {
             height: 32, width: 32,
@@ -1019,8 +953,6 @@ export class TooltipTextMenu {
             }
         });
     }
-
-    // selectionchanged event handler
 
     brush_function(state: EditorState<any>, dispatch: any) {
         if (TooltipTextMenuManager.Instance._brushIsEmpty) {
@@ -1055,8 +987,6 @@ export class TooltipTextMenu {
                 }
             }
         }
-
-
     }
 
     createBrushDropdown(active: boolean = false) {
@@ -1120,88 +1050,106 @@ export class TooltipTextMenu {
         return brushDom;
     }
 
-    // createCollapse() {
-    //     this._collapseBtn = new MenuItem({
-    //         title: "Collapse",
-    //         //label: "Collapse",
-    //         icon: icons.join,
-    //         execEvent: "",
-    //         css: "color:white;",
-    //         class: "summarize",
-    //         run: () => {
-    //             this.collapseToolTip();
-    //         }
-    //     });
-    // }
 
-    // collapseToolTip() {
-    //     if (this._collapseBtn) {
-    //         if (this._collapseBtn.spec.title === "Collapse") {
-    //             // const newcollapseBtn = new MenuItem({
-    //             //     title: "Expand",
-    //             //     icon: icons.join,
-    //             //     execEvent: "",
-    //             //     css: "color:white;",
-    //             //     class: "summarize",
-    //             //     run: (state, dispatch, view) => {
-    //             //         this.collapseToolTip();
-    //             //     }
-    //             // });
-    //             // this.tooltip.replaceChild(newcollapseBtn.render(this.view).dom, this._collapseBtn.render(this.view).dom);
-    //             // this._collapseBtn = newcollapseBtn;
-    //             this.tooltip.style.width = "30px";
-    //             this._collapseBtn.spec.title = "Expand";
-    //             this._collapseBtn.render(this.view);
-    //         }
-    //         else {
-    //             this._collapseBtn.spec.title = "Collapse";
-    //             this.tooltip.style.width = "550px";
-    //             this._collapseBtn.render(this.view);
-    //         }
-    //     }
-    // }
 
-    createLink() {
-        let markType = schema.marks.link;
-        return new MenuItem({
-            title: "Add or remove link",
-            label: "Add or remove link",
-            execEvent: "",
-            icon: icons.link,
-            css: "color:white;",
-            class: "menuicon",
-            enable(state) { return !state.selection.empty; },
-            run: (state, dispatch, view) => {
-                // to remove link
-                let curLink = "";
-                if (this.markActive(state, markType)) {
+    //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
+    changeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
+        let { $cursor, ranges } = view.state.selection as TextSelection;
+        let state = view.state;
+        let dispatch = view.dispatch;
 
-                    let { from, $from, to, empty } = state.selection;
-                    let node = state.doc.nodeAt(from);
-                    node && node.marks.map(m => {
-                        m.type === markType && (curLink = m.attrs.href);
-                    });
-                    //toggleMark(markType)(state, dispatch);
-                    //return true;
+        //remove all other active font marks
+        fontMarks.forEach((type) => {
+            if (dispatch) {
+                if ($cursor) {
+                    if (type.isInSet(state.storedMarks || $cursor.marks())) {
+                        dispatch(state.tr.removeStoredMark(type));
+                    }
+                } else {
+                    let has = false;
+                    for (let i = 0; !has && i < ranges.length; i++) {
+                        let { $from, $to } = ranges[i];
+                        has = state.doc.rangeHasMark($from.pos, $to.pos, type);
+                    }
+                    for (let i of ranges) {
+                        if (has) {
+                            toggleMark(type)(view.state, view.dispatch, view);
+                        }
+                    }
                 }
-                // to create link
-                openPrompt({
-                    title: "Create a link",
-                    fields: {
-                        href: new TextField({
-                            value: curLink,
-                            label: "Link Target",
-                            required: true
-                        }),
-                        title: new TextField({ label: "Title" })
-                    },
-                    callback(attrs: any) {
-                        toggleMark(markType, attrs)(view.state, view.dispatch);
-                        view.focus();
-                    },
-                    flyout_top: 0,
-                    flyout_left: 0
-                });
+            }
+        });
+
+        if (markType) {
+            // fontsize
+            if (markType.name[0] === 'p') {
+                let size = this.fontSizeToNum.get(markType);
+                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+                if (this.editorProps) {
+                    let ruleProvider = this.editorProps.ruleProvider;
+                    let heading = NumCast(this.editorProps.Document.heading);
+                    if (ruleProvider && heading) {
+                        ruleProvider["ruleSize_" + heading] = size;
+                    }
+                }
+            }
+            else {
+                let fontName = this.fontStylesToName.get(markType);
+                if (fontName) { this.updateFontStyleDropdown(fontName); }
+                if (this.editorProps) {
+                    let ruleProvider = this.editorProps.ruleProvider;
+                    let heading = NumCast(this.editorProps.Document.heading);
+                    if (ruleProvider && heading) {
+                        ruleProvider["ruleFont_" + heading] = fontName;
+                    }
+                }
+            }
+            //actually apply font
+            if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
+                let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                    { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: markType.name, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema);
+                view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
+            }
+            else toggleMark(markType)(view.state, view.dispatch, view);
+        }
+    }
+
+    //remove all node typeand apply the passed-in one to the selected text
+    changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
+        //remove oldif (nodeType) { //add new
+        if (nodeType === schema.nodes.bullet_list) {
+            wrapInList(nodeType)(view.state, view.dispatch);
+        } else {
+            var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
+            if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
+                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
+
+                view.dispatch(tx2);
+            })) {
+                let tx2 = view.state.tr;
+                let tx3 = nodeType ? updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle) : tx2;
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
+
+                view.dispatch(tx3);
+            }
+        }
+    }
+
+    //makes a button for the drop down FOR MARKS
+    //css is the style you want applied to the button
+    dropdownMarkBtn(label: string, css: string, markType: MarkType, view: EditorView, changeToMarkInGroup: (markType: MarkType<any>, view: EditorView, groupMarks: MarkType[]) => any, groupMarks: MarkType[]) {
+        return new MenuItem({
+            title: "",
+            label: label,
+            execEvent: "",
+            class: "dropdown-item",
+            css: css,
+            enable() { return true; },
+            run() {
+                changeToMarkInGroup(markType, view, groupMarks);
             }
         });
     }
@@ -1213,7 +1161,7 @@ export class TooltipTextMenu {
             title: "",
             label: label,
             execEvent: "",
-            class: "menuicon",
+            class: "dropdown-item",
             css: css,
             enable() { return true; },
             run() {
@@ -1390,35 +1338,12 @@ export class TooltipTextMenu {
 
     update_mark_doms() {
         this.reset_mark_doms();
-        let foundlink = false;
-        // let children = this.extras.childNodes;
         this._activeMarks.forEach((mark) => {
             if (this._marksToDoms.has(mark)) {
                 let dom = this._marksToDoms.get(mark);
                 if (dom) dom.style.color = "greenyellow";
             }
-            // if (children.length > 1) {
-            //     foundlink = true;
-            // }
-            // if (mark.type.name === "link" && children.length === 1) {
-            //     // let del = document.createElement("button");
-            //     // del.textContent = "X";
-            //     // del.style.color = "red";
-            //     // del.style.height = "10px";
-            //     // del.style.width = "10px";
-            //     // del.style.marginLeft = "5px";
-            //     // del.onclick = this.deleteLink;
-            //     // this.extras.appendChild(del);
-            //     let del = this.deleteLinkItem().render(this.view).dom;
-            //     this.extras.appendChild(del);
-            //     foundlink = true;
-            // }
         });
-        // if (!foundlink) {
-        //     if (children.length > 1) {
-        //         this.extras.removeChild(children[1]);
-        //     }
-        // }
 
         // keeps brush tool highlighted if active when switching between textboxes
         if (!TooltipTextMenuManager.Instance._brushIsEmpty) {
@@ -1535,30 +1460,11 @@ class TooltipTextMenuManager {
         return TooltipTextMenuManager._instance;
     }
 
-    // private pinnedToUnpinned() {
-    //     let position = MainOverlayTextBox.Instance.position;
-
-    //     this.unpinnedX = this.pinnedX - position[0];
-    //     this.unpinnedY = this.pinnedY - position[1];
-    // }
-
-    // private unpinnedToPinned() {
-    //     let position = MainOverlayTextBox.Instance.position;
-
-    //     this.pinnedX = position[0] + this.unpinnedX;
-    //     this.pinnedY = position[1] + this.unpinnedY;
-    // }
-
     public get isPinned() {
         return this._isPinned;
     }
 
     public toggleIsPinned() {
-        // if (this._isPinned) {
-        //     this.pinnedToUnpinned();
-        // } else {
-        //     this.unpinnedToPinned();
-        // }
         this._isPinned = !this._isPinned;
     }
 }

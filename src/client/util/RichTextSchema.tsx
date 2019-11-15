@@ -130,6 +130,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         //     }
         // }]
     },
+
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
