@@ -548,8 +548,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
     public showTextBar = () => {
-        if (this.TextBar) {
-            TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1 && this.TextBar.appendChild(TooltipTextMenu.Toolbar);
+        if (this.TextBar && TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1) {
+            this.TextBar.appendChild(TooltipTextMenu.Toolbar);
         }
     }
     render() {

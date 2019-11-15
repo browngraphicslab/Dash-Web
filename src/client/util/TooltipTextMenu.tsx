@@ -1,6 +1,4 @@
-import { library, dom } from '@fortawesome/fontawesome-svg-core';
-import { faListUl } from '@fortawesome/free-solid-svg-icons';
-import { action, observable } from "mobx";
+import { action } from "mobx";
 import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
 import { wrapInList } from 'prosemirror-schema-list';
@@ -1482,7 +1480,7 @@ export class TooltipTextMenu {
     }
 
     destroy() {
-        this.wrapper.remove();
+        // this.wrapper.remove();
     }
 }
 

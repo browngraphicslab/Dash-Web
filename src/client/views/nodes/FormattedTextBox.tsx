@@ -17,7 +17,7 @@ import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, returnOne } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
