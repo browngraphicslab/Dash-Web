@@ -16,7 +16,7 @@ import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
-import { CollectionSchemaPreview } from "./CollectionSchemaView";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
@@ -44,7 +44,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.sectionFilter && this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.ContainingCollectionDoc.chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.sectionFilter && (this.props.Document.chromeStatus !== 'view-mode' && this.props.Document.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
@@ -121,14 +121,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     return res;
                 } else {
                     let sum = Array.from(this._heightMap.values()).reduce((acc: number, curr: number) => acc += curr, 0);
-                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 85 : -15));
+                    return this.props.ContentScaling() * (sum + (this.Sections.size ? (this.props.Document.miniHeaders ? 20 : 85) : -15));
                 }
             }
             return -1;
         },
             (hgt: number) => {
                 let doc = hgt === -1 ? undefined : this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-                doc && (Doc.Layout(doc).height = hgt);
+                doc && hgt > 0 && (Doc.Layout(doc).height = hgt);
             },
             { fireImmediately: true }
         );
@@ -165,10 +165,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let layoutDoc = Doc.Layout(doc);
         let height = () => this.getDocHeight(doc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
-        return <CollectionSchemaPreview
+        return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
-            fieldKey={this.props.fieldKey}
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
@@ -189,7 +188,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             pinToPres={this.props.pinToPres}
             setPreviewScript={emptyFunction}
             previewScript={undefined}>
-        </CollectionSchemaPreview>;
+        </ContentFittingDocumentView>;
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
@@ -363,7 +362,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     onToggle = (checked: Boolean) => {
-        this.props.ContainingCollectionDoc && (this.props.ContainingCollectionDoc.chromeStatus = checked ? "collapsed" : "view-mode");
+        this.props.Document.chromeStatus = checked ? "collapsed" : "view-mode";
     }
 
     onContextMenu = (e: React.MouseEvent): void => {

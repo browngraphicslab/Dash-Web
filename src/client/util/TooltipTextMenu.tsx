@@ -32,6 +32,8 @@ export class TooltipTextMenu {
 
     // editor state properties
     private view: EditorView;
+    private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
+    
     private fontStyles: MarkType[] = [];
     private fontSizes: MarkType[] = [];
     private listTypes: (NodeType | any)[] = [];
@@ -176,38 +178,34 @@ export class TooltipTextMenu {
     }
 
     initFontStyles() {
-        this.fontStylesToName = new Map();
-        this.fontStylesToName.set(schema.marks.timesNewRoman, "Times New Roman");
-        this.fontStylesToName.set(schema.marks.arial, "Arial");
-        this.fontStylesToName.set(schema.marks.georgia, "Georgia");
-        this.fontStylesToName.set(schema.marks.comicSans, "Comic Sans MS");
-        this.fontStylesToName.set(schema.marks.tahoma, "Tahoma");
-        this.fontStylesToName.set(schema.marks.impact, "Impact");
-        this.fontStylesToName.set(schema.marks.crimson, "Crimson Text");
-        this.fontStyles = Array.from(this.fontStylesToName.keys());
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Times New Roman" }));
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Arial" }));
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Georgia" }));
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Comic Sans MS" }));
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Tahoma" }));
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Impact" }));
+        this.fontStyles.push(schema.marks.pFontFamily.create({ family: "Crimson Text" }));
     }
 
     initFontSizes() {
-        this.fontSizeToNum = new Map();
-        this.fontSizeToNum.set(schema.marks.p10, 10);
-        this.fontSizeToNum.set(schema.marks.p12, 12);
-        this.fontSizeToNum.set(schema.marks.p14, 14);
-        this.fontSizeToNum.set(schema.marks.p16, 16);
-        this.fontSizeToNum.set(schema.marks.p18, 18);
-        this.fontSizeToNum.set(schema.marks.p20, 20);
-        this.fontSizeToNum.set(schema.marks.p24, 24);
-        this.fontSizeToNum.set(schema.marks.p32, 32);
-        this.fontSizeToNum.set(schema.marks.p48, 48);
-        this.fontSizeToNum.set(schema.marks.p72, 72);
-        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
-        this.fontSizes = Array.from(this.fontSizeToNum.keys());
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 10 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 12 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 14 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 16 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 18 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 20 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 24 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 32 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 48 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 72 }));
     }
 
     initListTypes() {
         this.listTypeToIcon = new Map();
-        this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
-        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1");
-        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A");
+        //this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "bullet" }), ":");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1)");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A)");
         // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
     }
@@ -298,16 +296,13 @@ export class TooltipTextMenu {
 
     //label of dropdown will change to given label
     updateFontSizeDropdown(label: string) {
-        //filtering function - might be unecessary
-        let cut = (arr: MenuItem[]) => arr.filter(x => x);
-
         //font SIZES
         let fontSizeBtns: MenuItem[] = [];
-        this.fontSizeToNum.forEach((number, mark) => {
-            fontSizeBtns.push(this.dropdownMarkBtn(String(number), "color: black; width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
+        this.fontSizes.forEach(mark => {
+            fontSizeBtns.push(this.dropdownFontSizeBtn(String(mark.attrs.fontSize), "color: black; width: 50px;", mark, this.view, this.changeToFontSize));
         });
 
-        let newfontSizeDom = (new Dropdown(cut(fontSizeBtns), {
+        let newfontSizeDom = (new Dropdown(fontSizeBtns, {
             label: label,
             css: "color:black; min-width: 60px;"
         }) as MenuItem).render(this.view).dom;
@@ -320,16 +315,13 @@ export class TooltipTextMenu {
 
     //label of dropdown will change to given label
     updateFontStyleDropdown(label: string) {
-        //filtering function - might be unecessary
-        let cut = (arr: MenuItem[]) => arr.filter(x => x);
-
         //font STYLES
         let fontBtns: MenuItem[] = [];
-        this.fontStylesToName.forEach((name, mark) => {
-            fontBtns.push(this.dropdownMarkBtn(name, "color: black; font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
+        this.fontStyles.forEach((mark) => {
+            fontBtns.push(this.dropdownFontFamilyBtn(mark.attrs.family, "color: black; font-family: " + mark.attrs.family + ", sans-serif; width: 125px;", mark, this.view, this.changeToFontFamily));
         });
 
-        let newfontStyleDom = (new Dropdown(cut(fontBtns), {
+        let newfontStyleDom = (new Dropdown(fontBtns, {
             label: label,
             css: "color:black; width: 125px;"
         }) as MenuItem).render(this.view).dom;
@@ -338,7 +330,6 @@ export class TooltipTextMenu {
             this.tooltip.appendChild(newfontStyleDom);
         }
         this.fontStyleDom = newfontStyleDom;
-
     }
 
     updateLinkMenu() {
@@ -385,9 +376,6 @@ export class TooltipTextMenu {
             this.linkDrag.style.height = "15px";
             this.linkDrag.title = "Drag to create link";
             this.linkDrag.id = "link-drag";
-            // this.linkDrag.style.color = "black";
-            // this.linkDrag.style.background = "black";
-            // this.linkDrag.style.cssFloat = "left";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 if (!this.editorProps) return;
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
@@ -406,7 +394,7 @@ export class TooltipTextMenu {
                                     if (proto && docView) {
                                         proto.sourceContext = docView.props.ContainingCollectionDoc;
                                     }
-                                    let text = this.makeLinkToDoc(linkDoc, ctrlKey ? "onRight" : "inTab");
+                                    let text = this.makeLink(linkDoc, StrCast(linkDoc.anchor2.title), ctrlKey ? "onRight" : "inTab");
                                     if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
                                         proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
                                     }
@@ -557,18 +545,13 @@ export class TooltipTextMenu {
     //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     // }
 
-    makeLinkToDoc = (targetDoc: Doc, location: string): string => {
-        let target = Utils.prepend("/doc/" + targetDoc[Id]);
+    makeLink = (targetDoc: Doc, title: string, location: string): string => {
+        let link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + targetDoc[Id]), title: title, location: location });
+        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
+            addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: targetDoc[Id] });
-        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
-        this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
-        node = this.view.state.selection.$from.nodeAfter;
-        link = node && node.marks.find(m => m.type.name === "link");
-        if (node) {
-            if (node.text) {
-                return node.text;
-            }
+        if (node && node.text) {
+            return node.text;
         }
         return "";
     }
@@ -584,7 +567,7 @@ export class TooltipTextMenu {
 
     deleteLink = () => {
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = node && node.marks.find(m => m.type.name === "link");
+        let link = node && node.marks.find(m => m.type === this.view.state.schema.marks.link);
         let href = link!.attrs.href;
         if (href) {
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
@@ -1049,10 +1032,7 @@ export class TooltipTextMenu {
         let brushDom = new Dropdown(hasMarks ? [brushInfo, clearBrush] : [brushInfo], { class: "buttonSettings-dropdown" }) as MenuItem;
         return brushDom;
     }
-
-
-
-    //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
+    //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected textchangeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
     changeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
         let { $cursor, ranges } = view.state.selection as TextSelection;
         let state = view.state;
@@ -1081,29 +1061,6 @@ export class TooltipTextMenu {
         });
 
         if (markType) {
-            // fontsize
-            if (markType.name[0] === 'p') {
-                let size = this.fontSizeToNum.get(markType);
-                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-                if (this.editorProps) {
-                    let ruleProvider = this.editorProps.ruleProvider;
-                    let heading = NumCast(this.editorProps.Document.heading);
-                    if (ruleProvider && heading) {
-                        ruleProvider["ruleSize_" + heading] = size;
-                    }
-                }
-            }
-            else {
-                let fontName = this.fontStylesToName.get(markType);
-                if (fontName) { this.updateFontStyleDropdown(fontName); }
-                if (this.editorProps) {
-                    let ruleProvider = this.editorProps.ruleProvider;
-                    let heading = NumCast(this.editorProps.Document.heading);
-                    if (ruleProvider && heading) {
-                        ruleProvider["ruleFont_" + heading] = fontName;
-                    }
-                }
-            }
             //actually apply font
             if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
                 let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
@@ -1114,22 +1071,107 @@ export class TooltipTextMenu {
         }
     }
 
+    changeToFontFamily = (mark: Mark, view: EditorView) => {
+        let { $cursor, ranges } = view.state.selection as TextSelection;
+        let state = view.state;
+        let dispatch = view.dispatch;
+
+        //remove all other active font marks
+        if ($cursor) {
+            if (view.state.schema.marks.pFontFamily.isInSet(state.storedMarks || $cursor.marks())) {
+                dispatch(state.tr.removeStoredMark(view.state.schema.marks.pFontFamily));
+            }
+        } else {
+            let has = false;
+            for (let i = 0; !has && i < ranges.length; i++) {
+                let { $from, $to } = ranges[i];
+                has = state.doc.rangeHasMark($from.pos, $to.pos, view.state.schema.marks.pFontFamily);
+            }
+            for (let i of ranges) {
+                if (has) {
+                    toggleMark(view.state.schema.marks.pFontFamily)(view.state, view.dispatch, view);
+                }
+            }
+        }
+
+        let fontName = mark.attrs.family;
+        if (fontName) { this.updateFontStyleDropdown(fontName); }
+        if (this.editorProps) {
+            let ruleProvider = this.editorProps.ruleProvider;
+            let heading = NumCast(this.editorProps.Document.heading);
+            if (ruleProvider && heading) {
+                ruleProvider["ruleFont_" + heading] = fontName;
+            }
+        }
+        //actually apply font
+        if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
+            let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: fontName }), view.state.schema);
+            view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
+        }
+        else view.dispatch(view.state.tr.addMark(view.state.selection.from, view.state.selection.to, view.state.schema.marks.pFontFamily.create({ family: fontName })));
+        view.state.storedMarks = [...(view.state.storedMarks || []), view.state.schema.marks.pFontFamily.create({ family: fontName })];
+    }
+
+    changeToFontSize = (mark: Mark, view: EditorView) => {
+        let { $cursor, ranges } = view.state.selection as TextSelection;
+        let state = view.state;
+        let dispatch = view.dispatch;
+
+        //remove all other active font marks
+        if ($cursor) {
+            if (view.state.schema.marks.pFontSize.isInSet(state.storedMarks || $cursor.marks())) {
+                dispatch(state.tr.removeStoredMark(view.state.schema.marks.pFontSize));
+            }
+        } else {
+            let has = false;
+            for (let i = 0; !has && i < ranges.length; i++) {
+                let { $from, $to } = ranges[i];
+                has = state.doc.rangeHasMark($from.pos, $to.pos, view.state.schema.marks.pFontSize);
+            }
+            for (let i of ranges) {
+                if (has) {
+                    toggleMark(view.state.schema.marks.pFontSize)(view.state, view.dispatch, view);
+                }
+            }
+        }
+
+        let size = mark.attrs.fontSize;
+        if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+        if (this.editorProps) {
+            let ruleProvider = this.editorProps.ruleProvider;
+            let heading = NumCast(this.editorProps.Document.heading);
+            if (ruleProvider && heading) {
+                ruleProvider["ruleSize_" + heading] = size;
+            }
+        }
+        //actually apply font
+        if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
+            let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                { ...(view.state.selection as NodeSelection).node.attrs, setFontSize: size }), view.state.schema);
+            view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
+        }
+        else view.dispatch(view.state.tr.addMark(view.state.selection.from, view.state.selection.to, view.state.schema.marks.pFontSize.create({ fontSize: size })));
+        view.state.storedMarks = [...(view.state.storedMarks || []), view.state.schema.marks.pFontSize.create({ fontSize: size })];
+    }
+
     //remove all node typeand apply the passed-in one to the selected text
-    changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
+    changeToNodeType = (nodeType: NodeType | undefined) => {
         //remove oldif (nodeType) { //add new
+        let view = this.view;
         if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
         } else {
             var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
             if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                let tx3 = updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle);
+                let tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
                 view.dispatch(tx2);
             })) {
                 let tx2 = view.state.tr;
-                let tx3 = nodeType ? updateBullets(tx2, schema, (nodeType as any).attrs.mapStyle) : tx2;
+                let tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
@@ -1140,7 +1182,7 @@ export class TooltipTextMenu {
 
     //makes a button for the drop down FOR MARKS
     //css is the style you want applied to the button
-    dropdownMarkBtn(label: string, css: string, markType: MarkType, view: EditorView, changeToMarkInGroup: (markType: MarkType<any>, view: EditorView, groupMarks: MarkType[]) => any, groupMarks: MarkType[]) {
+    dropdownFontFamilyBtn(label: string, css: string, mark: Mark, view: EditorView, changeFontFamily: (mark: Mark<any>, view: EditorView) => any) {
         return new MenuItem({
             title: "",
             label: label,
@@ -1149,7 +1191,22 @@ export class TooltipTextMenu {
             css: css,
             enable() { return true; },
             run() {
-                changeToMarkInGroup(markType, view, groupMarks);
+                changeFontFamily(mark, view);
+            }
+        });
+    }
+    //makes a button for the drop down FOR MARKS
+    //css is the style you want applied to the button
+    dropdownFontSizeBtn(label: string, css: string, mark: Mark, view: EditorView, changeFontSize: (markType: Mark<any>, view: EditorView) => any) {
+        return new MenuItem({
+            title: "",
+            label: label,
+            execEvent: "",
+            class: "dropdown-item",
+            css: css,
+            enable() { return true; },
+            run() {
+                changeFontSize(mark, view);
             }
         });
     }
@@ -1283,7 +1340,6 @@ export class TooltipTextMenu {
             //this.tooltip.style.display = "none";
             //return;
         }
-        //UPDATE LIST ITEM DROPDOWN
 
         // update link dropdown
         let linkDropdown = await this.createLinkDropdown();
@@ -1292,50 +1348,24 @@ export class TooltipTextMenu {
         this._linkDropdownDom = newLinkDropdowndom;
 
         //UPDATE FONT STYLE DROPDOWN
-        let activeStyles = this.activeMarksOnSelection(this.fontStyles);
+        let activeStyles = this.activeFontFamilyOnSelection();
         if (activeStyles !== undefined) {
-            // activeStyles.forEach((markType) => {
-            //     this._activeMarks.push(this.view.state.schema.mark(markType));
-            // });
             if (activeStyles.length === 1) {
-                // if we want to update something somewhere with active font name
-                let fontName = this.fontStylesToName.get(activeStyles[0]);
-                if (fontName) { this.updateFontStyleDropdown(fontName); }
-            } else if (activeStyles.length === 0) {
-                //crimson on default
-                this.updateFontStyleDropdown("Crimson Text");
-            } else {
-                this.updateFontStyleDropdown("Various");
-            }
+                console.log("updating font style dropdown", activeStyles[0]);
+                activeStyles[0] && this.updateFontStyleDropdown(activeStyles[0]);
+            } else this.updateFontStyleDropdown(activeStyles.length ? "various" : "default");
         }
 
         //UPDATE FONT SIZE DROPDOWN
-        let activeSizes = this.activeMarksOnSelection(this.fontSizes);
+        let activeSizes = this.activeFontSizeOnSelection();
         if (activeSizes !== undefined) {
             if (activeSizes.length === 1) { //if there's only one active font size
-                // activeSizes.forEach((markType) => {
-                //     this._activeMarks.push(this.view.state.schema.mark(markType));
-                // });
-                let size = this.fontSizeToNum.get(activeSizes[0]);
-                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-            } else if (activeSizes.length === 0) {
-                //should be 14 on default  
-                this.updateFontSizeDropdown("14 pt");
-            } else { //multiple font sizes selected
-                this.updateFontSizeDropdown("Various");
-            }
+                activeSizes[0] && this.updateFontSizeDropdown(String(activeSizes[0]) + " pt");
+            } else this.updateFontSizeDropdown(activeSizes.length ? "various" : "default");
         }
 
         this.update_mark_doms();
     }
-
-    public mark_key_pressed(marks: Mark<any>[]) {
-        if (this.view.state.selection.empty) {
-            if (marks) this._activeMarks = marks;
-            this.update_mark_doms();
-        }
-    }
-
     update_mark_doms() {
         this.reset_mark_doms();
         this._activeMarks.forEach((mark) => {
@@ -1356,6 +1386,30 @@ export class TooltipTextMenu {
 
     }
 
+    //finds fontSize at start of selection
+    activeFontSizeOnSelection() {
+        //current selection
+        let state = this.view.state;
+        let activeSizes: number[] = [];
+        const pos = this.view.state.selection.$from;
+        const ref_node: ProsNode = this.reference_node(pos);
+        if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
+            ref_node.marks.forEach(m => m.type === state.schema.marks.pFontSize && activeSizes.push(m.attrs.fontSize));
+        }
+        return activeSizes;
+    }
+    //finds fontSize at start of selection
+    activeFontFamilyOnSelection() {
+        //current selection
+        let state = this.view.state;
+        let activeFamilies: string[] = [];
+        const pos = this.view.state.selection.$from;
+        const ref_node: ProsNode = this.reference_node(pos);
+        if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
+            ref_node.marks.forEach(m => m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family));
+        }
+        return activeFamilies;
+    }
     //finds all active marks on selection in given group
     activeMarksOnSelection(markGroup: MarkType[]) {
         //current selection
@@ -1365,12 +1419,10 @@ export class TooltipTextMenu {
         let activeMarks: MarkType[];
         if (!empty) {
             activeMarks = markGroup.filter(mark => {
-                if (dispatch) {
-                    let has = false;
-                    for (let i = 0; !has && i < ranges.length; i++) {
-                        let { $from, $to } = ranges[i];
-                        return state.doc.rangeHasMark($from.pos, $to.pos, mark);
-                    }
+                let has = false;
+                for (let i = 0; !has && i < ranges.length; i++) {
+                    let { $from, $to } = ranges[i];
+                    return state.doc.rangeHasMark($from.pos, $to.pos, mark);
                 }
                 return false;
             });
@@ -1389,10 +1441,11 @@ export class TooltipTextMenu {
                 }
                 this._activeMarks = ref_node.marks;
                 activeMarks = markGroup.filter(mark_type => {
-                    if (dispatch) {
-                        let mark = state.schema.mark(mark_type);
-                        return ref_node.marks.includes(mark);
+                    if (mark_type === state.schema.marks.pFontSize) {
+                        return ref_node.marks.some(m => m.type.name === state.schema.marks.pFontSize.name);
                     }
+                    let mark = state.schema.mark(mark_type);
+                    return ref_node.marks.includes(mark);
                     return false;
                 });
             }

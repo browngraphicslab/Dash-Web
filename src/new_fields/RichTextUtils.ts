@@ -52,7 +52,7 @@ export namespace RichTextUtils {
     };
 
     export const Synthesize = (plainText: string, oldState?: RichTextField) => {
-        return new RichTextField(ToProsemirrorState(plainText, oldState));
+        return new RichTextField(ToProsemirrorState(plainText, oldState), plainText);
     };
 
     export const ToPlainText = (state: EditorState) => {

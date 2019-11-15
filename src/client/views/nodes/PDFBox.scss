@@ -7,6 +7,7 @@
     overflow: hidden;
     position:absolute;
     cursor:auto;
+    transform-origin: top left;
 }
 
 .pdfBox-title-outer {
@@ -47,6 +48,7 @@
     }
     .pdfViewer-text {
         .textLayer {
+            will-change: transform;
             span {
                 user-select: none;
             }
@@ -58,6 +60,7 @@
     pointer-events: all;
     .pdfViewer-text {
         .textLayer {
+            will-change: transform;
             span {
                 user-select: text;
             }

@@ -24,6 +24,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
+import { DocumentType } from '../documents/DocumentTypes';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -112,7 +113,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
-                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = true;
+                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._title.startsWith("-");
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
                         SelectionManager.SelectedDocuments().forEach(d => {
@@ -156,30 +157,28 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.onBackgroundUp(e);
     }
 
-    @observable _forceUpdate = 0;
-    _lastBox = { x: 0, y: 0, r: 0, b: 0 };
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        let x = this._forceUpdate;
-        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
                 Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
-            if (transform.TranslateX === 0 && transform.TranslateY === 0) {
-                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...without this, resizing things in the library view, for instance, show the wrong bounds
-                return this._lastBox;
-            }
-
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
+            if (documentView.props.Document.type === DocumentType.LINK) {
+                let rect = documentView.ContentDiv!.getElementsByClassName("docuLinkBox-cont")[0].getBoundingClientRect();
+                sptX = rect.left;
+                sptY = rect.top;
+                bptX = rect.right;
+                bptY = rect.bottom;
+            }
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
-        return this._lastBox;
     }
 
     onBackgroundDown = (e: React.PointerEvent): void => {
@@ -556,7 +555,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (SelectionManager.GetIsDragging() || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         let minimizeIcon = (

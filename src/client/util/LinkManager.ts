@@ -34,8 +34,6 @@ export class LinkManager {
     // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
     // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
     public get LinkManagerDoc(): Doc | undefined {
-        // return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
-
         return Docs.Prototypes.MainLinkDocument();
     }
 

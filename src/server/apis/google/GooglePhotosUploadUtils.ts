@@ -1,7 +1,8 @@
+
 import request = require('request-promise');
 import { GoogleApiServerUtils } from './GoogleApiServerUtils';
 import * as path from 'path';
-import { MediaItemCreationResult } from './SharedTypes';
+import { MediaItemCreationResult, NewMediaItemResult } from './SharedTypes';
 import { NewMediaItem } from "../../index";
 import { BatchedArray, TimeUnit } from 'array-batcher';
 import { DashUploadUtils } from '../../DashUploadUtils';
@@ -56,10 +57,11 @@ export namespace GooglePhotosUploadUtils {
         }));
     };
 
-    export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<MediaItemCreationResult> => {
-        const newMediaItemResults = await BatchedArray.from(newMediaItems, { batchSize: 50 }).batchedMapPatientInterval(
+    export const CreateMediaItems = async (newMediaItems: NewMediaItem[], album?: { id: string }): Promise<NewMediaItemResult[]> => {
+        const batched = BatchedArray.from(newMediaItems, { batchSize: 50 });
+        return batched.batchedMapPatientInterval(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch: NewMediaItem[]) => {
+            async (batch, collector) => {
                 const parameters = {
                     method: 'POST',
                     headers: headers('json'),
@@ -68,18 +70,17 @@ export namespace GooglePhotosUploadUtils {
                     json: true
                 };
                 album && (parameters.body.albumId = album.id);
-                return (await new Promise<MediaItemCreationResult>((resolve, reject) => {
+                collector.push(...(await new Promise<NewMediaItemResult[]>((resolve, reject) => {
                     request(parameters, (error, _response, body) => {
                         if (error) {
                             reject(error);
                         } else {
-                            resolve(body);
+                            resolve(body.newMediaItemResults);
                         }
                     });
-                })).newMediaItemResults;
+                })));
             }
         );
-        return { newMediaItemResults };
     };
 
 }

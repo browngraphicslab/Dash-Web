@@ -36,7 +36,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         (e.button === 0 && !e.ctrlKey) && e.stopPropagation();
     }
     onPointerMove = action((e: PointerEvent) => {
-        let cdiv = this._ref.current!.parentElement;
+        let cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
         if (cdiv && (Math.abs(e.clientX - this._downx) > 5 || Math.abs(e.clientY - this._downy) > 5)) {
             let bounds = cdiv.getBoundingClientRect();
             let pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
@@ -65,15 +65,19 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         }
         e.stopPropagation();
     }
+
     render() {
         let anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
         let hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;
         let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
         let c = StrCast(this.props.Document.backgroundColor, "lightblue");
-        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={StrCast((this.props.Document[this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1"]! as Doc).title)}
+        let anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
+        let timecode = this.props.Document[anchor + "Timecode"];
+        let targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
+        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle}
             ref={this._ref} style={{
-                background: c, width: "25px", left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
+                background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
                 transform: `scale(${hasAnchor ? 0.333 : 1 / this.props.ContentScaling()})`
             }} />;
     }

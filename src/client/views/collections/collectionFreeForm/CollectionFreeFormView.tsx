@@ -333,7 +333,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.props.Document.lockedPosition || this.props.Document.inOverlay) return;
+        if (this.props.Document.lockedTransform || this.props.Document.inOverlay) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -354,14 +354,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    setPan(panX: number, panY: number) {
-        if (!this.props.Document.lockedPosition || this.props.Document.inOverlay) {
-            this.props.Document.panTransformType = "None";
+    setPan(panX: number, panY: number, panType: string = "None") {
+        if (!this.Document.lockedTransform || this.Document.inOverlay) {
+            this.Document.panTransformType = panType;
             var scale = this.getLocalTransform().inverse().Scale;
             const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
-            const newPanY = Math.min((this.props.Document.scrollHeight !== undefined ? NumCast(this.props.Document.scrollHeight) : (1 - 1 / scale) * this.nativeHeight), Math.max(0, panY));
-            this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
-            this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
+            const newPanY = Math.min((this.props.Document.scrollHeight !== undefined ? NumCast(this.Document.scrollHeight) : (1 - 1 / scale) * this.nativeHeight), Math.max(0, panY));
+            this.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
+            this.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
         }
     }
 
@@ -415,8 +415,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
             let savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
 
-            this.setPan(newPanX, newPanY);
-            this.Document.panTransformType = "Ease";
+            this.setPan(newPanX, newPanY, "Ease");
             Doc.BrushDoc(this.props.Document);
             this.props.focus(this.props.Document);
             willZoom && this.setScaleToZoom(layoutdoc, scale);
