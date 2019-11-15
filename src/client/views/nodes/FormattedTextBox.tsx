@@ -24,7 +24,6 @@ import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
-import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
@@ -75,7 +74,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
-    private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
+    public static ToolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
@@ -120,7 +119,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     public static getToolTip(ev: EditorView) {
-        return this._toolTipTextMenu ? this._toolTipTextMenu : this._toolTipTextMenu = new TooltipTextMenu(ev);
+        return this.ToolTipTextMenu ? this.ToolTipTextMenu : this.ToolTipTextMenu = new TooltipTextMenu(ev);
     }
 
     @undoBatch
@@ -962,7 +961,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         let self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                return self._toolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
             }
         });
     }
@@ -1020,7 +1019,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+            FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }
