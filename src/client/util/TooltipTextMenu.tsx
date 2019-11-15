@@ -33,12 +33,10 @@ export class TooltipTextMenu {
     // editor state properties
     private view: EditorView;
     private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
-    
-    private fontStyles: MarkType[] = [];
-    private fontSizes: MarkType[] = [];
+
+    private fontStyles: Mark[] = [];
+    private fontSizes: Mark[] = [];
     private listTypes: (NodeType | any)[] = [];
-    private fontSizeToNum: Map<MarkType, number> = new Map();
-    private fontStylesToName: Map<MarkType, string> = new Map();
     private listTypeToIcon: Map<NodeType | any, string> = new Map();
     private _activeMarks: Mark[] = [];
     private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
