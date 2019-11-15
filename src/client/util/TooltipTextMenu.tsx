@@ -735,7 +735,7 @@ export class TooltipTextMenu {
     public static insertHighlight(color: String, state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
 
-        let highlightMark = state.schema.mark(state.schema.marks.highlight2, { highlight: color });
+        let highlightMark = state.schema.mark(state.schema.marks.marker, { highlight: color });
         dispatch(state.tr.addMark(state.selection.from, state.selection.to, highlightMark));
     }
 
@@ -1223,7 +1223,7 @@ export class TooltipTextMenu {
         });
     }
 
-    markActive = function (state: EditorState<any>, type: MarkType<Schema<string, string>>) {
+    markActive = function(state: EditorState<any>, type: MarkType<Schema<string, string>>) {
         let { from, $from, to, empty } = state.selection;
         if (empty) return type.isInSet(state.storedMarks || $from.marks());
         else return state.doc.rangeHasMark(from, to, type);

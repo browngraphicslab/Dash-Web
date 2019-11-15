@@ -326,7 +326,7 @@ export const marks: { [index: string]: MarkSpec } = {
         }
     },
 
-    highlight2: {
+    marker: {
         attrs: {
             highlight: { default: "transparent" }
         },
