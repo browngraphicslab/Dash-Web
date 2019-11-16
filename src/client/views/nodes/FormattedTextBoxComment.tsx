@@ -1,17 +1,20 @@
-import { Plugin, EditorState } from "prosemirror-state";
-import './FormattedTextBoxComment.scss';
-import { ResolvedPos, Mark } from "prosemirror-model";
+import { Mark, ResolvedPos } from "prosemirror-model";
+import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import * as ReactDOM from 'react-dom';
 import { Doc } from "../../../new_fields/Doc";
-import { schema } from "../../util/RichTextSchema";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Utils } from "../../../Utils";
-import { StrCast, Cast, FieldValue } from "../../../new_fields/Types";
-import { FormattedTextBox } from "./FormattedTextBox";
-import { DocUtils } from "../../documents/Documents";
-import { isBuffer } from "util";
 import { DocumentManager } from "../../util/DocumentManager";
-import { DocumentType } from "../../documents/DocumentTypes";
+import { schema } from "../../util/RichTextSchema";
+import { Transform } from "../../util/Transform";
+import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { FormattedTextBox } from "./FormattedTextBox";
+import './FormattedTextBoxComment.scss';
+import React = require("react");
+import { Docs } from "../../documents/Documents";
+import wiki from "wikijs";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -50,6 +53,7 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
 export class FormattedTextBoxComment {
     static tooltip: HTMLElement;
     static tooltipText: HTMLElement;
+    static tooltipInput: HTMLInputElement;
     static start: number;
     static end: number;
     static mark: Mark;
@@ -59,30 +63,40 @@ export class FormattedTextBoxComment {
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
             const root = document.getElementById("root");
-            let input = document.createElement("input");
-            input.type = "checkbox";
+            FormattedTextBoxComment.tooltipInput = document.createElement("input");
+            FormattedTextBoxComment.tooltipInput.type = "checkbox";
             FormattedTextBoxComment.tooltip = document.createElement("div");
             FormattedTextBoxComment.tooltipText = document.createElement("div");
+            FormattedTextBoxComment.tooltipText.style.width = "100%";
+            FormattedTextBoxComment.tooltipText.style.height = "100%";
+            FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
             FormattedTextBoxComment.tooltip.style.maxWidth = "350px";
-            FormattedTextBoxComment.tooltip.appendChild(input);
+            FormattedTextBoxComment.tooltip.style.maxHeight = "250px";
+            FormattedTextBoxComment.tooltip.style.width = "100%";
+            FormattedTextBoxComment.tooltip.style.height = "100%";
+            FormattedTextBoxComment.tooltip.style.overflow = "hidden";
+            FormattedTextBoxComment.tooltip.style.display = "none";
+            FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
             FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
                 let keep = e.target && (e.target as any).type === "checkbox" ? true : false;
-                if (FormattedTextBoxComment.linkDoc && !keep && FormattedTextBoxComment.textBox) {
-                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, FormattedTextBoxComment.textBox.props.Document,
-                        (doc: Doc, maxLocation: string) => FormattedTextBoxComment.textBox!.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
+                const textBox = FormattedTextBoxComment.textBox;
+                if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
+                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
+                        (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
+                } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, width: 200, height: 400 }), undefined, "onRight");
                 }
                 FormattedTextBoxComment.opened = keep || !FormattedTextBoxComment.opened;
-                FormattedTextBoxComment.textBox && FormattedTextBoxComment.start !== undefined && FormattedTextBoxComment.textBox.setAnnotation(
+                textBox && FormattedTextBoxComment.start !== undefined && textBox.setAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark,
                     FormattedTextBoxComment.opened, keep);
                 e.stopPropagation();
             };
             root && root.appendChild(FormattedTextBoxComment.tooltip);
         }
-        this.update(view, undefined);
     }
 
     public static Hide() {
@@ -98,7 +112,7 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "");
     }
 
-    update(view: EditorView, lastState?: EditorState) {
+    static update(view: EditorView, lastState?: EditorState) {
         let state = view.state;
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
@@ -113,6 +127,12 @@ export class FormattedTextBoxComment {
         }
         let set = "none";
         let nbef = 0;
+        FormattedTextBoxComment.tooltipInput.style.display = "none";
+        FormattedTextBoxComment.tooltip.style.width = "";
+        FormattedTextBoxComment.tooltip.style.height = "";
+        (FormattedTextBoxComment.tooltipText as any).href = "";
+        FormattedTextBoxComment.tooltipText.style.whiteSpace = "";
+        FormattedTextBoxComment.tooltipText.style.overflow = "";
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
@@ -127,6 +147,7 @@ export class FormattedTextBoxComment {
             if (mark && child && ((nbef && naft) || !noselection)) {
                 FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " date=" + (new Date(mark.attrs.modified * 5000)).toDateString();
                 set = "";
+                FormattedTextBoxComment.tooltipInput.style.display = "";
             }
         }
         // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
@@ -138,15 +159,48 @@ export class FormattedTextBoxComment {
             let mark = child && findLinkMark(child.marks);
             if (mark && child && nbef && naft) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + mark.attrs.href;
+                if (mark.attrs.href.startsWith("https://en.wikipedia.org/wiki/")) {
+                    wiki().page(mark.attrs.href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
+                } else {
+                    FormattedTextBoxComment.tooltipText.style.whiteSpace = "pre";
+                    FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
+                }
+                (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                 if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
                     let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
                         if (linkDoc instanceof Doc) {
                             FormattedTextBoxComment.linkDoc = linkDoc;
-                            let target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
-                            let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
-                            let text = ext && StrCast(ext.text);
-                            ext && (FormattedTextBoxComment.tooltipText.textContent = (target && target.type === DocumentType.PDFANNO ? "Quoted from " : "") + "=> " + (text || StrCast(ext.title)));
+                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : Cast(linkDoc.anchor1, Doc));
+                            try {
+                                ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+                            } catch (e) { }
+                            if (target) {
+                                ReactDOM.render(<ContentFittingDocumentView
+                                    fitToBox={true}
+                                    Document={target}
+                                    moveDocument={returnFalse}
+                                    getTransform={Transform.Identity}
+                                    active={returnFalse}
+                                    setPreviewScript={returnEmptyString}
+                                    addDocument={returnFalse}
+                                    removeDocument={returnFalse}
+                                    ruleProvider={undefined}
+                                    addDocTab={returnFalse}
+                                    pinToPres={returnFalse}
+                                    dontRegisterView={true}
+                                    renderDepth={1}
+                                    PanelWidth={() => Math.min(350, NumCast(target.width, 350))}
+                                    PanelHeight={() => Math.min(250, NumCast(target.height, 250))}
+                                    focus={emptyFunction}
+                                    whenActiveChanged={returnFalse}
+                                />, FormattedTextBoxComment.tooltipText);
+                                FormattedTextBoxComment.tooltip.style.width = NumCast(target.width) ? `${NumCast(target.width)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.height = NumCast(target.height) ? `${NumCast(target.height)}` : "100%";
+                            }
+                            // let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
+                            // let text = ext && StrCast(ext.text);
+                            // ext && (FormattedTextBoxComment.tooltipText.textContent = (target && target.type === DocumentType.PDFANNO ? "Quoted from " : "") + "=> " + (text || StrCast(ext.title)));
                         }
                     });
                 }
@@ -168,5 +222,5 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = set);
     }
 
-    destroy() { FormattedTextBoxComment.tooltip.style.display = "none"; }
+    destroy() { }
 }

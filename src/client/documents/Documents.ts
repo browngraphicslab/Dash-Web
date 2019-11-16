@@ -76,7 +76,8 @@ export interface DocumentOptions {
     viewType?: number;
     backgroundColor?: string;
     ignoreClick?: boolean;
-    lockedPosition?: boolean;
+    lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
+    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;

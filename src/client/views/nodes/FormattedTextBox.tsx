@@ -17,14 +17,13 @@ import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from '../../../Utils';
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, returnOne } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
-import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
@@ -33,7 +32,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocExtendableComponent } from "../DocComponent";
+import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
 import { DocumentDecorations } from '../DocumentDecorations';
 import { InkingControl } from "../InkingControl";
@@ -46,6 +45,7 @@ import { ContextMenu } from '../ContextMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { AudioBox } from './AudioBox';
+import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -70,11 +70,11 @@ const RichTextDocument = makeInterface(richTextSchema, documentSchema);
 type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => void;
 
 @observer
-export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
+export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
-    private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
+    public static ToolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
@@ -85,7 +85,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     private _searchReactionDisposer?: Lambda;
     private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
     private _rulesReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
@@ -120,7 +119,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     }
 
     public static getToolTip(ev: EditorView) {
-        return this._toolTipTextMenu ? this._toolTipTextMenu : this._toolTipTextMenu = new TooltipTextMenu(ev);
+        return this.ToolTipTextMenu ? this.ToolTipTextMenu : this.ToolTipTextMenu = new TooltipTextMenu(ev);
     }
 
     @undoBatch
@@ -191,9 +190,8 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             let tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
-            this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
-            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
             this.updateTitle();
             this.tryUpdateHeight();
@@ -250,7 +248,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             // replace text contents whend dragging with Alt
             if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "AltKey") {
                 if (draggedDoc.data instanceof RichTextField) {
-                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data);
+                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data, draggedDoc.data.Text);
                     e.stopPropagation();
                 }
                 // apply as template when dragging with Meta
@@ -290,6 +288,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         if (context === node) return { from: offset, to: offset + node.nodeSize };
 
         if (node.isBlock) {
+            // tslint:disable-next-line: prefer-for-of
             for (let i = 0; i < (context.content as any).content.length; i++) {
                 let result = this.getNodeEndpoints((context.content as any).content[i], node);
                 if (result) {
@@ -360,6 +359,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%"; }, icon: "expand-arrows-alt" });
         funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
@@ -509,17 +509,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
             () => [this.layoutDoc[WidthSym](), this.layoutDoc.autoHeight],
             () => this.tryUpdateHeight()
         );
-
-        this._textReactionDisposer = reaction(
-            () => this.extensionDoc,
-            () => {
-                if (this.extensionDoc && (this.dataDoc.text || this.dataDoc.lastModified)) {
-                    this.extensionDoc.text = this.dataDoc.text;
-                    this.extensionDoc.lastModified = DateCast(this.dataDoc.lastModified)[Copy]();
-                    this.dataDoc.text = undefined;
-                    this.dataDoc.lastModified = undefined;
-                }
-            }, { fireImmediately: true });
 
 
         this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
@@ -787,7 +776,9 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                     while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
                     let r1 = refNode && refNode.getBoundingClientRect();
                     let r3 = self._ref.current!.getBoundingClientRect();
-                    r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    if (r1.top < r3.top || r1.top > r3.bottom) {
+                        r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    }
                     return true;
                 },
                 dispatchTransaction: this.dispatchTransaction,
@@ -834,7 +825,6 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
-        this._textReactionDisposer && this._textReactionDisposer();
         this._pushReactionDisposer && this._pushReactionDisposer();
         this._pullReactionDisposer && this._pullReactionDisposer();
         this._heightReactionDisposer && this._heightReactionDisposer();
@@ -857,7 +847,10 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        if (!(e.nativeEvent as any).formattedHandled) { FormattedTextBoxComment.textBox = this; }
+        if (!(e.nativeEvent as any).formattedHandled) {
+            FormattedTextBoxComment.textBox = this;
+            FormattedTextBoxComment.update(this._editorView!);
+        }
         (e.nativeEvent as any).formattedHandled = true;
 
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
@@ -968,7 +961,7 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         let self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                return self._toolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
             }
         });
     }
@@ -1018,12 +1011,15 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
         }
     }
 
+    @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidth, "0%"); }
+    @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
+    @computed get annotationsKey() { return "annotations"; }
     render() {
         trace();
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            FormattedTextBox._toolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+            FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }
@@ -1050,8 +1046,32 @@ export class FormattedTextBox extends DocExtendableComponent<(FieldViewProps & F
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
-
+                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
+                    <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                </div>
+                {this.sidebarWidthPercent === "0%" ? (null) : <div style={{ borderLeft: "solid 1px black", width: `${this.sidebarWidthPercent}`, height: "100%", display: "inline-block" }}>
+                    <CollectionFreeFormView {...this.props}
+                        PanelHeight={() => this.props.PanelHeight()}
+                        PanelWidth={() => this.sidebarWidth}
+                        annotationsKey={this.annotationsKey}
+                        isAnnotationOverlay={true}
+                        focus={this.props.focus}
+                        isSelected={this.props.isSelected}
+                        select={emptyFunction}
+                        active={this.active}
+                        ContentScaling={returnOne}
+                        whenActiveChanged={this.whenActiveChanged}
+                        removeDocument={this.removeDocument}
+                        moveDocument={this.moveDocument}
+                        addDocument={this.addDocument}
+                        CollectionView={undefined}
+                        ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
+                        ruleProvider={undefined}
+                        renderDepth={this.props.renderDepth + 1}
+                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                        chromeCollapsed={true}>
+                    </CollectionFreeFormView>
+                </div>}
                 <div className="formattedTextBox-dictation"
                     onClick={e => {
                         this._recording ? this.stopDictation(true) : this.recordDictation();

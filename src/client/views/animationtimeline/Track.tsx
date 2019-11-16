@@ -51,7 +51,10 @@ export class Track extends React.Component<IProps> {
 
     componentWillMount() {
         runInAction(() => {
-            if (!this.props.node.regions) this.props.node.regions = new List<Doc>();            
+            if (!this.props.node.regions) this.props.node.regions = new List<Doc>(); 
+            console.log("hi");          
+            console.log("HELLO");  
+            console.log("hi");
         });
     }
 
