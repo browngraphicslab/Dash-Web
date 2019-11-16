@@ -23,7 +23,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
         switch (e.targetTouches.length) {
             case 1:
-                this.handle1PointerDown();
+                this.handle1PointerDown(e);
                 break;
             case 2:
                 this.handle2PointersDown(e);
@@ -89,6 +89,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         e.preventDefault();
     }
 
-    handle1PointerDown = (): any => { };
+    handle1PointerDown = (e: React.TouchEvent): any => { };
     handle2PointersDown = (e: React.TouchEvent): any => { };
 }

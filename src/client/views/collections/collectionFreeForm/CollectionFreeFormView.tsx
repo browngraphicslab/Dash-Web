@@ -24,6 +24,7 @@ import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
+import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
@@ -186,21 +187,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 NumCast(cd.cluster) : cluster;
         }, -1);
     }
-    tryDragCluster(e: PointerEvent) {
-        let cluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
-        if (cluster !== -1) {
-            let eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
-            let clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
-            let de = new DragManager.DocumentDragData(eles);
-            de.moveDocument = this.props.moveDocument;
-            const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
-            de.offset = this.getTransform().transformDirection(e.x - left, e.y - top);
-            de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
-            DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, e.clientX, e.clientY, {
-                handlers: { dragComplete: action(emptyFunction) },
-                hideSource: !de.dropAction
-            });
-            return true;
+    tryDragCluster(e: PointerEvent | TouchEvent) {
+        let ptsParent = e instanceof PointerEvent ? e : e.targetTouches.item(0);
+        if (ptsParent) {
+            let cluster = this.pickCluster(this.getTransform().transformPoint(ptsParent.clientX, ptsParent.clientY));
+            if (cluster !== -1) {
+                let eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
+                let clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
+                let de = new DragManager.DocumentDragData(eles);
+                de.moveDocument = this.props.moveDocument;
+                const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
+                de.offset = this.getTransform().transformDirection(ptsParent.clientX - left, ptsParent.clientY - top);
+                de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
+                DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, ptsParent.clientX, ptsParent.clientY, {
+                    handlers: { dragComplete: action(emptyFunction) },
+                    hideSource: !de.dropAction
+                });
+                return true;
+            }
         }
 
         return false;
@@ -291,16 +295,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
+    handle1PointerDown = (e: React.TouchEvent) => {
+        let pt = e.targetTouches.item(0);
+        if (pt) {
+            this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+        }
+    }
+
+    @action
     onPointerUp = (e: PointerEvent): void => {
-        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) return;
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH) && this._points.length <= 1) return;
 
         if (this._points.length > 1) {
             let B = this.svgBounds;
             let points = this._points.map(p => ({ x: p.x - B.left, y: p.y - B.top }));
-            UndoManager.RunInBatch(() => {
-                let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
-                this.addDocument(inkDoc);
-            }, "addink");
+            let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
+            this.addDocument(inkDoc);
             this._points = [];
         }
 
@@ -386,10 +396,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     handle1PointerMove = (e: TouchEvent) => {
         // panning a workspace
-        if (!e.cancelBubble && this.props.active() && !SelectionManager.GetIsDragging()) {
+        if (!e.cancelBubble) {
             let pt = e.targetTouches.item(0);
             if (pt) {
-                this.pan(pt);
+                if (InkingControl.Instance.selectedTool === InkTool.None) {
+                    if (this._hitCluster && this.tryDragCluster(e)) {
+                        e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+                        e.preventDefault();
+                        document.removeEventListener("pointermove", this.onPointerMove);
+                        document.removeEventListener("pointerup", this.onPointerUp);
+                        return;
+                    }
+                    this.pan(pt);
+                }
+                else if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
+                    let point = this.getTransform().transformPoint(pt.clientX, pt.clientY);
+                    this._points.push({ x: point[0], y: point[1] });
+                }
             }
             e.stopPropagation();
             e.preventDefault();
