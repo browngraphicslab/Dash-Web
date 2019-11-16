@@ -1086,7 +1086,7 @@ addSecureRoute({
         const batched = BatchedArray.from<GooglePhotosUploadUtils.MediaInput>(media, { batchSize: 25 });
         const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch, collector) => {
+            async (batch: any, collector: any): Promise<any> => {
                 for (let index = 0; index < batch.length; index++) {
                     const { url, description } = batch[index];
                     const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(url);

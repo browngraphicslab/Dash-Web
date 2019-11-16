@@ -16,19 +16,19 @@ export namespace IBM_Recommender {
     });
 
     const analyzeParams = {
-        'url': 'www.ibm.com',
+        'text': 'this is a test of the keyword extraction feature I am integrating into the program',
         'features': {
             'keywords': {
                 'sentiment': true,
                 'emotion': true,
                 'limit': 3
-            }
+            },
         }
     };
 
     export const analyze = async (_parameters: any): Promise<Opt<string>> => {
         try {
-            const response = await naturalLanguageUnderstanding.analyze(analyzeParams);
+            const response = await naturalLanguageUnderstanding.analyze(_parameters);
             console.log(response);
             return (JSON.stringify(response, null, 2));
         } catch (err) {

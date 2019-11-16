@@ -34,11 +34,6 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import v5 = require("uuid/v5");
-import { ClientRecommender } from "../../../ClientRecommender";
-import { SearchUtil } from "../../../util/SearchUtil";
-import { RouteStore } from "../../../../server/RouteStore";
-import { string, number, elementType } from "prop-types";
 import { DocServer } from "../../../DocServer";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { DocumentViewProps } from "../../nodes/DocumentView";

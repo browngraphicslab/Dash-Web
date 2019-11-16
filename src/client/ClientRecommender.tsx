@@ -8,6 +8,7 @@ import { observable, action, computed, reaction } from "mobx";
 var assert = require('assert');
 var sw = require('stopword');
 var FeedParser = require('feedparser');
+var https = require('https');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
 import { RichTextField } from "../new_fields/RichTextField";
@@ -111,7 +112,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         }
         );
         let doclist = Array.from(ClientRecommender.Instance.docVectors);
-        if (distance_metric == "euclidian") {
+        if (distance_metric === "euclidian") {
             doclist.sort((a: RecommenderDocument, b: RecommenderDocument) => a.score - b.score);
         }
         else {
@@ -245,7 +246,27 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             if (kp_string.length > 2) kp_string = kp_string.substring(0, kp_string.length - 2);
             console.log("kp string: ", kp_string);
             let values = "";
-            if (!internal) values = await this.sendRequest(highKP);
+            if (!internal) {
+                const parameters: any = {
+                    'language': 'en',
+                    'text': data,
+                    'features': {
+                        'keywords': {
+                            'sentiment': true,
+                            'emotion': true,
+                            'limit': 3
+                        }
+                    }
+                };
+                await Identified.PostToServer("/IBMAnalysis", parameters).then(response => {
+                    const sorted_keywords = response.result.keywords;
+                    if (sorted_keywords.length > 0) {
+                        console.log("IBM keyphrase", sorted_keywords[0]);
+                        highKP = [sorted_keywords[0].text];
+                    }
+                });
+                values = await this.sendRequest(highKP, "bing");
+            }
             return { keyterms: keyterms, external_recommendations: values, kp_string: [kp_string] };
         };
         if (data !== "") {
@@ -290,11 +311,46 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * API for sending arXiv request.
      */
 
-    private async sendRequest(keywords: string[]) {
+    private async sendRequest(keywords: string[], api: string) {
         let query = "";
         keywords.forEach((kp: string) => query += " " + kp);
-        return new Promise<any>(resolve => {
-            this.arxivrequest(query).then(resolve);
+        if (api === "arxiv") {
+            return new Promise<any>(resolve => {
+                this.arxivrequest(query).then(resolve);
+            });
+        }
+        else if (api === "bing") {
+            await this.bingWebSearch(query);
+        }
+        else {
+            return new Promise<any>(resolve => {
+                this.arxivrequest(query).then(resolve);
+            });
+        }
+
+    }
+
+    bingWebSearch = async (query: string) => {
+        https.get({
+            hostname: 'api.cognitive.microsoft.com',
+            path: '/bing/v5.0/search?q=' + encodeURIComponent(query),
+            headers: { 'Ocp-Apim-Subscription-Key': process.env.BING },
+        }, (res: any) => {
+            let body = '';
+            res.on('data', (part: any) => body += part);
+            res.on('end', () => {
+                for (var header in res.headers) {
+                    if (header.startsWith("bingapis-") || header.startsWith("x-msedge-")) {
+                        console.log(header + ": " + res.headers[header])
+                    }
+                }
+                console.log('\nJSON Response:\n');
+                console.dir(JSON.parse(body), { colors: false, depth: null });
+            })
+            res.on('error', (e: any) => {
+                console.log('Error: ' + e.message);
+                throw e;
+            });
         });
     }
 
