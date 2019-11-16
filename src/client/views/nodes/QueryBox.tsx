@@ -18,7 +18,7 @@ library.add(faEdit);
 
 @observer
 export class QueryBox extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(QueryBox, fieldKey); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(QueryBox, fieldKey); }
     _docListChangedReaction: IReactionDisposer | undefined;
     componentDidMount() {
     }

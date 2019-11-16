@@ -1,10 +1,9 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable, runInAction, reaction, IReactionDisposer } from 'mobx';
+import { action, observable, runInAction, reaction, IReactionDisposer, trace, untracked, computed } from 'mobx';
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import 'react-image-lightbox/style.css';
-import { Opt, WidthSym } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { Cast } from "../../../new_fields/Types";
@@ -17,51 +16,53 @@ import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
-import { documentSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { documentSchema } from '../../../new_fields/documentSchemas';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
 export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
-    public static LayoutString(fieldExt?: string) { return FieldView.LayoutString(PDFBox, "data", fieldExt); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
     private _searchString: string = "";
+    private _initialScale: number = 0;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live.
     private _everActive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
-    private _searchRef: React.RefObject<HTMLInputElement> = React.createRef();
-    private _keyRef: React.RefObject<HTMLInputElement> = React.createRef();
-    private _valueRef: React.RefObject<HTMLInputElement> = React.createRef();
-    private _scriptRef: React.RefObject<HTMLInputElement> = React.createRef();
-    private _selectReaction: IReactionDisposer | undefined;
+    private _searchRef = React.createRef<HTMLInputElement>();
+    private _keyRef = React.createRef<HTMLInputElement>();
+    private _valueRef = React.createRef<HTMLInputElement>();
+    private _scriptRef = React.createRef<HTMLInputElement>();
+    private _selectReactionDisposer: IReactionDisposer | undefined;
 
     @observable private _searching: boolean = false;
     @observable private _flyout: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
     @observable private _pageControls = false;
 
+    constructor(props: any) {
+        super(props);
+        this._initialScale = this.props.ScreenToLocalTransform().Scale;
+    }
+
     componentWillUnmount() {
-        this._selectReaction && this._selectReaction();
+        this._selectReactionDisposer && this._selectReactionDisposer();
     }
     componentDidMount() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
-        this._selectReaction = reaction(() => this.props.isSelected(),
+        this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
-                if (this.props.isSelected()) {
-                    document.removeEventListener("keydown", this.onKeyDown);
-                    document.addEventListener("keydown", this.onKeyDown);
-                } else {
-                    document.removeEventListener("keydown", this.onKeyDown);
-                }
+                document.removeEventListener("keydown", this.onKeyDown);
+                this.props.isSelected() && document.addEventListener("keydown", this.onKeyDown);
             }, { fireImmediately: true });
     }
 
@@ -76,8 +77,8 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
     public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
     public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
-    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
     public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
+    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
@@ -87,12 +88,8 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
             e.stopImmediatePropagation();
             e.preventDefault();
         }
-        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") {
-            this.forwardPage();
-        }
-        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") {
-            this.backPage();
-        }
+        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") this.forwardPage();
+        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") this.backPage();
     });
 
     @undoBatch
@@ -121,14 +118,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     settingsPanel() {
         let pageBtns = <>
             <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => this.backPage()}
+                onPointerDown={e => e.stopPropagation()} onClick={this.backPage}
                 style={{ left: 50, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
             </button>
             <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => this.forwardPage()}
+                onPointerDown={e => e.stopPropagation()} onClick={this.forwardPage}
                 style={{ left: 80, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
@@ -138,15 +133,13 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
-                    <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => {
-                        e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey);
-                    }} />
+                    <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey)} />
                     <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
-                    <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={e => this.prevAnnotation()} >
+                    <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={this.prevAnnotation} >
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="sm" />
                     </button>
-                    <button className="pdfBox-nextIcon" title="Next Annotation" onClick={e => this.nextAnnotation()} >
+                    <button className="pdfBox-nextIcon" title="Next Annotation" onClick={this.nextAnnotation} >
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
                     </button>
                 </div>
@@ -201,40 +194,47 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
-    _initialScale: number | undefined;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live....
-    render() {
+
+    @computed get renderTitleBox() {
+        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
+        return <div className="pdfBox-title-outer" >
+            <div className={classname} >
+                <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
+            </div>
+        </div>;
+    }
+
+    @computed get renderPdfView() {
+        trace();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
-        let noPdf = !(pdfUrl instanceof PdfField) || !this._pdf;
-        if (this._initialScale === undefined) this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        return <div className={classname} style={{
+            width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+            height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
+            transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
+        }} onContextMenu={this.specificContextMenu} onPointerDown={e => {
+            let hit = document.elementFromPoint(e.clientX, e.clientY);
+            if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
+                e.button === 0 && e.stopPropagation();
+            }
+        }}>
+            <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
+                setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
+                renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
+                Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
+                addDocTab={this.props.addDocTab} focus={this.props.focus}
+                pinToPres={this.props.pinToPres} addDocument={this.addDocument}
+                ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
+                isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
+                fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
+            {this.settingsPanel()}
+        </div>;
+    }
+
+    render() {
+        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        return (noPdf || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
-            <div className="pdfBox-title-outer" >
-                <div className={classname} >
-                    <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
-                </div>
-            </div> :
-            <div className={classname} style={{
-                transformOrigin: "top left",
-                width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-                height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-                transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
-            }} onContextMenu={this.specificContextMenu} onPointerDown={(e: React.PointerEvent) => {
-                let hit = document.elementFromPoint(e.clientX, e.clientY);
-                if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
-                    e.button === 0 && e.stopPropagation();
-                }
-            }}>
-                <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
-                    setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
-                    renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                    Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
-                    addDocTab={this.props.addDocTab} GoToPage={this.gotoPage} focus={this.props.focus}
-                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
-                    isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
-                    fieldKey={this.props.fieldKey} extensionDoc={this.extensionDoc} startupLive={this._initialScale < 2.5 ? true : false} />
-                {this.settingsPanel()}
-            </div>);
+        return !pdfUrl || !this._pdf || !this.extensionDoc || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
+            this.renderTitleBox : this.renderPdfView;
     }
 }

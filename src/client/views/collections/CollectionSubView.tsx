@@ -23,8 +23,6 @@ import React = require("react");
 var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
-import { CollectionViewType } from "./CollectionBaseView";
-import { ObjectField } from "../../../new_fields/ObjectField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -35,12 +33,15 @@ export interface CollectionViewProps extends FieldViewProps {
     VisibleHeight?: () => number;
     chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    fieldKey: string;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     ruleProvider: Doc | undefined;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    isAnnotationOverlay?: boolean;
+    annotationsKey: string;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
@@ -61,9 +62,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
                 async (args) => {
                     if (args[1] instanceof Doc) {
-                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc)));
-                    } else {
-                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layout = undefined);
+                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), "layoutFromParent"));
+                    }
+                    else if (!(args[1] instanceof Promise)) {
+                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
                     }
                 });
 
@@ -72,14 +74,16 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        // The data field for rendeing this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
+        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+
+        // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
         // to its children which may be templates.
-        // The name of the data field comes from fieldExt if it's an extension, or fieldKey otherwise.
+        // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            return Doc.fieldExtensionDoc(this.props.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt)[this.props.fieldExt || this.props.fieldKey];
+            return this.props.annotationsKey ? (this.extensionDoc ? this.extensionDoc[this.props.annotationsKey] : undefined) : this.dataDoc[this.props.fieldKey];
         }
-
 
         get childLayoutPairs() {
             return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
@@ -133,8 +137,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc)
-                    );
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, "layoutFromParent"));
                     e.stopPropagation();
                     return true;
                 }

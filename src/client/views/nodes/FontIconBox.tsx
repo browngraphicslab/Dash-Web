@@ -17,7 +17,7 @@ type FontIconDocument = makeInterface<[typeof FontIconSchema]>;
 const FontIconDocument = makeInterface(FontIconSchema);
 @observer
 export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(FontIconDocument) {
-    public static LayoutString() { return FieldView.LayoutString(FontIconBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FontIconBox, fieldKey); }
     @observable _foregroundColor = "white";
     _ref: React.RefObject<HTMLButtonElement> = React.createRef();
     _backgroundReaction: IReactionDisposer | undefined;
@@ -25,7 +25,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         this._backgroundReaction = reaction(() => this.props.Document.backgroundColor,
             () => {
                 if (this._ref && this._ref.current) {
-                    let col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor!);
+                    let col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor);
                     let colsum = (col.r + col.g + col.b);
                     if (colsum / col.a > 600 || col.a < 0.25) runInAction(() => this._foregroundColor = "black");
                     else if (colsum / col.a <= 600 || col.a >= .25) runInAction(() => this._foregroundColor = "white");

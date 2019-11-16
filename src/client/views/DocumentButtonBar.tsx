@@ -5,7 +5,7 @@ import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast } from "../../new_fields/Types";
+import { NumCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
@@ -135,13 +135,27 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
             document.removeEventListener("pointerup", this.onLinkerButtonUp);
-            let selDoc = this.props.views[0];
-            let container = selDoc.props.ContainingCollectionDoc ? selDoc.props.ContainingCollectionDoc.proto : undefined;
-            let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
-            let _linkDrag = UndoManager.StartBatch("Drag Link");
+            let docView = this.props.views[0];
+            let container = docView.props.ContainingCollectionDoc ? docView.props.ContainingCollectionDoc.proto : undefined;
+            let dragData = new DragManager.LinkDragData(docView.props.Document, container ? [container] : []);
+            let linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: () => _linkDrag && _linkDrag.end()
+                    dragComplete: () => {
+                        let tooltipmenu = FormattedTextBox.ToolTipTextMenu;
+                        let linkDoc = dragData.linkDocument;
+                        if (linkDoc && tooltipmenu) {
+                            let proto = Doc.GetProto(linkDoc);
+                            if (proto && docView) {
+                                proto.sourceContext = docView.props.ContainingCollectionDoc;
+                            }
+                            let text = tooltipmenu.makeLink(linkDoc, StrCast(linkDoc.anchor2.title), e.ctrlKey ? "onRight" : "inTab");
+                            if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
+                                proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
+                            }
+                        }
+                        linkDrag && linkDrag.end();
+                    }
                 },
                 hideSource: false
             });

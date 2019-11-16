@@ -25,6 +25,9 @@
     top: 0;
     left: 0;
     overflow: hidden;
+    .lm_content {
+        background: white;
+    }
     .lm_controls>li {
         opacity: 0.6;
         transform: scale(1.2);

@@ -17,10 +17,12 @@ export interface CollectionFreeFormLinkViewProps {
 @observer
 export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFormLinkViewProps> {
     @observable _alive: number = 0;
+    @observable _opacity: number = 1;
     @action
     componentDidMount() {
         this._alive = 1;
         setTimeout(this.rerender, 50);
+        setTimeout(action(() => this._opacity = 0.05), 50);
     }
     @action
     componentWillUnmount() {
@@ -42,6 +44,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let pt1 = Utils.getNearestPointInPerimeter(a.left, a.top, a.width, a.height, b.left + b.width / 2, b.top + b.height / 2);
         let pt2 = Utils.getNearestPointInPerimeter(b.left, b.top, b.width, b.height, a.left + a.width / 2, a.top + a.height / 2);
         return (<line key="linkLine" className="collectionfreeformlinkview-linkLine"
+            style={{ opacity: this._opacity }}
             x1={`${pt1[0]}`} y1={`${pt1[1]}`}
             x2={`${pt2[0]}`} y2={`${pt2[1]}`} />);
     }

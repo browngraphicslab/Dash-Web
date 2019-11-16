@@ -615,19 +615,20 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    panelWidth = () => this._document && this._document.maxWidth ? Math.min(Math.max(NumCast(this._document.width), NumCast(this._document.nativeWidth)), this._panelWidth) : this._panelWidth;
+    get layoutDoc() { return this._document && Doc.Layout(this._document);}
+    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
     panelHeight = () => this._panelHeight;
 
-    nativeWidth = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this._document!.ignoreAspect && !this._document!.fitWidth ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
-        if (this._document!.type === DocumentType.PDF) {
-            if ((this._document && this._document.fitWidth) ||
-                this._panelHeight / NumCast(this._document!.nativeHeight) > this._panelWidth / NumCast(this._document!.nativeWidth)) {
-                return this._panelWidth / NumCast(this._document!.nativeWidth);
+        if (this.layoutDoc!.type === DocumentType.PDF) {
+            if ((this.layoutDoc && this.layoutDoc.fitWidth) ||
+                this._panelHeight / NumCast(this.layoutDoc!.nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!.nativeWidth)) {
+                return this._panelWidth / NumCast(this.layoutDoc!.nativeWidth);
             } else {
-                return this._panelHeight / NumCast(this._document!.nativeHeight);
+                return this._panelHeight / NumCast(this.layoutDoc!.nativeHeight);
             }
         }
         const nativeH = this.nativeHeight();
@@ -645,7 +646,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() && !this._document!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
         SelectionManager.DeselectAll();
@@ -690,11 +691,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
-        return (!this._isActive || !this._document) ? (null) :
+        return (!this._isActive || !this.layoutDoc) ? (null) :
             (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this._document && this._document.fitWidth ? undefined : "100%"
+                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%"
                 }}>
                 {this.docView}
             </div >);
