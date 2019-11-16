@@ -24,7 +24,6 @@ import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
-import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
@@ -298,8 +297,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (this._points.length > 1) {
             let B = this.svgBounds;
             let points = this._points.map(p => ({ x: p.x - B.left, y: p.y - B.top }));
-            let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
-            this.addDocument(inkDoc);
+            UndoManager.RunInBatch(() => {
+                let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
+                this.addDocument(inkDoc);
+            }, "addink");
             this._points = [];
         }
 
@@ -385,7 +386,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     handle1PointerMove = (e: TouchEvent) => {
         // panning a workspace
-        if (!e.cancelBubble && this.props.active()) {
+        if (!e.cancelBubble && this.props.active() && !SelectionManager.GetIsDragging()) {
             let pt = e.targetTouches.item(0);
             if (pt) {
                 this.pan(pt);

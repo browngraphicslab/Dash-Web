@@ -1,5 +1,4 @@
 import { CollectionSubView } from "./CollectionSubView";
-import { InkingCanvas } from "../InkingCanvas";
 import { Transform } from "../../util/Transform";
 import React = require("react")
 import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
@@ -54,9 +53,6 @@ export class CollectionStaffView extends CollectionSubView(doc => doc) {
     render() {
         return (
             <div className="collectionStaffView" ref={this._mainCont}>
-                <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.fieldExtensionDoc} inkFieldKey={"ink"} >
-                    {() => []}
-                </InkingCanvas>
                 {this.staves}
                 {this.addStaffButton}
             </div>

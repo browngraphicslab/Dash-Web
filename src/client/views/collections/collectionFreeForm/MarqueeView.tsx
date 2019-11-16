@@ -13,7 +13,6 @@ import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
-import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionViewType } from "../CollectionView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";

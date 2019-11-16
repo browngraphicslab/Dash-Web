@@ -41,6 +41,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { InteractionUtils } from '../../util/InteractionUtils';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -138,7 +139,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler ?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias.layoutCustom !== undefined) {
                     fullScreenAlias.layoutKey = "layoutCustom";
@@ -216,7 +217,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this) || this.props.parentActive() || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick) && e.buttons === 1) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCH))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
@@ -354,7 +355,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     setCustomView = (custom: boolean): void => {
-        if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
+        if (this.props.ContainingCollectionView ?.props.DataDoc || this.props.ContainingCollectionView ?.props.Document.isTemplateDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
         } else {
             custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc) : DocumentView.makeNativeViewClicked(this.props.Document);
