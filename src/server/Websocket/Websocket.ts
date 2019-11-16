@@ -4,9 +4,11 @@ import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
 import { Search } from "../Search";
-import io from 'socket.io';
+import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
-import { youtubeApiKey } from "..";
+import { readFile } from "fs";
+import { Credentials } from "google-auth-library";
+import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 
 export namespace WebSocket {
 
@@ -17,6 +19,14 @@ export namespace WebSocket {
 
     export const socketMap = new Map<SocketIO.Socket, string>();
     export const timeMap: { [id: string]: number } = {};
+
+    export async function start(serverPort: number, isRelease: boolean) {
+        await preliminaryFunctions();
+        initialize(serverPort, isRelease);
+    }
+
+    async function preliminaryFunctions() {
+    }
 
     export function initialize(serverPort: number, isRelease: boolean) {
         const endpoint = io();
@@ -54,14 +64,15 @@ export namespace WebSocket {
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
+        const { ProjectCredentials } = GoogleCredentialsLoader;
         switch (query.type) {
             case YoutubeQueryTypes.Channels:
-                YoutubeApi.authorizedGetChannel(youtubeApiKey);
+                YoutubeApi.authorizedGetChannel(ProjectCredentials);
                 break;
             case YoutubeQueryTypes.SearchVideo:
-                YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput, callback);
+                YoutubeApi.authorizedGetVideos(ProjectCredentials, query.userInput, callback);
             case YoutubeQueryTypes.VideoDetails:
-                YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
+                YoutubeApi.authorizedGetVideoDetails(ProjectCredentials, query.videoIds, callback);
         }
     }
 

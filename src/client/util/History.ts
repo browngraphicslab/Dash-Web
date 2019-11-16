@@ -1,6 +1,5 @@
 import { Doc, Opt, Field } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
-import { RouteStore } from "../../server/RouteStore";
 import { MainView } from "../views/MainView";
 import * as qs from 'query-string';
 import { Utils, OmitKeys } from "../../Utils";
@@ -26,7 +25,7 @@ export namespace HistoryUtil {
 
     // const handlers: ((state: ParsedUrl | null) => void)[] = [];
     function onHistory(e: PopStateEvent) {
-        if (window.location.pathname !== RouteStore.home) {
+        if (window.location.pathname !== "/home") {
             const url = e.state as ParsedUrl || parseUrl(window.location);
             if (url) {
                 switch (url.type) {

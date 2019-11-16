@@ -12,7 +12,6 @@ import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
@@ -74,7 +73,7 @@ export class MainView extends React.Component {
         this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
-        if (window.location.pathname !== RouteStore.home) {
+        if (window.location.pathname !== "/home") {
             let pathname = window.location.pathname.substr(1).split("/");
             if (pathname.length > 1) {
                 let type = pathname[0];
@@ -395,7 +394,7 @@ export class MainView extends React.Component {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}>
                 </DocumentView>
-                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>
+                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
             </div></div>;

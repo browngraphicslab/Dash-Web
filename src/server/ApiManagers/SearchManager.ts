@@ -1,15 +1,15 @@
-import ApiManager from "./ApiManager";
-import RouteManager, { Method } from "../RouteManager";
+import ApiManager, { Registration } from "./ApiManager";
+import { Method } from "../RouteManager";
 import { Search } from "../Search";
 var findInFiles = require('find-in-files');
 import * as path from 'path';
-import { uploadDirectory } from "..";
+import { filesDirectory } from "..";
 
 export default class SearchManager extends ApiManager {
 
-    public register(router: RouteManager): void {
+    protected initialize(register: Registration): void {
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/textsearch",
             onValidation: async ({ req, res }) => {
@@ -18,7 +18,7 @@ export default class SearchManager extends ApiManager {
                     res.send([]);
                     return;
                 }
-                let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, uploadDirectory + "text", ".txt$");
+                let results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, filesDirectory + "text", ".txt$");
                 let resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
                 for (var result in results) {
                     resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
@@ -29,7 +29,7 @@ export default class SearchManager extends ApiManager {
             }
         });
 
-        router.addSupervisedRoute({
+        register({
             method: Method.GET,
             subscription: "/search",
             onValidation: async ({ req, res }) => {

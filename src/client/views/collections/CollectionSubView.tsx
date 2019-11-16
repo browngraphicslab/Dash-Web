@@ -8,7 +8,6 @@ import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -243,7 +242,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let promises: Promise<void>[] = [];
             // tslint:disable-next-line:prefer-for-of
             for (let i = 0; i < e.dataTransfer.items.length; i++) {
-                const upload = window.location.origin + RouteStore.upload;
                 let item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
@@ -268,7 +266,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }
                     let dropFileName = file ? file.name : "-empty-";
 
-                    let prom = fetch(upload, {
+                    let prom = fetch(Utils.prepend("/upload"), {
                         method: 'POST',
                         body: formData
                     }).then(async (res: Response) => {

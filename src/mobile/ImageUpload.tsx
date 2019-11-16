@@ -1,7 +1,6 @@
 import * as ReactDOM from 'react-dom';
 import * as rp from 'request-promise';
 import { Docs } from '../client/documents/Documents';
-import { RouteStore } from '../server/RouteStore';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
@@ -58,7 +57,7 @@ class Uploader extends React.Component {
 
                         this.status = "getting user document";
 
-                        const res = await rp.get(Utils.prepend(RouteStore.getUserDocumentId));
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
                         if (!res) {
                             throw new Error("No user id returned");
                         }
