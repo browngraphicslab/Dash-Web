@@ -15,7 +15,6 @@ import { RouteStore } from "../../RouteStore";
 import { InkingControl } from "../../../client/views/InkingControl";
 import { DragManager } from "../../../client/util/DragManager";
 import { nullAudio } from "../../../new_fields/URLField";
-import { LinkManager } from "../../../client/util/LinkManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -186,6 +185,8 @@ export class CurrentUserUtils {
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
         (doc.sidebarButtons === undefined) && CurrentUserUtils.setupSidebarButtons(doc);
 
+        // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
+        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.
         PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
         PromiseValue(Cast(doc.sidebarButtons, Doc)).then(stackingDoc => {

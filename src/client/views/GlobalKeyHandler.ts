@@ -165,7 +165,7 @@ export default class KeyManager {
                     }
                 }
                 break;
-            case "c":
+            case "t":
                 PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 240) {
                     MainView.Instance.flyoutWidth = 0;

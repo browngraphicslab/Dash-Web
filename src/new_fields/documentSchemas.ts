@@ -31,7 +31,8 @@ export const documentSchema = createSchema({
     summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
     maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
-    lockedPosition: "boolean",  // whether the document can be spatially manipulated
+    lockedPosition: "boolean",  // whether the document can be moved (dragged)
+    lockedTransform: "boolean", // whether the document can be panned/zoomed
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata

@@ -199,7 +199,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
 
         this._annotationReactionDisposer = reaction(
             () => this.extensionDoc && DocListCast(this.extensionDoc.annotations),
-            annotations => annotations && annotations.length && this.renderAnnotations(annotations, true),
+            annotations => annotations && annotations.length && (this._annotations = annotations),
             { fireImmediately: true });
 
         this._filterReactionDisposer = reaction(
@@ -297,18 +297,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this.Index = -1;
         return mainAnnoDoc;
     }
-
-    @action
-    renderAnnotations = (annotations: Doc[], removeOldAnnotations: boolean): void => {
-        if (removeOldAnnotations) {
-            this._annotations = annotations;
-        }
-        else {
-            this._annotations.push(...annotations);
-            this._annotations = new Array<Doc>(...this._annotations);
-        }
-    }
-
     @action
     prevAnnotation = () => {
         this.Index = Math.max(this.Index - 1, 0);

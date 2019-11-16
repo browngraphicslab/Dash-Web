@@ -473,8 +473,9 @@ export namespace Doc {
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-        docExtensionForField.title = fieldKey + ".ext";
+        docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+        docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
         docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
         while (proto && !Doc.IsPrototype(proto) && proto.proto) {
@@ -568,7 +569,7 @@ export namespace Doc {
         let layoutCustomLayout = Doc.MakeDelegate(templateDoc);
 
         titleTarget && (Doc.GetProto(target).title = titleTarget);
-        target.type = DocumentType.TEMPLATE;
+        Doc.GetProto(target).type = DocumentType.TEMPLATE;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
 
         Doc.GetProto(target)[targetKey] = layoutCustomLayout;
@@ -669,8 +670,8 @@ export namespace Doc {
         return doc;
     }
 
-    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
 
+    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
     export function linkFollowUnhighlight() {
         Doc.UnhighlightAll();
         document.removeEventListener("pointerdown", linkFollowUnhighlight);

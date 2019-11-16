@@ -18,7 +18,6 @@ import { Transform } from "./Transform";
 import React = require("react");
 import { BoolCast, NumCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -130,6 +129,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         //     }
         // }]
     },
+
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -241,6 +241,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         },
         toDOM(node: Node<any>) {
             const bs = node.attrs.bulletStyle;
+            if (node.attrs.mapStyle === "bullet") return ['ul', 0];
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
@@ -273,7 +274,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             const bs = node.attrs.bulletStyle;
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
-            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            let map = node.attrs.mapStyle === "decimal" ? decMap : node.attrs.mapStyle === "multi" ? multiMap : "";
             return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
             //return ["li", { class: `${map}` }, 0];
         }
@@ -304,8 +305,39 @@ export const marks: { [index: string]: MarkSpec } = {
         }],
         toDOM(node: any) {
             return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs }, 0];
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
+                ["a", { ...node.attrs, title: `${node.attrs.title}` }, 0];
+        }
+    },
+
+    // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
+    color: {
+        attrs: {
+            color: { default: "#000" }
+        },
+        inclusive: false,
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { color: dom.getAttribute("color") };
+            }
+        }],
+        toDOM(node: any) {
+            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
+        }
+    },
+
+    marker: {
+        attrs: {
+            highlight: { default: "transparent" }
+        },
+        inclusive: false,
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { highlight: dom.getAttribute("backgroundColor") };
+            }
+        }],
+        toDOM(node: any) {
+            return node.attrs.highlight ? ['span', { style: 'background-color:' + node.attrs.highlight }] : ['span', { style: 'background-color: transparent' }];
         }
     },
 
@@ -482,72 +514,26 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM() { return codeDOM; }
     },
 
-    // pFontFamily: {
-    //     attrs: {
-    //         style: { default: 'font-family: "Times New Roman", Times, serif;' },
-    //     },
-    //     parseDOM: [{
-    //         tag: "span", getAttrs(dom: any) {
-    //             if (getComputedStyle(dom).font === "Times New Roman") return { style: `font-family: "Times New Roman", Times, serif;` };
-    //             if (getComputedStyle(dom).font === "Arial, Helvetica") return { style: `font-family: Arial, Helvetica, sans-serif;` };
-    //             if (getComputedStyle(dom).font === "Georgia") return { style: `font-family: Georgia, serif;` };
-    //             if (getComputedStyle(dom).font === "Comic Sans") return { style: `font-family: "Comic Sans MS", cursive, sans-serif;` };
-    //             if (getComputedStyle(dom).font === "Tahoma, Geneva") return { style: `font-family: Tahoma, Geneva, sans-serif;` };
-    //         }
-    //     }],
-    //     toDOM: (node: any) => ['span', {
-    //         style: node.attrs.style
-    //     }]
-    // },
-
-
     /* FONTS */
-    timesNewRoman: {
-        parseDOM: [{ style: 'font-family: "Times New Roman", Times, serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: "Times New Roman", Times, serif;'
-        }]
-    },
-
-    arial: {
-        parseDOM: [{ style: 'font-family: Arial, Helvetica, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Arial, Helvetica, sans-serif;'
-        }]
-    },
-
-    georgia: {
-        parseDOM: [{ style: 'font-family: Georgia, serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Georgia, serif;'
-        }]
-    },
-
-    comicSans: {
-        parseDOM: [{ style: 'font-family: "Comic Sans MS", cursive, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: "Comic Sans MS", cursive, sans-serif;'
-        }]
-    },
-
-    tahoma: {
-        parseDOM: [{ style: 'font-family: Tahoma, Geneva, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Tahoma, Geneva, sans-serif;'
-        }]
-    },
-
-    impact: {
-        parseDOM: [{ style: 'font-family: Impact, Charcoal, sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: Impact, Charcoal, sans-serif;'
-        }]
-    },
-
-    crimson: {
-        parseDOM: [{ style: 'font-family: "Crimson Text", sans-serif;' }],
-        toDOM: () => ['span', {
-            style: 'font-family: "Crimson Text", sans-serif;'
+    pFontFamily: {
+        attrs: {
+            family: { default: "Crimson Text" },
+        },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                let cstyle = getComputedStyle(dom);
+                if (cstyle.font) {
+                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
+                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
+                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
+                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
+                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
+                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
+                }
+            }
+        }],
+        toDOM: (node) => ['span', {
+            style: `font-family: "${node.attrs.family}";`
         }]
     },
 
@@ -571,76 +557,6 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ style: 'font-size: 10px;' }],
         toDOM: (node) => ['span', {
             style: `font-size: ${node.attrs.fontSize}px;`
-        }]
-    },
-
-    p10: {
-        parseDOM: [{ style: 'font-size: 10px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 10px;'
-        }]
-    },
-
-    p12: {
-        parseDOM: [{ style: 'font-size: 12px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 12px;'
-        }]
-    },
-
-    p14: {
-        parseDOM: [{ style: 'font-size: 14px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 14px;'
-        }]
-    },
-
-    p16: {
-        parseDOM: [{ style: 'font-size: 16px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 16px;'
-        }]
-    },
-
-    p18: {
-        parseDOM: [{ style: 'font-size: 18px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 18px;'
-        }]
-    },
-
-    p20: {
-        parseDOM: [{ style: 'font-size: 20px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 20px;'
-        }]
-    },
-
-    p24: {
-        parseDOM: [{ style: 'font-size: 24px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 24px;'
-        }]
-    },
-
-    p32: {
-        parseDOM: [{ style: 'font-size: 32px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 32px;'
-        }]
-    },
-
-    p48: {
-        parseDOM: [{ style: 'font-size: 48px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 48px;'
-        }]
-    },
-
-    p72: {
-        parseDOM: [{ style: 'font-size: 72px;' }],
-        toDOM: () => ['span', {
-            style: 'font-size: 72px;'
         }]
     },
 };
@@ -691,8 +607,8 @@ export class ImageResizeView {
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
-            let wid = Number(getComputedStyle(self._img).width!.replace(/px/, ""));
-            let hgt = Number(getComputedStyle(self._img).height!.replace(/px/, ""));
+            let wid = Number(getComputedStyle(self._img).width.replace(/px/, ""));
+            let hgt = Number(getComputedStyle(self._img).height.replace(/px/, ""));
             const startX = e.pageX;
             const startWidth = parseFloat(node.attrs.width);
             const onpointermove = (e: any) => {
@@ -795,6 +711,7 @@ export class DashDocView {
                     bringToFront={emptyFunction}
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
+                    dontRegisterView={true}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={this.contentScaling}

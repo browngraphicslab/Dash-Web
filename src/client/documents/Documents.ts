@@ -78,7 +78,8 @@ export interface DocumentOptions {
     viewType?: number;
     backgroundColor?: string;
     ignoreClick?: boolean;
-    lockedPosition?: boolean;
+    lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
+    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
@@ -264,6 +265,9 @@ export namespace Docs {
             return PrototypeMap.get(type)!;
         }
 
+        /**
+         * A collection of all links in the database.  Ideally, this would be a search, but for now all links are cached here.
+         */
         export function MainLinkDocument() {
             return Prototypes.get(DocumentType.LINKDOC);
         }
@@ -718,6 +722,7 @@ export namespace DocUtils {
 
             linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
+            linkDocProto.isPrototype = true;
 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
@@ -729,7 +734,6 @@ export namespace DocUtils {
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
             linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
             linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
-            linkDocProto.borderRounding = "20";
             linkDocProto.width = linkDocProto.height = 0;
             linkDocProto.isBackground = true;
             linkDocProto.isButton = true;
