@@ -303,6 +303,8 @@ export function returnEmptyString() { return ""; }
 
 export function emptyFunction() { }
 
+export function unimplementedFunction() { throw new Error("This function is not implemented, but should be."); }
+
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
 export type Predicate<K, V> = (entry: [K, V]) => boolean;

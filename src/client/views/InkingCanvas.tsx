@@ -7,9 +7,11 @@ import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
 import { UndoManager } from "../util/UndoManager";
-import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
+import { PointData, InkField, InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
+import { Touchable } from "./Touchable";
+import { InteractionUtils } from "../util/InteractionUtils";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -20,19 +22,19 @@ interface InkCanvasProps {
 }
 
 @observer
-export class InkingCanvas extends React.Component<InkCanvasProps> {
+export class InkingCanvas extends Touchable<InkCanvasProps> {
     maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
     @observable inkMidX: number = 0;
     @observable inkMidY: number = 0;
-    private previousState?: Map<string, StrokeData>;
+    private previousState?: Map<string, PointData>;
     private _currentStrokeId: string = "";
-    public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
+    public static IntersectStrokeRect(stroke: PointData, selRect: { left: number, top: number, width: number, height: number }): boolean {
         return stroke.pathData.reduce((inside: boolean, val) => inside ||
             (selRect.left < val.x && selRect.left + selRect.width > val.x &&
                 selRect.top < val.y && selRect.top + selRect.height > val.y)
             , false);
     }
-    public static StrokeRect(stroke: StrokeData): { left: number, top: number, right: number, bottom: number } {
+    public static StrokeRect(stroke: PointData): { left: number, top: number, right: number, bottom: number } {
         return stroke.pathData.reduce((bounds: { left: number, top: number, right: number, bottom: number }, val) =>
             ({
                 left: Math.min(bounds.left, val.x), top: Math.min(bounds.top, val.y),
@@ -56,12 +58,12 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     @computed
-    get inkData(): Map<string, StrokeData> {
+    get inkData(): Map<string, PointData> {
         let map = Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField);
         return !map ? new Map : new Map(map.inkData);
     }
 
-    set inkData(value: Map<string, StrokeData>) {
+    set inkData(value: Map<string, PointData>) {
         this.props.AnnotationDocument[this.props.inkFieldKey] = new InkField(value);
     }
 
@@ -95,6 +97,18 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     @action
+    handle1PointerMove = (e: TouchEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        let pointer = e.targetTouches.item(0);
+        if (pointer) {
+            this.handleMove(pointer.clientX, pointer.clientY);
+        }
+    }
+
+    handle2PointersMove = () => { }
+
+    @action
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove, true);
         document.removeEventListener("pointerup", this.onPointerUp, true);
@@ -117,19 +131,26 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         batch.end();
     }
 
-    @action
-    onPointerMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
+    handleMove = (x: number, y: number) => {
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
             let data = this.inkData;  // add points to new line as it is being drawn
             let strokeData = data.get(this._currentStrokeId);
             if (strokeData) {
-                strokeData.pathData.push(this.relativeCoordinatesForEvent(e.clientX, e.clientY));
+                strokeData.pathData.push(this.relativeCoordinatesForEvent(x, y));
                 data.set(this._currentStrokeId, strokeData);
             }
             this.inkData = data;
         }
+    }
+
+    @action
+    onPointerMove = (e: PointerEvent): void => {
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) {
+            return;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+        this.handleMove(e.clientX, e.clientY);
     }
 
     relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
@@ -149,37 +170,37 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         this.inkData = data;
     }
 
-    @computed
-    get drawnPaths() {
-        let curTimecode = NumCast(this.props.Document.currentTimecode, -1);
-        let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.displayTimecode === -1 || (Math.abs(Math.round(strokeData.displayTimecode) - Math.round(curTimecode)) < 3)) {
-                paths.push(<InkingStroke key={id} id={id}
-                    line={strokeData.pathData}
-                    count={strokeData.pathData.length}
-                    offsetX={this.maxCanvasDim - this.inkMidX}
-                    offsetY={this.maxCanvasDim - this.inkMidY}
-                    color={strokeData.color}
-                    width={strokeData.width}
-                    tool={strokeData.tool}
-                    creationTime={strokeData.creationTime}
-                    deleteCallback={this.removeLine} />);
-            }
-            return paths;
-        }, [] as JSX.Element[]);
-        let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
-        let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
-        return [!penPaths.length ? (null) :
-            <svg className={`inkingCanvas-paths-ink`} key="Pens"
-                style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-                {penPaths}
-            </svg>,
-        !markerPaths.length ? (null) :
-            <svg className={`inkingCanvas-paths-markers`} key="Markers"
-                style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
-                {markerPaths}
-            </svg>];
-    }
+    // @computed
+    // get drawnPaths() {
+    //     let curTimecode = NumCast(this.props.Document.currentTimecode, -1);
+    //     let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
+    //         if (strokeData.displayTimecode === -1 || (Math.abs(Math.round(strokeData.displayTimecode) - Math.round(curTimecode)) < 3)) {
+    //             paths.push(<InkingStroke key={id} id={id}
+    //                 line={strokeData.pathData}
+    //                 count={strokeData.pathData.length}
+    //                 offsetX={this.maxCanvasDim - this.inkMidX}
+    //                 offsetY={this.maxCanvasDim - this.inkMidY}
+    //                 color={strokeData.color}
+    //                 width={strokeData.width}
+    //                 tool={strokeData.tool}
+    //                 creationTime={strokeData.creationTime}
+    //                 deleteCallback={this.removeLine} />);
+    //         }
+    //         return paths;
+    //     }, [] as JSX.Element[]);
+    //     let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
+    //     let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
+    //     return [!penPaths.length ? (null) :
+    //         <svg className={`inkingCanvas-paths-ink`} key="Pens"
+    //             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
+    //             {penPaths}
+    //         </svg>,
+    //     !markerPaths.length ? (null) :
+    //         <svg className={`inkingCanvas-paths-markers`} key="Markers"
+    //             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
+    //             {markerPaths}
+    //         </svg>];
+    // }
 
     render() {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None && !this.props.Document.isBackground ? "canSelect" : "noSelect";
@@ -187,9 +208,9 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
             InkingControl.Instance.selectedTool === InkTool.Scrubber ? "pointer" : "default") : undefined;
         return (
             <div className="inkingCanvas">
-                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} style={{ cursor: cursor }} />
+                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart} style={{ cursor: cursor }} />
                 {this.props.children()}
-                {this.drawnPaths}
+                {/* {this.drawnPaths} */}
             </div >
         );
     }

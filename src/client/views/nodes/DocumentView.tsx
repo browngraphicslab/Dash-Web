@@ -208,6 +208,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.addEventListener("pointerup", this.onPointerUp);
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
     }
+
     onPointerMove = (e: PointerEvent): void => {
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if (e.cancelBubble && this.active) {
@@ -225,6 +226,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.preventDefault();
         }
     }
+
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -577,7 +579,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
-    // used to decide whether a link document should be created or not. 
+    // used to decide whether a link document should be created or not.
     // if it's a tempoarl link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {

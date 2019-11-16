@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
     faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
-    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone
+    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
@@ -36,6 +36,8 @@ import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
+import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
 
@@ -116,6 +118,7 @@ export class MainView extends React.Component {
         library.add(faMusic);
         library.add(faTree);
         library.add(faPlay);
+        library.add(faCompressArrowsAlt);
         library.add(faPause);
         library.add(faClone);
         library.add(faCut);
@@ -130,6 +133,7 @@ export class MainView extends React.Component {
         library.add(faBolt);
         library.add(faChevronRight);
         library.add(faEllipsisV);
+        library.add(faMusic);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -296,13 +300,15 @@ export class MainView extends React.Component {
     }
 
     onPointerDown = (e: React.PointerEvent) => {
-        this._flyoutSizeOnDown = e.clientX;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
-        e.preventDefault();
+        if (this._flyoutTranslate) {
+            this._flyoutSizeOnDown = e.clientX;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointerup", this.onPointerUp);
+            e.stopPropagation();
+            e.preventDefault();
+        }
     }
 
     @action
@@ -421,10 +427,10 @@ export class MainView extends React.Component {
                         style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                         onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>
                         <span title="library View Dragger" style={{
-                            width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "5vw",
-                            height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "30vh",
-                            position: "absolute",
-                            top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "-10vh"
+                            width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
+                            height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
+                            position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
+                            top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />
                     </div>
                     <div className="mainView-libraryFlyout" style={{
@@ -503,11 +509,13 @@ export class MainView extends React.Component {
             <SharingManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
+            <InkSelectDecorations />
             {this.mainContent}
             <PreviewCursor />
             <ContextMenu />
             {this.docButtons}
             <PDFMenu />
+            <MarqueeOptionsMenu />
             <OverlayView />
         </div >);
     }

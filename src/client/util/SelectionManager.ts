@@ -3,7 +3,6 @@ import { Doc, Opt } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { NumCast, StrCast } from "../../new_fields/Types";
-import { InkingControl } from "../views/InkingControl";
 
 export namespace SelectionManager {
 

@@ -17,6 +17,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 import { CollectionLinearView } from '../CollectionLinearView';
+import { CollectionStaffView } from './CollectionStaffView';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ImageField } from '../../../new_fields/URLField';
 import { DocListCast } from '../../../new_fields/Doc';
@@ -30,6 +31,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import './CollectionView.scss';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
+import { Touchable } from '../Touchable';
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
@@ -42,6 +44,7 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
+    Staff
 }
 
 export namespace CollectionViewType {
@@ -69,7 +72,7 @@ export interface CollectionRenderProps {
 }
 
 @observer
-export class CollectionView extends React.Component<FieldViewProps> {
+export class CollectionView extends Touchable<FieldViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _reactionDisposer: IReactionDisposer | undefined;
@@ -165,6 +168,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
+            case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />)
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
@@ -205,6 +209,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     this.props.Document.autoHeight = true;
                 }, icon: "ellipsis-v"
             });
+            subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
