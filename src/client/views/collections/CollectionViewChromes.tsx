@@ -790,7 +790,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     @action
     enter3 = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        console.log("update");
         if (e.key === "Enter") {
             this._currentKey = "";
             let collection = this.props.CollectionView.props.Document;
@@ -808,7 +807,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                 }
             }
             this.props.CollectionView.props.Document.bugfix = !BoolCast(this.props.CollectionView.props.Document.bugfix);
-            console.log(this.props.CollectionView.props.Document.bugfix);
             collection.transtate = true;
             collection.sortstate = this.searchString3;
         }
@@ -820,7 +818,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     @action
     enter4 = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        console.log("update");
         if (e.key === "Enter") {
             this._currentKey2 = "";
             let collection = this.props.CollectionView.props.Document;
@@ -838,7 +835,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                 }
             }
             this.props.CollectionView.props.Document.bugfix = !BoolCast(this.props.CollectionView.props.Document.bugfix);
-            console.log(this.props.CollectionView.props.Document.bugfix);
             collection.transtate = true;
             collection.verticalsortstate = this.searchString4;
         }
@@ -889,7 +885,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     @action
     private updateString(string: string) {
         this.searchString3 = string;
-        console.log(this.searchString3);
     }
 
     @observable private _currentKey: string = "";
@@ -998,7 +993,6 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     @action
     private updateString2(string: string) {
         this.searchString4 = string;
-        console.log(this.searchString4);
     }
 
     previewValue2 = async () => {
@@ -1123,8 +1117,8 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
                             </div>
                         </div>
                     </div>
-                    <input className="update" type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" value="Visible rows" />
-                </div >
+                    <div className="update">View Rows <input type="checkbox" onChange={this.toggleRows} id="add-menu-toggle" value="Visible rows" /></div>
+                </div>
             </div>
         );
     }

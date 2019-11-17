@@ -71,20 +71,6 @@ export class
     }
 
     @action
-    captionupdate(doc: Doc, string: string) {
-        doc = Doc.GetProto(doc);
-        doc.caption = new RichTextField(RichTextField.Initialize(string));
-        this.caption = string;
-        return true;
-    }
-
-    getCaption() {
-        let doc = Doc.GetProto(this.props.doc);
-        let caption = Cast(doc.caption, RichTextField);
-        runInAction(() => this.caption = caption ? caption[ToPlainText]() : "No Caption");
-        return this.caption;
-    }
-    @action
     toggleSelection(e: React.PointerEvent) {
         // e.stopPropagation();
         // this.selectclass = !this.selectclass;
@@ -188,10 +174,15 @@ export class
         this.visible = false;
         console.log(this.visible);
     }
+
+    private calculatepreview() {
+        if (!this.props.rangeval) {
+            console.log(this.props.doc[this.props.sortstate]);
+            return this.props.doc[this.props.sortstate]
+        }
+        return Math.round(NumCast(this.props.doc[this.props.sortstate]))
+    }
     render() {
-        this.maketransition();
-        this.getCaption();
-        console.log("RENDER", this.props.doc[Id]);
         return (
             <div>
                 <div onPointerEnter={() => this.setvisible()} onPointerLeave={() => this.setvisible2()} onPointerDown={(e) => this.toggleSelection(e)} style={{
@@ -218,9 +209,9 @@ export class
                             textOrientation: "mixed", borderLeft: "1px black solid",
                         }} />
                     < div style={{
-                        position: "absolute", width: this.props.scale, left: this.props.leftval * this.props.transform - this.props.scale, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
+                        position: "absolute", height: this.props.scale, width: this.props.scale, left: this.props.leftval * this.props.transform - this.props.scale, paddingTop: 10, top: this.props.timelineTop, overflow: "hidden", writingMode: "vertical-rl",
                         textOrientation: "mixed",
-                    }}>{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
+                    }}>{this.calculatepreview()}</div>
                 </div>
             </div >
         );
@@ -250,4 +241,5 @@ export interface NodeProps {
     select: boolean;
     update: boolean;
     range: number;
+    rangeval: boolean;
 }
