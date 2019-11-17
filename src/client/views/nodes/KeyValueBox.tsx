@@ -1,7 +1,6 @@
 
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -26,11 +25,12 @@ export type KVPScript = {
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(KeyValueBox, fieldStr); }
+
     private _mainCont = React.createRef<HTMLDivElement>();
     private _keyHeader = React.createRef<HTMLTableHeaderCellElement>();
-    @observable private rows: KeyValuePair[] = [];
 
-    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
+    @observable private rows: KeyValuePair[] = [];
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
@@ -68,7 +68,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript): boolean {
         const { script, type, onDelegate } = kvpScript;
-        //const target = onDelegate ? (doc.layout instanceof Doc ? doc.layout : doc) : Doc.GetProto(doc); // bcz: need to be able to set fields on layout templates
+        //const target = onDelegate ? Doc.Layout(doc.layout) : Doc.GetProto(doc); // bcz: TODO need to be able to set fields on layout templates
         const target = onDelegate ? doc : Doc.GetProto(doc);
         let field: Field;
         if (type === "computed") {
@@ -103,6 +103,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
+    rowHeight = () => 30;
+
     createTable = () => {
         let doc = this.fieldDocToLayout;
         if (!doc) {
@@ -124,14 +126,15 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let i = 0;
         const self = this;
         for (let key of Object.keys(ids).slice().sort()) {
-            rows.push(<KeyValuePair doc={realDoc} addDocTab={this.props.addDocTab} ref={(function () {
-                let oldEl: KeyValuePair | undefined;
-                return (el: KeyValuePair) => {
-                    if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
-                    oldEl = el;
-                    if (el) self.rows.push(el);
-                };
-            })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
+            rows.push(<KeyValuePair doc={realDoc} addDocTab={this.props.addDocTab} PanelWidth={this.props.PanelWidth} PanelHeight={this.rowHeight}
+                ref={(function () {
+                    let oldEl: KeyValuePair | undefined;
+                    return (el: KeyValuePair) => {
+                        if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
+                        oldEl = el;
+                        if (el) self.rows.push(el);
+                    };
+                })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;
     }

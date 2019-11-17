@@ -8,7 +8,6 @@ import { Cast, StrCast } from '../../../new_fields/Types';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
-import { MainView } from '../MainView';
 import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenu.scss';
 import React = require("react");
@@ -73,8 +72,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     openLinkOverlay = () => {
         if (LinkFollowBox.Instance !== undefined) {
+<<<<<<< HEAD
             const { linkDoc, sourceDoc, destinationDoc, addDocTab } = this.props;
             LinkFollowBox.Instance.display(linkDoc, sourceDoc, destinationDoc, addDocTab);
+=======
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
+>>>>>>> eafa4992440756085beb89fc48fa07b45252362b
         }
     }
 
@@ -98,6 +103,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action.bound
     async followDefault() {
         if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.setAddDocTab(this.props.addDocTab);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             //if its open
             // this.openLinkFollower();
@@ -106,6 +112,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
     }
 
+<<<<<<< HEAD
     // @action.bound
     // async openLinkFollower() {
     //     if (LinkFollowBox.Instance !== undefined) {
@@ -114,6 +121,15 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     //         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
     //     }
     // }
+=======
+    @action.bound
+    async openLinkFollower() {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+        }
+    }
+>>>>>>> eafa4992440756085beb89fc48fa07b45252362b
 
     render() {
 

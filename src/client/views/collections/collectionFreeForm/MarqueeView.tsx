@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../../new_fields/Doc";
-import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { InkField, PointData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
@@ -13,29 +13,31 @@ import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
-import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
-import { CollectionViewType } from "../CollectionBaseView";
+import { CollectionViewType } from "../CollectionView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
+import InkSelectDecorations from "../../InkSelectDecorations";
+import { SubCollectionViewProps } from "../CollectionSubView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
-    container: CollectionFreeFormView;
-    addDocument: (doc: Doc, allowDuplicates: false) => boolean;
+    addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
-    selectDocuments: (docs: Doc[]) => void;
+    selectDocuments: (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => void;
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay: boolean;
+    extensionDoc: Doc;
+    isAnnotationOverlay?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
 @observer
-export class MarqueeView extends React.Component<MarqueeViewProps>
+export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
     private _mainCont = React.createRef<HTMLDivElement>();
     @observable _lastX: number = 0;
@@ -50,13 +52,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
-    cleanupInteractions = (all: boolean = false) => {
+    cleanupInteractions = (all: boolean = false, hideMarquee: boolean = true) => {
         if (all) {
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
         document.removeEventListener("keydown", this.marqueeCommand, true);
-        this._visible = false;
+        if (hideMarquee) {
+            this._visible = false;
+        }
     }
 
     @undoBatch
@@ -83,7 +87,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 ns.map(line => {
                     let indent = line.search(/\S|$/);
                     let newBox = Docs.Create.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
-                    this.props.addDocument(newBox, false);
+                    this.props.addDocument(newBox);
                     y += 40 * this.props.getTransform().Scale;
                 });
             })();
@@ -92,7 +96,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
                 } else {
                     this.pasteTable(ns, x, y);
                 }
@@ -146,7 +150,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group", "#f1efeb")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c, "#f1efeb"))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
-            this.props.addDocument(newCol, false);
+            this.props.addDocument(newCol);
         }
     }
     @action
@@ -187,22 +191,40 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
+        if (!this.props.active()) this.props.selectDocuments([this.props.Document], []);
         if (this._visible) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
-                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.Document);
             }
-            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+            // let inkselect = this.ink ? this.marqueeInkSelect(this.ink.inkData) : new Map();
+            // let inks = inkselect.size ? [{ Document: this.inkDoc, Ink: inkselect }] : [];
+            let docs = mselect.length ? mselect : [this.props.Document];
+            this.props.selectDocuments(docs, []);
         }
-        this.cleanupInteractions(true);
+        if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
+            MarqueeOptionsMenu.Instance.createCollection = this.collection;
+            MarqueeOptionsMenu.Instance.delete = this.delete;
+            MarqueeOptionsMenu.Instance.summarize = this.summary;
+            MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
+            MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
+            MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
+        }
+        this.cleanupInteractions(true, this._commandExecuted);
+
+        let hideMarquee = () => {
+            this.hideMarquee();
+            MarqueeOptionsMenu.Instance.fadeOut(true);
+            document.removeEventListener("pointerdown", hideMarquee);
+        };
+        document.addEventListener("pointerdown", hideMarquee);
 
         if (e.altKey) {
             e.preventDefault();
         }
     }
 
-    setPreviewCursor = (x: number, y: number, drag: boolean) => {
+    setPreviewCursor = action((x: number, y: number, drag: boolean) => {
         if (drag) {
             this._downX = this._lastX = x;
             this._downY = this._lastY = y;
@@ -217,7 +239,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._downY = y;
             PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
         }
-    }
+    });
 
     @action
     onClick = (e: React.MouseEvent): void => {
@@ -245,14 +267,130 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
+    get inkDoc() {
+        return this.props.extensionDoc;
+    }
+
     get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.
-        let cprops = this.props.container.props;
-        return Cast(Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink, InkField);
+        return this.props.extensionDoc && Cast(this.props.extensionDoc.ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
-        let cprops = this.props.container.props;
-        Doc.fieldExtensionDoc(cprops.Document, cprops.fieldKey).ink = value;
+        this.props.extensionDoc && (this.props.extensionDoc.ink = value);
+    }
+
+    @action
+    showMarquee = () => {
+        this._visible = true;
+    }
+
+    @action
+    hideMarquee = () => {
+        this._visible = false;
+    }
+
+    @action
+    delete = () => {
+        this.marqueeSelect(false).map(d => this.props.removeDocument(d));
+        if (this.ink) {
+            // this.marqueeInkDelete(this.ink.inkData);
+        }
+        SelectionManager.DeselectAll();
+        this.cleanupInteractions(false);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+    }
+
+    getCollection = (selected: Doc[]) => {
+        let bounds = this.Bounds;
+        let defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+            "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+        let colorPalette = Cast(this.props.Document.colorPalette, listSpec("string"));
+        if (!colorPalette) this.props.Document.colorPalette = new List<string>(defaultPalette);
+        let palette = Array.from(Cast(this.props.Document.colorPalette, listSpec("string")) as string[]);
+        let usedPaletted = new Map<string, number>();
+        [...this.props.activeDocuments(), this.props.Document].map(child => {
+            let bg = StrCast(Doc.Layout(child).backgroundColor);
+            if (palette.indexOf(bg) !== -1) {
+                palette.splice(palette.indexOf(bg), 1);
+                if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
+                else usedPaletted.set(bg, 1);
+            }
+        });
+        usedPaletted.delete("#f1efeb");
+        usedPaletted.delete("white");
+        usedPaletted.delete("rgba(255,255,255,1)");
+        let usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
+        let chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
+        let inkData = this.ink ? this.ink.inkData : undefined;
+        let newCollection = Docs.Create.FreeformDocument(selected, {
+            x: bounds.left,
+            y: bounds.top,
+            panX: 0,
+            panY: 0,
+            backgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
+            defaultBackgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
+            width: bounds.width,
+            height: bounds.height,
+            title: "a nested collection",
+        });
+        let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
+        // dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
+        // this.marqueeInkDelete(inkData);
+        this.hideMarquee();
+        return newCollection;
+    }
+
+    @action
+    collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        let bounds = this.Bounds;
+        let selected = this.marqueeSelect(false);
+        if (e instanceof KeyboardEvent ? e.key === "c" : true) {
+            selected.map(d => {
+                this.props.removeDocument(d);
+                d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                d.displayTimecode = undefined;
+                return d;
+            });
+        }
+        let newCollection = this.getCollection(selected);
+        this.props.addDocument(newCollection);
+        this.props.selectDocuments([newCollection], []);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+    }
+
+    @action
+    summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        let bounds = this.Bounds;
+        let selected = this.marqueeSelect(false);
+        let newCollection = this.getCollection(selected);
+
+        selected.map(d => {
+            this.props.removeDocument(d);
+            d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+            d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+            d.page = -1;
+            return d;
+        });
+        newCollection.chromeStatus = "disabled";
+        let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
+        newCollection.x = bounds.left + bounds.width;
+        Doc.GetProto(newCollection).summaryDoc = summary;
+        Doc.GetProto(newCollection).title = ComputedField.MakeFunction(`summaryTitle(this);`);
+        if (e instanceof KeyboardEvent ? e.key === "s" : true) { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
+            let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
+            container.viewType = CollectionViewType.Stacking;
+            container.autoHeight = true;
+            Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"
+            this.props.addLiveTextDocument(container);
+        } else if (e instanceof KeyboardEvent ? e.key === "S" : false) { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
+            Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+            this.props.addLiveTextDocument(summary);
+        }
+        MarqueeOptionsMenu.Instance.fadeOut(true);
     }
 
     @undoBatch
@@ -265,12 +403,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._commandExecuted = true;
             e.stopPropagation();
             (e as any).propagationIsStopped = true;
-            this.marqueeSelect(false).map(d => this.props.removeDocument(d));
-            if (this.ink) {
-                this.marqueeInkDelete(this.ink.inkData);
-            }
-            SelectionManager.DeselectAll();
-            this.cleanupInteractions(false);
+            this.delete();
             e.stopPropagation();
         }
         if (e.key === "c" || e.key === "s" || e.key === "S") {
@@ -278,136 +411,76 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.stopPropagation();
             e.preventDefault();
             (e as any).propagationIsStopped = true;
-            let bounds = this.Bounds;
-            let selected = this.marqueeSelect(false);
             if (e.key === "c") {
-                selected.map(d => {
-                    this.props.removeDocument(d);
-                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
-                    return d;
-                });
+                this.collection(e);
             }
-            let defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
-                "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
-            let colorPalette = Cast(this.props.container.props.Document.colorPalette, listSpec("string"));
-            if (!colorPalette) this.props.container.props.Document.colorPalette = new List<string>(defaultPalette);
-            let palette = Array.from(Cast(this.props.container.props.Document.colorPalette, listSpec("string")) as string[]);
-            let usedPaletted = new Map<string, number>();
-            [...this.props.activeDocuments(), this.props.container.props.Document].map(child => {
-                let bg = StrCast(child.layout instanceof Doc ? child.layout.backgroundColor : child.backgroundColor);
-                if (palette.indexOf(bg) !== -1) {
-                    palette.splice(palette.indexOf(bg), 1);
-                    if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
-                    else usedPaletted.set(bg, 1);
-                }
-            });
-            usedPaletted.delete("#f1efeb");
-            usedPaletted.delete("white");
-            usedPaletted.delete("rgba(255,255,255,1)");
-            let usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
-            let chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
-            let inkData = this.ink ? this.ink.inkData : undefined;
-            let newCollection = Docs.Create.FreeformDocument(selected, {
-                x: bounds.left,
-                y: bounds.top,
-                panX: 0,
-                panY: 0,
-                backgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
-                defaultBackgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
-                width: bounds.width,
-                height: bounds.height,
-                title: "a nested collection",
-            });
-            let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
-            dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
-            this.marqueeInkDelete(inkData);
 
             if (e.key === "s" || e.key === "S") {
-                selected.map(d => {
-                    this.props.removeDocument(d);
-                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    d.page = -1;
-                    return d;
-                });
-                newCollection.chromeStatus = "disabled";
-                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
-                newCollection.x = bounds.left + bounds.width;
-                Doc.GetProto(newCollection).summaryDoc = summary;
-                Doc.GetProto(newCollection).title = ComputedField.MakeFunction(`summaryTitle(this);`);
-                if (e.key === "s") { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
-                    let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
-                    container.viewType = CollectionViewType.Stacking;
-                    container.autoHeight = true;
-                    Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"
-                    this.props.addLiveTextDocument(container);
-                } else if (e.key === "S") { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
-                    Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                    this.props.addLiveTextDocument(summary);
-                }
-            }
-            else {
-                this.props.addDocument(newCollection, false);
-                this.props.selectDocuments([newCollection]);
+                this.summary(e);
             }
             this.cleanupInteractions(false);
         }
     }
-    @action
-    marqueeInkSelect(ink: Map<any, any>) {
-        let idata = new Map();
-        let centerShiftX = 0 - (this.Bounds.left + this.Bounds.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
-        let centerShiftY = 0 - (this.Bounds.top + this.Bounds.height / 2);
-        ink.forEach((value: StrokeData, key: string, map: any) => {
-            if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
-                idata.set(key,
-                    {
-                        pathData: value.pathData.map(val => ({ x: val.x + centerShiftX, y: val.y + centerShiftY })),
-                        color: value.color,
-                        width: value.width,
-                        tool: value.tool,
-                        page: -1
-                    });
-            }
-        });
-        return idata;
-    }
+    // @action
+    // marqueeInkSelect(ink: Map<any, any>) {
+    //     let idata = new Map();
+    //     let centerShiftX = 0 - (this.Bounds.left + this.Bounds.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
+    //     let centerShiftY = 0 - (this.Bounds.top + this.Bounds.height / 2);
+    //     ink.forEach((value: PointData, key: string, map: any) => {
+    //         if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
+    //             // let transform = this.props.container.props.ScreenToLocalTransform().scale(this.props.container.props.ContentScaling());
+    //             idata.set(key,
+    //                 {
+    //                     pathData: value.pathData.map(val => {
+    //                         let tVal = this.props.getTransform().inverse().transformPoint(val.x, val.y);
+    //                         return { x: tVal[0], y: tVal[1] };
+    //                         // return { x: val.x + centerShiftX, y: val.y + centerShiftY }
+    //                     }),
+    //                     color: value.color,
+    //                     width: value.width,
+    //                     tool: value.tool,
+    //                     page: -1
+    //                 });
+    //         }
+    //     });
+    //     // InkSelectDecorations.Instance.SetSelected(idata);
+    //     return idata;
+    // }
 
-    @action
-    marqueeInkDelete(ink?: Map<any, any>) {
-        // bcz: this appears to work but when you restart all the deleted strokes come back -- InkField isn't observing its changes so they aren't written to the DB.
-        // ink.forEach((value: StrokeData, key: string, map: any) =>
-        //     InkingCanvas.IntersectStrokeRect(value, this.Bounds) && ink.delete(key));
+    // @action
+    // marqueeInkDelete(ink?: Map<any, any>) {
+    //     // bcz: this appears to work but when you restart all the deleted strokes come back -- InkField isn't observing its changes so they aren't written to the DB.
+    //     // ink.forEach((value: StrokeData, key: string, map: any) =>
+    //     //     InkingCanvas.IntersectStrokeRect(value, this.Bounds) && ink.delete(key));
 
-        if (ink) {
-            let idata = new Map();
-            ink.forEach((value: StrokeData, key: string, map: any) =>
-                !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
-            this.ink = new InkField(idata);
-        }
-    }
+    //     if (ink) {
+    //         let idata = new Map();
+    //         ink.forEach((value: PointData, key: string, map: any) =>
+    //             !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
+    //         this.ink = new InkField(idata);
+    //     }
+    // }
 
     marqueeSelect(selectBackgrounds: boolean = true) {
         let selRect = this.Bounds;
         let selection: Doc[] = [];
         this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+            let layoutDoc = Doc.Layout(doc);
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);
-            var w = NumCast(doc.width);
-            var h = NumCast(doc.height);
+            var w = NumCast(layoutDoc.width);
+            var h = NumCast(layoutDoc.height);
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
         });
         if (!selection.length && selectBackgrounds) {
             this.props.activeDocuments().filter(doc => doc.z === undefined).map(doc => {
+                let layoutDoc = Doc.Layout(doc);
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);
-                var w = NumCast(doc.width);
-                var h = NumCast(doc.height);
+                var w = NumCast(layoutDoc.width);
+                var h = NumCast(layoutDoc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                     selection.push(doc);
                 }
@@ -420,10 +493,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let size = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
             let otherBounds = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
             this.props.activeDocuments().filter(doc => doc.z !== undefined).map(doc => {
+                let layoutDoc = Doc.Layout(doc);
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);
-                var w = NumCast(doc.width);
-                var h = NumCast(doc.height);
+                var w = NumCast(layoutDoc.width);
+                var h = NumCast(layoutDoc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
                     selection.push(doc);
                 }
@@ -434,21 +508,22 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @computed
     get marqueeDiv() {
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
-            <span className="marquee-legend" />
+        /**
+         * @RE - The commented out span below
+         * This contains the "C for collection, ..." text on marquees.
+         * Commented out by syip2 when the marquee menu was added.
+         */
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+            {/* <span className="marquee-legend" /> */}
         </div>;
     }
 
     render() {
-        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                {this._visible ? this.marqueeDiv : null}
-                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
-                    {this.props.children}
-                </div>
-            </div>
+        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            {this._visible ? this.marqueeDiv : null}
+            {this.props.children}
         </div>;
     }
 }

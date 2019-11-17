@@ -1,38 +1,99 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faColumns, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { StrCast } from '../../../new_fields/Types';
+import { StrCast, BoolCast, Cast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { ContextMenu } from "../ContextMenu";
-import { ContextMenuProps } from '../ContextMenuItem';
-import { FieldView, FieldViewProps } from '../nodes/FieldView';
-import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from './CollectionBaseView';
 import { CollectionDockingView } from "./CollectionDockingView";
+import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
+import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { CollectionLinearView } from '../CollectionLinearView';
+import { CollectionStaffView } from './CollectionStaffView';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { ImageField } from '../../../new_fields/URLField';
+import { DocListCast } from '../../../new_fields/Doc';
+import Lightbox from 'react-image-lightbox-with-rotate';
+import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 export const COLLECTION_BORDER_WIDTH = 2;
-
+import { DateField } from '../../../new_fields/DateField';
+import { Doc, } from '../../../new_fields/Doc';
+import { listSpec } from '../../../new_fields/Schema';
+import { DocumentManager } from '../../util/DocumentManager';
+import { SelectionManager } from '../../util/SelectionManager';
+import './CollectionView.scss';
+import { FieldViewProps, FieldView } from '../nodes/FieldView';
+import { Touchable } from '../Touchable';
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
+export enum CollectionViewType {
+    Invalid,
+    Freeform,
+    Schema,
+    Docking,
+    Tree,
+    Stacking,
+    Masonry,
+    Pivot,
+    Linear,
+    Staff
+}
+
+export namespace CollectionViewType {
+    const stringMapping = new Map<string, CollectionViewType>([
+        ["invalid", CollectionViewType.Invalid],
+        ["freeform", CollectionViewType.Freeform],
+        ["schema", CollectionViewType.Schema],
+        ["docking", CollectionViewType.Docking],
+        ["tree", CollectionViewType.Tree],
+        ["stacking", CollectionViewType.Stacking],
+        ["masonry", CollectionViewType.Masonry],
+        ["pivot", CollectionViewType.Pivot],
+        ["linear", CollectionViewType.Linear]
+    ]);
+
+    export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
+}
+
+export interface CollectionRenderProps {
+    addDocument: (document: Doc) => boolean;
+    removeDocument: (document: Doc) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    active: () => boolean;
+    whenActiveChanged: (isActive: boolean) => void;
+}
+
 @observer
-export class CollectionView extends React.Component<FieldViewProps> {
-    @observable private _collapsed = true;
+export class CollectionView extends Touchable<FieldViewProps> {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _reactionDisposer: IReactionDisposer | undefined;
+    private _isChildActive = false;   //TODO should this be observable?
+    @observable private _isLightboxOpen = false;
+    @observable private _curLightboxImg = 0;
+    @observable private _collapsed = true;
+    @observable private static _safeMode = false;
+    public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
-    public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
-
-    constructor(props: any) {
-        super(props);
+    get collectionViewType(): CollectionViewType | undefined {
+        let viewField = Cast(this.props.Document.viewType, "number");
+        if (CollectionView._safeMode) {
+            if (viewField === CollectionViewType.Freeform) {
+                return CollectionViewType.Tree;
+            }
+            if (viewField === CollectionViewType.Invalid) {
+                return CollectionViewType.Freeform;
+            }
+        }
+        return viewField === undefined ? CollectionViewType.Invalid : viewField;
     }
 
     componentDidMount = () => {
@@ -47,26 +108,74 @@ export class CollectionView extends React.Component<FieldViewProps> {
             });
     }
 
-    componentWillUnmount = () => {
-        this._reactionDisposer && this._reactionDisposer();
+    componentWillUnmount = () => this._reactionDisposer && this._reactionDisposer();
+
+    // bcz: Argh?  What's the height of the collection chromes??  
+    chromeHeight = () => (this.props.ChromeHeight ? this.props.ChromeHeight() : 0) + (this.props.Document.chromeStatus === "enabled" ? -60 : 0);
+
+    active = () => this.props.isSelected() || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
+
+    whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
+
+    @action.bound
+    addDocument(doc: Doc): boolean {
+        let targetDataDoc = Doc.GetProto(this.props.Document);
+        Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+        let extension = Doc.fieldExtensionDoc(targetDataDoc, this.props.fieldKey);  // set metadata about the field being rendered (ie, the set of documents) on an extension field for that field
+        extension && (extension.lastModified = new DateField(new Date(Date.now())));
+        Doc.GetProto(doc).lastOpened = new DateField;
+        return true;
+    }
+
+    @action.bound
+    removeDocument(doc: Doc): boolean {
+        let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
+        docView && SelectionManager.DeselectDoc(docView);
+        let value = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
+        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
+
+        ContextMenu.Instance.clearItems();
+        if (index !== -1) {
+            value.splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+
+    // this is called with the document that was dragged and the collection to move it into.
+    // if the target collection is the same as this collection, then the move will be allowed.
+    // otherwise, the document being moved must be able to be removed from its container before
+    // moving it into the target.  
+    @action.bound
+    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
+            return true;
+        }
+        return this.removeDocument(doc) ? addDocument(doc) : false;
+    }
+
+    showIsTagged = () => {
+        const children = DocListCast(this.props.Document[this.props.fieldKey]);
+        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        let props = { ...this.props, ...renderProps };
-        switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
-            // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} CollectionView={this} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
-            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
-            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
-            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
+        let props = { ...this.props, ...renderProps, chromeCollapsed: this._collapsed, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        switch (type) {
+            case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
+            case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
+            case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />)
+            case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
+            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
+            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
+            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView key="collview" {...props} />); }
             case CollectionViewType.Freeform:
-            default:
-                this.props.Document.freeformLayoutEngine = undefined;
-                return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+            default: { this.props.Document.freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
-        return (null);
     }
 
     @action
@@ -77,23 +186,18 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
-            return [(null), this.SubViewHelper(type, renderProps)];
-        }
-        return [
-            <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />,
-            this.SubViewHelper(type, renderProps)
-        ];
+        let chrome = this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
+            <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />;
+        return [chrome, this.SubViewHelper(type, renderProps)];
     }
 
-    get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
-            let subItems: ContextMenuProps[] = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+            let subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; }, icon: "signature" });
-            if (CollectionBaseView.InSafeMode()) {
+            if (CollectionView._safeMode) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
             subItems.push({ description: "Schema", event: () => this.props.Document.viewType = CollectionViewType.Schema, icon: "th-list" });
@@ -105,6 +209,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     this.props.Document.autoHeight = true;
                 }, icon: "ellipsis-v"
             });
+            subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
@@ -113,20 +218,43 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
+            subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             let existing = ContextMenu.Instance.findByDescription("Layout...");
-            let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
+            let layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
+            ContextMenu.Instance.addItem({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
         }
     }
 
+    lightbox = (images: string[]) => {
+        return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
+            mainSrc={images[this._curLightboxImg]}
+            nextSrc={images[(this._curLightboxImg + 1) % images.length]}
+            prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
+            onCloseRequest={action(() => this._isLightboxOpen = false)}
+            onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
+            onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
+    }
     render() {
-        return (
-            <CollectionBaseView {...this.props} onContextMenu={this.onContextMenu}>
-                {this.SubView}
-            </CollectionBaseView>
-        );
+        const props: CollectionRenderProps = {
+            addDocument: this.addDocument,
+            removeDocument: this.removeDocument,
+            moveDocument: this.moveDocument,
+            active: this.active,
+            whenActiveChanged: this.whenActiveChanged,
+        };
+        return (<div className={"collectionView"}
+            style={{
+                pointerEvents: this.props.Document.isBackground ? "none" : "all",
+                boxShadow: this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+            }}
+            onContextMenu={this.onContextMenu}>
+            {this.showIsTagged()}
+            {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))}
+        </div>);
     }
 }

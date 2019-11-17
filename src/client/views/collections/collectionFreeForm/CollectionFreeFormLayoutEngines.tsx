@@ -63,11 +63,12 @@ export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: 
             fontSize: NumCast(pivotDoc.pivotFontSize, 10)
         });
         for (const doc of val) {
+            let layoutDoc = Doc.Layout(doc);
             docMap.set(doc, {
                 x: x + xCount * pivotAxisWidth * 1.25,
                 y: -y,
                 width: pivotAxisWidth,
-                height: doc.nativeWidth ? (NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth)) * pivotAxisWidth : pivotAxisWidth
+                height: layoutDoc.nativeWidth ? (NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth)) * pivotAxisWidth : pivotAxisWidth
             });
             xCount++;
             if (xCount >= numCols) {

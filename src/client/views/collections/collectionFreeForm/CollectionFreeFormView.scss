@@ -17,6 +17,7 @@
     width: 100%;
     height: 100%;
     transform-origin: left top;
+    touch-action: none;
 }
 
 .collectionFreeform-customText {
@@ -25,6 +26,9 @@
 }
 
 .collectionfreeformview-container {
+    // touch action none means that the browser will handle none of the touch actions. this allows us to implement our own actions.
+    touch-action: none;
+
     .collectionfreeformview>.jsx-parser {
         position: inherit;
         height: 100%;
@@ -46,12 +50,6 @@
     border-radius: inherit;
     box-sizing: border-box;
     position: absolute;
-    overflow: hidden;
-
-    .marqueeView {
-        overflow: hidden;
-    }
-
     top: 0;
     left: 0;
     width: 100%;

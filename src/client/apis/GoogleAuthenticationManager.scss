@@ -1,0 +1,19 @@
+.authorize-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .paste-target {
+        padding: 5px;
+        width: 100%;
+    }
+
+    .avatar {
+        border-radius: 50%;
+    }
+
+    .welcome {
+        font-style: italic;
+        margin-top: 15px;
+    }
+}

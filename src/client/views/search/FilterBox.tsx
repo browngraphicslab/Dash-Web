@@ -33,7 +33,7 @@ export enum Keys {
 export class FilterBox extends React.Component {
 
     static Instance: FilterBox;
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.HIST, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB, DocumentType.TEMPLATE];
 
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
@@ -82,7 +82,7 @@ export class FilterBox extends React.Component {
                     var panel = this.nextElementSibling as HTMLElement;
                     if (panel.style.maxHeight) {
                         panel.style.overflow = "hidden";
-                        panel.style.maxHeight = null;
+                        panel.style.maxHeight = "";
                         panel.style.opacity = "0";
                     } else {
                         setTimeout(() => {
@@ -114,7 +114,7 @@ export class FilterBox extends React.Component {
                     acc[i].classList.toggle("active");
                     var panel = acc[i].nextElementSibling as HTMLElement;
                     panel.style.overflow = "hidden";
-                    panel.style.maxHeight = null;
+                    panel.style.maxHeight = "";
                 }
             }
         });
@@ -393,7 +393,7 @@ export class FilterBox extends React.Component {
             <div>
                 <div style={{ display: "flex", flexDirection: "row-reverse" }}>
                     <SearchBox />
-                    {this.getActiveFilters()}
+                    {/* {this.getActiveFilters()} */}
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
