@@ -62,25 +62,19 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         document.addEventListener("pointerup", this.onLinkButtonUp);
     }
 
+
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-        this.openLinkOverlay();
-        e.stopPropagation();
-    }
-
-    openLinkOverlay = () => {
         if (LinkFollowBox.Instance !== undefined) {
-<<<<<<< HEAD
             const { linkDoc, sourceDoc, destinationDoc, addDocTab } = this.props;
-            LinkFollowBox.Instance.display(linkDoc, sourceDoc, destinationDoc, addDocTab);
-=======
+            // LinkFollowBox.Instance.display(linkDoc, sourceDoc, destinationDoc, addDocTab);
             LinkFollowBox.Instance.props.Document.isMinimized = false;
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
             LinkFollowBox.setAddDocTab(this.props.addDocTab);
->>>>>>> eafa4992440756085beb89fc48fa07b45252362b
         }
+        e.stopPropagation();
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
@@ -95,8 +89,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     onContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: this.openLinkOverlay, icon: "link" });
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: this.followDefault, icon: "arrow-right" });
+        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => this.openLinkFollower(), icon: "link" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
@@ -105,23 +99,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (LinkFollowBox.Instance !== undefined) {
             LinkFollowBox.setAddDocTab(this.props.addDocTab);
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-            //if its open
-            // this.openLinkFollower();
-            console.log("following default")
-            LinkFollowBox.Instance.defaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow));
+
+            console.log("following default");
+            console.log(StrCast(this.props.linkDoc.defaultLinkFollow));
+            // LinkFollowBox.Instance.defaultLinkBehavior(StrCast(this.props.linkDoc.defaultLinkFollow));
         }
     }
 
-<<<<<<< HEAD
-    // @action.bound
-    // async openLinkFollower() {
-    //     if (LinkFollowBox.Instance !== undefined) {
-    //         LinkFollowBox.Instance.props.Document.isMinimized = false;
-    //         MainView.Instance.toggleLinkFollowBox(false);
-    //         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-    //     }
-    // }
-=======
     @action.bound
     async openLinkFollower() {
         if (LinkFollowBox.Instance !== undefined) {
@@ -129,7 +113,31 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         }
     }
->>>>>>> eafa4992440756085beb89fc48fa07b45252362b
+
+    // onLinkButtonDown = (e: React.PointerEvent): void => { // TODODO
+    //     e.stopPropagation();
+    //     e.preventDefault();
+    //     document.removeEventListener("pointermove", this.onLinkButtonMoved);
+    //     document.addEventListener("pointermove", this.onLinkButtonMoved);
+    //     document.removeEventListener("pointerup", this.onLinkButtonUp);
+    //     document.addEventListener("pointerup", this.onLinkButtonUp);
+    // }
+
+    // onLinkButtonUp = (e: PointerEvent): void => {
+    //     document.removeEventListener("pointermove", this.onLinkButtonMoved);
+    //     document.removeEventListener("pointerup", this.onLinkButtonUp);
+    //     e.stopPropagation();
+    // }
+
+
+    // onLinkButtonMoved = async (e: PointerEvent) => {
+    //     if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+    //         document.removeEventListener("pointermove", this.onLinkButtonMoved);
+    //         document.removeEventListener("pointerup", this.onLinkButtonUp);
+    //         DragLinksAsDocuments(this._linkButton.current, e.x, e.y, this.props.views[0].props.Document);
+    //     }
+    //     e.stopPropagation();
+    // }
 
     render() {
 

@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, runInAction } from "mobx";
+import { observable, computed, action, trace, runInAction, reaction, IReactionDisposer } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
@@ -349,8 +349,6 @@ interface LinkEditorProps {
 }
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
-    @observable private _linkOption: string = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0]; // changes visible selected pan TODODO how to ensure linkoption is changed if both screens for links are open?
-    @observable private _linkOldOption: string = "";
 
     @action
     deleteLink = (): void => {
@@ -375,33 +373,17 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
         LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, this.props.sourceDoc, groupDoc);
     }
+
     @action
     linkChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        console.log(StrCast(this.props.linkDoc.defaultLinkFollow));
-        if (!this._linkOldOption) {
-            this._linkOldOption = this._linkOption;
-        }
-        this._linkOption = e.target.value;
-    }
-
-    @action
-    changeLinkBehavior = (e: React.MouseEvent<HTMLButtonElement>): void => {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-        e.preventDefault();
-        if (e.currentTarget.value === "confirm") {
-            this.props.linkDoc.defaultLinkFollow = this._linkOption + "," + destination![Id] + ',false';
-
-            console.log('changed behavior');
-        } else {
-            console.log('reverted behavior');
-            this._linkOption = this._linkOldOption;
-        }
-        this._linkOldOption = "";
+        this.props.linkDoc.defaultLinkFollow = e.target.value + "," + destination![Id] + ',false';
     }
 
     render() {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         let groupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
+        let linkOption = StrCast(this.props.linkDoc.defaultLinkFollow).split(",")[0];
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
@@ -409,9 +391,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (destination) {
             return (
                 <div className="linkEditor">
-                    <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                     <div className="linkEditor-info">
-                        <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                        <button className="linkEditor-button" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
+                        <p className="linkEditor-linkedTo">editing link to:<br /><b>{StrCast(destination.proto!.title).length > 15 ? StrCast(destination.proto!.title).substring(0, 12) + '...' : StrCast(destination.proto!.title)}</b></p>
                         <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                     </div>
                     <div className="linkEditor-linkType">
@@ -422,7 +404,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.OPENTAB}
-                                        checked={this._linkOption === FollowModes.OPENTAB}
+                                        checked={linkOption === FollowModes.OPENTAB}
                                         onChange={this.linkChange} />
                                     {FollowModes.OPENTAB}</label>
                             </div>
@@ -431,7 +413,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.OPENRIGHT}
-                                        checked={this._linkOption === FollowModes.OPENRIGHT}
+                                        checked={linkOption === FollowModes.OPENRIGHT}
                                         onChange={this.linkChange} />
                                     {FollowModes.OPENRIGHT}</label>
                             </div>
@@ -440,7 +422,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.OPENFULL}
-                                        checked={this._linkOption === FollowModes.OPENFULL}
+                                        checked={linkOption === FollowModes.OPENFULL}
                                         onChange={this.linkChange} />
                                     {FollowModes.OPENFULL}</label>
                             </div>
@@ -449,7 +431,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.PAN}
-                                        checked={this._linkOption === FollowModes.PAN}
+                                        checked={linkOption === FollowModes.PAN}
                                         onChange={this.linkChange} />
                                     {FollowModes.PAN}</label>
                             </div>
@@ -458,15 +440,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                                     <input
                                         type="radio"
                                         value={FollowModes.INPLACE}
-                                        checked={this._linkOption === FollowModes.INPLACE}
+                                        checked={linkOption === FollowModes.INPLACE}
                                         onChange={this.linkChange} />
                                     {FollowModes.INPLACE}</label>
                             </div>
-                            {this._linkOldOption ?
-                                <div className="linkEditor-changeLinkBehavior">
-                                    <button value="confirm" onClick={this.changeLinkBehavior}>confirm</button>
-                                    <button value="cancel" onClick={this.changeLinkBehavior}>cancel</button>
-                                </div> : null}
                         </div>
 
                     </div>

@@ -12,13 +12,11 @@ import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
-<<<<<<< HEAD
 import { LinkFollowBox } from "../../../client/views/linking/LinkFollowBox";
-=======
 import { InkingControl } from "../../../client/views/InkingControl";
 import { DragManager } from "../../../client/util/DragManager";
 import { nullAudio } from "../../../new_fields/URLField";
->>>>>>> eafa4992440756085beb89fc48fa07b45252362b
+import { LinkManager } from "../../../client/util/LinkManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -143,12 +141,6 @@ export class CurrentUserUtils {
         doc.LibraryBtn = this.setupLibraryPanel(doc.sidebarContainer as Doc, doc);
         doc.SearchBtn = this.setupSearchPanel(doc.sidebarContainer as Doc);
 
-<<<<<<< HEAD
-        if (doc.linkFollowBox === undefined) {
-            PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
-            // doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" });
-        }
-=======
         // Finally, setup the list of buttons to display in the sidebar
         doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
             width: 500, height: 80, boxShadow: "0 0", sectionFilter: "title", hideHeadings: true, ignoreClick: true,
@@ -181,7 +173,6 @@ export class CurrentUserUtils {
     static setupDefaultPresentation(doc: Doc) {
         doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", boxShadow: "0 0" });
     }
->>>>>>> eafa4992440756085beb89fc48fa07b45252362b
 
     static setupMobileUploads(doc: Doc) {
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });

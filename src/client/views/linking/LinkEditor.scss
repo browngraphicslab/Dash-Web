@@ -6,9 +6,9 @@
     font-size: 12px; // TODO
 }
 
-.linkEditor-back {
-    margin-bottom: 6px;
-}
+// .linkEditor-back {
+//     margin-bottom: 6px;
+// }
 
 .linkEditor-info {
     border-bottom: 0.5px solid $light-color-secondary;
@@ -16,9 +16,12 @@
     margin-bottom: 6px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
 
     .linkEditor-linkedTo {
-        width: calc(100% - 26px);
+        width: 50%;
+        text-align: center;
+        margin-right: 6px;
     }
 }
 
@@ -39,10 +42,10 @@
 .linkEditor-button {
     width: 20px;
     height: 20px;
-    margin-left: 6px;
+    // margin-left: 6px;
     padding: 0;
     // font-size: 12px;
-    border-radius: 10px;
+    border-radius: 50%;
 
     &:disabled {
         background-color: gray;

@@ -11,7 +11,7 @@
 }
 
 .linkMenu-group {
-    border-bottom: 0.5px solid lightgray; 
+    border-bottom: 0.5px solid lightgray;
     padding: 5px 0;
 
 
@@ -26,9 +26,11 @@
             p {
                 background-color: lightgray;
             }
+
             p.expand-one {
                 width: calc(100% - 26px);
             }
+
             .linkEditor-tableButton {
                 display: block;
             }
@@ -53,7 +55,7 @@
     position: relative;
     display: flex;
     font-size: 12px;
-    
+
 
     .link-name {
         position: relative;
@@ -69,7 +71,7 @@
     .linkMenu-item-content {
         width: 100%;
     }
-    
+
     .link-metadata {
         padding: 0 10px 0 16px;
         margin-bottom: 4px;
@@ -82,11 +84,13 @@
         .linkMenu-item-buttons {
             display: flex;
         }
+
         .linkMenu-item-content {
             &.expand-two p {
                 width: calc(100% - 52px);
                 background-color: lightgray;
             }
+
             &.expand-three p {
                 width: calc(100% - 84px);
                 background-color: lightgray;
@@ -127,11 +131,9 @@
         &:last-child {
             margin-right: 0;
         }
+
         &:hover {
             background: $main-accent;
         }
     }
 }
-
-
-
