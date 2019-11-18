@@ -95,7 +95,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get nativeWidth() { return this.layoutDoc.nativeWidth || 0; }
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
-    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
+    @computed get onClickHandler() { trace(); console.log("this.props.doc = " + this.props.Document.title); return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
     @action
     componentDidMount() {
@@ -537,8 +537,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (showTitle ? 25 : 0) + 1;
     }
 
+    @computed get finalLayoutKey() { return this.props.layoutKey || "layout" }
     childScaling = () => (this.layoutDoc.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
+        trace();
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
@@ -567,7 +569,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             isSelected={this.isSelected}
             select={this.select}
             onClick={this.onClickHandler}
-            layoutKey={this.props.layoutKey || "layout"}
+            layoutKey={this.finalLayoutKey}
             DataDoc={this.props.DataDoc} />);
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
@@ -582,16 +584,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @computed get innards() {
+        trace();
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
         const showTextTitle = showTitle && StrCast(this.Document.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
-            <div className="documentView-searchHighlight" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+            <div className="documentView-searchHighlight">
+                {/* style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}> */}
                 {this.Document.searchFields}
             </div>);
         const captionView = (!showCaption ? (null) :
-            <div className="documentView-captionWrapper" style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+            <div className="documentView-captionWrapper">
+                {/* style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}> */}
                 <FormattedTextBox {...this.props}
                     onClick={this.onClickHandler} DataDoc={this.props.DataDoc} active={returnTrue}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
@@ -600,7 +605,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const titleView = (!showTitle ? (null) :
             <div className="documentView-titleWrapper" style={{
-                width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})`,
+                //width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})`,
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
             }}>
@@ -613,7 +618,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         return <>
             {this.Document.links && DocListCast(this.Document.links).filter((d) => !DocListCast(this.layoutDoc.hiddenLinks).some(hidden => Doc.AreProtosEqual(hidden, d))).filter(this.isNonTemporalLink).map((d, i) =>
-                <div className="documentView-docuLinkWrapper" key={`${d[Id]}`} style={{ transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / this.props.ContentScaling()})` }}>
+                <div className="documentView-docuLinkWrapper" key={`${d[Id]}`} style={{ transform: `scale(${this.layoutDoc.fitWidth ? 1 : 1 / 1})` }}>
                     <DocumentView {...this.props} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => Doc.AddDocToList(this.layoutDoc, "hiddenLinks", doc))} />
                 </div>)}
             {!showTitle && !showCaption ?
@@ -639,7 +644,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     render() {
         if (!this.props.Document) return (null);
         trace();
-        const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
@@ -648,17 +652,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
-        const nativeWidth = this.layoutDoc.fitWidth ? this.props.PanelWidth() - 2 : this.nativeWidth > 0 && !this.layoutDoc.ignoreAspect ? `${this.nativeWidth}px` : "100%";
-        const nativeHeight = this.layoutDoc.fitWidth ? this.props.PanelHeight() - 2 : this.Document.ignoreAspect ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.getLayoutPropStr("borderRounding") || ruleRounding;
-        const localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
+        const localScale = fullDegree;
 
-        let animheight = animDims ? animDims[1] : nativeHeight;
-        let animwidth = animDims ? animDims[0] : nativeWidth;
+        const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
+        let animheight = animDims ? animDims[1] : "100%";
+        let animwidth = animDims ? animDims[0] : "100%";
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
-        const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
+        const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
@@ -672,7 +675,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
                 width: animwidth,
                 height: animheight,
-                transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
+                //transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
                 opacity: this.Document.opacity
             }} >
             {this.innards}

@@ -268,6 +268,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     @computed get content() {
+        trace();
         const extensionDoc = this.extensionDoc;
         if (!extensionDoc) return (null);
         // let transform = this.props.ScreenToLocalTransform().inverse();
@@ -330,8 +331,10 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             </div>);
     }
 
+    contentFunc = () => [this.content];
     render() {
-        return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}>
+        return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}
+            style={{ transformOrigin: "top left", transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
@@ -352,7 +355,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 chromeCollapsed={true}>
-                {() => [this.content]}
+                {this.contentFunc}
             </CollectionFreeFormView>
         </div >);
     }

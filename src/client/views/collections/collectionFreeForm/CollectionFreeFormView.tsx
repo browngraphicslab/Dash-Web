@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -852,6 +852,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     render() {
+        trace();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.Document.fitX = this.contentBounds && this.contentBounds.x;
         this.Document.fitY = this.contentBounds && this.contentBounds.y;
@@ -867,11 +868,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        {!this.extensionDoc ? (null) :
-                            // <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.extensionDoc} inkFieldKey={"ink"} >
-                            this.childViews()
-                            // </InkingCanvas>
-                        }
+                        {!this.extensionDoc ? (null) : this.childViews()}
                         {this.currentStroke}
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>

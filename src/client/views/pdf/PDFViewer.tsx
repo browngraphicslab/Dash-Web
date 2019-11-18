@@ -636,7 +636,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                     ScreenToLocalTransform={this.scrollXf}
                     ruleProvider={undefined}
                     renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document}
+                    ContainingCollectionDoc={this.props.ContainingCollectionView?.props.Document}
                     chromeCollapsed={true}>
                 </CollectionFreeFormView>
             </div>
@@ -660,7 +660,11 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     render() {
         trace();
         return !this.extensionDoc ? (null) :
-            <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
+            <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} style={{
+                width: `${100 / this.props.ContentScaling()}%`,
+                height: `${100 / this.props.ContentScaling()}%`,
+                transform: `scale(${this.props.ContentScaling()})`
+            }} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
                 {this.pdfViewerDiv}
                 {this.annotationLayer}
                 {this.standinViews}

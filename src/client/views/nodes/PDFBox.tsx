@@ -205,14 +205,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     }
 
     @computed get renderPdfView() {
-        trace();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
-        return <div className={classname} style={{
-            width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-            height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-            transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
-        }} onContextMenu={this.specificContextMenu} onPointerDown={e => {
+        return <div className={classname} onContextMenu={this.specificContextMenu} onPointerDown={e => {
             let hit = document.elementFromPoint(e.clientX, e.clientY);
             if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
                 e.button === 0 && e.stopPropagation();

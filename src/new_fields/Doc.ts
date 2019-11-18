@@ -657,7 +657,7 @@ export namespace Doc {
         return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
     export function IsBrushedDegree(doc: Doc) {
-        return brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : brushManager.BrushedDoc.has(doc) ? 1 : 0;
+        return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
     }
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);
