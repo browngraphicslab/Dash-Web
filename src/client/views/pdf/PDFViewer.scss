@@ -14,8 +14,7 @@
     // }
     .textLayer {
         
-        mix-blend-mode: multiply;
-        opacity: 0.9;
+        mix-blend-mode: multiply;// bcz: makes text fuzzy!
         span {
             padding-right: 5px;
             padding-bottom: 4px;
@@ -36,6 +35,13 @@
         pointer-events: none;
     }
 
+    .pdfViewer-text-selected {
+        .textLayer{
+            will-change: transform;
+           pointer-events: all;
+        }
+    }
+
     .pdfViewer-dragAnnotationBox {
         position:absolute;
         background-color: transparent;
@@ -49,13 +55,15 @@
         left: 0px;
         display: inline-block;
         width:100%;
+        pointer-events: none;
     }
     .pdfViewer-annotationLayer {
         position: absolute;
+        transform-origin: left top;
         top: 0;
         width: 100%;
         pointer-events: none;
-        mix-blend-mode: multiply;
+        mix-blend-mode: multiply; // bcz: makes text fuzzy!
 
         .pdfViewer-annotationBox {
             position: absolute;

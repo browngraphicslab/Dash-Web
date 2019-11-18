@@ -196,7 +196,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     }
 
     @computed get renderTitleBox() {
-        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
+        let classname = "pdfBox-cont";
         return <div className="pdfBox-title-outer" >
             <div className={classname} >
                 <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
@@ -207,12 +207,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
-        return <div className={classname} onContextMenu={this.specificContextMenu} onPointerDown={e => {
-            let hit = document.elementFromPoint(e.clientX, e.clientY);
-            if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
-                e.button === 0 && e.stopPropagation();
-            }
-        }}>
+        return <div className={classname} onContextMenu={this.specificContextMenu}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
