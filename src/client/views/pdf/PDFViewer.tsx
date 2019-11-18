@@ -650,7 +650,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         </div>
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewer-text" + (this.props.isSelected() ? "" : "-selected")} ref={this._viewer} style={{
+        return <div className={"pdfViewer-text" + (this.props.isSelected() ? "-selected" : "")} ref={this._viewer} style={{
             transformOrigin: "left top",
         }} />;
     }
