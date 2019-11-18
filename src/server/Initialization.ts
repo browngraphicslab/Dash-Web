@@ -20,6 +20,8 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 
+/* RouteSetter is a wrapper around the server that prevents the server
+   from being exposed. */
 export type RouteSetter = (server: RouteManager) => void;
 export interface InitializationOptions {
     listenAtPort: number;
@@ -39,7 +41,7 @@ export default async function InitializeServer(options: InitializationOptions) {
     registerAuthenticationRoutes(server);
     registerCorsProxy(server);
 
-    const isRelease = determineEnvironment();
+    const isRelease = determineEnvironment(); //vs. dev mode
     routeSetter(new RouteManager(server, isRelease));
 
     server.listen(listenAtPort, () => console.log(`server started at http://localhost:${listenAtPort}`));
@@ -74,6 +76,7 @@ function buildWithMiddleware(server: express.Express) {
     return server;
 }
 
+/* Determine if the enviroment is dev mode or release mode. */
 function determineEnvironment() {
     const isRelease = process.env.RELEASE === "true";
 

@@ -122,7 +122,7 @@ export namespace GooglePhotosUploadUtils {
         // ...so we execute them in delayed batches and await the entire execution
         return batched.batchedMapPatientInterval(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch: NewMediaItem[], collector) => {
+            async (batch: NewMediaItem[], collector: any): Promise<any> => {
                 const parameters = {
                     method: 'POST',
                     headers: headers('json', bearerToken),
