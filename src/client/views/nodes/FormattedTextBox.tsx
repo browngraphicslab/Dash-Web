@@ -1011,7 +1011,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
-    @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidth, "0%"); }
+    @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidthPercent, "0%"); }
     @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
     @computed get annotationsKey() { return "annotations"; }
     render() {
