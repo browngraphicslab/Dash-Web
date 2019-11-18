@@ -21,6 +21,7 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
+import { log_execution } from "./ActionUtilities";
 
 export const publicDirectory = __dirname + "/public";
 export const filesDirectory = publicDirectory + "/files/";
@@ -43,7 +44,7 @@ async function preliminaryFunctions() {
     // divide the public directory based on type
     await Promise.all(Object.keys(Partitions).map(partition => DashUploadUtils.createIfNotExists(filesDirectory + partition)));
     // connect to the database
-    await Database.tryInitializeConnection();
+    await log_execution("attempting to initialize database connection", "connected", Database.tryInitializeConnection);
 }
 
 /**
@@ -243,6 +244,6 @@ function routeSetter(router: RouteManager) {
 }
 
 (async function start() {
-    await preliminaryFunctions();
+    await log_execution("starting execution of preliminary functions", "completed preliminary functions", preliminaryFunctions);
     await initializeServer({ listenAtPort: 1050, routeSetter });
 })();

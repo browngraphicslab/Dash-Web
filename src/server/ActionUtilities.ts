@@ -26,3 +26,9 @@ export const write_text_file = (relativePath: string, contents: any) => {
         fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
+
+export async function log_execution(startMessage: string, endMessage: string, contents: () => void | Promise<void>) {
+    console.log('\x1b[36m%s\x1b[0m', `${startMessage}...`);
+    await contents();
+    console.log(endMessage);
+}
