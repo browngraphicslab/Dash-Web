@@ -225,7 +225,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
             let layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
-            ContextMenu.Instance.addItem({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
+
+            let more = ContextMenu.Instance.findByDescription("More...");
+            let moreItems = more && "subitems" in more ? more.subitems : [];
+            moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
+            !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" })
         }
     }
 

@@ -139,7 +139,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler ?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias.layoutCustom !== undefined) {
                     fullScreenAlias.layoutKey = "layoutCustom";
@@ -355,7 +355,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     setCustomView = (custom: boolean): void => {
-        if (this.props.ContainingCollectionView ?.props.DataDoc || this.props.ContainingCollectionView ?.props.Document.isTemplateDoc) {
+        if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
         } else {
             custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc) : DocumentView.makeNativeViewClicked(this.props.Document);
@@ -381,17 +381,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.lockedTransform = this.Document.lockedTransform ? undefined : true;
     }
 
-    listen = async () => {
-        Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
-            continuous: { indefinite: true },
-            interimHandler: (results: string) => {
-                DictationOverlay.Instance.dictationSuccess = true;
-                DictationOverlay.Instance.dictatedPhrase = results;
-                DictationOverlay.Instance.isListening = { interim: true };
-            }
-        });
-    }
-
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
         e.persist();
@@ -413,14 +402,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
 
-        if (Cast(this.props.Document.data, ImageField)) {
-            cm.addItem({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
-        }
-        if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-            cm.addItem({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
-            cm.addItem({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
-            cm.addItem({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
-        }
 
         let existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         let onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -438,10 +419,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         let funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
-        funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
-        funcs.push({ description: "Drag Document", icon: "edit", event: () => this.Document.onDragStart = undefined });
-        ContextMenu.Instance.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
+        if (this.Document.onDragStart) {
+            funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
+            funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
+            funcs.push({ description: "Drag Document", icon: "edit", event: () => this.Document.onDragStart = undefined });
+            ContextMenu.Instance.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
+        }
 
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
@@ -462,18 +445,26 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             layoutItems.push({ description: "Use Native Layout", event: () => DocumentView.makeNativeViewClicked(this.props.Document), icon: "concierge-bell" });
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
+
+        let more = ContextMenu.Instance.findByDescription("More...");
+        let moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
+
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
-            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
-        let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
-        let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
-        analyzers.push({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
-        !existingAnalyze && cm.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
-        cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
-        cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
-        cm.addItem({
+        if (Cast(this.props.Document.data, ImageField)) {
+            moreItems.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
+        }
+        if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+            moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+            moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+            moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+        }
+        moreItems.push({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
+        moreItems.push({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
+        moreItems.push({
             description: "Download document", icon: "download", event: async () =>
                 console.log(JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
                     qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
@@ -485,8 +476,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // a.click();
         });
 
-        cm.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
-        cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
+        moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
+        moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
+        moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
+        !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         runInAction(() => {
             if (!ClientUtils.RELEASE) {
                 let setWriteMode = (mode: DocServer.WriteMode) => {
@@ -509,7 +502,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
                 aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
                 cm.addItem({ description: "Collaboration ACLs...", subitems: aclsMenu, icon: "share" });
-                cm.addItem({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
             }
         });
         runInAction(() => {
