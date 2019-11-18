@@ -37,8 +37,13 @@
 
     .pdfViewer-text-selected {
         .textLayer{
-            will-change: transform;
            pointer-events: all;
+           user-select: text;
+        }
+    }
+    .pdfViewer-text {
+        .textLayer {
+            will-change: transform;
         }
     }
 
