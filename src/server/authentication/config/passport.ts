@@ -40,7 +40,7 @@ export let isAuthenticated = (req: Request, res: Response, next: NextFunction) =
 export let isAuthorized = (req: Request, res: Response, next: NextFunction) => {
     const provider = req.path.split("/").slice(-1)[0];
 
-    if (_.find((req.user).tokens, { kind: provider })) {
+    if (_.find((req.user as any).tokens!, { kind: provider })) {
         next();
     } else {
         res.redirect(`/auth/${provider}`);
