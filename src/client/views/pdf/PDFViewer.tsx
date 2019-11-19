@@ -26,6 +26,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { documentSchema } from "../../../new_fields/documentSchemas";
+import { DocumentDecorations } from "../DocumentDecorations";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -654,9 +655,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         </div>
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewer-text" + (this.props.isSelected() || this.props.isChildActive() ? "-selected" : "")} ref={this._viewer} style={{
-            transformOrigin: "left top",
-        }} />;
+        return <div className={"pdfViewer-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get standinViews() {
         return <>

@@ -42,6 +42,7 @@
         }
     }
     .pdfViewer-text {
+        transform-origin: top left;
         .textLayer {
             will-change: transform;
         }
