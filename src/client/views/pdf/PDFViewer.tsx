@@ -59,6 +59,7 @@ interface IViewerProps {
     isSelected: () => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
     active: () => boolean;
+    isChildActive: () => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc) => boolean;
@@ -653,7 +654,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         </div>
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewer-text" + (this.props.isSelected() ? "-selected" : "")} ref={this._viewer} style={{
+        return <div className={"pdfViewer-text" + (this.props.isSelected() || this.props.isChildActive() ? "-selected" : "")} ref={this._viewer} style={{
             transformOrigin: "left top",
         }} />;
     }

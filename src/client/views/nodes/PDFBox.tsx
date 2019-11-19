@@ -199,11 +199,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
         return <div className="pdfBox-title-outer" >
             <div className={classname} >
-                <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
+                <strong className="pdfBox-title" >{this.props.Document.title}</strong>
             </div>
         </div>;
     }
 
+    isChildActive = () => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         return <div className={"pdfBox-cont"} onContextMenu={this.specificContextMenu}>
@@ -215,6 +216,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
+                isChildActive={this.isChildActive}
                 fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
             {this.settingsPanel()}
         </div>;

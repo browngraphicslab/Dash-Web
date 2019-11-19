@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Doc } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
-import { computed, action } from 'mobx';
+import { computed, action, observable } from 'mobx';
 import { Cast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
@@ -54,7 +54,7 @@ interface DocAnnotatableProps {
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends React.Component<P> {
-        _isChildActive = false;
+        @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
@@ -81,7 +81,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
             return this.extensionDoc && Doc.AddDocToList(this.extensionDoc, this.annotationsKey, doc) ? true : false;
         }
 
-        whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
+        whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = () => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
             (this.props.Document.forceActive || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }

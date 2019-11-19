@@ -41,11 +41,11 @@
            user-select: text;
         }
     }
-    // .pdfViewer-text {
-    //     .textLayer {
-    //         will-change: transform;
-    //     }
-    // }
+    .pdfViewer-text {
+        .textLayer {
+            will-change: transform;
+        }
+    }
 
     .pdfViewer-dragAnnotationBox {
         position:absolute;

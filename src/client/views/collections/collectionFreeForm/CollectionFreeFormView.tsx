@@ -484,7 +484,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
-        console.log(deltaY);
         let deltaScale = deltaY > 0 ? (1 / 1.1) : 1.1;
         if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
             deltaScale = 1 / this.zoomScaling();
