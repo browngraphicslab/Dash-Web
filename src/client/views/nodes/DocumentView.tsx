@@ -596,7 +596,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
-                {/* style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}> */}
                 <FormattedTextBox {...this.props}
                     onClick={this.onClickHandler} DataDoc={this.props.DataDoc} active={returnTrue}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
@@ -605,7 +604,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const titleView = (!showTitle ? (null) :
             <div className="documentView-titleWrapper" style={{
-                //width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})`,
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
             }}>
