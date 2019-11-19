@@ -1,6 +1,6 @@
 import { CollectionSubView } from "./CollectionSubView";
 import { Transform } from "../../util/Transform";
-import React = require("react")
+import React = require("react");
 import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
 import { Doc, HeightSym } from "../../../new_fields/Doc";
 import { NumCast } from "../../../new_fields/Types";
@@ -36,7 +36,7 @@ export class CollectionStaffView extends CollectionSubView(doc => doc) {
         for (let i = 0; i < this._staves; i++) {
             let rows = [];
             for (let j = 0; j < 5; j++) {
-                rows.push(<div key={`staff-${i}-${j}`} className="collectionStaffView-line"></div>)
+                rows.push(<div key={`staff-${i}-${j}`} className="collectionStaffView-line"></div>);
             }
             staves.push(<div key={`staff-${i}`} className="collectionStaffView-staff">
                 {rows}
@@ -51,11 +51,9 @@ export class CollectionStaffView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        return (
-            <div className="collectionStaffView" ref={this._mainCont}>
-                {this.staves}
-                {this.addStaffButton}
-            </div>
-        )
+        return <div className="collectionStaffView" ref={this._mainCont}>
+            {this.staves}
+            {this.addStaffButton}
+        </div>;
     }
 }

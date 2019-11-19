@@ -654,7 +654,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 ContainingCollectionDoc={this.props.ContainingCollectionView?.props.Document}
                 chromeCollapsed={true}>
             </CollectionFreeFormView>
-        </div>
+        </div>;
     }
     @computed get pdfViewerDiv() {
         return <div className={"pdfViewer-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;

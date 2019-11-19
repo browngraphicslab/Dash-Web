@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import AntimodeMenu from "../../AntimodeMenu";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -40,7 +40,7 @@ export default class MarqueeOptionsMenu extends AntimodeMenu {
                 onPointerDown={this.delete}>
                 <FontAwesomeIcon icon="trash-alt" size="lg" />
             </button>,
-        ]
+        ];
         return this.getElement(buttons);
     }
 }

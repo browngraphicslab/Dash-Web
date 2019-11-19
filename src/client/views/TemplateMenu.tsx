@@ -10,6 +10,7 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
 import { StrCast } from "../../new_fields/Types";
+import { emptyFunction } from "../../Utils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -46,10 +47,13 @@ export interface TemplateMenuProps {
     templates: Map<Template, boolean>;
 }
 
+
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
-    dragRef = React.createRef<HTMLUListElement>();
+    private _downx = 0;
+    private _downy = 0;
+    private _dragRef = React.createRef<HTMLUListElement>();
 
     toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
         this.props.docs.map(dv => dv.setCustomView(e.target.checked));
@@ -122,6 +126,43 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
+    onAliasButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        e.stopPropagation();
+    }
+
+    onAliasButtonDown = (e: React.PointerEvent): void => {
+        this._downx = e.clientX;
+        this._downy = e.clientY;
+        e.stopPropagation();
+        e.preventDefault();
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.addEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        document.addEventListener("pointerup", this.onAliasButtonUp);
+    }
+    onAliasButtonMoved = (e: PointerEvent): void => {
+        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
+            document.removeEventListener("pointermove", this.onAliasButtonMoved);
+            document.removeEventListener("pointerup", this.onAliasButtonUp);
+
+            let dragDocView = this.props.docs[0];
+            let dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            dragData.embedDoc = true;
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
 
     render() {
         let layout = Doc.Layout(this.props.docs[0].Document);
@@ -132,9 +173,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
-            <div className="templating-menu" >
-                <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                <ul id="template-list" ref={this.dragRef} style={{ display: this._hidden ? "none" : "block" }}>
+            <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
+                <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
+                <ul id="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
                     {<button onClick={this.clearTemplates}>Restore Defaults</button>}
                 </ul>
