@@ -1,6 +1,6 @@
  
 .pdfViewer-viewer, .pdfViewer-viewer-zoomed {
-    pointer-events: inherit;
+    pointer-events: all;
     width: 100%;
     height: 100%;
     position: absolute;
@@ -41,11 +41,11 @@
            user-select: text;
         }
     }
-    .pdfViewer-text {
-        .textLayer {
-            will-change: transform;
-        }
-    }
+    // .pdfViewer-text {
+    //     .textLayer {
+    //         will-change: transform;
+    //     }
+    // }
 
     .pdfViewer-dragAnnotationBox {
         position:absolute;

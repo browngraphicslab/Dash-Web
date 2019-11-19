@@ -851,6 +851,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         );
     }
 
+    children = () => {
+        let eles: JSX.Element[] = [];
+        this.currentStroke && (eles.push(this.currentStroke));
+        this.extensionDoc && (eles.push(...this.childViews()));
+        eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
+        return eles;
+    }
     render() {
         trace();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
@@ -868,9 +875,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        {!this.extensionDoc ? (null) : this.childViews()}
-                        {this.currentStroke}
-                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
+                        {this.children}
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
                 {this.overlayViews}
@@ -885,6 +890,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     panY: () => number;
     zoomScaling: () => number;
     easing: () => boolean;
+    children: () => JSX.Element[];
 }
 
 @observer
@@ -897,7 +903,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
         return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
-            {this.props.children}
+            {this.props.children()}
         </div>;
     }
 }
