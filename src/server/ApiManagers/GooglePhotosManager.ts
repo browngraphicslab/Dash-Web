@@ -107,5 +107,6 @@ export default class GooglePhotosManager extends ApiManager {
                 _invalid(res, requestError);
             }
         });
+
     }
 }
