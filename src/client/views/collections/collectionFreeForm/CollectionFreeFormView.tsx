@@ -844,7 +844,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return eles;
     }
     render() {
-        trace();
+        // trace();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         this.Document.fitX = this.contentBounds && this.contentBounds.x;
         this.Document.fitY = this.contentBounds && this.contentBounds.y;

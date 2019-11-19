@@ -5,11 +5,7 @@ import { Database } from "../database";
 import RouteSubscriber from "../RouteSubscriber";
 
 const deletionPermissionError = "Cannot perform specialized delete outside of the development environment!";
-const ServicesApiKeyMap = new Map<string, string | undefined>([
-    ["face", process.env.FACE],
-    ["vision", process.env.VISION],
-    ["handwriting", process.env.HANDWRITING]
-]);
+
 const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
     ["retrieve", (api, params) => api.get(params)],
@@ -54,15 +50,6 @@ export default class GeneralGoogleManager extends ApiManager {
         });
 
         register({
-            method: Method.GET,
-            subscription: new RouteSubscriber("/cognitiveServices").add('requestedservice'),
-            onValidation: ({ req, res }) => {
-                let service = req.params.requestedservice;
-                res.send(ServicesApiKeyMap.get(service));
-            }
-        });
-
-        register({
             method: Method.POST,
             subscription: new RouteSubscriber("/googleDocs").add("sector", "action"),
             onValidation: async ({ req, res, user }) => {
@@ -79,5 +66,6 @@ export default class GeneralGoogleManager extends ApiManager {
                 res.send(undefined);
             }
         });
+
     }
 }

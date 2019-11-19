@@ -13,11 +13,12 @@ import UtilManager from './ApiManagers/UtilManager';
 import SearchManager from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
-import DownloadManager from './ApiManagers/ExportManager';
+import DownloadManager from './ApiManagers/DownloadManager';
 import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
+import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 
@@ -55,8 +56,7 @@ async function preliminaryFunctions() {
  * with the server
  */
 function routeSetter(router: RouteManager) {
-    // initialize API Managers
-    [
+    const managers = [
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
@@ -66,7 +66,10 @@ function routeSetter(router: RouteManager) {
         new UtilManager(),
         new GeneralGoogleManager(),
         new GooglePhotosManager(),
-    ].forEach(manager => manager.register(router));
+    ];
+
+    // initialize API Managers
+    managers.forEach(manager => manager.register(router));
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
@@ -103,6 +106,6 @@ function routeSetter(router: RouteManager) {
 }
 
 (async function start() {
-    await preliminaryFunctions();
+    await log_execution("starting execution of preliminary functions", "completed preliminary functions", preliminaryFunctions);
     await initializeServer({ listenAtPort: 1050, routeSetter });
 })();

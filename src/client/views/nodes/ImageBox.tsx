@@ -8,7 +8,7 @@ import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
+import { Cast, NumCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { Utils, returnOne, emptyFunction } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
@@ -267,7 +267,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     @computed get content() {
-        trace();
+        // trace();
         const extensionDoc = this.extensionDoc;
         if (!extensionDoc) return (null);
         // let transform = this.props.ScreenToLocalTransform().inverse();

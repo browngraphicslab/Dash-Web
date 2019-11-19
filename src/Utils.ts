@@ -48,6 +48,11 @@ export namespace Utils {
         return prepend("/corsProxy/") + encodeURIComponent(url);
     }
 
+    export async function getApiKey(target: string): Promise<string> {
+        const response = await fetch(prepend(`environment/${target.toUpperCase()}`));
+        return response.text();
+    }
+
     export function CopyText(text: string) {
         var textArea = document.createElement("textarea");
         textArea.value = text;
@@ -197,7 +202,7 @@ export namespace Utils {
         }
         let idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
-        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
+        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)} `);
     }
 
     function loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
