@@ -28,6 +28,7 @@ export namespace SearchUtil {
         start?: number;
         rows?: number;
         fq?: string;
+        allowAliases?: boolean;
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
@@ -73,7 +74,7 @@ export namespace SearchUtil {
         const docs = ids.map((id: string) => docMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < ids.length; i++) {
             let testDoc = docs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1) {
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
             }
@@ -88,9 +89,9 @@ export namespace SearchUtil {
         const proto = Doc.GetProto(doc);
         const protoId = proto[Id];
         if (returnDocs) {
-            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"` })).docs;
+            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"`, allowAliases: true })).docs;
         } else {
-            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"` })).ids;
+            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"`, allowAliases: true })).ids;
         }
         // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }

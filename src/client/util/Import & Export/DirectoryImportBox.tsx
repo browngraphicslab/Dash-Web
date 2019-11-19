@@ -51,7 +51,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     @observable private uploading = false;
     @observable private removeHover = false;
 
-    public static LayoutString() { return FieldView.LayoutString(DirectoryImportBox); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DirectoryImportBox, fieldKey); }
 
     constructor(props: FieldViewProps) {
         super(props);

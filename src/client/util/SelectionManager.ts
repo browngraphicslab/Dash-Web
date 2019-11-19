@@ -3,7 +3,6 @@ import { Doc, Opt } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { NumCast, StrCast } from "../../new_fields/Types";
-import { InkingControl } from "../views/InkingControl";
 
 export namespace SelectionManager {
 
@@ -45,20 +44,6 @@ export namespace SelectionManager {
     }
 
     const manager = new Manager();
-    reaction(() => manager.SelectedDocuments, sel => {
-        let targetColor = "#FFFFFF";
-        if (sel.length > 0) {
-            let firstView = sel[0];
-            let doc = firstView.props.Document;
-            let targetDoc = doc.isTemplate ? doc : Doc.GetProto(doc);
-            let stored = StrCast(targetDoc.backgroundColor);
-            stored.length > 0 && (targetColor = stored);
-        }
-        const { Instance } = InkingControl;
-        if (Instance) {
-            Instance.updateSelectedColor(targetColor);
-        }
-    }, { fireImmediately: true });
 
     export function DeselectDoc(docView: DocumentView): void {
         manager.DeselectDoc(docView);

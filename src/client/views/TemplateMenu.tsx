@@ -9,6 +9,8 @@ import { DocumentView } from "./nodes/DocumentView";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
+import { StrCast } from "../../new_fields/Types";
+import { emptyFunction } from "../../Utils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -45,10 +47,13 @@ export interface TemplateMenuProps {
     templates: Map<Template, boolean>;
 }
 
+
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
-    dragRef = React.createRef<HTMLUListElement>();
+    private _downx = 0;
+    private _downy = 0;
+    private _dragRef = React.createRef<HTMLUListElement>();
 
     toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
         this.props.docs.map(dv => dv.setCustomView(e.target.checked));
@@ -100,7 +105,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     clearTemplates = (event: React.MouseEvent) => {
         Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
         ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
-            if (d.Document.isTemplate && d.props.DataDoc) {
+            if (d.Document.isTemplateDoc && d.props.DataDoc) {
                 d.Document[field] = undefined;
             } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
                 d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;
@@ -117,23 +122,60 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleChrome = (): void => {
         this.props.docs.map(dv => {
-            let layout = dv.Document.layout instanceof Doc ? dv.Document.layout : dv.Document;
+            let layout = Doc.Layout(dv.Document);
             layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
+    onAliasButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        e.stopPropagation();
+    }
+
+    onAliasButtonDown = (e: React.PointerEvent): void => {
+        this._downx = e.clientX;
+        this._downy = e.clientY;
+        e.stopPropagation();
+        e.preventDefault();
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.addEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        document.addEventListener("pointerup", this.onAliasButtonUp);
+    }
+    onAliasButtonMoved = (e: PointerEvent): void => {
+        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
+            document.removeEventListener("pointermove", this.onAliasButtonMoved);
+            document.removeEventListener("pointerup", this.onAliasButtonUp);
+
+            let dragDocView = this.props.docs[0];
+            let dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            dragData.embedDoc = true;
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
 
     render() {
-        let layout = this.props.docs[0].Document.layout instanceof Doc ? this.props.docs[0].Document.layout : this.props.docs[0].Document;
+        let layout = Doc.Layout(this.props.docs[0].Document);
         let templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
-        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={typeof this.props.docs[0].Document.layout === "string" ? false : true} toggle={this.toggleCustom} />);
+        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
-            <div className="templating-menu" >
-                <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                <ul id="template-list" ref={this.dragRef} style={{ display: this._hidden ? "none" : "block" }}>
+            <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
+                <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
+                <ul id="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
                     {<button onClick={this.clearTemplates}>Restore Defaults</button>}
                 </ul>
