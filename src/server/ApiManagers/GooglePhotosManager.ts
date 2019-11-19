@@ -31,6 +31,9 @@ interface NewMediaItem {
 }
 const prefix = "google_photos_";
 
+/**
+ * This manager handles the creation of routes for google photos functionality.
+ */
 export default class GooglePhotosManager extends ApiManager {
 
     protected initialize(register: Registration): void {
