@@ -4,43 +4,41 @@ import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrows
 import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkField, PointData, InkTool } from "../../../../new_fields/InkField";
+import { InkTool } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
-import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
+import { InteractionUtils } from "../../../util/InteractionUtils";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
-import { InkingCanvas } from "../../InkingCanvas";
+import { InkingControl } from "../../InkingControl";
+import { CreatePolyline } from "../../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
+import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
 import { computePivotLayout, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
+import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { InteractionUtils } from "../../../util/InteractionUtils";
-import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
-import PDFMenu from "../../pdf/PDFMenu";
-import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
-import { InkingControl } from "../../InkingControl";
-import { InkingStroke, CreatePolyline } from "../../InkingStroke";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -273,7 +271,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.nativeEvent.cancelBubble) return;
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
-        if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
+        if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -344,14 +342,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                 [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
             }, [[minx, maxx], [miny, maxy]]);
-            let ink = this.extensionDoc && Cast(this.extensionDoc.ink, InkField);
-            if (ink && ink.inkData) {
-                // ink.inkData.forEach((value: PointData, key: string) => {
-                //     let bounds = InkingCanvas.StrokeRect(value);
-                //     ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
-                //     ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
-                // });
-            }
 
             let cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
             let panelDim = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth() / this.zoomScaling() * cscale,
@@ -757,11 +747,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     analyzeStrokes = async () => {
-        const extensionDoc = this.extensionDoc;
-        let data = extensionDoc && Cast(extensionDoc.ink, InkField);
-        if (data && extensionDoc) {
-            CognitiveServices.Inking.Appliers.ConcatenateHandwriting(extensionDoc, ["inkAnalysis", "handwriting"], data.inkData);
-        }
+        //  CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], data.inkData);
     }
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -852,8 +838,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     children = () => {
         let eles: JSX.Element[] = [];
-        this.currentStroke && (eles.push(this.currentStroke));
         this.extensionDoc && (eles.push(...this.childViews()));
+        this.currentStroke && (eles.push(this.currentStroke));
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;
     }

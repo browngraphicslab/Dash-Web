@@ -84,6 +84,8 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = () => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
             (this.props.Document.forceActive || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        annotationsActive = () => (InkingControl.Instance.selectedTool !== InkTool.None ||
+            (this.props.Document.forceActive || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;
 }

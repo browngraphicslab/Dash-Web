@@ -54,7 +54,7 @@
         opacity: 0.1;
     }
 
-    .pdfViewer-overlay {
+    .pdfViewer-overlay, .pdfViewer-overlay-inking {
         transform-origin: left top;
         position: absolute;
         top: 0px;
@@ -62,6 +62,11 @@
         display: inline-block;
         width:100%;
         pointer-events: none;
+    }
+    .pdfViewer-overlay-inking {
+        .collectionfreeformview-container {
+            pointer-events: all;
+        }
     }
     .pdfViewer-annotationLayer {
         position: absolute;

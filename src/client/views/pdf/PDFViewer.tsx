@@ -27,6 +27,8 @@ import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { DocumentDecorations } from "../DocumentDecorations";
+import { InkingControl } from "../InkingControl";
+import { InkTool } from "../../../new_fields/InkField";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -628,7 +630,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     panelWidth = () => (this.Document.scrollHeight || this.Document.nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document.nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className="pdfViewer-overlay" id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
+        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 annotationsKey={this.annotationsKey}
                 setPreviewCursor={this.setPreviewCursor}
@@ -639,7 +641,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}
                 select={emptyFunction}
-                active={this.active}
+                active={this.annotationsActive}
                 ContentScaling={this.contentZoom}
                 whenActiveChanged={this.whenActiveChanged}
                 removeDocument={this.removeDocument}

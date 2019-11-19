@@ -345,7 +345,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}
                 select={emptyFunction}
-                active={this.active}
+                active={this.annotationsActive}
                 ContentScaling={returnOne}
                 whenActiveChanged={this.whenActiveChanged}
                 removeDocument={this.removeDocument}

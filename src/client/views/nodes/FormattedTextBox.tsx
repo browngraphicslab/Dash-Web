@@ -1058,7 +1058,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         focus={this.props.focus}
                         isSelected={this.props.isSelected}
                         select={emptyFunction}
-                        active={this.active}
+                        active={this.annotationsActive}
                         ContentScaling={returnOne}
                         whenActiveChanged={this.whenActiveChanged}
                         removeDocument={this.removeDocument}
