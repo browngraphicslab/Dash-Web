@@ -111,20 +111,18 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     private newValueChange = (e: React.ChangeEvent<HTMLInputElement>) => this._valueValue = e.currentTarget.value;
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
-    whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
+    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {
         let pageBtns = <>
             <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                onPointerDown={e => e.stopPropagation()} onClick={this.backPage}
-                style={{ left: 50, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
+                onPointerDown={e => e.stopPropagation()} onClick={this.backPage} style={{ left: 50, top: 5 }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
             </button>
             <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                onPointerDown={e => e.stopPropagation()} onClick={this.forwardPage}
-                style={{ left: 80, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
+                onPointerDown={e => e.stopPropagation()} onClick={this.forwardPage} style={{ left: 80, top: 5 }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;

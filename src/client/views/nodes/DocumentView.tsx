@@ -591,7 +591,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const showTextTitle = showTitle && StrCast(this.Document.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">
-                {/* style={{ width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}> */}
                 {this.Document.searchFields}
             </div>);
         const captionView = (!showCaption ? (null) :

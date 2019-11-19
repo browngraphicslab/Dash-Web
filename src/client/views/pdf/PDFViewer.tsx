@@ -673,12 +673,12 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     render() {
         trace();
         return !this.extensionDoc ? (null) :
-            <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")}
+            <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
                 style={{
                     width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.props.ContentScaling()}%`,
                     height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.props.ContentScaling()}%`,
                     transform: `scale(${this.props.ContentScaling()})`
-                }} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick} ref={this._mainCont}>
+                }} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}>
                 {this.pdfViewerDiv}
                 {this.overlayLayer}
                 {this.annotationLayer}

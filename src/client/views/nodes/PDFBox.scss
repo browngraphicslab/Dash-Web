@@ -183,6 +183,8 @@
         align-items: center;
         margin-left: -2px;
         border-radius: 3px;
+        position: absolute;
+        pointer-events: all;
     }
 }
 
