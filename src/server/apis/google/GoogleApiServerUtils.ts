@@ -48,7 +48,7 @@ export namespace GoogleApiServerUtils {
      * allow us to build OAuth2 clients with Dash's
      * application specific credentials.
      */
-    let installed: OAuth2ClientOptions;
+    let oAuthOptions: OAuth2ClientOptions;
 
     /**
      * This is a global authorization client that is never 
@@ -69,7 +69,7 @@ export namespace GoogleApiServerUtils {
     export function processProjectCredentials(): void {
         const { client_secret, client_id, redirect_uris } = GoogleCredentialsLoader.ProjectCredentials;
         // initialize the global authorization client
-        installed = {
+        oAuthOptions = {
             clientId: client_id,
             clientSecret: client_secret,
             redirectUri: redirect_uris[0]
@@ -201,7 +201,7 @@ export namespace GoogleApiServerUtils {
      * @returns the newly created, potentially certified, OAuth2 client instance
      */
     function generateClient(credentials?: Credentials): OAuth2Client {
-        const client = new google.auth.OAuth2(installed);
+        const client = new google.auth.OAuth2(oAuthOptions);
         credentials && client.setCredentials(credentials);
         return client;
     }
@@ -341,10 +341,12 @@ export namespace GoogleApiServerUtils {
      */
     async function refreshAccessToken(credentials: Credentials, userId: string): Promise<Credentials> {
         let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+        const { client_id, client_secret } = GoogleCredentialsLoader.ProjectCredentials;
         let url = `https://oauth2.googleapis.com/token?${qs.stringify({
             refreshToken: credentials.refresh_token,
-            grant_type: "refresh_token",
-            ...installed
+            client_id,
+            client_secret,
+            grant_type: "refresh_token"
         })}`;
         const { access_token, expires_in } = await new Promise<any>(async resolve => {
             const response = await request.post(url, headerParameters);

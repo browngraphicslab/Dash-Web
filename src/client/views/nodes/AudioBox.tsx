@@ -8,7 +8,6 @@ import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent } from "../../../Utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -140,7 +139,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             self._recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(Utils.prepend(RouteStore.upload), {
+                const res = await fetch(Utils.prepend("/upload"), {
                     method: 'POST',
                     body: formData
                 });
