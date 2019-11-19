@@ -1,18 +1,14 @@
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { observable, trace, runInAction, computed } from "mobx";
-import { InkingControl } from "./InkingControl";
-import React = require("react");
-import { InkTool, InkField, InkData } from "../../new_fields/InkField";
-import "./InkingStroke.scss";
-import { AudioBox } from "./nodes/AudioBox";
-import { Doc, FieldResult } from "../../new_fields/Doc";
-import { createSchema, makeInterface, listSpec } from "../../new_fields/Schema";
 import { documentSchema } from "../../new_fields/documentSchemas";
+import { InkData, InkField, InkTool } from "../../new_fields/InkField";
+import { makeInterface } from "../../new_fields/Schema";
+import { Cast } from "../../new_fields/Types";
 import { DocExtendableComponent } from "./DocComponent";
-import { FieldViewProps, FieldView } from "./nodes/FieldView";
-import { Transform } from "../util/Transform";
-import { Cast, FieldValue } from "../../new_fields/Types";
-import { List } from "../../new_fields/List";
+import { InkingControl } from "./InkingControl";
+import "./InkingStroke.scss";
+import { FieldView, FieldViewProps } from "./nodes/FieldView";
+import React = require("react");
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
@@ -40,7 +36,7 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
 
     render() {
         // let pathData = this.parseData(this.props.line);
-        let data: InkData = Cast(this.Document.data, InkField) ?.inkData ?? [];
+        let data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
         let xs = data.map(p => p.x);
         let ys = data.map(p => p.y);
         let left = Math.min(...xs);

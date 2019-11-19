@@ -645,7 +645,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
         const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
-        const backgroundColor = this.Document.isBackground || (clusterCol && !colorSet) ?
+        const backgroundColor = (clusterCol && !colorSet) ?
             this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
             ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
@@ -672,7 +672,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
                 width: animwidth,
                 height: animheight,
-                //transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
                 opacity: this.Document.opacity
             }} >
             {this.innards}
