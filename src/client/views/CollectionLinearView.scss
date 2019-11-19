@@ -4,26 +4,26 @@
 .collectionLinearView-outer{
     overflow: hidden;
     height:100%;
-    padding:5px;
     .collectionLinearView {
         display:flex;
+        height: 100%;
         >label {
             background: $dark-color;
             color: $light-color;
             display: inline-block;
             border-radius: 18px;
-            font-size: 25px;
-            width: 36px;
-            height: 36px;
-            margin-right: 10px;
+            font-size: 12.5px;
+            width: 18px;
+            height: 18px;
+            margin-top:auto;
+            margin-bottom:auto;
+            margin-right: 3px;
             cursor: pointer;
             transition: transform 0.2s;
         }
 
         label p {
-            padding-left: 10.5px;
-            width: 500px;
-            height: 500px;
+            padding-left:5px;
         }
 
         label:hover {
@@ -47,20 +47,22 @@
         .collectionLinearView-content {
             display: flex;
             opacity: 1;
-            padding: 0;
             position: relative;
+            margin-top: auto;
 
-            .collectionLinearView-docBtn {
+            .collectionLinearView-docBtn, .collectionLinearView-docBtn-scalable {
                 position:relative;
-                margin-right: 10px;
+                margin:auto;
+                margin-left: 3px;
+                transform-origin: center 80%;
             }
-            .collectionLinearView-docBtn:hover {
+            .collectionLinearView-docBtn-scalable:hover {
                 transform: scale(1.15);
             }
 
             .collectionLinearView-round-button {
-                width: 36px;
-                height: 36px;
+                width: 18px;
+                height: 18px;
                 border-radius: 18px;
                 font-size: 15px;
             }

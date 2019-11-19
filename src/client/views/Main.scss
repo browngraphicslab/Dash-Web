@@ -26,6 +26,8 @@ div {
     height: 100%;
     pointer-events: none;
     border-radius: inherit;
+    position: inherit;
+    background: inherit;
 }
 
 p {
@@ -36,7 +38,7 @@ p {
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     height: 8px;
-    width: 8px;
+    width: 20px;
 }
 
 ::-webkit-scrollbar-thumb {

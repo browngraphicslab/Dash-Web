@@ -52,11 +52,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
         this._brushDisposer = reaction(
             () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.isBrushedHighlightedDegree(FieldValue(Cast(this.props.document.group, Doc))!),
-            (brushed) => {
-                if (brushed !== undefined) {
-                    runInAction(() => this._brushed = brushed !== 0);
-                }
-            }
+            brushed => brushed !== undefined && runInAction(() => this._brushed = brushed !== 0)
         );
     }
 
@@ -100,8 +96,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             let annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
                 DocumentManager.Instance.FollowLink(undefined, annoGroup,
-                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "onRight" : "inTab"),
+                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"),
                     false, false, undefined);
+                e.stopPropagation();
             }
         }
     }

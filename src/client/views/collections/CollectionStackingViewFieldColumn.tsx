@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, trace } from "mobx";
+import { action, observable, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -204,7 +204,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             document.removeEventListener("pointerup", this.pointerUp);
             document.addEventListener("pointerup", this.pointerUp);
         }
-        this._createAliasSelected = false;
+        runInAction(() => this._createAliasSelected = false);
     }
 
     renderColorPicker = () => {
@@ -295,7 +295,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 style={{
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
-                            ((this.props.parent.props.ContainingCollectionDoc && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'view-mode' && this.props.parent.props.ContainingCollectionDoc.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
+                            ((this.props.parent.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
                 }}>
                 <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.

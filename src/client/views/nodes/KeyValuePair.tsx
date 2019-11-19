@@ -1,6 +1,5 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Doc, Field, Opt } from '../../../new_fields/Doc';
 import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
@@ -22,6 +21,8 @@ export interface KeyValuePairProps {
     keyName: string;
     doc: Doc;
     keyWidth: number;
+    PanelHeight: () => number;
+    PanelWidth: () => number;
     addDocTab: (doc: Doc, data: Opt<Doc>, where: string) => boolean;
 }
 @observer
@@ -59,7 +60,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             ContainingCollectionDoc: undefined,
             ruleProvider: undefined,
             fieldKey: this.props.keyName,
-            fieldExt: "",
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: 1,
@@ -67,8 +67,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
-            PanelWidth: returnZero,
-            PanelHeight: returnZero,
+            PanelWidth: this.props.PanelWidth,
+            PanelHeight: this.props.PanelHeight,
             addDocTab: returnFalse,
             pinToPres: returnZero,
             ContentScaling: returnOne

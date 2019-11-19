@@ -8,6 +8,7 @@
 }
 .marqueeView {
     overflow: hidden;
+    pointer-events: inherit;
 }
 
 .marqueeView:focus-within {
