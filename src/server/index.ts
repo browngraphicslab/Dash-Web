@@ -56,8 +56,7 @@ async function preliminaryFunctions() {
  * with the server
  */
 function routeSetter(router: RouteManager) {
-    // initialize API Managers
-    [
+    const managers = [
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
@@ -67,7 +66,10 @@ function routeSetter(router: RouteManager) {
         new UtilManager(),
         new GeneralGoogleManager(),
         new GooglePhotosManager(),
-    ].forEach(manager => manager.register(router));
+    ];
+
+    // initialize API Managers
+    managers.forEach(manager => manager.register(router));
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
