@@ -13,7 +13,7 @@ import UtilManager from './ApiManagers/UtilManager';
 import SearchManager from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
-import DownloadManager from './ApiManagers/ExportManager';
+import DownloadManager from './ApiManagers/DownloadManager';
 import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
