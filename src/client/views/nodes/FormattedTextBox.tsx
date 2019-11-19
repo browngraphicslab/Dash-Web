@@ -46,6 +46,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { AudioBox } from './AudioBox';
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
+import { InkTool } from '../../../new_fields/InkField';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -1049,7 +1050,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
-                {this.sidebarWidthPercent === "0%" ? (null) : <div style={{ borderLeft: "solid 1px black", width: `${this.sidebarWidthPercent}`, height: "100%", display: "inline-block" }}>
+                {this.sidebarWidthPercent === "0%" ? (null) : <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")} style={{ width: `${this.sidebarWidthPercent}` }}>
                     <CollectionFreeFormView {...this.props}
                         PanelHeight={() => this.props.PanelHeight()}
                         PanelWidth={() => this.sidebarWidth}
