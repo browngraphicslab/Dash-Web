@@ -618,7 +618,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     @computed get annotationLayer() {
-        trace();
+        // trace();
         return <div className="pdfViewer-annotationLayer" style={{ height: (this.Document.nativeHeight || 0), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                 <Annotation {...this.props} focus={this.props.focus} extensionDoc={this.extensionDoc!} anno={anno} key={`${anno[Id]}-annotation`} />)}
@@ -671,7 +671,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     contentZoom = () => this._zoomed;
     render() {
-        trace();
+        // trace();
         return !this.extensionDoc ? (null) :
             <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
                 style={{

@@ -1015,7 +1015,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
     @computed get annotationsKey() { return "annotations"; }
     render() {
-        trace();
+        // trace();
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
