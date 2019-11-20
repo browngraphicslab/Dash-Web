@@ -240,7 +240,7 @@ export namespace Utils {
         });
     }
 
-    export function InjectLogger() {
+    export function InjectLogger(color: string) {
 
     }
 }
