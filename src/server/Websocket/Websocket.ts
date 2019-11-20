@@ -59,8 +59,6 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
-
-            Utils.InjectLogger(socket, ConsoleColors.Yellow);
         });
 
     }
