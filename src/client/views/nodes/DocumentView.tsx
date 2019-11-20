@@ -518,9 +518,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             icon: "brain"
         });
 
+        let ext_recommender_subitems: ContextMenuProps[] = [];
+
+        ext_recommender_subitems.push({
+            description: "arXiv",
+            event: () => this.externalRecommendation(e, "arxiv"),
+            icon: "brain"
+        });
+        ext_recommender_subitems.push({
+            description: "Bing",
+            event: () => this.externalRecommendation(e, "bing"),
+            icon: "brain"
+        });
+
         recommender_subitems.push({
             description: "External recommendations",
-            event: () => this.externalRecommendation(e),
+            subitems: ext_recommender_subitems,
             icon: "brain"
         });
 
@@ -590,7 +603,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!documents.includes(dataDoc)) {
                     documents.push(dataDoc);
                     const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, isMainDoc);
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc);
                 }
             }
             if (doc.type === DocumentType.IMG) {
@@ -600,7 +613,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!documents.includes(dataDoc)) {
                     documents.push(dataDoc);
                     const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, isMainDoc, true);
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc, true);
                 }
             }
         }));
@@ -628,12 +641,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
 
-    externalRecommendation = async (e: React.MouseEvent) => {
+    externalRecommendation = async (e: React.MouseEvent, api: string) => {
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         ClientRecommender.Instance.reset_docs();
         const doc = Doc.GetDataDoc(this.props.Document);
         const extdoc = doc.data_ext as Doc;
-        const values = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false);
+        const values = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false, api);
         const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
         let bodies: Doc[] = [];
         const titles = values.title_vals;

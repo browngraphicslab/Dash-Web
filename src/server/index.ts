@@ -674,7 +674,8 @@ const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
     ["vision", process.env.VISION],
     ["handwriting", process.env.HANDWRITING],
-    ["text", process.env.TEXT]
+    ["text", process.env.TEXT],
+    ["bing", process.env.BING]
 ]);
 
 addSecureRoute({

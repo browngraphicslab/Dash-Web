@@ -191,7 +191,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      * Uses Cognitive Services to extract keywords from a document
      */
 
-    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, isMainDoc: boolean = false, image: boolean = false) {
+    public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, api: string = "bing", isMainDoc: boolean = false, image: boolean = false) {
         let data: string = "";
         let taglist: FieldResult<List<string>> = undefined;
         if (image) {
@@ -265,7 +265,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                         highKP = [sorted_keywords[0].text];
                     }
                 });
-                values = await this.sendRequest(highKP, "bing");
+                values = await this.sendRequest(highKP, api);
             }
             return { keyterms: keyterms, external_recommendations: values, kp_string: [kp_string] };
         };
@@ -320,38 +320,27 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             });
         }
         else if (api === "bing") {
-            await this.bingWebSearch(query);
+            return new Promise<any>(resolve => {
+                this.bingWebSearch(query).then(resolve);
+            });
         }
         else {
-            return new Promise<any>(resolve => {
-                this.arxivrequest(query).then(resolve);
-            });
+            console.log("no api specified :(");
         }
 
     }
 
     bingWebSearch = async (query: string) => {
-        https.get({
-            hostname: 'api.cognitive.microsoft.com',
-            path: '/bing/v5.0/search?q=' + encodeURIComponent(query),
-            headers: { 'Ocp-Apim-Subscription-Key': process.env.BING },
-        }, (res: any) => {
-            let body = '';
-            res.on('data', (part: any) => body += part);
-            res.on('end', () => {
-                for (var header in res.headers) {
-                    if (header.startsWith("bingapis-") || header.startsWith("x-msedge-")) {
-                        console.log(header + ": " + res.headers[header])
-                    }
-                }
-                console.log('\nJSON Response:\n');
-                console.dir(JSON.parse(body), { colors: false, depth: null });
-            })
-            res.on('error', (e: any) => {
-                console.log('Error: ' + e.message);
-                throw e;
+        const converter = async (results: any) => {
+            let title_vals: string[] = [];
+            let url_vals: string[] = [];
+            results.webPages.value.forEach((doc: any) => {
+                title_vals.push(doc.name);
+                url_vals.push(doc.url);
             });
-        });
+            return { title_vals, url_vals };
+        };
+        return CognitiveServices.BingSearch.Appliers.analyzer(query, converter);
     }
 
     /**

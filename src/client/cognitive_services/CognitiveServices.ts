@@ -17,6 +17,7 @@ type AnalysisApplier<D> = (target: Doc, relevantKeys: string[], data: D, ...args
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
 type TextConverter = (results: any, data: string) => Promise<{ keyterms: Field, external_recommendations: any, kp_string: string[] }>;
+type BingConverter = (results: any) => Promise<{ title_vals: string[], url_vals: string[] }>;
 
 export type Tag = { name: string, confidence: number };
 export type Rectangle = { top: number, left: number, width: number, height: number };
@@ -25,7 +26,8 @@ export enum Service {
     ComputerVision = "vision",
     Face = "face",
     Handwriting = "handwriting",
-    Text = "text"
+    Text = "text",
+    Bing = "bing"
 }
 
 export enum Confidence {
@@ -224,6 +226,56 @@ export namespace CognitiveServices {
         }
 
     }
+
+    export namespace BingSearch {
+        export const Manager: APIManager<string> = {
+            converter: (data: string) => {
+                return data;
+            },
+            requester: async (apiKey: string, query: string) => {
+                let xhttp = new XMLHttpRequest();
+                let serverAddress = "https://api.cognitive.microsoft.com";
+                let endpoint = serverAddress + '/bing/v5.0/search?q=' + encodeURIComponent(query);
+                let promisified = (resolve: any, reject: any) => {
+                    xhttp.onreadystatechange = function () {
+                        if (this.readyState === 4) {
+                            let result = xhttp.responseText;
+                            switch (this.status) {
+                                case 200:
+                                    return resolve(result);
+                                case 400:
+                                default:
+                                    return reject(result);
+                            }
+                        }
+                    };
+
+                    if (apiKey) {
+                        xhttp.open("GET", endpoint, true);
+                        xhttp.setRequestHeader('Ocp-Apim-Subscription-Key', apiKey);
+                        xhttp.setRequestHeader('Content-Type', 'application/json');
+                        xhttp.send();
+                    }
+                    else {
+                        console.log("API key for BING unavailable");
+                    }
+                };
+                return new Promise<any>(promisified);
+            }
+
+        };
+
+        export namespace Appliers {
+            export const analyzer = async (query: string, converter: BingConverter) => {
+                let results = await ExecuteQuery(Service.Bing, Manager, query);
+                console.log(results);
+                const { title_vals, url_vals } = await converter(results);
+                return { title_vals, url_vals };
+            };
+        }
+
+    }
+
 
     export namespace Text {
         export const Manager: APIManager<string> = {
