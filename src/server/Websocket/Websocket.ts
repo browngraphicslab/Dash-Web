@@ -60,7 +60,7 @@ export namespace WebSocket {
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 
-            Utils.InjectLogger(ConsoleColors.Magenta);
+            Utils.InjectLogger(socket, ConsoleColors.Yellow);
         });
 
     }

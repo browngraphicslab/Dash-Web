@@ -3,6 +3,7 @@ import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { EventEmitter } from 'events';
+import { ConsoleColors } from './server/ActionUtilities';
 
 export namespace Utils {
 
@@ -240,8 +241,13 @@ export namespace Utils {
         });
     }
 
-    export function InjectLogger(color: string) {
-
+    export function InjectLogger(socket: Socket, color: string) {
+        const on = socket.on;
+        socket.on = function (event: string | symbol, listener: (...args: any[]) => void) {
+            console.log(color, event);
+            on(event, listener);
+            return socket;
+        };
     }
 }
 
