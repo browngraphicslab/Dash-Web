@@ -140,12 +140,20 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         return meanVector;
     }
 
+    /***
+     * Processes sentence vector as Recommender Document, adds to Doc Set. 
+     */
+
     public processVector(vector: number[], dataDoc: Doc, isMainDoc: boolean) {
         if (vector.length > 0) {
             const internalDoc: RecommenderDocument = { actualDoc: dataDoc, vectorDoc: vector, score: 0 };
             ClientRecommender.Instance.addToDocSet(internalDoc, isMainDoc);
         }
     }
+
+    /***
+     * Adds to Doc set. Updates mainDoc (one clicked) if necessary.
+     */
 
     private addToDocSet(internalDoc: RecommenderDocument, isMainDoc: boolean) {
         if (ClientRecommender.Instance.docVectors) {
@@ -192,6 +200,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     public async extractText(dataDoc: Doc, extDoc: Doc, internal: boolean = true, api: string = "bing", isMainDoc: boolean = false, image: boolean = false) {
+        // STEP 1. Consolidate data of document. Depends on type of document. 
         let data: string = "";
         let taglist: FieldResult<List<string>> = undefined;
         if (image) {
@@ -207,14 +216,17 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             let fielddata = Cast(dataDoc.data, RichTextField);
             fielddata ? data = fielddata[ToPlainText]() : data = "";
         }
+
+        // STEP 2. Upon receiving response from Text Cognitive Services, do additional processing on keywords.
+        // Currently we are still using Cognitive Services for internal recommendations, but in the future this might not be necessary. 
+
         let converter = async (results: any, data: string, isImage: boolean = false) => {
             let keyterms = new List<string>(); // raw keywords
-            // let keyterms_counted = new List<string>(); // keywords, where each keyword is repeated. input to w2v
             let kp_string: string = ""; // keywords*frequency concatenated into a string. input into TF
             let highKP: string[] = [""]; // most frequent keyphrase
             let high = 0;
 
-            if (isImage) {
+            if (isImage) { // no keyphrase processing necessary
                 kp_string = data;
                 if (taglist) {
                     keyterms = taglist;
@@ -223,7 +235,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             }
             else { // text processing
                 results.documents.forEach((doc: any) => {
-                    let keyPhrases = doc.keyPhrases;
+                    let keyPhrases = doc.keyPhrases; // returned by Cognitive Services
                     keyPhrases.map((kp: string) => {
                         keyterms.push(kp);
                         const frequency = this.countFrequencies(kp, data); // frequency of keyphrase in paragraph
@@ -243,9 +255,11 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     });
                 });
             }
-            if (kp_string.length > 2) kp_string = kp_string.substring(0, kp_string.length - 2);
-            console.log("kp string: ", kp_string);
-            let values = "";
+            if (kp_string.length > 2) kp_string = kp_string.substring(0, kp_string.length - 2); // strips extra comma and space if there are a lot of keywords
+            console.log("kp_string: ", kp_string);
+
+            let ext_recs = "";
+            // Pushing keyword extraction to IBM for external recommendations. Should shift to internal eventually.
             if (!internal) {
                 const parameters: any = {
                     'language': 'en',
@@ -265,10 +279,14 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                         highKP = [sorted_keywords[0].text];
                     }
                 });
-                values = await this.sendRequest(highKP, api);
+                ext_recs = await this.sendRequest(highKP, api);
             }
-            return { keyterms: keyterms, external_recommendations: values, kp_string: [kp_string] };
+
+            // keyterms: list for extDoc, kp_string: input to TF, ext_recs: {titles, urls} of retrieved results from highKP query
+            return { keyterms: keyterms, external_recommendations: ext_recs, kp_string: [kp_string] };
         };
+
+        // STEP 3: Start recommendation pipeline. Branches off into internal and external in Cognitive Services 
         if (data !== "") {
             return CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, isMainDoc, internal);
         }
@@ -298,16 +316,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     /**
      * 
-     * Removes stopwords from list of strings representing a sentence
-     */
-
-    private removeStopWords(word_array: string[]) {
-        //console.log(sw.removeStopwords(word_array));
-        return sw.removeStopwords(word_array);
-    }
-
-    /**
-     * 
      * API for sending arXiv request.
      */
 
@@ -329,6 +337,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         }
 
     }
+
+    /**
+     * Request to Bing API. Most of code is in Cognitive Services. 
+     */
 
     bingWebSearch = async (query: string) => {
         const converter = async (results: any) => {
@@ -357,7 +369,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                 if (this.readyState === 4) {
                     let result = xhttp.response;
                     let xml = xhttp.responseXML;
-                    console.log(xml);
+                    console.log("arXiv Result: ", xml);
                     switch (this.status) {
                         case 200:
                             let title_vals: string[] = [];
@@ -369,7 +381,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                                 if (titles && titles.length > 1) {
                                     while (counter <= maxresults) {
                                         const title = titles[counter].childNodes[0].nodeValue!;
-                                        console.log(title)
                                         title_vals.push(title);
                                         counter++;
                                     }
@@ -379,7 +390,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                                 if (ids && ids.length > 1) {
                                     while (counter <= maxresults) {
                                         const url = ids[counter].childNodes[0].nodeValue!;
-                                        console.log(url);
                                         url_vals.push(url);
                                         counter++;
                                     }

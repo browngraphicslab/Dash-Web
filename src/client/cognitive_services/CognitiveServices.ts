@@ -268,7 +268,7 @@ export namespace CognitiveServices {
         export namespace Appliers {
             export const analyzer = async (query: string, converter: BingConverter) => {
                 let results = await ExecuteQuery(Service.Bing, Manager, query);
-                console.log(results);
+                console.log("Bing results: ", results);
                 const { title_vals, url_vals } = await converter(results);
                 return { title_vals, url_vals };
             };
@@ -310,7 +310,6 @@ export namespace CognitiveServices {
                     }
 
                 };
-                console.log("requested!");
                 return request.post(options);
             }
         };
@@ -343,7 +342,7 @@ export namespace CognitiveServices {
 
             export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, isMainDoc: boolean = false, isInternal: boolean = true) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
-                console.log(results);
+                console.log("Cognitive Services keyphrases: ", results);
                 let { keyterms, external_recommendations, kp_string } = await converter(results, data);
                 target[keys[0]] = keyterms;
                 if (isInternal) {
