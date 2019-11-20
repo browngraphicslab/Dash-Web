@@ -43,7 +43,11 @@ async function preliminaryFunctions() {
     // divide the public directory based on type
     await Promise.all(Object.keys(Partitions).map(partition => DashUploadUtils.createIfNotExists(filesDirectory + partition)));
     // connect to the database
-    await Database.tryInitializeConnection();
+    await log_execution({
+        startMessage: "attempting to initialize mongodb connection",
+        endMessage: "connection outcome determined",
+        action: Database.tryInitializeConnection
+    });
 }
 
 /**
@@ -106,6 +110,10 @@ function routeSetter(router: RouteManager) {
 }
 
 (async function start() {
-    await log_execution("starting execution of preliminary functions", "completed preliminary functions", preliminaryFunctions);
+    await log_execution({
+        startMessage: "starting execution of preliminary functions",
+        endMessage: "completed preliminary functions",
+        action: preliminaryFunctions
+    });
     await initializeServer({ listenAtPort: 1050, routeSetter });
 })();

@@ -6,9 +6,9 @@ import { Database } from "../database";
 import { Search } from "../Search";
 import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
-import { readFile } from "fs";
-import { Credentials } from "google-auth-library";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
+import { ConsoleColors, logPort } from "../ActionUtilities";
+import { EventEmitter } from "events";
 
 export namespace WebSocket {
 
@@ -28,10 +28,10 @@ export namespace WebSocket {
     async function preliminaryFunctions() {
     }
 
-    export function initialize(serverPort: number, isRelease: boolean) {
+    export function initialize(socketPort: number, isRelease: boolean) {
         const endpoint = io();
-        endpoint.listen(serverPort);
-        console.log(`listening on port ${serverPort}`);
+        endpoint.listen(socketPort);
+        logPort("websocket", socketPort);
 
         endpoint.on("connection", function (socket: Socket) {
             socket.use((_packet, next) => {
@@ -92,7 +92,7 @@ export namespace WebSocket {
 
     function barReceived(socket: SocketIO.Socket, guid: string) {
         clients[guid] = new Client(guid.toString());
-        console.log(`User ${guid} has connected`);
+        console.log(ConsoleColors.Green, `User ${guid} has connected`);
         socketMap.set(socket, guid);
     }
 

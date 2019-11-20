@@ -19,6 +19,7 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
+import { ConsoleColors, logPort } from './ActionUtilities';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -35,6 +36,11 @@ export default async function InitializeServer(options: InitializationOptions) {
     server.use(express.static(publicDirectory));
     server.use("/images", express.static(publicDirectory));
 
+    server.use("*", (req, _res, next) => {
+        console.log(ConsoleColors.Cyan, req.originalUrl, req.user.id);
+        next();
+    });
+
     server.use(wdm(compiler, { publicPath: config.output.publicPath }));
     server.use(whm(compiler));
 
@@ -44,7 +50,7 @@ export default async function InitializeServer(options: InitializationOptions) {
     const isRelease = determineEnvironment(); //vs. dev mode
     routeSetter(new RouteManager(server, isRelease));
 
-    server.listen(listenAtPort, () => console.log(`server started at http://localhost:${listenAtPort}`));
+    server.listen(listenAtPort, () => logPort("server", listenAtPort));
     return isRelease;
 }
 

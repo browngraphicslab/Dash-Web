@@ -27,8 +27,31 @@ export const write_text_file = (relativePath: string, contents: any) => {
     });
 };
 
-export async function log_execution(startMessage: string, endMessage: string, contents: () => void | Promise<void>) {
-    console.log('\x1b[36m%s\x1b[0m', `${startMessage}...`);
-    await contents();
-    console.log(endMessage);
+export interface LogData {
+    startMessage: string;
+    endMessage: string;
+    action: () => void | Promise<void>;
+}
+
+export async function log_execution({ startMessage, endMessage, action }: LogData) {
+    const color = `\x1b[${30 + Math.ceil(Math.random() * 6)}m%s\x1b[0m`;
+    console.log(color, `${startMessage}...`);
+    await action();
+    console.log(color, endMessage);
+}
+
+export enum ConsoleColors {
+    Black = `\x1b[30m%s\x1b[0m`,
+    Red = `\x1b[31m%s\x1b[0m`,
+    Green = `\x1b[32m%s\x1b[0m`,
+    Yellow = `\x1b[33m%s\x1b[0m`,
+    Blue = `\x1b[34m%s\x1b[0m`,
+    Magenta = `\x1b[35m%s\x1b[0m`,
+    Cyan = `\x1b[36m%s\x1b[0m`,
+    White = `\x1b[37m%s\x1b[0m`
+}
+
+export function logPort(listener: string, port: number) {
+    process.stdout.write(`${listener} listening on port `);
+    console.log(ConsoleColors.Yellow, port);
 }

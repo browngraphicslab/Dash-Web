@@ -2,6 +2,7 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
+import { EventEmitter } from 'events';
 
 export namespace Utils {
 
@@ -237,6 +238,10 @@ export namespace Utils {
             log('S receiving', message.Name, arg, true);
             handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
+    }
+
+    export function InjectLogger() {
+
     }
 }
 
