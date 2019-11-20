@@ -166,12 +166,15 @@ export class
 
     @action
     private setvisible() {
-        this.visible = true;
+        this.props.timelinedoc.currdoc = this.props.doc;
+        console.log("MASSIVE ")
+        console.log(this.props.doc[this.props.sortstate]);
+        this.props.timelinedoc.currval = this.props.doc[this.props.sortstate];
+
         console.log(this.visible);
     }
     @action
     private setvisible2() {
-        this.visible = false;
         console.log(this.visible);
     }
 
@@ -242,4 +245,6 @@ export interface NodeProps {
     update: boolean;
     range: number;
     rangeval: boolean;
+    sethover: (doc: Doc) => void;
+    timelinedoc: Doc;
 }

@@ -20,6 +20,12 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { number } from "prop-types";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { RichTextUtils } from "../../../new_fields/RichTextUtils";
+import { DocumentView } from "../nodes/DocumentView";
+import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
+import { Transform } from "../../util/Transform";
+
+
 
 type MarkerUnit = {
     document: Doc,
@@ -103,7 +109,30 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         super(props);
     }
 
+    @observable
+    private previewdoc = new Doc();
+    @action
+    make(squad: Doc, string: string) {
+        console.log("SWAGGY");
+        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
+        let proto = text.proto!;
+        let swaggy = "SWAGGY";
+        let swagger = StrCast(squad[this.currentSortingKey]);
+        console.log(string);
+        proto.data = new RichTextField(RichTextUtils.Initialize(string));
+        let text2 = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
+        let proto2 = text2.proto!;
+        proto2.data = new RichTextField(RichTextUtils.Initialize(StrCast(squad[this.currentSortingKey])));
+        let doc = Docs.Create.StackingDocument([squad, text, text2], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" });
+        doc.title = "preview";
+        this.previewdoc = doc;
+        //this.props.addDocument(doc);
+    }
+
+
     componentWillMount() {
+        //context menu field    
+
         runInAction(() => {
             for (let i = 0; i < this.filtered.length; i++) {
                 this.types[i] = true;
@@ -119,8 +148,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createdownbool();
         window.addEventListener('resize', () => this.createRows(this.rowscale));
     }
-
     componentDidMount() {
+        reaction(
+            () => this.props.Document.currdoc,
+            async () => {
+                let doc = await Cast(this.props.Document.currdoc, Doc);
+                let string = await StrCast(this.props.Document.currval);
+                doc ? this.make(doc, string) : undefined;
+            }
+        );
+
         reaction(
             () => this.childDocs,
             () => {
@@ -1263,6 +1300,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
+        this.props.addDocument(new Doc);
         this.transtate = false;
         this.downbool = false;
         let temp = this.barwidth - this.rightbound - this.leftbound;
@@ -1312,14 +1350,54 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return this.barwidth / (this.barwidth - this.leftbound - this.rightbound);
     }
 
+    sethoverdoc(doc: Doc) {
+        this.previewdoc = doc;
+    }
 
     render() {
+        //console.log(DocListCast(this.props.Document.data).length);
+        this.props.Document.currdoc ? console.log(StrCast(this.props.Document.currdoc)) : undefined;
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
+        let d = this.previewdoc;
+        let width = 50;
+        let height = 50;
+        let nativeWidth = NumCast(d.nativeWidth, width);
+        let nativeHeight = NumCast(d.nativeHeight, height);
+        let wscale = width / (nativeWidth ? nativeWidth : width);
+        if (wscale * nativeHeight > height) {
+            wscale = height / (nativeHeight ? nativeHeight : height);
+        }
+        let contentScaling = () => wscale;
+        let transform = () => new Transform(0, 0, 1);
+        let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
+
+        let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
+
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+                    <DocumentView
+                        pinToPres={this.props.pinToPres}
+                        Document={d}
+                        ruleProvider={undefined}
+                        ScreenToLocalTransform={getTransform}
+                        renderDepth={this.props.renderDepth + 1}
+                        PanelWidth={d[WidthSym]}
+                        PanelHeight={d[HeightSym]}
+                        ContentScaling={contentScaling}
+                        ContainingCollectionView={this.props.CollectionView}
+                        ContainingCollectionDoc={this.props.Document}
+                        focus={emptyFunction}
+                        backgroundColor={returnEmptyString}
+                        parentActive={this.props.active}
+                        bringToFront={emptyFunction}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        addDocTab={this.props.addDocTab}
+                        zoomToScale={emptyFunction}
+                        getScale={returnOne}>
+                    </DocumentView>
                     <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
                         {<div style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                             {this._visible ? this.marqueeDiv : null}
@@ -1361,6 +1439,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                                 update={this.update}
                                 range={this._range}
                                 rangeval={this.toggle_tick_numbers}
+                                sethover={this.sethoverdoc}
+                                timelinedoc={this.props.Document}
                             />
                         )
                         }
