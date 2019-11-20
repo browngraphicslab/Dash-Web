@@ -839,7 +839,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
-        if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
@@ -854,7 +854,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         (e.nativeEvent as any).formattedHandled = true;
 
-        if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
+        if (e.buttons === 1 && this.props.isSelected(true) && !e.altKey) {
             e.stopPropagation();
         }
     }
@@ -867,7 +867,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
-        if (this.props.isSelected() || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
+        if (this.props.isSelected(true) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
             e.stopPropagation();
         }
     }
@@ -878,7 +878,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
-        // if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+        // if (e.button === 0 && ((!this.props.isSelected(true) && !e.ctrlKey) || (this.props.isSelected(true) && e.ctrlKey)) && !e.metaKey && e.target) {
         //     let href = (e.target as any).href;
         //     let location: string;
         //     if ((e.target as any).attributes.location) {
@@ -918,7 +918,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
     hitBulletTargets(x: number, y: number, offsetX: number, select: boolean = false) {
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
-        if (this.props.isSelected() && offsetX < 40) {
+        if (this.props.isSelected(true) && offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: x, top: y });
             if (pos && pos.pos > 0) {
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);

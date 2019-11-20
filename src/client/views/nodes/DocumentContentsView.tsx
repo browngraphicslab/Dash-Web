@@ -50,7 +50,7 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 
 @observer
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
-    isSelected: () => boolean,
+    isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     onClick?: ScriptField,
     layoutKey: string,

@@ -448,7 +448,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 tab.element.append(upDiv);
                 tab.reactionDisposer = reaction(() => [doc.title, Doc.IsBrushedDegree(doc)], () => {
                     tab.titleElement[0].textContent = doc.title, { fireImmediately: true };
-                    tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegree(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegree(doc)]} 1px`;
+                    tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegreeUnmemoized(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegreeUnmemoized(doc)]} 1px`;
                 });
                 //TODO why can't this just be doc instead of the id?
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;

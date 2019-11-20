@@ -27,7 +27,7 @@ interface DocExtendableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
-    isSelected: () => boolean;
+    isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
 }
 export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
@@ -37,7 +37,7 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
         @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
         @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-        active = () => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected() || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
     }
     return Component;
 }
@@ -49,7 +49,7 @@ interface DocAnnotatableProps {
     DataDoc?: Doc;
     fieldKey: string;
     whenActiveChanged: (isActive: boolean) => void;
-    isSelected: () => boolean;
+    isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
@@ -82,10 +82,10 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-        active = () => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
-            (this.props.Document.forceActive || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0) ? true : false)
-        annotationsActive = () => (InkingControl.Instance.selectedTool !== InkTool.None ||
-            (this.props.Document.forceActive || this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
+            (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        annotationsActive = (outsideReaction?: boolean) => (InkingControl.Instance.selectedTool !== InkTool.None ||
+            (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;
 }

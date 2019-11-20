@@ -249,7 +249,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
             this._reactionDisposer = reaction(() => this.Document.currentTimecode, () => !this._playing && this.Seek(this.Document.currentTimecode || 0));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
-                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
+                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
         };

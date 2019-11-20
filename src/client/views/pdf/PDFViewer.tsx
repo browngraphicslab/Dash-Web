@@ -59,10 +59,10 @@ interface IViewerProps {
     startupLive: boolean;
     renderDepth: number;
     focus: (doc: Doc) => void;
-    isSelected: () => boolean;
+    isSelected: (outsideReaction?: boolean) => boolean;
     loaded: (nw: number, nh: number, np: number) => void;
-    active: () => boolean;
-    isChildActive: () => boolean;
+    active: (outsideReaction?: boolean) => boolean;
+    isChildActive: (outsideReaction?: boolean) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc) => boolean;
@@ -166,7 +166,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     copy = (e: ClipboardEvent) => {
-        if (this.props.active() && e.clipboardData) {
+        if (this.props.active(true) && e.clipboardData) {
             let annoDoc = this.makeAnnotationDocument("rgba(3,144,152,0.3)");  // copied text markup color (blueish)
             if (annoDoc) {
                 e.clipboardData.setData("text/plain", this._selectionText);
@@ -397,7 +397,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         let hit = document.elementFromPoint(e.clientX, e.clientY);
-        if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
+        if (hit && hit.localName === "span" && this.props.isSelected(true)) {  // drag selecting text stops propagation
             e.button === 0 && e.stopPropagation();
         }
         // if alt+left click, drag and annotate
@@ -405,11 +405,11 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this._downY = e.clientY;
         addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
         if ((this.Document.scale || 1) !== 1) return;
-        if ((e.button !== 0 || e.altKey) && this.active()) {
+        if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
         }
         this._marqueeing = false;
-        if (!e.altKey && e.button === 0 && this.active()) {
+        if (!e.altKey && e.button === 0 && this.active(true)) {
             // clear out old marquees and initialize menu for new selection
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;

@@ -4,7 +4,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
-import './DocumentDecorations.scss';
+import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template, Templates } from "./Templates";
 import React = require("react");
@@ -175,7 +175,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         return (
             <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
                 <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                <ul id="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
+                <ul className="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
                     {<button onClick={this.clearTemplates}>Restore Defaults</button>}
                 </ul>
