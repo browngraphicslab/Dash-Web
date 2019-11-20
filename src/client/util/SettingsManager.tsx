@@ -7,6 +7,7 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "./SelectionManager";
 import "./SettingsManager.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Identified } from "../Network";
 
 library.add(fa.faWindowClose);
 
@@ -16,6 +17,7 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private isOpen = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
+    private curr_password_ref = React.createRef<HTMLInputElement>();
 
     public open = action(() => {
         SelectionManager.DeselectAll();
@@ -31,23 +33,35 @@ export default class SettingsManager extends React.Component<{}> {
         SettingsManager.Instance = this;
     }
 
+    private dispatchRequest = async () => {
+        const curr_pass = this.curr_password_ref.current!.value;
+        const { error: resultError, ...others } = await Identified.PostToServer('/internalResetPassword', { curr_pass });
+        if (resultError) {
+            // we failed
+        }
+        // do stuff with response
+    }
+
     private get settingsInterface() {
         return (
             <div className={"settings-interface"}>
-                <div className={"close-button"} onClick={this.close}>
-                    <FontAwesomeIcon icon={fa.faWindowClose} />
+                <div className="settings-heading">
+                    <h1>settings</h1>
+                    <div className={"close-button"} onClick={this.close}>
+                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+                    </div>
                 </div>
-                <h1>settings</h1>
+                <div className="settings-body">
+                    <div className="settings-type">
+                        <p>changeable settings</p>
+                        <p>static data</p>
+                    </div>
+                    <div className="settings-content">
+                        <input ref={this.curr_password_ref}></input>
+                        this changes with what you select!
+                    </div>
+                </div>
 
-                <div>toggle
-                    second toggle
-                </div>
-                <div>hellow
-                    heree
-                    s
-                    a
-                    lot of information hahahahahahahah
-                </div>
             </div>
         );
     }

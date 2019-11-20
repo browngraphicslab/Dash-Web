@@ -668,6 +668,16 @@ addSecureRoute({
     onRejection: (_req, res) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
 });
 
+addSecureRoute({
+    method: Method.POST,
+    subscribers: '/internalResetPassword',
+    onValidation: (user, _req, res) => {
+        // user password auth
+        // new pass same
+        // do extra stuff
+    }
+});
+
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
     ["vision", process.env.VISION],
