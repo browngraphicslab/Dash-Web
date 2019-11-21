@@ -653,7 +653,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    childDataProvider = computedFn((doc: Doc) => this._layoutPoolData.get(doc[Id]));
+    childDataProvider = computedFn(function childDataProvider(doc: Doc) { return (this as any)._layoutPoolData.get(doc[Id]); });
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
@@ -697,7 +697,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     componentDidMount() {
         this._layoutComputeReaction = reaction(() => { trace(); return this.doLayoutComputation },
             action((computation: { elements: ViewDefResult[] }) => computation && (this._layoutElements = computation.elements)),
-            { fireImmediately: true });
+            { fireImmediately: true, name: "doLayout" });
     }
     componentWillUnmount() {
         this._layoutComputeReaction && this._layoutComputeReaction();
