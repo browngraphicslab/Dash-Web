@@ -37,7 +37,7 @@ export default async function InitializeServer(options: InitializationOptions) {
     server.use("/images", express.static(publicDirectory));
 
     server.use("*", (req, _res, next) => {
-        console.log(ConsoleColors.Cyan, req.originalUrl, req.user.id);
+        console.log(ConsoleColors.Cyan, req.originalUrl, req.user.email);
         next();
     });
 

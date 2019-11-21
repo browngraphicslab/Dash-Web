@@ -8,7 +8,6 @@ import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { ConsoleColors, logPort } from "../ActionUtilities";
-import { EventEmitter } from "events";
 
 export namespace WebSocket {
 
@@ -30,9 +29,6 @@ export namespace WebSocket {
 
     export function initialize(socketPort: number, isRelease: boolean) {
         const endpoint = io();
-        endpoint.listen(socketPort);
-        logPort("websocket", socketPort);
-
         endpoint.on("connection", function (socket: Socket) {
             socket.use((_packet, next) => {
                 let id = socketMap.get(socket);
@@ -60,7 +56,8 @@ export namespace WebSocket {
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
         });
-
+        endpoint.listen(socketPort);
+        logPort("websocket", socketPort);
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
@@ -92,7 +89,7 @@ export namespace WebSocket {
 
     function barReceived(socket: SocketIO.Socket, guid: string) {
         clients[guid] = new Client(guid.toString());
-        console.log(ConsoleColors.Green, `User ${guid} has connected`);
+        console.log(ConsoleColors.Green, `user ${guid} has connected to the web socket`);
         socketMap.set(socket, guid);
     }
 

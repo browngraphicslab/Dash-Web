@@ -240,15 +240,6 @@ export namespace Utils {
             handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
     }
-
-    export function InjectLogger(socket: Socket, color: string) {
-        const on = socket.on;
-        socket.on = function (event: string | symbol, listener: (...args: any[]) => void) {
-            console.log(color, event);
-            on(event, listener);
-            return socket;
-        };
-    }
 }
 
 export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
