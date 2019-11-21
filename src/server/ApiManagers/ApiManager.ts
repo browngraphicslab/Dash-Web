@@ -5,7 +5,7 @@ export type Registration = (initializer: RouteInitializer) => void;
 export default abstract class ApiManager {
     protected abstract initialize(register: Registration): void;
 
-    public register(router: RouteManager) {
-        this.initialize(router.addSupervisedRoute);
+    public register(register: Registration) {
+        this.initialize(register);
     }
 }

@@ -5,7 +5,7 @@ import v4 = require('uuid/v4');
 var AdmZip = require('adm-zip');
 import * as path from 'path';
 import { createReadStream, createWriteStream, unlink, readFileSync } from "fs";
-import { publicDirectory, filesDirectory, Partitions } from "..";
+import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
 import { DashUploadUtils } from "../DashUploadUtils";
 import { Opt } from "../../new_fields/Doc";
@@ -142,7 +142,7 @@ export default class UploadManager extends ApiManager {
                                 let dataBuffer = readFileSync(filesDirectory + filename);
                                 const result: ParsedPDF = await pdf(dataBuffer);
                                 await new Promise<void>((resolve, reject) => {
-                                    const path = filesDirectory + Partitions.pdf_text + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
+                                    const path = filesDirectory + DashUploadUtils.Partitions.pdf_text + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
                                     createWriteStream(path).write(result.text, error => {
                                         if (!error) {
                                             resolve();

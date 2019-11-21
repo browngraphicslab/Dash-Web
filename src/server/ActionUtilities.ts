@@ -33,8 +33,9 @@ export interface LogData {
     action: () => void | Promise<void>;
 }
 
+let current = Math.ceil(Math.random() * 20);
 export async function log_execution({ startMessage, endMessage, action }: LogData) {
-    const color = `\x1b[${30 + Math.ceil(Math.random() * 6)}m%s\x1b[0m`;
+    const color = `\x1b[${31 + current++ % 6}m%s\x1b[0m`;
     console.log(color, `${startMessage}...`);
     await action();
     console.log(color, endMessage);

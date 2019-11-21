@@ -22,13 +22,8 @@ import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 
-export const publicDirectory = __dirname + "/public";
-export const filesDirectory = publicDirectory + "/files/";
-export enum Partitions {
-    pdf_text,
-    images,
-    videos
-}
+export const publicDirectory = path.resolve(__dirname, "public");
+export const filesDirectory = path.resolve(publicDirectory, "files") + "/";
 
 /**
  * These are the functions run before the server starts
@@ -36,13 +31,9 @@ export enum Partitions {
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
-    // make project credentials globally accessible
     await GoogleCredentialsLoader.loadCredentials();
-    // read the resulting credentials into a different namespace
     GoogleApiServerUtils.processProjectCredentials();
-    // divide the public directory based on type
-    await Promise.all(Object.keys(Partitions).map(partition => DashUploadUtils.createIfNotExists(filesDirectory + partition)));
-    // connect to the database
+    await DashUploadUtils.buildFilePartitions();
     await log_execution({
         startMessage: "attempting to initialize mongodb connection",
         endMessage: "connection outcome determined",
@@ -59,7 +50,7 @@ async function preliminaryFunctions() {
  * that will manage the registration of new routes
  * with the server
  */
-function routeSetter(router: RouteManager) {
+function routeSetter({ isRelease, addSupervisedRoute }: RouteManager) {
     const managers = [
         new UserManager(),
         new UploadManager(),
@@ -73,16 +64,16 @@ function routeSetter(router: RouteManager) {
     ];
 
     // initialize API Managers
-    managers.forEach(manager => manager.register(router));
+    managers.forEach(manager => manager.register(addSupervisedRoute));
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(serverPort, router.isRelease);
+    WebSocket.initialize(serverPort, isRelease);
 
     /**
      * Accessing root index redirects to home
      */
-    router.addSupervisedRoute({
+    addSupervisedRoute({
         method: Method.GET,
         subscription: "/",
         onValidation: ({ res }) => res.redirect("/home")
@@ -94,7 +85,7 @@ function routeSetter(router: RouteManager) {
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
 
-    router.addSupervisedRoute({
+    addSupervisedRoute({
         method: Method.GET,
         subscription: ["/home", new RouteSubscriber("doc").add("docId")],
         onValidation: serve,

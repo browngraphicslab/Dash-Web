@@ -6,6 +6,7 @@ import request = require('request-promise');
 import { ExifData, ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
 import { SharedMediaTypes } from './SharedMediaTypes';
+import { filesDirectory } from '.';
 
 const uploadDirectory = path.join(__dirname, './public/files/');
 
@@ -87,6 +88,17 @@ export namespace DashUploadUtils {
     export interface EnrichedExifData {
         data: ExifData;
         error?: string;
+    }
+
+    export enum Partitions {
+        pdf_text,
+        images,
+        videos
+    }
+
+    export async function buildFilePartitions() {
+        const pending = Object.keys(Partitions).map(sub => createIfNotExists(filesDirectory + sub));
+        return Promise.all(pending);
     }
 
     /**
