@@ -463,7 +463,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        SelectionManager.SelectedDocuments().forEach(element => {
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
                 let layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
@@ -509,7 +509,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
                 }
             }
-        });
+        }));
     }
 
     @action

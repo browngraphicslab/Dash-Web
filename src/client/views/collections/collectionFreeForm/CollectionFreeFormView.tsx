@@ -73,7 +73,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _layoutPoolData = new ObservableMap<string, any>();
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
-    @observable _layoutElements: ViewDefResult[] = [];
+    @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
 
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
@@ -653,12 +653,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     childDataProvider = computedFn((doc: Doc) => this._layoutPoolData.get(doc[Id]));
 
-    get doPivotLayout() {
-        return computePivotLayout(this.props.Document, this.childDocs,
+    doPivotLayout(poolData: ObservableMap<string, any>) {
+        return computePivotLayout(poolData, this.props.Document, this.childDocs,
             this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), this.viewDefsToJSX);
     }
 
-    get doFreeformLayout() {
+    doFreeformLayout(poolData: ObservableMap<string, any>) {
         let layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         let state = initResult && initResult.success ? initResult.result.scriptState : undefined;
@@ -669,7 +669,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             state = pos.state === undefined ? state : pos.state;
             let data = this._layoutPoolData.get(pair.layout[Id]);
             if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height || pos.transition !== data.transition) {
-                runInAction(() => this._layoutPoolData.set(pair.layout[Id], pos));
+                runInAction(() => poolData.set(pair.layout[Id], pos));
             }
         });
         return { elements: elements };
@@ -678,8 +678,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     get doLayoutComputation() {
         let computedElementData: { elements: ViewDefResult[] };
         switch (this.Document.freeformLayoutEngine) {
-            case "pivot": computedElementData = this.doPivotLayout; break;
-            default: computedElementData = this.doFreeformLayout; break;
+            case "pivot": computedElementData = this.doPivotLayout(this._layoutPoolData); break;
+            default: computedElementData = this.doFreeformLayout(this._layoutPoolData); break;
         }
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
             computedElementData.elements.push({
@@ -693,14 +693,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     componentDidMount() {
-        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
+        this._layoutComputeReaction = reaction(() => { trace(); return this.doLayoutComputation },
             action((computation: { elements: ViewDefResult[] }) => computation && (this._layoutElements = computation.elements)),
             { fireImmediately: true });
     }
     componentWillUnmount() {
         this._layoutComputeReaction && this._layoutComputeReaction();
     }
-    @computed.struct get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
+    @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;
 
     @action
@@ -873,9 +873,8 @@ interface CollectionFreeFormOverlayViewProps {
 
 @observer
 class CollectionFreeFormOverlayView extends React.Component<CollectionFreeFormOverlayViewProps>{
-    @computed.struct get overlayViews() { return this.props.elements().filter(ele => ele.bounds && ele.bounds.z).map(ele => ele.ele); }
     render() {
-        return this.overlayViews;
+        return this.props.elements().filter(ele => ele.bounds && ele.bounds.z).map(ele => ele.ele);
     }
 }
 
@@ -898,7 +897,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className={freeformclass} style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children()}
         </div>;
     }

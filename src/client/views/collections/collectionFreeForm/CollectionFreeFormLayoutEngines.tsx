@@ -6,6 +6,8 @@ import { ScriptField } from "../../../../new_fields/ScriptField";
 import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { emptyFunction } from "../../../../Utils";
 import React = require("react");
+import { ObservableMap, runInAction } from "mobx";
+import { Id } from "../../../../new_fields/FieldSymbols";
 
 interface PivotData {
     type: string;
@@ -31,8 +33,7 @@ export interface ViewDefResult {
     bounds?: ViewDefBounds;
 }
 
-export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
-    let layoutPoolData: Map<{ layout: Doc, data?: Doc }, any> = new Map();
+export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
     const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
 
@@ -49,6 +50,8 @@ export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: 
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
 
+    const expander = 1.05;
+    const gap = .15;
     let x = 0;
     pivotColumnGroups.forEach((val, key) => {
         let y = 0;
@@ -58,25 +61,31 @@ export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: 
             text: String(key),
             x,
             y: pivotAxisWidth + 50,
-            width: pivotAxisWidth * 1.25 * numCols,
+            width: pivotAxisWidth * expander * numCols,
             height: 100,
             fontSize: NumCast(pivotDoc.pivotFontSize, 10)
         });
         for (const doc of val) {
             let layoutDoc = Doc.Layout(doc);
+            let wid = pivotAxisWidth;
+            let hgt = layoutDoc.nativeWidth ? (NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
+            if (hgt > pivotAxisWidth) {
+                hgt = pivotAxisWidth;
+                wid = layoutDoc.nativeHeight ? (NumCast(layoutDoc.nativeWidth) / NumCast(layoutDoc.nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
+            }
             docMap.set(doc, {
-                x: x + xCount * pivotAxisWidth * 1.25,
+                x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2,
                 y: -y,
-                width: pivotAxisWidth,
-                height: layoutDoc.nativeWidth ? (NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth)) * pivotAxisWidth : pivotAxisWidth
+                width: wid,
+                height: hgt
             });
             xCount++;
             if (xCount >= numCols) {
-                xCount = 0;
-                y += pivotAxisWidth * 1.25;
+                xCount = (pivotAxisWidth - wid) / 2;
+                y += pivotAxisWidth * expander;
             }
         }
-        x += pivotAxisWidth * 1.25 * (numCols + 1);
+        x += pivotAxisWidth * (numCols * expander + gap);
     });
 
     childPairs.map(pair => {
@@ -88,9 +97,12 @@ export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: 
             height: NumCast(pair.layout.height)
         };
         const pos = docMap.get(pair.layout) || defaultPosition;
-        layoutPoolData.set(pair, { transition: "transform 1s", ...pos });
+        let data = poolData.get(pair.layout[Id]);
+        if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height) {
+            runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...pos }));
+        }
     });
-    return { map: layoutPoolData, elements: viewDefsToJSX(groupNames) };
+    return { elements: viewDefsToJSX(groupNames) };
 }
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {
