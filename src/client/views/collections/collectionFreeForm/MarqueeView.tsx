@@ -191,7 +191,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.active()) this.props.selectDocuments([this.props.Document], []);
+        if (!this.props.active(true)) this.props.selectDocuments([this.props.Document], []);
         if (this._visible) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {

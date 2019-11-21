@@ -21,6 +21,7 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../new_fields/documentSchemas';
+import { SelectionManager } from '../../util/SelectionManager';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -62,7 +63,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
                 document.removeEventListener("keydown", this.onKeyDown);
-                this.props.isSelected() && document.addEventListener("keydown", this.onKeyDown);
+                this.props.isSelected(true) && document.addEventListener("keydown", this.onKeyDown);
             }, { fireImmediately: true });
     }
 
@@ -202,16 +203,16 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         </div>;
     }
 
-    isChildActive = () => this._isChildActive;
+    isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         return <div className={"pdfBox-cont"} onContextMenu={this.specificContextMenu}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 addDocTab={this.props.addDocTab} focus={this.props.focus}
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
+                Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}

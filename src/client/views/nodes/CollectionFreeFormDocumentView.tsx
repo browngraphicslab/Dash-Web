@@ -12,7 +12,7 @@ import React = require("react");
 import { PositionDocument } from "../../../new_fields/documentSchemas";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc, dataDoc?: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
+    dataProvider?: (doc: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
     x?: number;
     y?: number;
     width?: number;
@@ -24,6 +24,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     _disposer: IReactionDisposer | undefined = undefined;
+    get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
@@ -32,7 +33,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let hgt = this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym]();
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
-    @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document, this.props.DataDoc) ? this.props.dataProvider(this.props.Document, this.props.DataDoc) : undefined; }
+    @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document) ? this.props.dataProvider(this.props.Document) : undefined; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc.nativeWidth); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc.nativeHeight); }
 

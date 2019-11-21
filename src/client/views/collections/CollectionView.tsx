@@ -113,7 +113,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     // bcz: Argh?  What's the height of the collection chromes??  
     chromeHeight = () => (this.props.ChromeHeight ? this.props.ChromeHeight() : 0) + (this.props.Document.chromeStatus === "enabled" ? -60 : 0);
 
-    active = () => this.props.isSelected() || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
+    active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
 
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
 
