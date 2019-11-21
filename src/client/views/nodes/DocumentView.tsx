@@ -41,6 +41,8 @@ import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { InteractionUtils } from '../../util/InteractionUtils';
+import { InkingControl } from '../InkingControl';
+import { InkTool } from '../../../new_fields/InkField';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -639,7 +641,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         </>;
     }
     @computed get ignorePointerEvents() {
-        return this.Document.isBackground && !this.isSelected();
+        return (this.Document.isBackground && !this.isSelected()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
     render() {
