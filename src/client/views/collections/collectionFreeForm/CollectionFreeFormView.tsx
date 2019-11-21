@@ -40,6 +40,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { computedFn, keepAlive } from "mobx-utils";
+import { TraceMobx } from "../../../../new_fields/util";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -621,12 +622,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
-        const script = this.Document.arrangeScript;
-        const result = script && script.script.run(params, console.log);
-        const layoutDoc = Doc.Layout(params.doc);
-        if (result && result.success) {
+        const result = this.Document.arrangeScript?.script.run(params, console.log);
+        if (result?.success) {
             return { ...result, transition: "transform 1s" };
         }
+        const layoutDoc = Doc.Layout(params.doc);
         return { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(layoutDoc.width, "number"), height: Cast(layoutDoc.height, "number") };
     }
 
@@ -653,7 +653,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    childDataProvider = computedFn(function childDataProvider(doc: Doc) { return (this as any)._layoutPoolData.get(doc[Id]); });
+    childDataProvider = computedFn(function childDataProvider(doc: Doc) { return (this as any)._layoutPoolData.get(doc[Id]); }.bind(this));
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
@@ -667,9 +667,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
+            const data = poolData.get(pair.layout[Id]);
             const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
             state = pos.state === undefined ? state : pos.state;
-            let data = this._layoutPoolData.get(pair.layout[Id]);
             if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height || pos.transition !== data.transition) {
                 runInAction(() => poolData.set(pair.layout[Id], pos));
             }
@@ -695,7 +695,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     componentDidMount() {
-        this._layoutComputeReaction = reaction(() => { trace(); return this.doLayoutComputation },
+        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
             action((computation: { elements: ViewDefResult[] }) => computation && (this._layoutElements = computation.elements)),
             { fireImmediately: true, name: "doLayout" });
     }
@@ -845,7 +845,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return eles;
     }
     render() {
-        trace();
+        TraceMobx();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         // this.Document.fitX = this.contentBounds && this.contentBounds.x;
         // this.Document.fitY = this.contentBounds && this.contentBounds.y;

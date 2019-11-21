@@ -43,6 +43,7 @@ import React = require("react");
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkingControl } from '../InkingControl';
 import { InkTool } from '../../../new_fields/InkField';
+import { TraceMobx } from '../../../new_fields/util';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -542,7 +543,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get finalLayoutKey() { return this.props.layoutKey || "layout"; }
     childScaling = () => (this.layoutDoc.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
-        trace();
+        TraceMobx();
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
@@ -586,7 +587,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @computed get innards() {
-        trace();
+        TraceMobx();
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
@@ -669,7 +670,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
-                transition: this.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
+                transition: this.Document.isAnimating ? ".5s linear" : StrCast(this.Document.transition),
                 pointerEvents: this.ignorePointerEvents ? "none" : "all",
                 color: StrCast(this.Document.color),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",

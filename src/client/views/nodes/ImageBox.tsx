@@ -27,6 +27,7 @@ import React = require("react");
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
+import { TraceMobx } from '../../../new_fields/util';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -268,7 +269,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     @computed get content() {
-        trace();
+        TraceMobx();
         const extensionDoc = this.extensionDoc;
         if (!extensionDoc) return (null);
         // let transform = this.props.ScreenToLocalTransform().inverse();
