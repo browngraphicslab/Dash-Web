@@ -695,7 +695,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     componentDidMount() {
-        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
+        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation; },
             action((computation: { elements: ViewDefResult[] }) => computation && (this._layoutElements = computation.elements)),
             { fireImmediately: true, name: "doLayout" });
     }

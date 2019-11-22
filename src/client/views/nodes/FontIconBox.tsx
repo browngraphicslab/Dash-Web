@@ -43,7 +43,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
                 background: StrCast(referenceLayout.backgroundColor),
                 boxShadow: this.props.Document.ischecked ? `4px 4px 12px black` : undefined
             }}>
-            <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} color={this._foregroundColor} size="md" />
+            <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} color={this._foregroundColor} size="sm" />
         </button>;
     }
 }

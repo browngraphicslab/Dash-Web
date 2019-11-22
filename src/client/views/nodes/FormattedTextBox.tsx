@@ -363,7 +363,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.toggleSidebar() }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.toggleSidebar(); }, icon: "expand-arrows-alt" });
         funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({

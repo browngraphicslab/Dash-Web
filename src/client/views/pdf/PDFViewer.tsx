@@ -673,7 +673,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     marqueeing = () => this._marqueeing;
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     contentZoom = () => this._zoomed;
-    @computed get contentScaling() { return this.props.ContentScaling() }
+    @computed get contentScaling() { return this.props.ContentScaling(); }
     render() {
         TraceMobx();
         return !this.extensionDoc ? (null) :
