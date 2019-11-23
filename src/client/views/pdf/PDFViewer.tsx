@@ -29,6 +29,7 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
+import { TraceMobx } from "../../../new_fields/util";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -620,7 +621,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     @computed get annotationLayer() {
-        // trace();
+        TraceMobx();
         return <div className="pdfViewer-annotationLayer" style={{ height: (this.Document.nativeHeight || 0), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
                 <Annotation {...this.props} focus={this.props.focus} extensionDoc={this.extensionDoc!} anno={anno} key={`${anno[Id]}-annotation`} />)}
@@ -672,14 +673,15 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     marqueeing = () => this._marqueeing;
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     contentZoom = () => this._zoomed;
+    @computed get contentScaling() { return this.props.ContentScaling(); }
     render() {
-        // trace();
+        TraceMobx();
         return !this.extensionDoc ? (null) :
             <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
                 style={{
-                    width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.props.ContentScaling()}%`,
-                    height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.props.ContentScaling()}%`,
-                    transform: `scale(${this.props.ContentScaling()})`
+                    width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
+                    height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,
+                    transform: `scale(${this.contentScaling})`
                 }} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}>
                 {this.pdfViewerDiv}
                 {this.overlayLayer}

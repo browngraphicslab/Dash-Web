@@ -26,6 +26,7 @@ import React = require("react");
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
+import { TraceMobx } from '../../../new_fields/util';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -267,7 +268,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
 
     @computed get content() {
-        // trace();
+        TraceMobx();
         const extensionDoc = this.extensionDoc;
         if (!extensionDoc) return (null);
         // let transform = this.props.ScreenToLocalTransform().inverse();
@@ -290,7 +291,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool || this.Document.isBackground ? "" : "-interactive";
+        let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let rotation = NumCast(this.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
@@ -333,7 +334,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     contentFunc = () => [this.content];
     render() {
         return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}
-            style={{ transformOrigin: "top left", transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}

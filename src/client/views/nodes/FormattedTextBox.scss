@@ -27,6 +27,8 @@
     pointer-events: all;
     overflow-y: auto;
     max-height: 100%;
+    display: flex;
+    flex-direction: row;
 
     .formattedTextBox-dictation {
         height: 20px;
@@ -48,10 +50,28 @@
     width: 100%;
     height: 100%;
 }
-.formattedTextBox-sidebar,.formattedTextBox-sidebar-inking {
-    border-left: solid 1px black; 
+.formattedTextBox-sidebar-handle {
+    position: absolute;
+    top: calc(50% - 17.5px);
+    width: 10px;
+    height: 35px;
+    background: lightgray;
+    border-radius: 20px;
+}
+.formattedTextBox-cont > .formattedTextBox-sidebar-handle {
+    right: 0;
+    left: unset;
+}
+.formattedTextBox-sidebar, .formattedTextBox-sidebar-inking {
+    border-left: dashed 1px black; 
     height: 100%; 
     display: inline-block;
+    position: absolute;
+    right: 0;
+    > .formattedTextBox-sidebar-handle {
+        right:unset;
+        left:-5;
+    }
 }
 
 .formattedTextBox-sidebar-inking {

@@ -41,7 +41,7 @@ export const documentSchema = createSchema({
     showTitle: "string",        // whether an editable title banner is displayed at tht top of the document
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
-    isAnimating: "boolean",     // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).
+    isAnimating: "string",      // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).  value is undefined|"min"|"max"
     animateToDimensions: listSpec("number"), // layout information about the target rectangle a document is animating towards 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
     strokeWidth: "number",
