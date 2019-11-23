@@ -336,7 +336,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         return (<div className={"videoBox-container"} onContextMenu={this.specificContextMenu}
-            style={{ transformOrigin: "top left", transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}

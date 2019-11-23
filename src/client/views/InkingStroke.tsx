@@ -35,7 +35,6 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
     @computed get PanelHeight() { return this.props.PanelHeight(); }
 
     render() {
-        // let pathData = this.parseData(this.props.line);
         let data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
         let xs = data.map(p => p.x);
         let ys = data.map(p => p.y);
@@ -48,7 +47,6 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
         let height = bottom - top;
         let scaleX = this.PanelWidth / width;
         let scaleY = this.PanelHeight / height;
-        // let pathlength = this.props.count; // bcz: this is needed to force reactions to the line's data changes
         return (
             <svg width={width} height={height} style={{
                 transformOrigin: "top left",

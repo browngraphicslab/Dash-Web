@@ -10,6 +10,7 @@ import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
 import { PositionDocument } from "../../../new_fields/documentSchemas";
+import { TraceMobx } from "../../../new_fields/util";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
@@ -56,11 +57,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this._disposer && this._disposer();
     }
     componentDidMount() {
-        this._disposer = reaction(() => [this.props.Document.animateToPos, this.props.Document.isAnimating],
-            () => {
-                const target = this.props.Document.animateToPos ? Array.from(Cast(this.props.Document.animateToPos, listSpec("number"))!) : undefined;
-                this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]);
-            }, { fireImmediately: true });
+        this._disposer = reaction(() => this.props.Document.animateToPos ? Array.from(Cast(this.props.Document.animateToPos, listSpec("number"))!) : undefined,
+            target => this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
+            { fireImmediately: true });
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect ? this.width / this.nativeWidth : 1;
@@ -88,7 +87,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
 
     render() {
-        trace();
+        TraceMobx();
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
@@ -99,7 +98,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                                     StrCast(this.layoutDoc.boxShadow, ""),
                 borderRadius: this.borderRounding(),
                 transform: this.transform,
-                transition: this.Document.isAnimating !== undefined ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
+                transition: this.Document.isAnimating ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
                 height: this.height,
                 zIndex: this.Document.zIndex || 0,
