@@ -41,7 +41,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouch = (e: TouchEvent): void => {
         // if we're not actually moving a lot, don't consider it as dragging yet
-        if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
+        // if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         switch (e.targetTouches.length) {
             case 1:
