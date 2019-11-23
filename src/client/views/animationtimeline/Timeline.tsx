@@ -21,6 +21,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     private DEFAULT_CONTAINER_HEIGHT: number = 330;
     private readonly DEFAULT_TICK_SPACING: number = 50;
+    private readonly MAX_TITLE_HEIGHT = 75; 
     private MIN_CONTAINER_HEIGHT: number = 205;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
     private readonly DEFAULT_TICK_INCREMENT: number = 1000;
@@ -61,7 +62,8 @@ export class Timeline extends React.Component<FieldViewProps> {
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
     }
     componentWillMount() {
-        this._titleHeight = window.innerHeight / 14; //arbitrary number, but for responsiveness              
+        let relativeHeight = window.innerHeight / 14; 
+        this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; 
         this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; 
         this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; 
     }

@@ -46,6 +46,7 @@ export class Track extends React.Component<IProps> {
         "backgroundLayout",
         "layout",
     ];
+    private readonly MAX_TITLE_HEIGHT = 75; 
     private _trackHeight = 0;
 
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
@@ -53,7 +54,8 @@ export class Track extends React.Component<IProps> {
     componentWillMount() {
         runInAction(() => {
             if (!this.props.node.regions) this.props.node.regions = new List<Doc>();
-            this._trackHeight = window.innerHeight / 14; //for responsiveness
+            let relativeHeight = window.innerHeight / 14; 
+            this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //for responsiveness
 
         });
     }
