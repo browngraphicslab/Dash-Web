@@ -637,7 +637,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     private viewDefToJSX(viewDef: any): Opt<ViewDefResult> {
-        if (viewDef.type === "text") {
+        if (viewDef.type === "text") { 
             const text = Cast(viewDef.text, "string"); // don't use NumCast, StrCast, etc since we want to test for undefined below
             const x = Cast(viewDef.x, "number");
             const y = Cast(viewDef.y, "number");
