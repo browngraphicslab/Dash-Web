@@ -26,7 +26,7 @@ import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss"
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
-import { CreatePolyline } from "../../InkingStroke";
+import { CreatePolyline, InkingStroke } from "../../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
@@ -282,20 +282,43 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
-            if (InkingControl.Instance.selectedTool === InkTool.None) {
+            // if physically using a pen or we're in pen or highlighter mode
+            if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+                e.stopPropagation();
+                e.preventDefault();
+                let point = this.getTransform().transformPoint(e.pageX, e.pageY);
+                this._points.push({ x: point[0], y: point[1] });
+            }
+            // if not using a pen and in no ink mode
+            else if (InkingControl.Instance.selectedTool === InkTool.None) {
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;
             }
+            // eraser or scrubber plus anything else mode
             else {
                 e.stopPropagation();
                 e.preventDefault();
-
-                if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
-                    let point = this.getTransform().transformPoint(e.pageX, e.pageY);
-                    this._points.push({ x: point[0], y: point[1] });
-                }
             }
         }
+        // if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        //     document.removeEventListener("pointermove", this.onPointerMove);
+        //     document.removeEventListener("pointerup", this.onPointerUp);
+        //     document.addEventListener("pointermove", this.onPointerMove);
+        //     document.addEventListener("pointerup", this.onPointerUp);
+        //     if (InkingControl.Instance.selectedTool === InkTool.None) {
+        //         this._lastX = e.pageX;
+        //         this._lastY = e.pageY;
+        //     }
+        //     else {
+        //         e.stopPropagation();
+        //         e.preventDefault();
+
+        //         if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
+        //             let point = this.getTransform().transformPoint(e.pageX, e.pageY);
+        //             this._points.push({ x: point[0], y: point[1] });
+        //         }
+        //     }
+        // }
     }
 
     @action
@@ -308,7 +331,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH) && this._points.length <= 1) return;
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && this._points.length <= 1) return;
 
         if (this._points.length > 1) {
             let B = this.svgBounds;
@@ -364,14 +387,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (InteractionUtils.IsType(e, InteractionUtils.TOUCH)) {
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) {
             if (this.props.active(true)) {
                 e.stopPropagation();
             }
             return;
         }
         if (!e.cancelBubble) {
-            if (InkingControl.Instance.selectedTool === InkTool.None) {
+            const selectedTool = InkingControl.Instance.selectedTool;
+            if (selectedTool === InkTool.Highlighter || selectedTool === InkTool.Pen || InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+                let point = this.getTransform().transformPoint(e.clientX, e.clientY);
+                this._points.push({ x: point[0], y: point[1] });
+            }
+            else if (selectedTool === InkTool.None) {
                 if (this._hitCluster && this.tryDragCluster(e)) {
                     e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                     e.preventDefault();
@@ -380,10 +408,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return;
                 }
                 this.pan(e);
-            }
-            else if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
-                let point = this.getTransform().transformPoint(e.clientX, e.clientY);
-                this._points.push({ x: point[0], y: point[1] });
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
