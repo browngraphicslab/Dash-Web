@@ -19,10 +19,10 @@ interface IProps {
     time: number;
     tickIncrement: number;
     tickSpacing: number;
-    timelineVisible: boolean; 
-    check: string; 
+    timelineVisible: boolean;
+    check: string;
     changeCurrentBarX: (x: number) => void;
-    checkCallBack: (visible: boolean) => void; 
+    checkCallBack: (visible: boolean) => void;
 
 }
 
@@ -36,35 +36,35 @@ export class Track extends React.Component<IProps> {
     @observable private _onRegionData: (Doc | undefined) = undefined;
     @observable private _storedState: (Doc | undefined) = undefined;
     @observable private filterList = [
-        "regions", 
-        "cursors", 
-        "hidden", 
-        "nativeHeight", 
-        "nativeWidth", 
-        "schemaColumns", 
-        "baseLayout", 
-        "backgroundLayout", 
-        "layout", 
-    ]; 
-        
-    @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;}
+        "regions",
+        "cursors",
+        "hidden",
+        "nativeHeight",
+        "nativeWidth",
+        "schemaColumns",
+        "baseLayout",
+        "backgroundLayout",
+        "layout",
+    ];
+    private _trackHeight = 0;
+
+    @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
 
     componentWillMount() {
         runInAction(() => {
-            if (!this.props.node.regions) this.props.node.regions = new List<Doc>(); 
-            console.log("hi");          
-            console.log("HELLO");  
-            console.log("hi");
+            if (!this.props.node.regions) this.props.node.regions = new List<Doc>();
+            this._trackHeight = window.innerHeight / 14; //for responsiveness
+
         });
     }
 
     componentDidMount() {
         runInAction(async () => {
-            this._timelineVisibleReaction = this.timelineVisibleReaction(); 
+            this._timelineVisibleReaction = this.timelineVisibleReaction();
             this._currentBarXReaction = this.currentBarXReaction();
             if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
-            this.props.node.hidden = false;                   
-            this.props.node.opacity = 1; 
+            this.props.node.hidden = false;
+            this.props.node.opacity = 1;
         });
     }
 
@@ -72,7 +72,7 @@ export class Track extends React.Component<IProps> {
         runInAction(() => {
             //disposing reactions 
             if (this._currentBarXReaction) this._currentBarXReaction();
-            if (this._timelineVisibleReaction) this._timelineVisibleReaction(); 
+            if (this._timelineVisibleReaction) this._timelineVisibleReaction();
         });
     }
 
@@ -81,7 +81,7 @@ export class Track extends React.Component<IProps> {
         let keyframes: List<Doc> = (Cast(regiondata.keyframes, listSpec(Doc)) as List<Doc>);
         let kfIndex: number = keyframes.indexOf(ref);
         let kf = keyframes[kfIndex] as Doc;
-        if (!kf) return; 
+        if (!kf) return;
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             kf.key = Doc.MakeCopy(this.props.node, true);
             let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); // lef keyframe, if it exists
@@ -107,13 +107,13 @@ export class Track extends React.Component<IProps> {
         this._isOnKeyframe = false;
     }
 
-    @action 
+    @action
     revertState = () => {
-        let copyDoc = Doc.MakeCopy(this.props.node, true); 
+        let copyDoc = Doc.MakeCopy(this.props.node, true);
         if (this._storedState) this.applyKeys(this._storedState);
-        let newState = new Doc(); 
-        newState.key = copyDoc; 
-        this._storedState = newState; 
+        let newState = new Doc();
+        newState.key = copyDoc;
+        this._storedState = newState;
     }
 
     @action
@@ -129,13 +129,13 @@ export class Track extends React.Component<IProps> {
             }
         });
     }
-    @action 
+    @action
     timelineVisibleReaction = () => {
         return reaction(() => {
-            return this.props.timelineVisible; 
+            return this.props.timelineVisible;
         }, isVisible => {
-            this.revertState(); 
-        }); 
+            this.revertState();
+        });
     }
 
     @action
@@ -162,28 +162,28 @@ export class Track extends React.Component<IProps> {
     @action
     private applyKeys = async (kf: Doc) => {
         let kfNode = await Cast(kf.key, Doc) as Doc;
-        let docFromApply = kfNode;        
+        let docFromApply = kfNode;
         if (this.filterKeys(Doc.allKeys(this.props.node)).length > this.filterKeys(Doc.allKeys(kfNode)).length) docFromApply = this.props.node;
         this.filterKeys(Doc.allKeys(docFromApply)).forEach(key => {
             if (!kfNode[key]) {
                 this.props.node[key] = undefined;
             } else {
                 let stored = kfNode[key];
-                if(stored instanceof ObjectField){                    
-                    this.props.node[key] = stored[Copy](); 
+                if (stored instanceof ObjectField) {
+                    this.props.node[key] = stored[Copy]();
                 } else {
-                    this.props.node[key] = stored; 
+                    this.props.node[key] = stored;
                 }
             }
         });
     }
 
- 
+
 
     @action
     private filterKeys = (keys: string[]): string[] => {
         return keys.reduce((acc: string[], key: string) => {
-            if (!this.filterList.includes(key)) acc.push(key); 
+            if (!this.filterList.includes(key)) acc.push(key);
             return acc;
         }, []);
     }
@@ -249,10 +249,10 @@ export class Track extends React.Component<IProps> {
                 }
             } else {
                 let stored = leftNode[key];
-                if(stored instanceof ObjectField){                    
-                    this.props.node[key] = stored[Copy](); 
+                if (stored instanceof ObjectField) {
+                    this.props.node[key] = stored[Copy]();
                 } else {
-                    this.props.node[key] = stored; 
+                    this.props.node[key] = stored;
                 }
             }
         });
@@ -276,7 +276,7 @@ export class Track extends React.Component<IProps> {
         let inner = this._inner.current!;
         let offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
         this.createRegion(KeyframeFunc.convertPixelTime(offsetX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
-        this.forceUpdate(); 
+        this.forceUpdate();
     }
 
     createRegion = (position: number) => {
@@ -297,7 +297,7 @@ export class Track extends React.Component<IProps> {
         return (
             <div className="track-container">
                 <div className="track">
-                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerOver = {() => {Doc.BrushDoc(this.props.node);}}onPointerOut={() => {Doc.UnBrushDoc(this.props.node);}}>
+                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerOver={() => { Doc.BrushDoc(this.props.node); }} onPointerOut={() => { Doc.UnBrushDoc(this.props.node); }} style={{ height: `${this._trackHeight}px` }}>
                         {DocListCast(this.regions).map((region) => {
                             return <Keyframe {...this.props} RegionData={region} />;
                         })}

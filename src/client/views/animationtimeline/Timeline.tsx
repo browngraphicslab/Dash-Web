@@ -8,7 +8,7 @@ import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash, faTimes, faEye, faCheck, faCross, faCheckCircle, faTimesCircle} from "@fortawesome/free-solid-svg-icons";
+import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash, faTimes, faEye, faCheck, faCross, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { TimelineOverview } from "./TimelineOverview";
@@ -19,9 +19,9 @@ import { Utils } from "../../../Utils";
 @observer
 export class Timeline extends React.Component<FieldViewProps> {
 
-    private readonly DEFAULT_CONTAINER_HEIGHT: number = 330;
+    private DEFAULT_CONTAINER_HEIGHT: number = 330;
     private readonly DEFAULT_TICK_SPACING: number = 50;
-    private readonly MIN_CONTAINER_HEIGHT: number = 205;
+    private MIN_CONTAINER_HEIGHT: number = 205;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
     private readonly DEFAULT_TICK_INCREMENT: number = 1000;
 
@@ -31,7 +31,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
     @observable private _roundToggleRef = React.createRef<HTMLDivElement>();
     @observable private _roundToggleContainerRef = React.createRef<HTMLDivElement>();
-    @observable private _timeInputRef = React.createRef<HTMLInputElement>(); 
+    @observable private _timeInputRef = React.createRef<HTMLInputElement>();
 
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
@@ -46,8 +46,8 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _playButton = faPlayCircle;
     @observable private _timelineVisible = false;
     @observable private _mouseToggled = false;
-    @observable private _doubleClickEnabled = false; 
-
+    @observable private _doubleClickEnabled = false;
+    private _titleHeight = 0;
     @computed
     private get children(): List<Doc> {
         let extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
@@ -60,28 +60,33 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
     }
+    componentWillMount() {
+        this._titleHeight = window.innerHeight / 14; //arbitrary number, but for responsiveness              
+        this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; 
+        this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; 
+    }
 
     componentDidMount() {
         runInAction(() => {
-            if (!this.props.Document.AnimationLength){
-                this.props.Document.AnimationLength = this._time; 
+            if (!this.props.Document.AnimationLength) {
+                this.props.Document.AnimationLength = this._time;
             } else {
-                this._time = NumCast(this.props.Document.AnimationLength); 
-                console.log(this._time); 
+                this._time = NumCast(this.props.Document.AnimationLength);
+                console.log(this._time);
             }
             this._totalLength = this._tickSpacing * (this._time / this._tickIncrement);
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width;
             this._visibleStart = this._infoContainer.current!.scrollLeft;
-            this.props.Document.isATOn = !this.props.Document.isATOn; 
-            this.toggleHandle(); 
+            this.props.Document.isATOn = !this.props.Document.isATOn;
+            this.toggleHandle();
         });
     }
 
-    componentWillUnmount(){
+    componentWillUnmount() {
         runInAction(() => {
-            console.log(this._time); 
-            this.props.Document.AnimationLength = this._time; 
-        }); 
+            console.log(this._time);
+            this.props.Document.AnimationLength = this._time;
+        });
     }
 
     /**
@@ -90,11 +95,11 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     drawTicks = () => {
-        let ticks = []; 
-        for (let i = 0; i < this._time / this._tickIncrement; i++){
-            ticks.push(<div key={Utils.GenerateGuid()} className="tick" style={{ transform: `translate(${i* this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toReadTime(i * this._tickIncrement)}</p></div>); 
+        let ticks = [];
+        for (let i = 0; i < this._time / this._tickIncrement; i++) {
+            ticks.push(<div key={Utils.GenerateGuid()} className="tick" style={{ transform: `translate(${i * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toReadTime(i * this._tickIncrement)}</p></div>);
         }
-        return ticks; 
+        return ticks;
     }
 
 
@@ -210,14 +215,14 @@ export class Timeline extends React.Component<FieldViewProps> {
         let titleContainer = this._titleContainer.current!;
         this.movePanX(this._visibleStart - e.movementX);
         trackbox.scrollTop = trackbox.scrollTop - e.movementY;
-        titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;    
-        if (this._visibleStart + this._visibleLength + 20>= this._totalLength){
-            this._visibleStart -= e.movementX; 
+        titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;
+        if (this._visibleStart + this._visibleLength + 20 >= this._totalLength) {
+            this._visibleStart -= e.movementX;
             this._totalLength -= e.movementX;
-            this._time -= KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this._tickSpacing, this._tickIncrement); 
-            this.props.Document.AnimationLength = this._time; 
+            this._time -= KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this._tickSpacing, this._tickIncrement);
+            this.props.Document.AnimationLength = this._time;
         }
-        
+
     }
     @action
     movePanX = (pixel: number) => {
@@ -263,9 +268,11 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     timelineContextMenu = (e: MouseEvent): void => {
-        ContextMenu.Instance.addItem({description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
-            this._timelineVisible = !this._timelineVisible; 
-        }), icon: this._timelineVisible ? faEyeSlash : faEye }); 
+        ContextMenu.Instance.addItem({
+            description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
+                this._timelineVisible = !this._timelineVisible;
+            }), icon: this._timelineVisible ? faEyeSlash : faEye
+        });
     }
 
 
@@ -318,28 +325,28 @@ export class Timeline extends React.Component<FieldViewProps> {
         let size = 40 * scale; //50 is default
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
-                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px`, color:"grey"}} /> </div>
-                <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px`, color:"grey"}} /> </div>
-                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px`, color: "grey"}} /> </div>                
+                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px`, color: "grey" }} /> </div>
+                <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px`, color: "grey" }} /> </div>
+                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px`, color: "grey" }} /> </div>
                 <div key="overview-text" className="animation-text">Timeline Overview</div>
-                <TimelineOverview isAuthoring = {BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                <TimelineOverview isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
                 <div key="animation-text" className="animation-text">Mode: {this.props.Document.isATOn ? "Authoring" : "Play"}</div>
                 <div key="round-toggle" ref={this._roundToggleContainerRef} className="round-toggle">
                     <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
                 </div>
-                <div key="time-text" className="animation-text" style ={{visibility: this.props.Document.isATOn ? "visible" : "hidden"}}>Length: </div>
-                <input className="time-input" style={{visibility: this.props.Document.isATOn ? "visible" : "hidden"}} placeholder={String(this._time) + "ms"} ref = {this._timeInputRef} onKeyDown={this.onTimeInput}/>
+                <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }}>Length: </div>
+                <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }} placeholder={String(this._time) + "ms"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
             </div>
         );
     }
-    
-    @action 
+
+    @action
     private onTimeInput = (e: React.KeyboardEvent) => {
-        if (e.keyCode === 13){
-            let timeInput = this._timeInputRef.current!; 
+        if (e.keyCode === 13) {
+            let timeInput = this._timeInputRef.current!;
             this._time = parseInt(timeInput.value, 10);
-            this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
-            this.props.Document.AnimationLength = this._time; 
+            this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
+            this.props.Document.AnimationLength = this._time;
         }
     }
 
@@ -347,7 +354,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     private toggleChecked = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        this.toggleHandle(); 
+        this.toggleHandle();
     }
 
     private toggleHandle = () => {
@@ -358,36 +365,36 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
             roundToggleContainer.style.animationName = "turnoff";
-            roundToggleContainer.style.backgroundColor = "white"; 
+            roundToggleContainer.style.backgroundColor = "white";
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isATOn = false;
         } else {
             roundToggle.style.transform = "translate(45px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
-            roundToggleContainer.style.backgroundColor = "green"; 
-            timelineContainer.style.top = "0px"; 
+            roundToggleContainer.style.backgroundColor = "green";
+            timelineContainer.style.top = "0px";
             this.props.Document.isATOn = true;
         }
     }
 
 
-    @observable private _check:string = ""; 
-    @observable private _checkVisible:boolean = false; 
+    @observable private _check: string = "";
+    @observable private _checkVisible: boolean = false;
     @action
     private onCheckClicked = (type: string) => {
-        if (type === "yes"){
-            this._check = "yes";  
-        } else if (type === "no"){
+        if (type === "yes") {
+            this._check = "yes";
+        } else if (type === "no") {
             this._check = "no";
         }
     }
 
 
-    @action 
-    private checkCallBack = (visible:boolean) => {
-        this._checkVisible = visible; 
-        if (!visible){ //when user confirms
+    @action
+    private checkCallBack = (visible: boolean) => {
+        this._checkVisible = visible;
+        if (!visible) { //when user confirms
             this._check = "";
         }
 
@@ -404,22 +411,22 @@ export class Timeline extends React.Component<FieldViewProps> {
                                     <div key="timeline_scrubberhead" className="scrubberhead"></div>
                                 </div>
                                 <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
-                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} check={this._check} checkCallBack={this.checkCallBack}/>)}
+                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} check={this._check} checkCallBack={this.checkCallBack} />)}
                                 </div>
                             </div>
                             <div key="timeline_title" className="title-container" ref={this._titleContainer}>
-                                {DocListCast(this.children).map(doc => <div className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
+                                {DocListCast(this.children).map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
                             </div>
                             <div key="timeline_resize" onPointerDown={this.onResizeDown}>
                                 <FontAwesomeIcon className="resize" icon={faGripLines} />
                             </div>
                         </div>
-                        <div key="timeline-checker" className="timeline-checker" style={{top: `${this._containerHeight}px`, visibility: this._checkVisible ? "visible" : "hidden"}}> 
-                            <div onClick = {() => {this.onCheckClicked("yes");}}>
-                                <FontAwesomeIcon style={{color: "#42b883"}} className="check" icon={faCheckCircle} /> 
+                        <div key="timeline-checker" className="timeline-checker" style={{ top: `${this._containerHeight}px`, visibility: this._checkVisible ? "visible" : "hidden" }}>
+                            <div onClick={() => { this.onCheckClicked("yes"); }}>
+                                <FontAwesomeIcon style={{ color: "#42b883" }} className="check" icon={faCheckCircle} />
                             </div>
-                            <div onClick = {() => {this.onCheckClicked("no");}}>
-                                <FontAwesomeIcon style={{color: "#ff7e67"}} className="check" icon={faTimesCircle} />
+                            <div onClick={() => { this.onCheckClicked("no"); }}>
+                                <FontAwesomeIcon style={{ color: "#ff7e67" }} className="check" icon={faTimesCircle} />
                             </div>
                         </div>
                     </div>
