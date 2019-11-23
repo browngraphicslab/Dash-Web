@@ -20,6 +20,8 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { ConsoleColors, logPort } from './ActionUtilities';
+import { WebSocket } from './Websocket/Websocket';
+import { timeMap } from './ApiManagers/UserManager';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -37,7 +39,11 @@ export default async function InitializeServer(options: InitializationOptions) {
     server.use("/images", express.static(publicDirectory));
 
     server.use("*", (req, _res, next) => {
-        console.log(ConsoleColors.Cyan, req.originalUrl, req.user.email);
+        const userEmail = req.user?.email;
+        console.log(ConsoleColors.Cyan, req.originalUrl, userEmail ?? "<user logged out>");
+        if (userEmail) {
+            timeMap[userEmail] = Date.now();
+        }
         next();
     });
 
