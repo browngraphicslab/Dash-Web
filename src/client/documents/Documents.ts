@@ -48,6 +48,8 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
+import { InkingStroke } from "../views/InkingStroke";
+import { InkField } from "../../new_fields/InkField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -96,7 +98,7 @@ export interface DocumentOptions {
     autoHeight?: boolean;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
-    unchecked?: ScriptField; // returns whether a check box is unchecked
+    ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
@@ -108,6 +110,8 @@ export interface DocumentOptions {
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
+    strokeWidth?: number;
+    color?: string;
     // [key: string]: Opt<Field>;
 }
 
@@ -210,6 +214,9 @@ export namespace Docs {
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: data }
             }],
+            [DocumentType.INK, {
+                layout: { view: InkingStroke, dataField: data }
+            }]
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -413,6 +420,14 @@ export namespace Docs {
 
         export function TextDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
+        }
+
+        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { x: number, y: number }[], options: DocumentOptions = {}) {
+            let doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
+            doc.color = color;
+            doc.strokeWidth = strokeWidth;
+            doc.tool = tool;
+            return doc;
         }
 
         export function IconDocument(icon: string, options: DocumentOptions = {}) {
@@ -632,7 +647,7 @@ export namespace Docs {
             }
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
-                options.nativeWidth = 1200;
+                options.nativeWidth = 927;
                 options.nativeHeight = 1200;
             }
             if (type.indexOf("excel") !== -1) {

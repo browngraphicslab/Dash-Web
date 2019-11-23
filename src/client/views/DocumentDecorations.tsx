@@ -24,6 +24,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
+import { PointData } from '../../new_fields/InkField';
 import { DocumentType } from '../documents/DocumentTypes';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -203,7 +204,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onBackgroundUp);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
             handlers: { dragComplete: action(() => this._hidden = this.Interacting = false) },
             hideSource: true
         });
@@ -462,7 +463,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        SelectionManager.SelectedDocuments().forEach(element => {
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
                 let layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
@@ -508,7 +509,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
                 }
             }
-        });
+        }));
     }
 
     @action
@@ -528,7 +529,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get selectionTitle(): string {
         if (SelectionManager.SelectedDocuments().length === 1) {
-            let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
+            let selected = SelectionManager.SelectedDocuments()[0];
+            let field = selected.props.Document[this._fieldKey];
             if (typeof field === "string") {
                 return field;
             }
@@ -560,6 +562,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         let minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
+                {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                 {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
 

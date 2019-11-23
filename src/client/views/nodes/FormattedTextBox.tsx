@@ -46,6 +46,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { AudioBox } from './AudioBox';
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
+import { InkTool } from '../../../new_fields/InkField';
+import { TraceMobx } from '../../../new_fields/util';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -357,9 +359,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
+    toggleSidebar = () => this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%";
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%"; }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.toggleSidebar(); }, icon: "expand-arrows-alt" });
         funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
@@ -838,7 +842,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
-        if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
@@ -853,7 +857,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         (e.nativeEvent as any).formattedHandled = true;
 
-        if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
+        if (e.buttons === 1 && this.props.isSelected(true) && !e.altKey) {
             e.stopPropagation();
         }
     }
@@ -866,7 +870,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
-        if (this.props.isSelected() || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
+        if (this.props.isSelected(true) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
             e.stopPropagation();
         }
     }
@@ -877,7 +881,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     onClick = (e: React.MouseEvent): void => {
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
-        // if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+        // if (e.button === 0 && ((!this.props.isSelected(true) && !e.ctrlKey) || (this.props.isSelected(true) && e.ctrlKey)) && !e.metaKey && e.target) {
         //     let href = (e.target as any).href;
         //     let location: string;
         //     if ((e.target as any).attributes.location) {
@@ -917,7 +921,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
     hitBulletTargets(x: number, y: number, offsetX: number, select: boolean = false) {
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
-        if (this.props.isSelected() && offsetX < 40) {
+        if (this.props.isSelected(true) && offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: x, top: y });
             if (pos && pos.pos > 0) {
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
@@ -996,13 +1000,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
-        if (this._recording) { this.stopDictation(true); setTimeout(() => this.recordDictation(), 250); }
+        if (this._recording) {
+            this.stopDictation(true);
+            setTimeout(() => this.recordDictation(), 250);
+        }
     }
 
     @action
     tryUpdateHeight() {
-        let scrollHeight = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (!this.layoutDoc.isAnimating && this.layoutDoc.autoHeight && scrollHeight !== 0 &&
+        const scrollHeight = this._ref.current?.scrollHeight;
+        if (!this.layoutDoc.animateToPos && this.layoutDoc.autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             let nh = this.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.layoutDoc.height, 0);
@@ -1011,11 +1018,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
-    @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidth, "0%"); }
+    @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidthPercent, "0%"); }
     @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
     @computed get annotationsKey() { return "annotations"; }
     render() {
-        trace();
+        TraceMobx();
         let rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
@@ -1049,29 +1056,33 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
-                {this.sidebarWidthPercent === "0%" ? (null) : <div style={{ borderLeft: "solid 1px black", width: `${this.sidebarWidthPercent}`, height: "100%", display: "inline-block" }}>
-                    <CollectionFreeFormView {...this.props}
-                        PanelHeight={() => this.props.PanelHeight()}
-                        PanelWidth={() => this.sidebarWidth}
-                        annotationsKey={this.annotationsKey}
-                        isAnnotationOverlay={true}
-                        focus={this.props.focus}
-                        isSelected={this.props.isSelected}
-                        select={emptyFunction}
-                        active={this.active}
-                        ContentScaling={returnOne}
-                        whenActiveChanged={this.whenActiveChanged}
-                        removeDocument={this.removeDocument}
-                        moveDocument={this.moveDocument}
-                        addDocument={this.addDocument}
-                        CollectionView={undefined}
-                        ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
-                        ruleProvider={undefined}
-                        renderDepth={this.props.renderDepth + 1}
-                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                        chromeCollapsed={true}>
-                    </CollectionFreeFormView>
-                </div>}
+                {this.sidebarWidthPercent === "0%" ?
+                    <div className="formattedTextBox-sidebar-handle" onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} /> :
+                    <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
+                        style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc?.backgroundColor, "transparent")}` }}>
+                        <CollectionFreeFormView {...this.props}
+                            PanelHeight={() => this.props.PanelHeight()}
+                            PanelWidth={() => this.sidebarWidth}
+                            annotationsKey={this.annotationsKey}
+                            isAnnotationOverlay={true}
+                            focus={this.props.focus}
+                            isSelected={this.props.isSelected}
+                            select={emptyFunction}
+                            active={this.annotationsActive}
+                            ContentScaling={returnOne}
+                            whenActiveChanged={this.whenActiveChanged}
+                            removeDocument={this.removeDocument}
+                            moveDocument={this.moveDocument}
+                            addDocument={this.addDocument}
+                            CollectionView={undefined}
+                            ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
+                            ruleProvider={undefined}
+                            renderDepth={this.props.renderDepth + 1}
+                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                            chromeCollapsed={true}>
+                        </CollectionFreeFormView>
+                        <div className="formattedTextBox-sidebar-handle" onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} />
+                    </div>}
                 <div className="formattedTextBox-dictation"
                     onClick={e => {
                         this._recording ? this.stopDictation(true) : this.recordDictation();

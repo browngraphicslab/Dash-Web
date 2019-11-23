@@ -38,7 +38,9 @@ export class ColorBox extends DocExtendableComponent<FieldViewProps, ColorDocume
 
     render() {
         return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
-            onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}>
+            onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
+            style={{ transformOrigin: "top left", transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+
             <SketchPicker color={this._startupColor} onChange={InkingControl.Instance.switchColor} />
         </div>;
     }

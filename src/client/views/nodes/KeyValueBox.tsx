@@ -95,7 +95,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && this.props.isSelected()) {
+        if (e.buttons === 1 && this.props.isSelected(true)) {
             e.stopPropagation();
         }
     }

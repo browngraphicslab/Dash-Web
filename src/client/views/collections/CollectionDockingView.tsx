@@ -426,15 +426,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span title="Drag as document" onPointerDown={
-                    e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
-                            handlers: { dragComplete: emptyFunction },
-                            hideSource: false
-                        });
-                    }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                ReactDOM.render(<span title="Drag as document"
+                    className="collectionDockingView-dragAsDocument"
+                    onPointerDown={
+                        e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
+                                handlers: { dragComplete: emptyFunction },
+                                hideSource: false
+                            });
+                        }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
                 ReactDOM.render(<ButtonSelector Document={doc} Stack={stack} />, gearSpan);
                 // ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, data, where) => {
                 //     where === "onRight" ? CollectionDockingView.AddRightSplit(doc, dataDoc) : CollectionDockingView.Instance.AddTab(stack, doc, dataDoc);
@@ -446,7 +448,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 tab.element.append(upDiv);
                 tab.reactionDisposer = reaction(() => [doc.title, Doc.IsBrushedDegree(doc)], () => {
                     tab.titleElement[0].textContent = doc.title, { fireImmediately: true };
-                    tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegree(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegree(doc)]} 1px`;
+                    tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegreeUnmemoized(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegreeUnmemoized(doc)]} 1px`;
                 });
                 //TODO why can't this just be doc instead of the id?
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
@@ -615,7 +617,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    get layoutDoc() { return this._document && Doc.Layout(this._document);}
+    get layoutDoc() { return this._document && Doc.Layout(this._document); }
     panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
     panelHeight = () => this._panelHeight;
 

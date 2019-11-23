@@ -153,6 +153,63 @@ export namespace Utils {
         return Math.max(lower, Math.min(upper, n));
     }
 
+    export function distanceBetweenHorizontalLines(xs: number, xe: number, y: number, xs2: number, xe2: number, y2: number): [number, number[]] {
+        if ((xs2 < xs && xe2 > xs) || (xs2 < xe && xe2 > xe) || (xs2 > xs && xe2 < xe)) return [Math.abs(y - y2), [Math.max(xs, xs2), y, Math.min(xe, xe2), y]];
+        if (xe2 < xs) return [Math.sqrt((xe2 - xs) * (xe2 - xs) + (y2 - y) * (y2 - y)), [xs, y, xs, y]];
+        //if (xs2 > xe) 
+        return [Math.sqrt((xs2 - xe) * (xs2 - xe) + (y2 - y) * (y2 - y)), [xe, y, xe, y]];
+    }
+    export function distanceBetweenVerticalLines(x: number, ys: number, ye: number, x2: number, ys2: number, ye2: number): [number, number[]] {
+        if ((ys2 < ys && ye2 > ys) || (ys2 < ye && ye2 > ye) || (ys2 > ys && ye2 < ye)) return [Math.abs(x - x2), [x, Math.max(ys, ys2), x, Math.min(ye, ye2)]];
+        if (ye2 < ys) return [Math.sqrt((ye2 - ys) * (ye2 - ys) + (x2 - x) * (x2 - x)), [x, ys, x, ys]];
+        //if (ys2 > ye) 
+        return [Math.sqrt((ys2 - ye) * (ys2 - ye) + (x2 - x) * (x2 - x)), [x, ye, x, ye]];
+    }
+
+    function project(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
+
+        if (ax === bx && ay === by) return { point: { x: ax, y: ay }, left: false, dot: 0, t: 0 };
+        var atob = { x: bx - ax, y: by - ay };
+        var atop = { x: px - ax, y: py - ay };
+        var len = atob.x * atob.x + atob.y * atob.y;
+        var dot = atop.x * atob.x + atop.y * atob.y;
+        var t = Math.min(1, Math.max(0, dot / len));
+
+        dot = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+
+        return {
+            point: {
+                x: ax + atob.x * t,
+                y: ay + atob.y * t
+            },
+            left: dot < 1,
+            dot: dot,
+            t: t
+        };
+    }
+
+    export function closestPtBetweenRectangles(l: number, t: number, w: number, h: number,
+        l1: number, t1: number, w1: number, h1: number,
+        x: number, y: number) {
+        var r = l + w,
+            b = t + h;
+        var r1 = l1 + w1,
+            b1 = t1 + h1;
+        let hsegs = [[l, r, t, l1, r1, t1], [l, r, b, l1, r1, t1], [l, r, t, l1, r1, b1], [l, r, b, l1, r1, b1]];
+        let vsegs = [[l, t, b, l1, t1, b1], [r, t, b, l1, t1, b1], [l, t, b, r1, t1, b1], [r, t, b, r1, t1, b1]];
+        let res = hsegs.reduce((closest, seg) => {
+            let res = distanceBetweenHorizontalLines(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]);
+            return (res[0] < closest[0]) ? res : closest;
+        }, [Number.MAX_VALUE, []] as [number, number[]]);
+        let fres = vsegs.reduce((closest, seg) => {
+            let res = distanceBetweenVerticalLines(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]);
+            return (res[0] < closest[0]) ? res : closest;
+        }, res);
+
+        let near = project(x, y, fres[1][0], fres[1][1], fres[1][2], fres[1][3]);
+        return project(near.point.x, near.point.y, fres[1][0], fres[1][1], fres[1][2], fres[1][3]);
+    }
+
     export function getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
         var r = l + w,
             b = t + h;
@@ -302,6 +359,8 @@ export function returnZero() { return 0; }
 export function returnEmptyString() { return ""; }
 
 export function emptyFunction() { }
+
+export function unimplementedFunction() { throw new Error("This function is not implemented, but should be."); }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 

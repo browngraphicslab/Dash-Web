@@ -49,7 +49,7 @@ export interface TreeViewProps {
     outerXf: () => { translateX: number, translateY: number };
     treeViewId: string;
     parentKey: string;
-    active: () => boolean;
+    active: (outsideReaction?: boolean) => boolean;
     showHeaderFields: () => boolean;
     preventTreeViewOpen: boolean;
     renderedIds: string[];
@@ -130,7 +130,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
-        this.props.active() && Doc.BrushDoc(this.dataDoc);
+        this.props.active(true) && Doc.BrushDoc(this.dataDoc);
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.addEventListener("pointermove", this.onDragMove, true);
@@ -412,7 +412,7 @@ class TreeView extends React.Component<TreeViewProps> {
         pinToPres: (document: Doc) => void,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
-        active: () => boolean,
+        active: (outsideReaction?: boolean) => boolean,
         panelWidth: () => number,
         renderDepth: number,
         showHeaderFields: () => boolean,

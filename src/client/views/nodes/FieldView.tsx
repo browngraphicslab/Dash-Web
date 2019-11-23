@@ -31,7 +31,7 @@ export interface FieldViewProps {
     Document: Doc;
     DataDoc?: Doc;
     onClick?: ScriptField;
-    isSelected: () => boolean;
+    isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
     addDocument?: (document: Doc) => boolean;
@@ -40,7 +40,7 @@ export interface FieldViewProps {
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    active: () => boolean;
+    active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     focus: (doc: Doc) => void;
     PanelWidth: () => number;

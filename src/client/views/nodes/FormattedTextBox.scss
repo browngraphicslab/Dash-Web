@@ -27,6 +27,9 @@
     pointer-events: all;
     overflow-y: auto;
     max-height: 100%;
+    display: flex;
+    flex-direction: row;
+
     .formattedTextBox-dictation {
         height: 20px;
         width: 20px;
@@ -39,13 +42,40 @@
 .collectionfreeformview-container {
     position: relative;
 }
+
 .formattedTextBox-outer {
     position: relative;
     overflow: auto;
     display: inline-block;
-    padding: 10px 10px;
     width: 100%;
     height: 100%;
+}
+.formattedTextBox-sidebar-handle {
+    position: absolute;
+    top: calc(50% - 17.5px);
+    width: 10px;
+    height: 35px;
+    background: lightgray;
+    border-radius: 20px;
+}
+.formattedTextBox-cont > .formattedTextBox-sidebar-handle {
+    right: 0;
+    left: unset;
+}
+.formattedTextBox-sidebar, .formattedTextBox-sidebar-inking {
+    border-left: dashed 1px black; 
+    height: 100%; 
+    display: inline-block;
+    position: absolute;
+    right: 0;
+    > .formattedTextBox-sidebar-handle {
+        right:unset;
+        left:-5;
+    }
+}
+
+.formattedTextBox-sidebar-inking {
+    pointer-events: all;
 }
 
 .formattedTextBox-inner-rounded {
@@ -57,8 +87,8 @@
     left: 10%;
 }
 
-.formattedTextBox-inner-rounded ,
-.formattedTextBox-inner  {
+.formattedTextBox-inner-rounded,
+.formattedTextBox-inner {
     padding: 10px 10px;
     height: 100%;
 }
@@ -85,19 +115,20 @@
 }
 
 .userMarkOpen {
-    background:  rgba(255, 255, 0, 0.267);
+    background: rgba(255, 255, 0, 0.267);
     display: inline;
 }
+
 .userMark {
-    background:  rgba(255, 255, 0, 0.267);
+    background: rgba(255, 255, 0, 0.267);
     font-size: 2px;
     display: inline-grid;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    width:10px;
-    min-height:10px;
-    text-align:center;
+    width: 10px;
+    min-height: 10px;
+    text-align: center;
     align-content: center;
 }
 
@@ -105,8 +136,9 @@ footnote {
     display: inline-block;
     position: relative;
     cursor: pointer;
+
     div {
-        padding : 0 !important;
+        padding: 0 !important;
     }
 }
 
@@ -119,7 +151,7 @@ footnote::after {
 
 .ProseMirror {
     counter-reset: prosemirror-footnote;
-  }
+}
 
 .footnote-tooltip {
     cursor: auto;
@@ -138,6 +170,7 @@ footnote::after {
 .prosemirror-attribution {
     font-size: 8px;
 }
+
 .footnote-tooltip::before {
     border: 5px solid silver;
     border-top-width: 0px;
@@ -152,45 +185,247 @@ footnote::after {
 }
 
 .formattedTextBox-summarizer {
-    opacity :0.5;
+    opacity: 0.5;
     position: relative;
-    width:40px;
-    height:20px;
+    width: 40px;
+    height: 20px;
 }
-.formattedTextBox-summarizer::after{
-    content: "←" ;
+
+.formattedTextBox-summarizer::after {
+    content: "←";
 }
 
 .formattedTextBox-summarizer-collapsed {
-    opacity :0.5;
+    opacity: 0.5;
     position: relative;
-    width:40px;
-    height:20px;
+    width: 40px;
+    height: 20px;
 }
+
 .formattedTextBox-summarizer-collapsed::after {
     content: "...";
 }
 
 .ProseMirror {
-ol { counter-reset: deci1 0; padding-left: 0px; }
-.decimal1-ol {counter-reset: deci1; p { display: inline }; font-size: 24 ; ul, ol {  padding-left:30px; } }
-.decimal2-ol {counter-reset: deci2; p { display: inline }; font-size: 18 ; ul, ol {  padding-left:30px; } }
-.decimal3-ol {counter-reset: deci3; p { display: inline }; font-size: 14 ; ul, ol {  padding-left:30px; } }
-.decimal4-ol {counter-reset: deci4; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } }
-.decimal5-ol {counter-reset: deci5; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } }
-.decimal6-ol {counter-reset: deci6; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } }
-.decimal7-ol {counter-reset: deci7; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } } 
-.upper-alpha-ol {counter-reset: ualph; p { display: inline }; font-size: 18; }
-.lower-roman-ol {counter-reset: lroman;  p { display: inline }; font-size: 14; }
-.lower-alpha-ol {counter-reset: lalpha;  p { display: inline }; font-size: 10; }
-.decimal1:before { content: counter(deci1) ") "; counter-increment: deci1; display:inline-block; min-width: 30;}
-.decimal2:before { content: counter(deci1) "." counter(deci2) ") "; counter-increment: deci2; display:inline-block; min-width: 35}
-.decimal3:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) ") "; counter-increment: deci3; display:inline-block; min-width: 35}
-.decimal4:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) ") "; counter-increment: deci4; display:inline-block; min-width: 40}
-.decimal5:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) "." counter(deci5) ") "; counter-increment: deci5; display:inline-block; min-width: 40}
-.decimal6:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) "." counter(deci5) "." counter(deci6) ") "; counter-increment: deci6; display:inline-block; min-width: 45}
-.decimal7:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) "." counter(deci5) "." counter(deci6) "." counter(deci7) ") "; counter-increment: deci7; display:inline-block; min-width: 50}
-.upper-alpha:before { content: counter(deci1) "." counter(ualph, upper-alpha) ") "; counter-increment: ualph; display:inline-block; min-width: 35 }
-.lower-roman:before { content: counter(deci1) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) ") "; counter-increment: lroman;display:inline-block; min-width: 50 }
-.lower-alpha:before { content: counter(deci1) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) "." counter(lalpha, lower-alpha) ") "; counter-increment: lalpha; display:inline-block; min-width: 35}
+    touch-action: none;
+
+    ol {
+        counter-reset: deci1 0;
+        padding-left: 0px;
+    }
+
+    .decimal1-ol {
+        counter-reset: deci1;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 24;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .decimal2-ol {
+        counter-reset: deci2;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 18;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .decimal3-ol {
+        counter-reset: deci3;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 14;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .decimal4-ol {
+        counter-reset: deci4;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 10;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .decimal5-ol {
+        counter-reset: deci5;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 10;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .decimal6-ol {
+        counter-reset: deci6;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 10;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .decimal7-ol {
+        counter-reset: deci7;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 10;
+
+        ul,
+        ol {
+            padding-left: 30px;
+        }
+    }
+
+    .upper-alpha-ol {
+        counter-reset: ualph;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 18;
+    }
+
+    .lower-roman-ol {
+        counter-reset: lroman;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 14;
+    }
+
+    .lower-alpha-ol {
+        counter-reset: lalpha;
+
+        p {
+            display: inline
+        }
+
+        ;
+        font-size: 10;
+    }
+
+    .decimal1:before {
+        content: counter(deci1) ") ";
+        counter-increment: deci1;
+        display: inline-block;
+        min-width: 30;
+    }
+
+    .decimal2:before {
+        content: counter(deci1) "."counter(deci2) ") ";
+        counter-increment: deci2;
+        display: inline-block;
+        min-width: 35
+    }
+
+    .decimal3:before {
+        content: counter(deci1) "."counter(deci2) "."counter(deci3) ") ";
+        counter-increment: deci3;
+        display: inline-block;
+        min-width: 35
+    }
+
+    .decimal4:before {
+        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) ") ";
+        counter-increment: deci4;
+        display: inline-block;
+        min-width: 40
+    }
+
+    .decimal5:before {
+        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) ") ";
+        counter-increment: deci5;
+        display: inline-block;
+        min-width: 40
+    }
+
+    .decimal6:before {
+        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) ") ";
+        counter-increment: deci6;
+        display: inline-block;
+        min-width: 45
+    }
+
+    .decimal7:before {
+        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) "."counter(deci7) ") ";
+        counter-increment: deci7;
+        display: inline-block;
+        min-width: 50
+    }
+
+    .upper-alpha:before {
+        content: counter(deci1) "."counter(ualph, upper-alpha) ") ";
+        counter-increment: ualph;
+        display: inline-block;
+        min-width: 35
+    }
+
+    .lower-roman:before {
+        content: counter(deci1) "."counter(ualph, upper-alpha) "."counter(lroman, lower-roman) ") ";
+        counter-increment: lroman;
+        display: inline-block;
+        min-width: 50
+    }
+
+    .lower-alpha:before {
+        content: counter(deci1) "."counter(ualph, upper-alpha) "."counter(lroman, lower-roman) "."counter(lalpha, lower-alpha) ") ";
+        counter-increment: lalpha;
+        display: inline-block;
+        min-width: 35
+    }
 }
