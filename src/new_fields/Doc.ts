@@ -15,6 +15,7 @@ import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstruct
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
+import { computedFn } from "mobx-utils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -473,8 +474,9 @@ export namespace Doc {
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-        docExtensionForField.title = fieldKey + ".ext";
+        docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+        docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
         docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
         while (proto && !Doc.IsPrototype(proto) && proto.proto) {
@@ -568,7 +570,7 @@ export namespace Doc {
         let layoutCustomLayout = Doc.MakeDelegate(templateDoc);
 
         titleTarget && (Doc.GetProto(target).title = titleTarget);
-        target.type = DocumentType.TEMPLATE;
+        Doc.GetProto(target).type = DocumentType.TEMPLATE;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
 
         Doc.GetProto(target)[targetKey] = layoutCustomLayout;
@@ -636,13 +638,12 @@ export namespace Doc {
     }
 
     export class DocBrush {
-        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+        BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
     const brushManager = new DocBrush();
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
-        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
@@ -653,10 +654,18 @@ export namespace Doc {
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
-        return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
+        return computedFn(function IsBrushed(doc: Doc) {
+            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
+        })(doc);
+    }
+    // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
+    export function IsBrushedDegreeUnmemoized(doc: Doc) {
+        return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
-        return brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : brushManager.BrushedDoc.has(doc) ? 1 : 0;
+        return computedFn(function IsBrushDegree(doc: Doc) {
+            return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
+        })(doc);
     }
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);

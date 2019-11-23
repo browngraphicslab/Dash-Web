@@ -38,7 +38,9 @@ export default class SettingsManager extends React.Component<{}> {
         const { error: resultError, ...others } = await Identified.PostToServer('/internalResetPassword', { curr_pass });
         if (resultError) {
             // we failed
+            console.log(resultError);
         }
+        console.log(others);
         // do stuff with response
     }
 

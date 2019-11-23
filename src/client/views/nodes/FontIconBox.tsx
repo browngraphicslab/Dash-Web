@@ -25,7 +25,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         this._backgroundReaction = reaction(() => this.props.Document.backgroundColor,
             () => {
                 if (this._ref && this._ref.current) {
-                    let col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor!);
+                    let col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor);
                     let colsum = (col.r + col.g + col.b);
                     if (colsum / col.a > 600 || col.a < 0.25) runInAction(() => this._foregroundColor = "black");
                     else if (colsum / col.a <= 600 || col.a >= .25) runInAction(() => this._foregroundColor = "white");
@@ -39,7 +39,10 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         let referenceDoc = (this.props.Document.dragFactory instanceof Doc ? this.props.Document.dragFactory : this.props.Document);
         let referenceLayout = Doc.Layout(referenceDoc);
         return <button className="fontIconBox-outerDiv" title={StrCast(this.props.Document.title)} ref={this._ref}
-            style={{ background: StrCast(referenceLayout.backgroundColor), boxShadow: this.props.Document.unchecked ? undefined : `4px 4px 12px black` }}>
+            style={{
+                background: StrCast(referenceLayout.backgroundColor),
+                boxShadow: this.props.Document.ischecked ? `4px 4px 12px black` : undefined
+            }}>
             <FontAwesomeIcon className="fontIconBox-icon" icon={this.Document.icon as any} color={this._foregroundColor} size="sm" />
         </button>;
     }

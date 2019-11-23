@@ -20,7 +20,6 @@ interface ContentFittingDocumentViewProps {
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
-    fieldKey: string;
     PanelWidth: () => number;
     PanelHeight: () => number;
     ruleProvider: Doc | undefined;
@@ -33,10 +32,11 @@ interface ContentFittingDocumentViewProps {
     addDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument: (document: Doc) => boolean;
-    active: () => boolean;
+    active: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
+    dontRegisterView?: boolean;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
 }
@@ -108,6 +108,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         focus={this.props.focus || emptyFunction}
                         backgroundColor={returnEmptyString}
                         bringToFront={emptyFunction}
+                        dontRegisterView={this.props.dontRegisterView}
                         zoomToScale={emptyFunction}
                         getScale={returnOne}
                     />

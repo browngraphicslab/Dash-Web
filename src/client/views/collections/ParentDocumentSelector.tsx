@@ -13,10 +13,15 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { MetadataEntryMenu } from "../MetadataEntryMenu";
+import { DocumentView } from "../nodes/DocumentView";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 library.add(faEdit);
 
-type SelectorProps = { Document: Doc, Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
+type SelectorProps = { Document: Doc, Views: DocumentView[], Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -53,16 +58,23 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
             this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };
     }
+    get metadataMenu() {
+        return <div className="parentDocumentSelector-metadata">
+            <Flyout anchorPoint={anchorPoints.TOP_LEFT}
+                content={<MetadataEntryMenu docs={() => this.props.Views.map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
+                <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
+            </Flyout>
+        </div>;
+    }
 
     render() {
-        return (
-            <>
-                <p key="contexts">Contexts:</p>
-                {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-                {this._otherDocs.length ? <hr key="hr" /> : null}
-                {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-            </>
-        );
+        return <div >
+            <div key="metadata">Metadata: {this.metadataMenu}</div>
+            <p key="contexts">Contexts:</p>
+            {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+            {this._otherDocs.length ? <hr key="hr" /> : null}
+            {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+        </div>;
     }
 }
 

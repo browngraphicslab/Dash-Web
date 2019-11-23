@@ -112,7 +112,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            if (this.props.isSelected()) e.stopPropagation();
+            if (this.props.isSelected(true)) e.stopPropagation();
             else {
                 this.props.select(false);
             }
@@ -141,7 +141,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <ContentFittingDocumentView
                 Document={layoutDoc}
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
-                fieldKey={this.props.fieldKey}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
@@ -202,7 +201,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         return <div className="collectionSchemaView-container">
-            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active() && e.stopPropagation()} onDrop={e => this.onDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}
@@ -226,11 +225,11 @@ export interface SchemaTableProps {
     addDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    active: () => boolean;
+    active: (outsideReaction: boolean) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    isSelected: () => boolean;
+    isSelected: (outsideReaction?: boolean) => boolean;
     isFocused: (document: Doc) => boolean;
     setFocused: (document: Doc) => void;
     setPreviewDoc: (document: Doc) => void;
@@ -443,14 +442,14 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         this.props.setFocused(this.props.Document);
-        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected()) {
+        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();
         }
     }
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
-        if (!this._cellIsEditing && !this._headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected()) {
+        if (!this._cellIsEditing && !this._headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected(true)) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this._focusedCell = this.changeFocusedCellByDirection(direction, this._focusedCell.row, this._focusedCell.col);
 
@@ -779,7 +778,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     render() {
-        return <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={e => this.props.active() && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
+        return <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
             <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
         </div>;

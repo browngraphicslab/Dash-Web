@@ -62,7 +62,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
                 document.removeEventListener("keydown", this.onKeyDown);
-                this.props.isSelected() && document.addEventListener("keydown", this.onKeyDown);
+                this.props.isSelected(true) && document.addEventListener("keydown", this.onKeyDown);
             }, { fireImmediately: true });
     }
 
@@ -111,26 +111,24 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     private newValueChange = (e: React.ChangeEvent<HTMLInputElement>) => this._valueValue = e.currentTarget.value;
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
 
-    whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
+    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {
         let pageBtns = <>
             <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                onPointerDown={e => e.stopPropagation()} onClick={this.backPage}
-                style={{ left: 50, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} style={{ left: 45, top: 5 }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
             </button>
             <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                onPointerDown={e => e.stopPropagation()} onClick={this.forwardPage}
-                style={{ left: 80, top: 5, height: "30px", position: "absolute", pointerEvents: "all" }}>
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} style={{ left: 45, top: 5 }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
         return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
-                onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none", position: "absolute", width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
+                onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title="Open Search Bar" />
                     <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey)} />
@@ -143,14 +141,14 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
                     </button>
                 </div>
-                <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar" style={{ bottom: 8, right: 0 }}>
+                <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar" style={{ bottom: 0, right: 0 }}>
                     <div className="pdfBox-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
                 </button>
                 <input value={`${(this.Document.curPage || 1)}`}
                     onChange={e => this.gotoPage(Number(e.currentTarget.value))}
-                    style={{ left: 20, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
+                    style={{ left: 5, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
                     onClick={action(() => this._pageControls = !this._pageControls)} />
                 {this._pageControls ? pageBtns : (null)}
                 <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
@@ -199,33 +197,24 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
         return <div className="pdfBox-title-outer" >
             <div className={classname} >
-                <strong className="pdfBox-title" >{` ${this.props.Document.title}`}</strong>
+                <strong className="pdfBox-title" >{this.props.Document.title}</strong>
             </div>
         </div>;
     }
 
+    isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
-        trace();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
-        return <div className={classname} style={{
-            width: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-            height: this.props.Document.fitWidth ? `${100 / this.props.ContentScaling()}%` : undefined,
-            transform: `scale(${this.props.Document.fitWidth ? this.props.ContentScaling() : 1})`
-        }} onContextMenu={this.specificContextMenu} onPointerDown={e => {
-            let hit = document.elementFromPoint(e.clientX, e.clientY);
-            if (hit && hit.localName === "span" && this.props.isSelected()) {  // drag selecting text stops propagation
-                e.button === 0 && e.stopPropagation();
-            }
-        }}>
+        return <div className={"pdfBox-cont"} onContextMenu={this.specificContextMenu}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 addDocTab={this.props.addDocTab} focus={this.props.focus}
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
+                Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
+                isChildActive={this.isChildActive}
                 fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
             {this.settingsPanel()}
         </div>;

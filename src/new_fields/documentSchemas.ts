@@ -31,7 +31,8 @@ export const documentSchema = createSchema({
     summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
     maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
-    lockedPosition: "boolean",  // whether the document can be spatially manipulated
+    lockedPosition: "boolean",  // whether the document can be moved (dragged)
+    lockedTransform: "boolean", // whether the document can be panned/zoomed
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata
@@ -40,9 +41,11 @@ export const documentSchema = createSchema({
     showTitle: "string",        // whether an editable title banner is displayed at tht top of the document
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
-    isAnimating: "boolean",     // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).
+    isAnimating: "string",      // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).  value is undefined|"min"|"max"
     animateToDimensions: listSpec("number"), // layout information about the target rectangle a document is animating towards 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
+    strokeWidth: "number",
+    fontSize: "string"
 });
 
 export const positionSchema = createSchema({

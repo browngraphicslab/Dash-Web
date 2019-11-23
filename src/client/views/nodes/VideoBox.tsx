@@ -249,7 +249,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
             this._reactionDisposer = reaction(() => this.Document.currentTimecode, () => !this._playing && this.Seek(this.Document.currentTimecode || 0));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
-                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
+                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
         };
@@ -333,8 +333,10 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         return this.addDocument(doc);
     }
 
+    contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
-        return (<div className={"videoBox-container"} onContextMenu={this.specificContextMenu}>
+        return (<div className={"videoBox-container"} onContextMenu={this.specificContextMenu}
+            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
@@ -343,7 +345,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}
                 select={emptyFunction}
-                active={this.active}
+                active={this.annotationsActive}
                 ContentScaling={returnOne}
                 whenActiveChanged={this.whenActiveChanged}
                 removeDocument={this.removeDocument}
@@ -355,7 +357,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 chromeCollapsed={true}>
-                {() => [this.youtubeVideoId ? this.youtubeContent : this.content]}
+                {this.contentFunc}
             </CollectionFreeFormView>
             {this.uIButtons}
         </div >);

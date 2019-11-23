@@ -23,7 +23,6 @@ import { EditableView } from "../EditableView";
 import { MainView } from '../MainView';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 import { Templates } from '../Templates';
-import { CollectionViewType } from './CollectionView';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
@@ -50,7 +49,7 @@ export interface TreeViewProps {
     outerXf: () => { translateX: number, translateY: number };
     treeViewId: string;
     parentKey: string;
-    active: () => boolean;
+    active: (outsideReaction?: boolean) => boolean;
     showHeaderFields: () => boolean;
     preventTreeViewOpen: boolean;
     renderedIds: string[];
@@ -131,7 +130,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
-        this.props.active() && Doc.BrushDoc(this.dataDoc);
+        this.props.active(true) && Doc.BrushDoc(this.dataDoc);
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.addEventListener("pointermove", this.onDragMove, true);
@@ -177,8 +176,10 @@ class TreeView extends React.Component<TreeViewProps> {
     />)
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking && this.props.document !== CurrentUserUtils.UserDocument.workspaces) {
+        if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view
+            if (this.props.document === CurrentUserUtils.UserDocument.recentlyClosed) {
+                ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.GetProto(CurrentUserUtils.UserDocument.recentlyClosed as Doc).data = new List<Doc>(), icon: "plus" });
+            } else if (this.props.document !== CurrentUserUtils.UserDocument.workspaces) {
                 ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.document), icon: "tv" });
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.templateDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.templateDataDoc, "onRight"), icon: "caret-square-right" });
@@ -317,7 +318,6 @@ class TreeView extends React.Component<TreeViewProps> {
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
-                    fieldKey={this.fieldKey}
                     renderDepth={this.props.renderDepth}
                     showOverlays={this.noOverlays}
                     ruleProvider={this.props.document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.document : this.props.ruleProvider}
@@ -412,7 +412,7 @@ class TreeView extends React.Component<TreeViewProps> {
         pinToPres: (document: Doc) => void,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
-        active: () => boolean,
+        active: (outsideReaction?: boolean) => boolean,
         panelWidth: () => number,
         renderDepth: number,
         showHeaderFields: () => boolean,
@@ -535,6 +535,11 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         if (!e.isPropagationStopped() && this.props.Document === CurrentUserUtils.UserDocument.workspaces) {
             ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
+            e.stopPropagation();
+            e.preventDefault();
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+        } else if (!e.isPropagationStopped() && this.props.Document === CurrentUserUtils.UserDocument.recentlyClosed) {
+            ContextMenu.Instance.addItem({ description: "Clear All", event: () => CurrentUserUtils.UserDocument.recentlyClosed = new List<Doc>(), icon: "plus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);

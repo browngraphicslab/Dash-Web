@@ -1,3 +1,11 @@
+.pdfBox-ui {
+    position: absolute;
+     width: 100%; 
+     height:100%;
+     z-index: 1;
+     pointer-events: none;
+}
+
 .pdfBox-cont,
 .pdfBox-cont-interactive {
     display: inline-block;
@@ -8,6 +16,7 @@
     position:absolute;
     cursor:auto;
     transform-origin: top left;
+    z-index: 0;
 }
 
 .pdfBox-title-outer {
@@ -26,10 +35,10 @@
             color:lightgray;
             margin-top: auto;
             margin-bottom: auto;
-            transform-origin: 42% -18%;
+            transform-origin: 42% 15%;
             width: 100%;
             transform: rotate(55deg);
-            font-size: 144;
+            font-size: 72;
             padding: 5%;
             overflow: hidden;
             display: inline-block;
@@ -48,7 +57,6 @@
     }
     .pdfViewer-text {
         .textLayer {
-            will-change: transform;
             span {
                 user-select: none;
             }
@@ -60,7 +68,6 @@
     pointer-events: all;
     .pdfViewer-text {
         .textLayer {
-            will-change: transform;
             span {
                 user-select: text;
             }
@@ -135,14 +142,13 @@
 
 .pdfBox-overlayCont {
     position: absolute;
-    width: 100%;
-    height: 40px;
+    width: calc(100% - 40px);
+    height: 30px;
     background: #121721;
     bottom: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
     overflow: hidden;
     transition: left .5s;
     pointer-events: all;
@@ -172,28 +178,24 @@
         border-right: 15px solid #121721;
         transition: all 0.5s;
     }
+}
 
-    .pdfBox-overlayButton-iconCont,
-    .pdfBox-nextIcon, 
-    .pdfBox-prevIcon {
-        background: #121721;
-        height: 30px;
-        width: 70px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-left: -2px;
-        border-radius: 3px;
-    }
+.pdfBox-overlayButton-iconCont,
+.pdfBox-nextIcon, 
+.pdfBox-prevIcon {
+    padding: 0;
+    background: #121721;
+    height: 30px;
+    width: 25px;
+    display: inline-block;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    margin-left: -2px;
+    border-radius: 3px;
+    pointer-events: all;
 }
 
 .pdfBox-overlayButton:hover {
     background: none;
-}
-
-.pdfBox-nextIcon {
-    left: 20; top: 5; height: 30px; position: absolute;
-}
-.pdfBox-prevIcon {
-    left: 50; top: 5; height: 30px; position: absolute;
 }

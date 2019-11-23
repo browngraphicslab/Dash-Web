@@ -41,6 +41,17 @@ export const PastelSchemaPalette = new Map<string, string>([
 
 export const RandomPastel = () => Array.from(PastelSchemaPalette.values())[Math.floor(Math.random() * PastelSchemaPalette.size)];
 
+export const DarkPastelSchemaPalette = new Map<string, string>([
+    ["pink2", "#c932b0"],
+    ["purple4", "#913ad6"],
+    ["bluegreen1", "#3978ed"],
+    ["bluegreen7", "#2adb3e"],
+    ["bluegreen5", "#21b0eb"],
+    ["yellow4", "#edcc0c"],
+    ["red2", "#eb3636"],
+    ["orange1", "#f2740f"],
+]);
+
 @scriptingGlobal
 @Deserializable("schemaheader")
 export class SchemaHeaderField extends ObjectField {

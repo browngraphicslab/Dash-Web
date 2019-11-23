@@ -18,7 +18,6 @@ import { Transform } from "./Transform";
 import React = require("react");
 import { BoolCast, NumCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -130,6 +129,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         //     }
         // }]
     },
+
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -307,6 +307,37 @@ export const marks: { [index: string]: MarkSpec } = {
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
                 ["a", { ...node.attrs, title: `${node.attrs.title}` }, 0];
+        }
+    },
+
+    // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
+    color: {
+        attrs: {
+            color: { default: "#000" }
+        },
+        inclusive: false,
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { color: dom.getAttribute("color") };
+            }
+        }],
+        toDOM(node: any) {
+            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
+        }
+    },
+
+    marker: {
+        attrs: {
+            highlight: { default: "transparent" }
+        },
+        inclusive: false,
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { highlight: dom.getAttribute("backgroundColor") };
+            }
+        }],
+        toDOM(node: any) {
+            return node.attrs.highlight ? ['span', { style: 'background-color:' + node.attrs.highlight }] : ['span', { style: 'background-color: transparent' }];
         }
     },
 
@@ -576,8 +607,8 @@ export class ImageResizeView {
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
-            let wid = Number(getComputedStyle(self._img).width!.replace(/px/, ""));
-            let hgt = Number(getComputedStyle(self._img).height!.replace(/px/, ""));
+            let wid = Number(getComputedStyle(self._img).width.replace(/px/, ""));
+            let hgt = Number(getComputedStyle(self._img).height.replace(/px/, ""));
             const startX = e.pageX;
             const startWidth = parseFloat(node.attrs.width);
             const onpointermove = (e: any) => {
@@ -680,6 +711,7 @@ export class DashDocView {
                     bringToFront={emptyFunction}
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
+                    dontRegisterView={true}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={this.contentScaling}
