@@ -31,7 +31,7 @@ interface DocExtendableProps {
     renderDepth: number;
 }
 export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
+    class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
@@ -53,7 +53,7 @@ interface DocAnnotatableProps {
     renderDepth: number;
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
+    class Component extends Touchable<P> {
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
