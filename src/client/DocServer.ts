@@ -64,6 +64,8 @@ export namespace DocServer {
         }
     }
 
+    let connection_error = false;
+
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;

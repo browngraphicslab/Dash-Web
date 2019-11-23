@@ -56,7 +56,7 @@ export default class UserManager extends ApiManager {
                 const process = (target: { user: string, duration: number }[]) => {
                     const comparator = (first: ActivityUnit, second: ActivityUnit) => first.duration - second.duration;
                     const sorted = target.sort(comparator);
-                    return sorted.map(({ user, duration }) => `${user} (last active ${msToTime(duration)} ago)`);
+                    return sorted.map(({ user, duration }) => `${user} (${msToTime(duration)})`);
                 };
 
                 res.render("user_activity.pug", {

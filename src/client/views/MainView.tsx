@@ -4,7 +4,7 @@ import {
     faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
+import { action, computed, configure, observable, reaction, runInAction, autorun } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -414,7 +414,8 @@ export class MainView extends React.Component {
                 <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
-            </div></div>;
+            </div>
+        </div>;
     }
 
     @computed get mainContent() {
@@ -422,6 +423,7 @@ export class MainView extends React.Component {
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger}>
+                    <div>HEY!</div>
                     <div className="mainView-libraryHandle"
                         style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                         onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>

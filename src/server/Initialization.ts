@@ -20,7 +20,6 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { ConsoleColors, logPort } from './ActionUtilities';
-import { WebSocket } from './Websocket/Websocket';
 import { timeMap } from './ApiManagers/UserManager';
 
 /* RouteSetter is a wrapper around the server that prevents the server
@@ -38,11 +37,13 @@ export default async function InitializeServer(options: InitializationOptions) {
     server.use(express.static(publicDirectory));
     server.use("/images", express.static(publicDirectory));
 
-    server.use("*", (req, _res, next) => {
-        const userEmail = req.user?.email;
-        console.log(ConsoleColors.Cyan, req.originalUrl, userEmail ?? "<user logged out>");
-        if (userEmail) {
-            timeMap[userEmail] = Date.now();
+    server.use("*", ({ user, originalUrl }, _res, next) => {
+        if (!originalUrl.includes("Heartbeat")) {
+            const userEmail = user?.email;
+            console.log(ConsoleColors.Cyan, originalUrl, userEmail ?? "<user logged out>");
+            if (userEmail) {
+                timeMap[userEmail] = Date.now();
+            }
         }
         next();
     });

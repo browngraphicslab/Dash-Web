@@ -21,6 +21,7 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
+import DiagnosticManager from "./ApiManagers/DiagnosticManager";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files") + "/";
@@ -55,6 +56,7 @@ function routeSetter({ isRelease, addSupervisedRoute }: RouteManager) {
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
+        new DiagnosticManager(),
         new SearchManager(),
         new PDFManager(),
         new DeleteManager(),
