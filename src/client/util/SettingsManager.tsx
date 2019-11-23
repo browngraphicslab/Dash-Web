@@ -18,6 +18,8 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
     private curr_password_ref = React.createRef<HTMLInputElement>();
+    private new_password_ref = React.createRef<HTMLInputElement>();
+    private new_confirm_ref = React.createRef<HTMLInputElement>();
 
     public open = action(() => {
         SelectionManager.DeselectAll();
@@ -35,12 +37,19 @@ export default class SettingsManager extends React.Component<{}> {
 
     private dispatchRequest = async () => {
         const curr_pass = this.curr_password_ref.current!.value;
-        const { error: resultError, ...others } = await Identified.PostToServer('/internalResetPassword', { curr_pass });
-        if (resultError) {
+        const new_pass = this.new_password_ref.current!.value;
+        const new_confirm = this.new_confirm_ref.current!.value;
+        console.log('ready!');
+        // const { error, hello } = await Identified.PostToServer('/internalResetPassword', { curr_pass, new_pass, new_confirm });
+        const resp = await Identified.PostToServer('/internalResetPassword', { curr_pass, new_pass, new_confirm });
+        console.log('set!');
+        console.log('response', resp);
+        console.log('hm', resp.hm);
+        if (resp.error) {
             // we failed
-            console.log(resultError);
+            console.log(resp.error);
         }
-        console.log(others);
+        console.log('go!');
         // do stuff with response
     }
 
@@ -59,7 +68,10 @@ export default class SettingsManager extends React.Component<{}> {
                         <p>static data</p>
                     </div>
                     <div className="settings-content">
-                        <input ref={this.curr_password_ref}></input>
+                        <input ref={this.curr_password_ref} />
+                        <input ref={this.new_password_ref} />
+                        <input ref={this.new_confirm_ref} />
+                        <button onClick={this.dispatchRequest}>submit</button>
                         this changes with what you select!
                     </div>
                 </div>

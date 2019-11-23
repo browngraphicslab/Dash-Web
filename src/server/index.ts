@@ -19,7 +19,7 @@ import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import { Utils } from '../Utils';
+import { Utils, returnEmptyString } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
@@ -56,6 +56,8 @@ import { reject } from 'bluebird';
 import { ExifData } from 'exif';
 import { Result } from '../client/northstar/model/idea/idea';
 import RouteSubscriber from './RouteSubscriber';
+//@ts-ignore
+import * as bcrypt from "bcrypt-nodejs";
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -671,10 +673,51 @@ addSecureRoute({
 addSecureRoute({
     method: Method.POST,
     subscribers: '/internalResetPassword',
-    onValidation: (user, _req, res) => {
+    onValidation: async (user, req, res) => {
+        const result: any = {};
+        // perhaps should assert whether curr password is entered correctly
+        const validated = await new Promise<Opt<boolean>>(resolve => {
+            bcrypt.compare(req.body.curr_pass, user.password, (err, result_1) => {
+                if (err) {
+                    result.error = "Incorrect current password";
+                    res.send(result);
+                    resolve(undefined);
+                } else {
+                    result.hm = err;
+                    resolve(result_1);
+                }
+            });
+        });
+
+        if (validated === undefined) {
+            return;
+        }
+
+        result.hello = validated;
+        req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
+        req.assert("new_confirm", "Passwords do not match").equals(req.body.new_pass);
+
+        // was there error in validating new passwords?
+        if (req.validationErrors()) {
+            // was there error?
+            result.error = req.validationErrors();
+            result.pass = user.password;
+        }
+
+        user.password = req.body.password;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+
+        user.save(function (err) {
+            result.error = "saving";
+            // was there error?
+        });
+
         // user password auth
         // new pass same
         // do extra stuff
+        //
+        res.send(result);
     }
 });
 
@@ -1173,7 +1216,6 @@ const suffixMap: { [type: string]: (string | [string, string | ((json: any) => a
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
     "web": ["_t", "url"],
-    "RichTextField": ["_t", value => value.Text],
     "date": ["_d", value => new Date(value.date).toISOString()],
     "proxy": ["_i", "fieldId"],
     "list": ["_l", list => {
