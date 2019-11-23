@@ -648,6 +648,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.Document.isBackground && !this.isSelected();
     }
 
+    @action
+    handle2PointersMove = (e: TouchEvent) => {
+        let pt1 = e.targetTouches.item(0);
+        let pt2 = e.targetTouches.item(1);
+        if (pt1 && pt2 && this.prevPoints.has(pt1.identifier) && this.prevPoints.has(pt2.identifier)) {
+            let oldPoint1 = this.prevPoints.get(pt1.identifier);
+            let oldPoint2 = this.prevPoints.get(pt2.identifier);
+            let pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+            if (pinching !== 0) {
+                let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
+                this.props.Document.width = newWidth;
+            }
+        }
+    }
+
     render() {
         if (!this.props.Document) return (null);
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
@@ -682,7 +697,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 width: animwidth,
                 height: animheight,
                 opacity: this.Document.opacity
-            }} >
+            }} onTouchStart={this.onTouchStart}>
             {this.innards}
         </div>;
     }

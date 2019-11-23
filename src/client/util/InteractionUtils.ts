@@ -56,6 +56,29 @@ export namespace InteractionUtils {
         return 0;
     }
 
+    /**
+     * Returns -1 if pinning and pinching out, 0 if not pinning, and 1 if pinching in
+     * @param pt1 - new point that corresponds to oldPoint1
+     * @param pt2 - new point that corresponds to oldPoint2
+     * @param oldPoint1 - previous point 1
+     * @param oldPoint2 - previous point 2
+     */
+    export function Pinning(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
+        let threshold = 4;
+
+        let pt1Dist = TwoPointEuclidist(oldPoint1, pt1);
+        let pt2Dist = TwoPointEuclidist(oldPoint2, pt2);
+
+        let pinching = Pinching(pt1, pt2, oldPoint1, oldPoint2);
+
+        if (pinching !== 0) {
+            if ((pt1Dist < threshold && pt2Dist > threshold) || (pt1Dist > threshold && pt2Dist < threshold)) {
+                return pinching;
+            }
+        }
+        return 0;
+    }
+
     // These might not be very useful anymore, but I'll leave them here for now -syip2
     {
 

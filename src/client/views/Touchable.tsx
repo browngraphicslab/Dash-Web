@@ -57,6 +57,18 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 this.handle2PointersMove(e);
                 break;
         }
+
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            let pt = e.targetTouches.item(i);
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.set(pt.identifier, pt);
+                }
+                else {
+                    this.prevPoints.set(pt.identifier, pt);
+                }
+            }
+        }
     }
 
     @action
