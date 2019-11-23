@@ -276,6 +276,55 @@ export namespace CognitiveServices {
 
     }
 
+    export namespace HathiTrust {
+        export const Manager: APIManager<string> = {
+            converter: (data: string) => {
+                return data;
+            },
+            requester: async (apiKey: string, query: string) => {
+                let xhttp = new XMLHttpRequest();
+                let serverAddress = "https://babel.hathitrust.org/cgi/htd/​";
+                let endpoint = serverAddress + '/bing/v5.0/search?q=' + encodeURIComponent(query);
+                let promisified = (resolve: any, reject: any) => {
+                    xhttp.onreadystatechange = function () {
+                        if (this.readyState === 4) {
+                            let result = xhttp.responseText;
+                            switch (this.status) {
+                                case 200:
+                                    return resolve(result);
+                                case 400:
+                                default:
+                                    return reject(result);
+                            }
+                        }
+                    };
+
+                    if (apiKey) {
+                        xhttp.open("GET", endpoint, true);
+                        xhttp.setRequestHeader('Ocp-Apim-Subscription-Key', apiKey);
+                        xhttp.setRequestHeader('Content-Type', 'application/json');
+                        xhttp.send();
+                    }
+                    else {
+                        console.log("API key for BING unavailable");
+                    }
+                };
+                return new Promise<any>(promisified);
+            }
+
+        };
+
+        export namespace Appliers {
+            export const analyzer = async (query: string, converter: BingConverter) => {
+                let results = await ExecuteQuery(Service.Bing, Manager, query);
+                console.log("Bing results: ", results);
+                const { title_vals, url_vals } = await converter(results);
+                return { title_vals, url_vals };
+            };
+        }
+
+    }
+
 
     export namespace Text {
         export const Manager: APIManager<string> = {

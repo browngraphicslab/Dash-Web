@@ -46,6 +46,7 @@ import { RecommendationsBox } from '../RecommendationsBox';
 import { SearchUtil } from '../../util/SearchUtil';
 import { ClientRecommender } from '../../ClientRecommender';
 import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
+import { KeyphraseQueryView } from '../KeyphraseQueryView';
 
 library.add(fa.faBrain);
 library.add(fa.faEdit);
@@ -117,6 +118,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _showKPQuery: boolean = false;
 
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active() { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
@@ -657,6 +659,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             bodies.push(body);
         }
         CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        this._showKPQuery = true;
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
@@ -807,22 +810,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
-            onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
-            style={{
-                transition: this.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
-                pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
-                color: StrCast(this.Document.color),
-                outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
-                width: animwidth,
-                height: animheight,
-                transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
-                opacity: this.Document.opacity
-            }} >
-            {this.innards}
+        return <div>
+            <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
+                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+                onPointerEnter={() => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
+                style={{
+                    transition: this.Document.isAnimating !== undefined ? ".5s linear" : StrCast(this.Document.transition),
+                    pointerEvents: this.Document.isBackground && !this.isSelected() ? "none" : "all",
+                    color: StrCast(this.Document.color),
+                    outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
+                    border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
+                    background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
+                    width: animwidth,
+                    height: animheight,
+                    transform: `scale(${this.layoutDoc.fitWidth ? 1 : this.props.ContentScaling()})`,
+                    opacity: this.Document.opacity
+                }} >
+                {this.innards}
+            </div>
+            {this._showKPQuery ? <KeyphraseQueryView keyphrases={["bitch", "boy"]}></KeyphraseQueryView> : undefined}
         </div>;
     }
 }

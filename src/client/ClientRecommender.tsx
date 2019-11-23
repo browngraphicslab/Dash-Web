@@ -17,6 +17,7 @@ import { listSpec } from "../new_fields/Schema";
 import { Identified } from "./Network";
 import { ComputedField } from "../new_fields/ScriptField";
 import { ImageField } from "../new_fields/URLField";
+import { KeyphraseQueryView } from "./views/KeyphraseQueryView";
 
 export interface RecommenderProps {
     title: string;
@@ -279,6 +280,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                         highKP = [sorted_keywords[0].text];
                     }
                 });
+                let kpqv = new KeyphraseQueryView({ keyphrases: ["hello"] });
                 ext_recs = await this.sendRequest(highKP, api);
             }
 
