@@ -41,7 +41,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return Math.max(this.props.Document.showTitle ? 30 : 0, NumCast(this.props.Document.yMargin, 2 * this.gridGap)); }
-    @computed get titleSpacing() { return this.props.Document.showTitle ? Math.max(0, NumCast(this.props.Document.yMargin, 2 * this.gridGap) - this.gridGap) : 0; }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
@@ -65,7 +64,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
             let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-            let style = this.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
+            let style = this.isStackingView ? { width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
                 {this.getDisplayDoc(pair.layout || d, pair.data, dxf, width)}
             </div>;
@@ -231,7 +230,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @computed get columnDragger() {
         return <div className="collectionStackingView-columnDragger" onPointerDown={this.columnDividerDown} ref={this._draggerRef}
-            style={{ cursor: this._cursor, left: `${this.columnWidth + this.xMargin}px`, top: `${Math.max(0, this.titleSpacing)}px` }} >
+            style={{ cursor: this._cursor, left: `${this.columnWidth + this.xMargin}px`, top: `${Math.max(0, this.yMargin - 9)}px` }} >
             <FontAwesomeIcon icon={"arrows-alt-h"} />
         </div>;
     }
