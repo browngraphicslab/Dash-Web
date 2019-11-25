@@ -649,6 +649,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return Transform.Identity();
     }
     get previewPanelCenteringOffset() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    get widthpercent() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? `${(this.nativeWidth() * this.contentScaling()) / this.panelWidth() * 100}%` : undefined; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
         SelectionManager.DeselectAll();
@@ -697,7 +698,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%"
+                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%",
+                    width: this.widthpercent
                 }}>
                 {this.docView}
             </div >);

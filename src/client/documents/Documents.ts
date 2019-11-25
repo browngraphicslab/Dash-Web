@@ -215,7 +215,8 @@ export namespace Docs {
                 layout: { view: PresElementBox, dataField: data }
             }],
             [DocumentType.INK, {
-                layout: { view: InkingStroke, dataField: data }
+                layout: { view: InkingStroke, dataField: data },
+                options: { backgroundColor: "transparent" }
             }]
         ]);
 

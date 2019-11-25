@@ -9,7 +9,7 @@ import { Doc } from "../../../new_fields/Doc";
 import { InkTool } from "../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { emptyFunction, returnOne, Utils } from "../../../Utils";
@@ -264,18 +264,18 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         let curTime = (this.Document.currentTimecode || 0);
-        return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling})` }}>
+        return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} >
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
-        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} style={{ transform: `scale(${scaling})` }}>
+        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
             <FontAwesomeIcon icon="camera" size="lg" />
         </div>,
         VideoBox._showControls ? (null) : [
-            <div className="videoBox-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling})` }}>
+            <div className="videoBox-play" key="play" onPointerDown={this.onPlayDown} >
                 <FontAwesomeIcon icon={this._playing ? "pause" : "play"} size="lg" />
             </div>,
-            <div className="videoBox-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling})` }}>
+            <div className="videoBox-full" key="full" onPointerDown={this.onFullDown} >
                 F
             </div>
         ]]);
@@ -335,30 +335,32 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
-        return (<div className={"videoBox-container"} onContextMenu={this.specificContextMenu}
+        return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
-            <CollectionFreeFormView {...this.props}
-                PanelHeight={this.props.PanelHeight}
-                PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationsKey}
-                focus={this.props.focus}
-                isSelected={this.props.isSelected}
-                isAnnotationOverlay={true}
-                select={emptyFunction}
-                active={this.annotationsActive}
-                ContentScaling={returnOne}
-                whenActiveChanged={this.whenActiveChanged}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={this.addDocumentWithTimestamp}
-                CollectionView={undefined}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                ruleProvider={undefined}
-                renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
-                {this.contentFunc}
-            </CollectionFreeFormView>
+            <div className="videoBox-viewer" >
+                <CollectionFreeFormView {...this.props}
+                    PanelHeight={this.props.PanelHeight}
+                    PanelWidth={this.props.PanelWidth}
+                    annotationsKey={this.annotationsKey}
+                    focus={this.props.focus}
+                    isSelected={this.props.isSelected}
+                    isAnnotationOverlay={true}
+                    select={emptyFunction}
+                    active={this.annotationsActive}
+                    ContentScaling={returnOne}
+                    whenActiveChanged={this.whenActiveChanged}
+                    removeDocument={this.removeDocument}
+                    moveDocument={this.moveDocument}
+                    addDocument={this.addDocumentWithTimestamp}
+                    CollectionView={undefined}
+                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    ruleProvider={undefined}
+                    renderDepth={this.props.renderDepth + 1}
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                    chromeCollapsed={true}>
+                    {this.contentFunc}
+                </CollectionFreeFormView>
+            </div>
             {this.uIButtons}
         </div >);
     }

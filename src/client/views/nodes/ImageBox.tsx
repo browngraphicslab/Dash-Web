@@ -302,22 +302,25 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         !this.Document.ignoreAspect && this.resize(srcpath);
 
         return (
-            <div className={`imageBox-cont${interactive}`} key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <div id="cf">
-                    <img
-                        key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+            <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <div className="imageBox-fader" >
+                    <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={srcpath}
                         style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} />
-                    {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker"> <img className="imageBox-fadeaway"
-                        key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
-                        src={fadepath}
-                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                        width={nativeWidth}
-                        ref={this._imgRef}
-                        onError={this.onError} /></div>}
+                    {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker" style={{height: this.props.Document[HeightSym]()}}>
+                        <img className="imageBox-fadeaway"
+                            key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                            src={fadepath}
+                            style={{
+                                transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})`,
+                                height: this.props.Document[HeightSym]()
+                            }}
+                            width={nativeWidth}
+                            ref={this._imgRef}
+                            onError={this.onError} /></div>}
                 </div>
                 <div className="imageBox-audioBackground"
                     onPointerDown={this.audioDown}
@@ -334,8 +337,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     contentFunc = () => [this.content];
     render() {
-        return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+        return (<div className="imageBox" onContextMenu={this.specificContextMenu}
+            style={{
+                transform: `scale(${this.props.ContentScaling()})`,
+                width: `${100 / this.props.ContentScaling()}%`,
+                height: `${100 / this.props.ContentScaling()}%`
+            }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}

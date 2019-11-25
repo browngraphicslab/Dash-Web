@@ -1,3 +1,12 @@
+.imageBox {
+    pointer-events: all;
+    border-radius: inherit;
+    width:100%;
+    height:100%;
+    position: absolute;
+    transform-origin: top left;
+}
+
 .imageBox-cont, .imageBox-cont-interactive {
     padding: 0vw;
     position: absolute;
@@ -10,16 +19,7 @@
     background:transparent;
 }
 
-.imageBox-container {
-    pointer-events: all;
-    border-radius: inherit;
-    width:100%;
-    height:100%;
-    position: absolute;
-    transform-origin: top left;
-}
-
-.imageBox-cont-interactive {
+.imageBox-fader {
     pointer-events: all;
 }
 
@@ -100,12 +100,11 @@
     }
 }
 
-#cf {
+.imageBox-fader {
     position: relative;
     width: 100%;
     margin: 0 auto;
     display: flex;
-    align-items: center;
     height: 100%;
     overflow: hidden;
 
@@ -126,7 +125,7 @@
     }
 }
 
-#cf img {
+.imageBox-fader img {
     position: absolute;
     left: 0;
 }
@@ -138,10 +137,12 @@
     transition: opacity 1s ease-in-out;
 }
 
-.imageBox-fadeBlocker:hover {
-    -webkit-transition: opacity 1s ease-in-out;
-    -moz-transition: opacity 1s ease-in-out;
-    -o-transition: opacity 1s ease-in-out;
-    transition: opacity 1s ease-in-out;
-    opacity: 0;
+.imageBox:hover {
+    .imageBox-fadeBlocker {
+        -webkit-transition: opacity 1s ease-in-out;
+        -moz-transition: opacity 1s ease-in-out;
+        -o-transition: opacity 1s ease-in-out;
+        transition: opacity 1s ease-in-out;
+        opacity: 0;
+    }
 }
