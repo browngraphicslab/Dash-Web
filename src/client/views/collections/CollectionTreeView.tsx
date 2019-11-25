@@ -43,6 +43,7 @@ export interface TreeViewProps {
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
+    ChromeHeight: undefined | (() => number);
     addDocument: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
     indentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
@@ -233,8 +234,8 @@ class TreeView extends React.Component<TreeViewProps> {
     docTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._dref.current!);
         let outerXf = this.props.outerXf();
-        let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        let finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
+        let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY );
+        let finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]+ (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0));
         return finalXf;
     }
     docWidth = () => {
@@ -272,7 +273,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
                     DocListCast(contents), this.props.treeViewId, doc, undefined, key, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
-                    this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen,
+                    this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen,
                     [...this.props.renderedIds, doc[Id]]);
             } else {
                 contentElement = <EditableView
@@ -305,7 +306,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     TreeView.GetChildElements(docs, this.props.treeViewId, Doc.Layout(this.props.document),
                         this.templateDataDoc, expandKey, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform,
-                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen,
+                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen,
                         [...this.props.renderedIds, this.props.document[Id]])}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
@@ -414,6 +415,7 @@ class TreeView extends React.Component<TreeViewProps> {
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
         panelWidth: () => number,
+        ChromeHeight: undefined| (() => number),
         renderDepth: number,
         showHeaderFields: () => boolean,
         preventTreeViewOpen: boolean,
@@ -487,6 +489,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 addDocument={addDocument}
                 panelWidth={rowWidth}
                 panelHeight={rowHeight}
+                ChromeHeight={ChromeHeight}
                 moveDocument={move}
                 dropAction={dropAction}
                 addDocTab={addDocTab}
@@ -591,7 +594,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform,
-                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth, () => !this.props.Document.hideHeaderFields,
+                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => !this.props.Document.hideHeaderFields,
                             BoolCast(this.props.Document.preventTreeViewOpen), [])
                     }
                 </ul>
