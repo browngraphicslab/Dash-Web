@@ -146,8 +146,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
                             child.contentItems[j].remove();
                             child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
-                            let docs = Cast(instance.props.Document.data, listSpec(Doc));
-                            docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
                             return true;
                         }
                         return false;
@@ -171,14 +169,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
 
-    public Has = (document: Doc) => {
-        let docs = Cast(this.props.Document.data, listSpec(Doc));
-        if (!docs) {
-            return false;
-        }
-        return docs.includes(document);
-    }
-
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -187,10 +177,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) {
         if (!CollectionDockingView.Instance) return false;
         let instance = CollectionDockingView.Instance;
-        let docs = Cast(instance.props.Document.data, listSpec(Doc));
-        if (docs) {
-            docs.push(document);
-        }
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
@@ -227,10 +213,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         Doc.GetProto(document).lastOpened = new DateField;
-        let docs = Cast(this.props.Document.data, listSpec(Doc));
-        if (docs) {
-            docs.push(document);
-        }
         let docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
         if (stack === undefined) {
             let stack: any = this._goldenLayout.root;
@@ -369,15 +351,22 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
     }
 
+    updateDataField = async (json: string) => {
+        let matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
+        let docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", ""));
+
+        if (docids) {
+            let docs = (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
+            Doc.GetProto(this.props.Document)[this.props.fieldKey] = new List<Doc>(docs);
+        }
+    }
+
     @undoBatch
     stateChanged = () => {
-        let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
-        CollectionDockingView.Instance._removedDocs.map(theDoc =>
-            docs && docs.indexOf(theDoc) !== -1 &&
-            docs.splice(docs.indexOf(theDoc), 1));
-        CollectionDockingView.Instance._removedDocs.length = 0;
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.dockingConfig = json;
+        this.updateDataField(json);
+
         if (this.undohack && !this.hack) {
             this.undohack.end();
             this.undohack = undefined;

@@ -145,6 +145,7 @@ export class SearchBox extends React.Component {
     }
 
 
+    private NumResults = 25;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
         if (this.lockPromise) {
@@ -152,7 +153,7 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: 10, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -186,7 +187,7 @@ export class SearchBox extends React.Component {
 
                     this._curRequest = undefined;
                 }));
-                this._maxSearchIndex += 10;
+                this._maxSearchIndex += this.NumResults;
 
                 await this._curRequest;
             }
@@ -267,9 +268,9 @@ export class SearchBox extends React.Component {
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         let scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
-        let buffer = 4;
-        let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
-        let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
+        let itemHght = 53;
+        let startIndex = Math.floor(Math.max(0, scrollY / itemHght));
+        let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current!.getBoundingClientRect().height / itemHght)));
 
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 
@@ -353,7 +354,7 @@ export class SearchBox extends React.Component {
                     </div>)}
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
-                    height: this.resFull ? "560px" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
+                    height: this.resFull ? "auto" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
                 }} ref={this.resultsRef}>
                     {this._visibleElements}
                 </div>

@@ -658,7 +658,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let oldPoint2 = this.prevPoints.get(pt2.identifier);
             let pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
             if (pinching !== 0) {
-                let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
+                let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX));
                 this.props.Document.width = newWidth;
             }
         }
