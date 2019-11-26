@@ -21,7 +21,7 @@ export interface EditableProps {
 
     OnFillDown?(value: string): void;
 
-    OnTab?(): void;
+    OnTab?(shift?: boolean): void;
 
     /**
      * The contents to render when not editing
@@ -79,7 +79,7 @@ export class EditableView extends React.Component<EditableProps> {
         if (e.key === "Tab") {
             e.stopPropagation();
             this.finalizeEdit(e.currentTarget.value, e.shiftKey);
-            this.props.OnTab && this.props.OnTab();
+            this.props.OnTab && this.props.OnTab(e.shiftKey);
         } else if (e.key === "Enter") {
             e.stopPropagation();
             if (!e.ctrlKey) {

@@ -7,7 +7,7 @@
     transform-origin: top left;
 }
 
-.imageBox-cont, .imageBox-cont-interactive {
+.imageBox-cont, .imageBox-cont-dragging {
     padding: 0vw;
     position: absolute;
     text-align: center;
@@ -17,10 +17,20 @@
     max-height: 100%;
     pointer-events: none;
     background:transparent;
+    img {
+        height: auto;
+        width: 100%;
+        pointer-events: all;
+    }
+    .imageBox-fader {
+        pointer-events: all;
+    }
 }
 
-.imageBox-fader {
-    pointer-events: all;
+.imageBox-cont-dragging {
+    .imageBox-fader {
+        pointer-events: none;
+    }
 }
 
 .imageBox-dot {
@@ -33,15 +43,6 @@
     background: gray;
 }
 
-.imageBox-cont img {
-    height: auto;
-    width: 100%;
-}
-
-.imageBox-cont-interactive img {
-    height: auto;
-    width: 100%;
-}
 
 #google-photos {
     transition: all 0.5s ease 0s;
