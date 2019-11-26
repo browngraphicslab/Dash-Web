@@ -624,12 +624,19 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 @observer
 export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
 
-    @computed private get descending() { return Cast(this.props.CollectionView.props.Document.sortAscending, "boolean", null); }
+    get dataExtension() {
+        return this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "_ext"] as Doc;
+    }
+    @computed private get descending() {
+        return this.dataExtension && Cast(this.dataExtension.sortAscending, "boolean", null);
+    }
 
     @action toggleSort = () => {
-        if (this.props.CollectionView.props.Document.sortAscending) this.props.CollectionView.props.Document.sortAscending = undefined;
-        else if (this.props.CollectionView.props.Document.sortAscending === undefined) this.props.CollectionView.props.Document.sortAscending = false;
-        else this.props.CollectionView.props.Document.sortAscending = true;
+        if (this.dataExtension) {
+            if (this.dataExtension.sortAscending) this.dataExtension.sortAscending = undefined;
+            else if (this.dataExtension.sortAscending === undefined) this.dataExtension.sortAscending = false;
+            else this.dataExtension.sortAscending = true;
+        }
     }
 
     render() {

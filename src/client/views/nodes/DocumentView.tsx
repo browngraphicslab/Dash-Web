@@ -687,14 +687,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={e => {
-                console.log("Brush" + this.props.Document.title);
-                Doc.BrushDoc(this.props.Document);
-            }} onPointerLeave={e => {
-                console.log("UnBrush" + this.props.Document.title);
-                Doc.UnBrushDoc(this.props.Document);
-
-            }}
+            onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
                 transition: this.Document.isAnimating ? ".5s linear" : StrCast(this.Document.transition),
                 pointerEvents: this.ignorePointerEvents ? "none" : "all",
