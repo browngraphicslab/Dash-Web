@@ -1,11 +1,12 @@
 import { Doc, Field, FieldResult } from "../../../../new_fields/Doc";
-import { NumCast, StrCast, Cast } from "../../../../new_fields/Types";
+import { NumCast, StrCast, Cast, DateCast } from "../../../../new_fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { emptyFunction } from "../../../../Utils";
 import React = require("react");
+import { DateField } from "../../../../new_fields/DateField";
 
 interface PivotData {
     type: string;
@@ -29,6 +30,16 @@ export interface ViewDefBounds {
 export interface ViewDefResult {
     ele: JSX.Element;
     bounds?: ViewDefBounds;
+}
+
+function toLabel(target: FieldResult<Field>) {
+    if (target instanceof DateField) {
+        const date = DateCast(target).date;
+        if (date) {
+            return `${date.toDateString()} ${date.toTimeString()}`;
+        }
+    }
+    return String(target);
 }
 
 export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
@@ -55,7 +66,7 @@ export function computePivotLayout(pivotDoc: Doc, childDocs: Doc[], childPairs: 
         let xCount = 0;
         groupNames.push({
             type: "text",
-            text: String(key),
+            text: toLabel(key),
             x,
             y: pivotAxisWidth + 50,
             width: pivotAxisWidth * 1.25 * numCols,
