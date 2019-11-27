@@ -232,6 +232,22 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             })
             .catch((err: any) => console.log(err));
     }
+    fadesize = (srcpath: string) => {
+        requestImageSize(srcpath)
+            .then((size: any) => {
+                let rotation = NumCast(this.dataDoc.rotation) % 180;
+                let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
+                let aspect = realsize.height / realsize.width;
+                if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
+                    setTimeout(action(() => {
+                        this.Document.height = this.Document[WidthSym]() * aspect;
+                        this.Document.nativeHeight = realsize.height;
+                        this.Document.nativeWidth = realsize.width;
+                    }), 0);
+                }
+            })
+            .catch((err: any) => console.log(err));
+    }
 
     @action
     onPointerEnter = () => {
@@ -280,25 +296,26 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         // let w = bptX - sptX;
 
         let nativeWidth = (this.Document.nativeWidth || pw);
-        let nativeHeight = (this.Document.nativeHeight || 0);
-        let paths = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
+        let nativeHeight = (this.Document.nativeHeight || 1);
+        let paths = [[Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png"), nativeWidth / nativeHeight]];
         // this._curSuffix = "";
         // if (w > 20) {
         let alts = DocListCast(extensionDoc.Alternates);
-        let altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
+        let altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => [this.choosePath((doc.data as ImageField).url), doc[WidthSym]() / doc[HeightSym]()]);
         let field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
         // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
         // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
-        if (field instanceof ImageField) paths = [this.choosePath(field.url)];
+        if (field instanceof ImageField) paths = [[this.choosePath(field.url), nativeWidth / nativeHeight]];
         paths.push(...altpaths);
         // }
         let dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         let rotation = NumCast(this.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))];
-        let fadepath = paths[Math.min(paths.length - 1, 1)];
+        let srcpath = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][0] as string;
+        let srcaspect = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][1] as number;
+        let fadepath = paths[Math.min(paths.length - 1, 1)][0] as string;
 
         !this.Document.ignoreAspect && this.resize(srcpath);
 
@@ -310,7 +327,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
-                {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker">
+                {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker" style={{ width: nativeWidth, height: nativeWidth / srcaspect }}>
                     <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
