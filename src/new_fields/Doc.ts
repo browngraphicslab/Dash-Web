@@ -602,15 +602,15 @@ export namespace Doc {
         fieldTemplate.scale = 1;
         fieldTemplate.showTitle = suppressTitle ? undefined : "title";
         let data = fieldTemplate.data;
-        setTimeout(action(() => {
-            !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
-            let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
-            let layoutDelegate = Doc.Layout(fieldTemplate);
-            layoutDelegate.layout = layout;
-            fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
-            if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
-            fieldTemplate.proto = templateDataDoc;
-        }), 0);
+        // setTimeout(action(() => {
+        !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
+        let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
+        let layoutDelegate = Doc.Layout(fieldTemplate);
+        layoutDelegate.layout = layout;
+        fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
+        if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
+        fieldTemplate.proto = templateDataDoc;
+        // }), 0);
         return true;
     }
 

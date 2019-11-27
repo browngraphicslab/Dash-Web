@@ -187,7 +187,7 @@ export class FilterBox extends React.Component {
         let collections: Doc[] = [];
 
         selectedDocs.forEach(async element => {
-            let layout: string = StrCast(element.props.Document.baseLayout);
+            let layout: string = StrCast(element.props.Document.layout);
             //checks if selected view (element) is a collection. if it is, adds to list to search through
             if (layout.indexOf("Collection") > -1) {
                 //makes sure collections aren't added more than once

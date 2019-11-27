@@ -267,19 +267,19 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 // embed document when dragging with a userDropAction or an embedDoc flag set
             } else if (de.data.userDropAction || de.data.embedDoc) {
                 let target = de.data.droppedDocuments[0];
-                const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
-                if (link) {
-                    target.fitToBox = true;
-                    let node = schema.nodes.dashDoc.create({
-                        width: target[WidthSym](), height: target[HeightSym](),
-                        title: "dashDoc", docid: target[Id],
-                        float: "right"
-                    });
-                    let view = this._editorView!;
-                    view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
-                    this.tryUpdateHeight();
-                    e.stopPropagation();
-                }
+                // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
+                // if (link) {
+                target.fitToBox = true;
+                let node = schema.nodes.dashDoc.create({
+                    width: target[WidthSym](), height: target[HeightSym](),
+                    title: "dashDoc", docid: target[Id],
+                    float: "right"
+                });
+                let view = this._editorView!;
+                view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
+                this.tryUpdateHeight();
+                e.stopPropagation();
+                // }
             } // otherwise, fall through to outer collection to handle drop
         }
     }
