@@ -660,6 +660,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     @computed get pdfViewerDiv() {
         return <div className={"pdfViewer-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
     }
+    @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get standinViews() {
         return <>
             {this._showCover ? this.getCoverImage() : (null)}
@@ -673,16 +674,16 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     marqueeing = () => this._marqueeing;
     visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
     contentZoom = () => this._zoomed;
-    @computed get contentScaling() { return this.props.ContentScaling(); }
     render() {
         TraceMobx();
         return !this.extensionDoc ? (null) :
-            <div className={"pdfViewer-viewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
+            <div className={"pdfViewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
+                onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 style={{
                     width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
                     height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,
-                    transform: `scale(${this.contentScaling})`
-                }} onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}>
+                    transform: `scale(${this.props.ContentScaling()})`
+                }}  >
                 {this.pdfViewerDiv}
                 {this.overlayLayer}
                 {this.annotationLayer}

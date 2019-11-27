@@ -27,6 +27,7 @@ import { CollectionFreeFormView } from '../collections/collectionFreeForm/Collec
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { TraceMobx } from '../../../new_fields/util';
+import { SelectionManager } from '../../util/SelectionManager';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -291,7 +292,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
+        let dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         let rotation = NumCast(this.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
@@ -300,41 +301,44 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
         !this.Document.ignoreAspect && this.resize(srcpath);
 
-        return (
-            <div className={`imageBox-cont${interactive}`} key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <div id="cf">
-                    <img
-                        key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
-                        src={srcpath}
-                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                        width={nativeWidth}
-                        ref={this._imgRef}
-                        onError={this.onError} />
-                    {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker"> <img className="imageBox-fadeaway"
+        return <div className={`imageBox-cont${dragging}`} key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+            <div className="imageBox-fader" >
+                <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                    src={srcpath}
+                    style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                    width={nativeWidth}
+                    ref={this._imgRef}
+                    onError={this.onError} />
+                {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker">
+                    <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
-                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})`, }}
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
-                </div>
-                <div className="imageBox-audioBackground"
-                    onPointerDown={this.audioDown}
-                    onPointerEnter={this.onPointerEnter}
-                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
-                >
-                    <FontAwesomeIcon className="imageBox-audioFont"
-                        style={{ color: [DocListCast(extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={!DocListCast(extensionDoc.audioAnnotations).length ? "microphone" : faFileAudio} size="sm" />
-                </div>
-                {this.considerGooglePhotosLink()}
-                <FaceRectangles document={extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
-            </div>);
+            </div>
+            <div className="imageBox-audioBackground"
+                onPointerDown={this.audioDown}
+                onPointerEnter={this.onPointerEnter}
+                style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+            >
+                <FontAwesomeIcon className="imageBox-audioFont"
+                    style={{ color: [DocListCast(extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={!DocListCast(extensionDoc.audioAnnotations).length ? "microphone" : faFileAudio} size="sm" />
+            </div>
+            {this.considerGooglePhotosLink()}
+            <FaceRectangles document={extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
+        </div>;
     }
 
     contentFunc = () => [this.content];
     render() {
-        return (<div className={"imageBox-container"} onContextMenu={this.specificContextMenu}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+        return (<div className="imageBox" onContextMenu={this.specificContextMenu}
+            style={{
+                transform: `scale(${this.props.ContentScaling()})`,
+                width: `${100 / this.props.ContentScaling()}%`,
+                height: `${100 / this.props.ContentScaling()}%`
+            }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}

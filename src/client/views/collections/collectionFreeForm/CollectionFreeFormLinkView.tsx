@@ -6,8 +6,9 @@ import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
-import { observable, action, reaction, IReactionDisposer } from "mobx";
+import { observable, action, reaction, IReactionDisposer, trace } from "mobx";
 import { StrCast, Cast } from "../../../../new_fields/Types";
+import { TraceMobx } from "../../../../new_fields/util";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -17,14 +18,14 @@ export interface CollectionFreeFormLinkViewProps {
 
 @observer
 export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFormLinkViewProps> {
-    @observable _opacity: number = 1;
-    @observable _update: number = 0;
+    @observable _opacity: number = 0;
     _anchorDisposer: IReactionDisposer | undefined;
     @action
     componentDidMount() {
-        setTimeout(action(() => this._opacity = 0.05), 750);
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform()],
-            () => {
+            action(() => {
+                setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
+                setTimeout(action(() => this._opacity = 0.05), 750); // this will unhighlight the link line.
                 let acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
                 let bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
                 let adiv = (acont.length ? acont[0] : this.props.A.ContentDiv!);
@@ -45,8 +46,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 this.props.A.props.Document[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
                 this.props.A.props.Document[bfield + "_x"] = (bpt.point.x - bbounds.left) / bbounds.width * 100;
                 this.props.A.props.Document[bfield + "_y"] = (bpt.point.y - bbounds.top) / bbounds.height * 100;
-                this._update++;
-            }
+            })
             , { fireImmediately: true });
     }
     @action
@@ -55,7 +55,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
 
     render() {
-        let y = this._update;
         let acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
         let bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
         let a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();

@@ -469,7 +469,7 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        if (CurrentUserUtils.UserDocument.expandingButtons instanceof Doc) {
+        if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />

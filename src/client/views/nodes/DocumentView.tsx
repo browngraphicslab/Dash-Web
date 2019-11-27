@@ -194,7 +194,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.nativeEvent.cancelBubble && e.button === 0) return;
+        if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
+            // return if we're inking, and not selecting a button document
+            || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
+            // return if using pen or eraser
+            || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitTemplateDrag = false;
@@ -205,7 +209,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this._hitTemplateDrag = true;
             }
         }
-        if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && e.button === 0 && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+        if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -220,7 +224,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCH))) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
@@ -645,6 +649,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.Document.isBackground && !this.isSelected()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
+    @action
+    handle2PointersMove = (e: TouchEvent) => {
+        let pt1 = e.targetTouches.item(0);
+        let pt2 = e.targetTouches.item(1);
+        if (pt1 && pt2 && this.prevPoints.has(pt1.identifier) && this.prevPoints.has(pt2.identifier)) {
+            let oldPoint1 = this.prevPoints.get(pt1.identifier);
+            let oldPoint2 = this.prevPoints.get(pt2.identifier);
+            let pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+            if (pinching !== 0) {
+                let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX));
+                this.props.Document.width = newWidth;
+            }
+        }
+    }
+
     render() {
         if (!this.props.Document) return (null);
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
@@ -668,14 +687,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={e => {
-                console.log("Brush" + this.props.Document.title);
-                Doc.BrushDoc(this.props.Document);
-            }} onPointerLeave={e => {
-                console.log("UnBrush" + this.props.Document.title);
-                Doc.UnBrushDoc(this.props.Document);
-
-            }}
+            onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
                 transition: this.Document.isAnimating ? ".5s linear" : StrCast(this.Document.transition),
                 pointerEvents: this.ignorePointerEvents ? "none" : "all",
@@ -686,7 +698,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 width: animwidth,
                 height: animheight,
                 opacity: this.Document.opacity
-            }} >
+            }} onTouchStart={this.onTouchStart}>
             {this.innards}
         </div>;
     }

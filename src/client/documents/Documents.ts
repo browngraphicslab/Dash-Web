@@ -215,7 +215,8 @@ export namespace Docs {
                 layout: { view: PresElementBox, dataField: data }
             }],
             [DocumentType.INK, {
-                layout: { view: InkingStroke, dataField: data }
+                layout: { view: InkingStroke, dataField: data },
+                options: { backgroundColor: "transparent" }
             }]
         ]);
 
@@ -523,7 +524,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            let inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            Doc.GetProto(inst).data = new List<Doc>(documents);
+            return inst;
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {

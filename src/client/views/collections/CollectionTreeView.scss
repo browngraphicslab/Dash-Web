@@ -114,6 +114,9 @@
 .treeViewItem-header {
     border: transparent 1px solid;
     display: flex;
+    .editableView-container-editing-oneLine {
+        min-width: 15px;
+    }
 }
 
 .treeViewItem-header-above {

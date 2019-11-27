@@ -1049,6 +1049,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseUp={this.onMouseUp}
+                onTouchStart={this.onTouchStart}
                 onWheel={this.onPointerWheel}
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}

@@ -82,7 +82,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         transform: `translate(${this.centeringOffset}px, 0px)`,
                         borderRadius: this.borderRounding,
                         height: this.props.PanelHeight(),
-                        width: this.props.PanelWidth()
+                        width: `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%`
                     }}>
                     <DocumentView {...this.props}
                         DataDoc={this.props.DataDocument}

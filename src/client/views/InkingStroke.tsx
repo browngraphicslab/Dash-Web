@@ -47,12 +47,15 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
         let height = bottom - top;
         let scaleX = this.PanelWidth / width;
         let scaleY = this.PanelHeight / height;
-        return <svg width={width} height={height} style={{
-            transformOrigin: "top left",
-            transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
-            mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset"
-        }}>
-            {points}
-        </svg>;
+        return (
+            <svg width={width} height={height} style={{
+                transformOrigin: "top left",
+                transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
+                mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
+                pointerEvents: "all"
+            }} onTouchStart={this.onTouchStart}>
+                {points}
+            </svg>
+        );
     }
 }
