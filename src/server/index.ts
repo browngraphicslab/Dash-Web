@@ -24,7 +24,7 @@ import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import DiagnosticManager from "./ApiManagers/DiagnosticManager";
 
 export const publicDirectory = path.resolve(__dirname, "public");
-export const filesDirectory = path.resolve(publicDirectory, "files") + "/";
+export const filesDirectory = path.resolve(publicDirectory, "files");
 
 /**
  * These are the functions run before the server starts
@@ -34,7 +34,7 @@ export const filesDirectory = path.resolve(publicDirectory, "files") + "/";
 async function preliminaryFunctions() {
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
-    await DashUploadUtils.buildFilePartitions();
+    await DashUploadUtils.buildFileDirectories();
     await log_execution({
         startMessage: "attempting to initialize mongodb connection",
         endMessage: "connection outcome determined",

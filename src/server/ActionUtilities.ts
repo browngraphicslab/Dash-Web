@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { ExecOptions } from 'shelljs';
 import { exec } from 'child_process';
 import * as path from 'path';
+import * as rimraf from "rimraf";
 
 export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
@@ -69,3 +70,17 @@ export function msToTime(duration: number) {
 
     return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
 }
+
+export const createIfNotExists = async (path: string) => {
+    if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
+        return true;
+    }
+    return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
+};
+
+export async function Prune(rootDirectory: string): Promise<boolean> {
+    const error = await new Promise<Error>(resolve => rimraf(rootDirectory, resolve));
+    return error === null;
+}
+
+export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));

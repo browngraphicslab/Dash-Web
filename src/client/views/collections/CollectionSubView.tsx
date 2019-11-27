@@ -22,6 +22,7 @@ import React = require("react");
 var path = require('path');
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { Networking } from "../../Network";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -271,28 +272,25 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     let file = item.getAsFile();
                     let formData = new FormData();
 
-                    if (file) {
-                        formData.append('file', file);
+                    if (!file || !file.type) {
+                        continue;
                     }
-                    let dropFileName = file ? file.name : "-empty-";
 
-                    let prom = fetch(Utils.prepend("/upload"), {
-                        method: 'POST',
-                        body: formData
-                    }).then(async (res: Response) => {
-                        (await res.json()).map(action((file: any) => {
+                    formData.append('file', file);
+                    let dropFileName = file ? file.name : "-empty-";
+                    promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
+                        results.map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let pathname = Utils.prepend(file.path);
+                            let pathname = Utils.prepend(file.clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 doc && (Doc.GetProto(doc).fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
                                 doc && this.props.addDocument(doc);
                             });
                         }));
-                    });
-                    promises.push(prom);
+                    }));
                 }
             }
-            if (text) {
+            if (text && !text.includes("https://")) {
                 this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
                 return;
             }

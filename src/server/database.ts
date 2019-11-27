@@ -293,7 +293,7 @@ export namespace Database {
         };
 
         export const QueryUploadHistory = async (contentSize: number) => {
-            return SanitizedSingletonQuery<DashUploadUtils.UploadInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
+            return SanitizedSingletonQuery<DashUploadUtils.ImageUploadInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
 
         export namespace GoogleAuthenticationToken {
@@ -322,7 +322,7 @@ export namespace Database {
 
         }
 
-        export const LogUpload = async (information: DashUploadUtils.UploadInformation) => {
+        export const LogUpload = async (information: DashUploadUtils.ImageUploadInformation) => {
             const bundle = {
                 _id: Utils.GenerateDeterministicGuid(String(information.contentSize!)),
                 ...information

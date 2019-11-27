@@ -10,7 +10,7 @@ import { ClientDiagnostics } from "../util/ClientDiagnostics";
 AssignAllExtensions();
 
 (async () => {
-    ClientDiagnostics.start();
+    await ClientDiagnostics.start();
     const info = await CurrentUserUtils.loadCurrentUser();
     DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email);
     await Docs.Prototypes.initialize();

@@ -22,17 +22,9 @@ import "./DirectoryImportBox.scss";
 import { Networking } from "../../Network";
 import { BatchedArray } from "array-batcher";
 import * as path from 'path';
-import { DashUploadUtils } from "../../../server/DashUploadUtils";
-import { SharedMediaTypes } from "../../../server/SharedMediaTypes";
+import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
 
 const unsupported = ["text/html", "text/plain"];
-
-interface ImageUploadResponse {
-    name: string;
-    path: string;
-    type: string;
-    exif: any;
-}
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -98,7 +90,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             let file = files.item(i);
             if (file && !unsupported.includes(file.type)) {
                 const ext = path.extname(file.name).toLowerCase();
-                if (SharedMediaTypes.imageFormats.includes(ext)) {
+                if (AcceptibleMedia.imageFormats.includes(ext)) {
                     validated.push(file);
                 }
             }
@@ -114,7 +106,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-        const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync<ImageUploadResponse>(async (batch, collector) => {
+        const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync<any>(async (batch, collector) => {
             const formData = new FormData();
 
             batch.forEach(file => {
@@ -127,16 +119,17 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             runInAction(() => this.completed += batch.length);
         });
 
+        const size = "_o";
         await Promise.all(uploads.map(async upload => {
             const type = upload.type;
-            const path = Utils.prepend(upload.path);
+            const path = Utils.prepend(upload.clientAccessPath);
             const options = {
                 nativeWidth: 300,
                 width: 300,
                 title: upload.name
             };
             const document = await Docs.Get.DocumentFromType(type, path, options);
-            const { data, error } = upload.exif;
+            const { data, error } = upload.exifData;
             if (document) {
                 Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data);
                 docs.push(document);

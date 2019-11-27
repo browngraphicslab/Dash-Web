@@ -5,7 +5,7 @@ import * as Archiver from 'archiver';
 import * as express from 'express';
 import { Database } from "../database";
 import * as path from "path";
-import { DashUploadUtils } from "../DashUploadUtils";
+import { DashUploadUtils, SizeSuffix } from "../DashUploadUtils";
 import { publicDirectory } from "..";
 
 export type Hierarchy = { [id: string]: string | Hierarchy };
@@ -254,7 +254,7 @@ async function writeHierarchyRecursive(file: Archiver.Archiver, hierarchy: Hiera
                 // and dropped in the browser and thus hosted remotely) so we upload it
                 // to our server and point the zip file to it, so it can bundle up the bytes
                 const information = await DashUploadUtils.UploadImage(result);
-                path = information.mediaPaths[0];
+                path = information.serverAccessPaths[SizeSuffix.Original];
             }
             // write the file specified by the path to the directory in the
             // zip file given by the prefix.

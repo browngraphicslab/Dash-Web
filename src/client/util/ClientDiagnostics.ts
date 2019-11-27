@@ -1,9 +1,6 @@
-import { observable, runInAction } from "mobx";
-import { MainView } from "../views/MainView";
-
 export namespace ClientDiagnostics {
 
-    export function start() {
+    export async function start() {
 
         let serverPolls = 0;
         const serverHandle = setInterval(async () => {
@@ -17,14 +14,16 @@ export namespace ClientDiagnostics {
 
 
         let executed = false;
-        const solrHandle = setInterval(async () => {
+        const handle = async () => {
             const response = await fetch("/solrHeartbeat");
             if (!(await response.json()).running) {
                 !executed && alert("Looks like SOLR is not running on your machine.");
                 executed = true;
                 clearInterval(solrHandle);
             }
-        }, 1000 * 15);
+        };
+        await handle();
+        const solrHandle = setInterval(handle, 1000 * 15);
 
     }
 

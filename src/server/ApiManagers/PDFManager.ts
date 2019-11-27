@@ -2,12 +2,12 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import RouteSubscriber from "../RouteSubscriber";
 import { exists, createReadStream, createWriteStream } from "fs";
-import { filesDirectory } from "..";
 import * as Pdfjs from 'pdfjs-dist';
 import { createCanvas } from "canvas";
 const probe = require("probe-image-size");
 import * as express from "express";
 import * as path from "path";
+import { Directory, serverPathToFile, clientPathToFile } from "./UploadManager";
 
 export default class PDFManager extends ApiManager {
 
@@ -21,21 +21,27 @@ export default class PDFManager extends ApiManager {
                 let noExt = filename.substring(0, filename.length - ".png".length);
                 let pagenumber = parseInt(noExt.split('-')[1]);
                 return new Promise<void>(resolve => {
-                    exists(filesDirectory + filename, (exists: boolean) => {
-                        console.log(`${filesDirectory + filename} ${exists ? "exists" : "does not exist"}`);
+                    const path = serverPathToFile(Directory.pdf_thumbnails, filename);
+                    exists(path, (exists: boolean) => {
+                        console.log(`${path} ${exists ? "exists" : "does not exist"}`);
                         if (exists) {
-                            let input = createReadStream(filesDirectory + filename);
-                            probe(input, (err: any, result: any) => {
+                            let input = createReadStream(path);
+                            probe(input, (err: any, { width, height }: any) => {
                                 if (err) {
                                     console.log(err);
                                     console.log(`error on ${filename}`);
                                     return;
                                 }
-                                res.send({ path: "/files/" + filename, width: result.width, height: result.height });
+                                res.send({
+                                    path: clientPathToFile(Directory.pdf_thumbnails, filename),
+                                    width,
+                                    height
+                                });
                             });
                         }
                         else {
-                            LoadPage(filesDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
+                            const name = filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf";
+                            LoadPage(serverPathToFile(Directory.pdfs, name), pagenumber, res);
                         }
                         resolve();
                     });
@@ -55,8 +61,8 @@ export default class PDFManager extends ApiManager {
                         let canvasAndContext = factory.create(viewport.width, viewport.height);
                         let renderContext = {
                             canvasContext: canvasAndContext.context,
-                            viewport: viewport,
-                            canvasFactory: factory
+                            canvasFactory: factory,
+                            viewport
                         };
                         console.log("read " + pageNumber);
 
@@ -64,13 +70,17 @@ export default class PDFManager extends ApiManager {
                             .then(() => {
                                 console.log("saving " + pageNumber);
                                 let stream = canvasAndContext.canvas.createPNGStream();
-                                let pngFile = `${file.substring(0, file.length - ".pdf".length)}-${pageNumber}.PNG`;
+                                let filenames = path.basename(file).split(".");
+                                const pngFile = serverPathToFile(Directory.pdf_thumbnails, `${filenames[0]}-${pageNumber}.png`);
                                 let out = createWriteStream(pngFile);
                                 stream.pipe(out);
                                 out.on("finish", () => {
                                     console.log(`Success! Saved to ${pngFile}`);
-                                    let name = path.basename(pngFile);
-                                    res.send({ path: "/files/" + name, width: viewport.width, height: viewport.height });
+                                    res.send({
+                                        path: pngFile,
+                                        width: viewport.width,
+                                        height: viewport.height
+                                    });
                                 });
                             }, (reason: string) => {
                                 console.error(reason + ` ${pageNumber}`);
