@@ -3,7 +3,7 @@ import { Method, _success } from "../RouteManager";
 import * as formidable from 'formidable';
 import v4 = require('uuid/v4');
 var AdmZip = require('adm-zip');
-import * as path from 'path';
+import { extname, basename, dirname } from 'path';
 import { createReadStream, createWriteStream, unlink, readFileSync } from "fs";
 import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
@@ -81,17 +81,17 @@ export default class UploadManager extends ApiManager {
                                 const zip = new AdmZip(path_2);
                                 zip.getEntries().forEach((entry: any) => {
                                     if (!entry.entryName.startsWith("files/")) return;
-                                    let dirname = path.dirname(entry.entryName) + "/";
-                                    let extname = path.extname(entry.entryName);
-                                    let basename = path.basename(entry.entryName).split(".")[0];
+                                    let directory = dirname(entry.entryName) + "/";
+                                    let extension = extname(entry.entryName);
+                                    let base = basename(entry.entryName).split(".")[0];
                                     try {
                                         zip.extractEntryTo(entry.entryName, publicDirectory, true, false);
-                                        dirname = "/" + dirname;
+                                        directory = "/" + directory;
 
-                                        createReadStream(publicDirectory + dirname + basename + extname).pipe(createWriteStream(publicDirectory + dirname + basename + "_o" + extname));
-                                        createReadStream(publicDirectory + dirname + basename + extname).pipe(createWriteStream(publicDirectory + dirname + basename + "_s" + extname));
-                                        createReadStream(publicDirectory + dirname + basename + extname).pipe(createWriteStream(publicDirectory + dirname + basename + "_m" + extname));
-                                        createReadStream(publicDirectory + dirname + basename + extname).pipe(createWriteStream(publicDirectory + dirname + basename + "_l" + extname));
+                                        createReadStream(publicDirectory + directory + base + extension).pipe(createWriteStream(publicDirectory + directory + base + "_o" + extension));
+                                        createReadStream(publicDirectory + directory + base + extension).pipe(createWriteStream(publicDirectory + directory + base + "_s" + extension));
+                                        createReadStream(publicDirectory + directory + base + extension).pipe(createWriteStream(publicDirectory + directory + base + "_m" + extension));
+                                        createReadStream(publicDirectory + directory + base + extension).pipe(createWriteStream(publicDirectory + directory + base + "_l" + extension));
                                     } catch (e) {
                                         console.log(e);
                                     }
@@ -133,29 +133,9 @@ export default class UploadManager extends ApiManager {
                 form.keepExtensions = true;
                 return new Promise<void>(resolve => {
                     form.parse(req, async (_err, _fields, files) => {
-                        let results: DashUploadUtils.ImageFileResponse[] = [];
+                        let results: any[] = [];
                         for (const key in files) {
-                            const { type, path: location, name } = files[key];
-                            const filename = path.basename(location);
-                            let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
-                            if (filename.endsWith(".pdf")) {
-                                let dataBuffer = readFileSync(filesDirectory + filename);
-                                const result: ParsedPDF = await pdf(dataBuffer);
-                                await new Promise<void>((resolve, reject) => {
-                                    const path = filesDirectory + DashUploadUtils.Partitions.pdf_text + "/" + filename.substring(0, filename.length - ".pdf".length) + ".txt";
-                                    createWriteStream(path).write(result.text, error => {
-                                        if (!error) {
-                                            resolve();
-                                        } else {
-                                            reject(error);
-                                        }
-                                    });
-                                });
-                            } else {
-                                uploadInformation = await DashUploadUtils.UploadImage(filesDirectory + filename, filename);
-                            }
-                            const exif = uploadInformation ? uploadInformation.exifData : undefined;
-                            results.push({ name, type, path: `/files/${filename}`, exif });
+                            results.push(DashUploadUtils.upload(files[key]));
                         }
                         _success(res, results);
                         resolve();
@@ -188,7 +168,7 @@ export default class UploadManager extends ApiManager {
                     return;
                 }
                 return imageDataUri.outputFile(uri, filesDirectory + filename).then((savedName: string) => {
-                    const ext = path.extname(savedName).toLowerCase();
+                    const ext = extname(savedName).toLowerCase();
                     const { pngs, jpgs } = SharedMediaTypes;
                     let resizers = [
                         { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },

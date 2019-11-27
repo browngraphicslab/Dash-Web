@@ -7,6 +7,8 @@ import { ExifData, ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
 import { SharedMediaTypes } from './SharedMediaTypes';
 import { filesDirectory } from '.';
+import { File } from 'formidable';
+import { extname, basename } from "path";
 
 const uploadDirectory = path.join(__dirname, './public/files/');
 
@@ -45,175 +47,195 @@ export namespace DashUploadUtils {
         contentType?: string;
     }
 
-    const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${sanitizeExtension(url)}`;
-    const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
-    const sanitizeExtension = (source: string) => {
-        let extension = path.extname(source);
-        extension = extension.toLowerCase();
-        extension = extension.split("?")[0];
-        return extension;
-    };
+    export function upload(file: File): any {
+        const { type, path, name } = file;
+        const filename = basename(path);
+        const extension = extname(path).toLowerCase();
+        if (extension === ".pdf") {
 
-    /**
-     * Uploads an image specified by the @param source to Dash's /public/files/
-     * directory, and returns information generated during that upload 
-     * 
-     * @param {string} source is either the absolute path of an already uploaded image or
-     * the url of a remote image
-     * @param {string} filename dictates what to call the image. If not specified,
-     * the name {@param prefix}_upload_{GUID}
-     * @param {string} prefix is a string prepended to the generated image name in the
-     * event that @param filename is not specified
-     * 
-     * @returns {UploadInformation} This method returns
-     * 1) the paths to the uploaded images (plural due to resizing)
-     * 2) the file name of each of the resized images
-     * 3) the size of the image, in bytes (4432130)
-     * 4) the content type of the image, i.e. image/(jpeg | png | ...)
-     */
-    export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<UploadInformation> => {
-        const metadata = await InspectImage(source);
-        return UploadInspectedImage(metadata, filename, prefix);
-    };
-
-    export interface InspectionResults {
-        isLocal: boolean;
-        stream: any;
-        normalizedUrl: string;
-        exifData: EnrichedExifData;
-        contentSize?: number;
-        contentType?: string;
-    }
-
-    export interface EnrichedExifData {
-        data: ExifData;
-        error?: string;
-    }
-
-    export enum Partitions {
-        pdf_text,
-        images,
-        videos
-    }
-
-    export async function buildFilePartitions() {
-        const pending = Object.keys(Partitions).map(sub => createIfNotExists(filesDirectory + sub));
-        return Promise.all(pending);
-    }
-
-    /**
-     * Based on the url's classification as local or remote, gleans
-     * as much information as possible about the specified image
-     * 
-     * @param source is the path or url to the image in question
-     */
-    export const InspectImage = async (source: string): Promise<InspectionResults> => {
-        const { isLocal, stream, normalized: normalizedUrl } = classify(source);
-        const exifData = await parseExifData(source);
-        const results = {
-            exifData,
-            isLocal,
-            stream,
-            normalizedUrl
-        };
-        // stop here if local, since request.head() can't handle local paths, only urls on the web
-        if (isLocal) {
-            return results;
+        } else if  {
+            let partition: Opt<string>;
+            if(imageFormats.includes(extension)) {
+            partition = DashUploadUtils.Partitions.images;
+        } else if (videoFormats.includes(extension)) {
+            partition = DashUploadUtils.Partitions.videos;
         }
-        const metadata = (await new Promise<any>((resolve, reject) => {
-            request.head(source, async (error, res) => {
-                if (error) {
-                    return reject(error);
-                }
-                resolve(res);
-            });
-        })).headers;
-        return {
-            contentSize: parseInt(metadata[size]),
-            contentType: metadata[type],
-            ...results
-        };
-    };
-
-    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<UploadInformation> => {
-        const { isLocal, stream, normalizedUrl, contentSize, contentType, exifData } = metadata;
-        const resolved = filename ? sanitize(filename) : generate(prefix, normalizedUrl);
-        const extension = sanitizeExtension(normalizedUrl || resolved);
-        let information: UploadInformation = {
-            mediaPaths: [],
-            fileNames: { clean: resolved },
-            exifData,
-            contentSize,
-            contentType,
-        };
-        const { pngs, imageFormats, jpgs, videoFormats } = SharedMediaTypes;
-        return new Promise<UploadInformation>(async (resolve, reject) => {
-            const resizers = [
-                { resizer: sharp().rotate(), suffix: "_o" },
-                ...Object.values(Sizes).map(size => ({
-                    resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
-                    suffix: size.suffix
-                }))
-            ];
-            let nonVisual = false;
-            if (pngs.includes(extension)) {
-                resizers.forEach(element => element.resizer = element.resizer.png());
-            } else if (jpgs.includes(extension)) {
-                resizers.forEach(element => element.resizer = element.resizer.jpeg());
-            } else if (![...imageFormats, ...videoFormats].includes(extension.toLowerCase())) {
-                nonVisual = true;
-            }
-            if (imageFormats.includes(extension)) {
-                for (let resizer of resizers) {
-                    const suffix = resizer.suffix;
-                    let mediaPath: string;
-                    await new Promise<void>(resolve => {
-                        const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
-                        information.mediaPaths.push(mediaPath = uploadDirectory + filename);
-                        information.fileNames[suffix] = filename;
-                        stream(normalizedUrl).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
-                            .on('close', resolve)
-                            .on('error', reject);
-                    });
-                }
-            }
-            if (!isLocal || nonVisual) {
-                await new Promise<void>(resolve => {
-                    stream(normalizedUrl).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
-                });
-            }
-            resolve(information);
-        });
-    };
-
-    const classify = (url: string) => {
-        const isLocal = /Dash-Web(\\|\/)src(\\|\/)server(\\|\/)public(\\|\/)files/g.test(url);
-        return {
-            isLocal,
-            stream: isLocal ? fs.createReadStream : request,
-            normalized: isLocal ? path.normalize(url) : url
-        };
-    };
-
-    const parseExifData = async (source: string): Promise<EnrichedExifData> => {
-        return new Promise<EnrichedExifData>(resolve => {
-            new ExifImage(source, (error, data) => {
-                let reason: Opt<string> = undefined;
-                if (error) {
-                    reason = (error as any).code;
-                }
-                resolve({ data, error: reason });
-            });
-        });
-    };
-
-    export const createIfNotExists = async (path: string) => {
-        if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
-            return true;
+        let uploadInformation: Opt<DashUploadUtils.UploadInformation>;
+        if (partition) {
+            uploadInformation = await DashUploadUtils.UploadImage(`${filesDirectory}/${partition}/${filename}`, filename);
+        } else {
+            console.log(`Unable to accommodate, and ignored, the following file upload: ${filename}`);
         }
-        return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
-    };
+    }
+    const exif = uploadInformation ? uploadInformation.exifData : undefined;
+    results.push({ name, type, path: `/files/${filename}`, exif });
 
-    export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
+}
+
+const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${sanitizeExtension(url)}`;
+const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
+const sanitizeExtension = (source: string) => {
+    let extension = path.extname(source);
+    extension = extension.toLowerCase();
+    extension = extension.split("?")[0];
+    return extension;
+};
+
+/**
+ * Uploads an image specified by the @param source to Dash's /public/files/
+ * directory, and returns information generated during that upload 
+ * 
+ * @param {string} source is either the absolute path of an already uploaded image or
+ * the url of a remote image
+ * @param {string} filename dictates what to call the image. If not specified,
+ * the name {@param prefix}_upload_{GUID}
+ * @param {string} prefix is a string prepended to the generated image name in the
+ * event that @param filename is not specified
+ * 
+ * @returns {UploadInformation} This method returns
+ * 1) the paths to the uploaded images (plural due to resizing)
+ * 2) the file name of each of the resized images
+ * 3) the size of the image, in bytes (4432130)
+ * 4) the content type of the image, i.e. image/(jpeg | png | ...)
+ */
+export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<UploadInformation> => {
+    const metadata = await InspectImage(source);
+    return UploadInspectedImage(metadata, filename, prefix);
+};
+
+export interface InspectionResults {
+    isLocal: boolean;
+    stream: any;
+    normalizedUrl: string;
+    exifData: EnrichedExifData;
+    contentSize?: number;
+    contentType?: string;
+}
+
+export interface EnrichedExifData {
+    data: ExifData;
+    error?: string;
+}
+
+export enum Partitions {
+    pdf_text = "pdf_text",
+    images = "images",
+    videos = "videos"
+}
+
+export async function buildFilePartitions() {
+    const pending = Object.keys(Partitions).map(sub => createIfNotExists(filesDirectory + sub));
+    return Promise.all(pending);
+}
+
+/**
+ * Based on the url's classification as local or remote, gleans
+ * as much information as possible about the specified image
+ * 
+ * @param source is the path or url to the image in question
+ */
+export const InspectImage = async (source: string): Promise<InspectionResults> => {
+    const { isLocal, stream, normalized: normalizedUrl } = classify(source);
+    const exifData = await parseExifData(source);
+    const results = {
+        exifData,
+        isLocal,
+        stream,
+        normalizedUrl
+    };
+    // stop here if local, since request.head() can't handle local paths, only urls on the web
+    if (isLocal) {
+        return results;
+    }
+    const metadata = (await new Promise<any>((resolve, reject) => {
+        request.head(source, async (error, res) => {
+            if (error) {
+                return reject(error);
+            }
+            resolve(res);
+        });
+    })).headers;
+    return {
+        contentSize: parseInt(metadata[size]),
+        contentType: metadata[type],
+        ...results
+    };
+};
+
+export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<UploadInformation> => {
+    const { isLocal, stream, normalizedUrl, contentSize, contentType, exifData } = metadata;
+    const resolved = filename ? sanitize(filename) : generate(prefix, normalizedUrl);
+    const extension = sanitizeExtension(normalizedUrl || resolved);
+    let information: UploadInformation = {
+        mediaPaths: [],
+        fileNames: { clean: resolved },
+        exifData,
+        contentSize,
+        contentType,
+    };
+    const { pngs, jpgs } = SharedMediaTypes;
+    return new Promise<UploadInformation>(async (resolve, reject) => {
+        const resizers = [
+            { resizer: sharp().rotate(), suffix: "_o" },
+            ...Object.values(Sizes).map(size => ({
+                resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
+                suffix: size.suffix
+            }))
+        ];
+        if (pngs.includes(extension)) {
+            resizers.forEach(element => element.resizer = element.resizer.png());
+        } else if (jpgs.includes(extension)) {
+            resizers.forEach(element => element.resizer = element.resizer.jpeg());
+        }
+        for (let resizer of resizers) {
+            const suffix = resizer.suffix;
+            let mediaPath: string;
+            await new Promise<void>(resolve => {
+                const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
+                information.mediaPaths.push(mediaPath = uploadDirectory + filename);
+                information.fileNames[suffix] = filename;
+                stream(normalizedUrl).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
+                    .on('close', resolve)
+                    .on('error', reject);
+            });
+        }
+        if (!isLocal) {
+            await new Promise<void>(resolve => {
+                stream(normalizedUrl).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
+            });
+        }
+        resolve(information);
+    });
+};
+
+const classify = (url: string) => {
+    const isLocal = /Dash-Web(\\|\/)src(\\|\/)server(\\|\/)public(\\|\/)files/g.test(url);
+    return {
+        isLocal,
+        stream: isLocal ? fs.createReadStream : request,
+        normalized: isLocal ? path.normalize(url) : url
+    };
+};
+
+const parseExifData = async (source: string): Promise<EnrichedExifData> => {
+    return new Promise<EnrichedExifData>(resolve => {
+        new ExifImage(source, (error, data) => {
+            let reason: Opt<string> = undefined;
+            if (error) {
+                reason = (error as any).code;
+            }
+            resolve({ data, error: reason });
+        });
+    });
+};
+
+export const createIfNotExists = async (path: string) => {
+    if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
+        return true;
+    }
+    return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
+};
+
+export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
 
 }
