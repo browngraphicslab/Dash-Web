@@ -22,7 +22,7 @@ export namespace ImageUtils {
 
     export const ExportHierarchyToFileSystem = async (collection: Doc): Promise<void> => {
         const a = document.createElement("a");
-        a.href = Utils.prepend(`imageHierarchyExport/${collection[Id]}`);
+        a.href = Utils.prepend(`/imageHierarchyExport/${collection[Id]}`);
         a.download = `Dash Export [${StrCast(collection.title)}].zip`;
         a.click();
     };

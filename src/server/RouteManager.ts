@@ -1,6 +1,7 @@
 import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
+import { ConsoleColors } from "./ActionUtilities";
 
 export enum Method {
     GET,
@@ -52,6 +53,7 @@ export default class RouteManager {
                 try {
                     await toExecute(args);
                 } catch (e) {
+                    console.log(ConsoleColors.Red, target, user?.email ?? "<user logged out>");
                     if (onError) {
                         onError({ ...core, error: e });
                     } else {

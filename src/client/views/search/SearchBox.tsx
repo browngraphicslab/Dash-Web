@@ -89,7 +89,7 @@ export class SearchBox extends React.Component {
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend("uploadURI");
+            let posting = Utils.prepend("/uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,

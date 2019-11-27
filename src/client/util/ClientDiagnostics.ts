@@ -13,7 +13,7 @@ export namespace ClientDiagnostics {
             }
             await fetch("/serverHeartbeat");
             serverPolls--;
-        }, 100);
+        }, 1000 * 15);
 
 
         let executed = false;
@@ -24,7 +24,7 @@ export namespace ClientDiagnostics {
                 executed = true;
                 clearInterval(solrHandle);
             }
-        }, 100);
+        }, 1000 * 15);
 
     }
 

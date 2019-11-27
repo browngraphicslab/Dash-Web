@@ -423,7 +423,6 @@ export class MainView extends React.Component {
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger}>
-                    <div>HEY!</div>
                     <div className="mainView-libraryHandle"
                         style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                         onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>

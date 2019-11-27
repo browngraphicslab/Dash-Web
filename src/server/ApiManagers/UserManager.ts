@@ -9,7 +9,6 @@ interface ActivityUnit {
     duration: number;
 }
 
-
 export default class UserManager extends ApiManager {
 
     protected initialize(register: Registration): void {

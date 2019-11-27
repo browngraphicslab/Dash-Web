@@ -40,7 +40,6 @@ export default async function InitializeServer(options: InitializationOptions) {
     server.use("*", ({ user, originalUrl }, _res, next) => {
         if (!originalUrl.includes("Heartbeat")) {
             const userEmail = user?.email;
-            console.log(ConsoleColors.Cyan, originalUrl, userEmail ?? "<user logged out>");
             if (userEmail) {
                 timeMap[userEmail] = Date.now();
             }
