@@ -1,7 +1,14 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
-import { WebSocket } from "../Websocket/Websocket";
 import { Database } from "../database";
+import { msToTime } from "../ActionUtilities";
+
+export const timeMap: { [id: string]: number } = {};
+interface ActivityUnit {
+    user: string;
+    duration: number;
+}
+
 
 export default class UserManager extends ApiManager {
 
@@ -32,35 +39,34 @@ export default class UserManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: "/whosOnline",
+            subscription: "/activity",
             onValidation: ({ res }) => {
-                let users: any = { active: {}, inactive: {} };
                 const now = Date.now();
 
-                const { timeMap } = WebSocket;
+                const activeTimes: ActivityUnit[] = [];
+                const inactiveTimes: ActivityUnit[] = [];
+
                 for (const user in timeMap) {
                     const time = timeMap[user];
-                    const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
-                    users[key][user] = `Last active ${msToTime(now - time)} ago`;
+                    const duration = now - time;
+                    const target = (duration / 1000) < (60 * 5) ? activeTimes : inactiveTimes;
+                    target.push({ user, duration });
                 }
 
-                res.send(users);
+                const process = (target: { user: string, duration: number }[]) => {
+                    const comparator = (first: ActivityUnit, second: ActivityUnit) => first.duration - second.duration;
+                    const sorted = target.sort(comparator);
+                    return sorted.map(({ user, duration }) => `${user} (${msToTime(duration)})`);
+                };
+
+                res.render("user_activity.pug", {
+                    title: "User Activity",
+                    active: process(activeTimes),
+                    inactive: process(inactiveTimes)
+                });
             }
         });
 
     }
 
-}
-
-function msToTime(duration: number) {
-    let milliseconds = Math.floor((duration % 1000) / 100),
-        seconds = Math.floor((duration / 1000) % 60),
-        minutes = Math.floor((duration / (1000 * 60)) % 60),
-        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
-
-    let hoursS = (hours < 10) ? "0" + hours : hours;
-    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
-    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
-
-    return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
 }

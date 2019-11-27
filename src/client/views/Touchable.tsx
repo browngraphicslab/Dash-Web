@@ -45,7 +45,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         this._touchDrag = true;
         switch (e.targetTouches.length) {
             case 1:
-                this.handle1PointerMove(e)
+                this.handle1PointerMove(e);
                 break;
             case 2:
                 this.handle2PointersMove(e);

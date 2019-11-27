@@ -8,16 +8,12 @@ import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { ConsoleColors, logPort } from "../ActionUtilities";
+import { timeMap } from "../ApiManagers/UserManager";
 
 export namespace WebSocket {
 
-    interface Map {
-        [key: string]: Client;
-    }
-    let clients: Map = {};
-
+    let clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
-    export const timeMap: { [id: string]: number } = {};
 
     export async function start(serverPort: number, isRelease: boolean) {
         await preliminaryFunctions();
@@ -31,9 +27,9 @@ export namespace WebSocket {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
             socket.use((_packet, next) => {
-                let id = socketMap.get(socket);
-                if (id) {
-                    timeMap[id] = Date.now();
+                let userEmail = socketMap.get(socket);
+                if (userEmail) {
+                    timeMap[userEmail] = Date.now();
                 }
                 next();
             });
@@ -87,10 +83,10 @@ export namespace WebSocket {
         await Search.Instance.clear();
     }
 
-    function barReceived(socket: SocketIO.Socket, guid: string) {
-        clients[guid] = new Client(guid.toString());
-        console.log(ConsoleColors.Green, `user ${guid} has connected to the web socket`);
-        socketMap.set(socket, guid);
+    function barReceived(socket: SocketIO.Socket, userEmail: string) {
+        clients[userEmail] = new Client(userEmail.toString());
+        console.log(ConsoleColors.Green, `user ${userEmail} has connected to the web socket`);
+        socketMap.set(socket, userEmail);
     }
 
     function getField([id, callback]: [string, (result?: Transferable) => void]) {

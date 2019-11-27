@@ -56,3 +56,16 @@ export function logPort(listener: string, port: number) {
     process.stdout.write(`${listener} listening on port `);
     console.log(ConsoleColors.Yellow, port);
 }
+
+export function msToTime(duration: number) {
+    let milliseconds = Math.floor((duration % 1000) / 100),
+        seconds = Math.floor((duration / 1000) % 60),
+        minutes = Math.floor((duration / (1000 * 60)) % 60),
+        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    let hoursS = (hours < 10) ? "0" + hours : hours;
+    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
+    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
+
+    return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
+}

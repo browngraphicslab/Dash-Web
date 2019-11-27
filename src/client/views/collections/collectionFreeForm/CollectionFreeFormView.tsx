@@ -40,6 +40,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { computedFn, keepAlive } from "mobx-utils";
+import { TraceMobx } from "../../../../new_fields/util";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -73,7 +74,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _layoutPoolData = new ObservableMap<string, any>();
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
-    @observable _layoutElements: ViewDefResult[] = [];
+    @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
 
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
@@ -488,9 +489,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let [x, y] = this.getTransform().transformPoint(pointX, pointY);
         let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-        let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
-        this.props.Document.scale = Math.abs(safeScale);
-        this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
+        if (localTransform.Scale >= 0.15) {
+            let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
+            this.props.Document.scale = Math.abs(safeScale);
+            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
+        }
     }
 
     @action
@@ -619,12 +622,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
-        const script = this.Document.arrangeScript;
-        const result = script && script.script.run(params, console.log);
-        const layoutDoc = Doc.Layout(params.doc);
-        if (result && result.success) {
+        const result = this.Document.arrangeScript?.script.run(params, console.log);
+        if (result?.success) {
             return { ...result, transition: "transform 1s" };
         }
+        const layoutDoc = Doc.Layout(params.doc);
         return { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(layoutDoc.width, "number"), height: Cast(layoutDoc.height, "number") };
     }
 
@@ -651,25 +653,25 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    childDataProvider = computedFn((doc: Doc) => this._layoutPoolData.get(doc[Id]));
+    childDataProvider = computedFn(function childDataProvider(doc: Doc) { return (this as any)._layoutPoolData.get(doc[Id]); }.bind(this));
 
-    get doPivotLayout() {
-        return computePivotLayout(this.props.Document, this.childDocs,
+    doPivotLayout(poolData: ObservableMap<string, any>) {
+        return computePivotLayout(poolData, this.props.Document, this.childDocs,
             this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), this.viewDefsToJSX);
     }
 
-    get doFreeformLayout() {
+    doFreeformLayout(poolData: ObservableMap<string, any>) {
         let layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         let state = initResult && initResult.success ? initResult.result.scriptState : undefined;
         let elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
+            const data = poolData.get(pair.layout[Id]);
             const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
             state = pos.state === undefined ? state : pos.state;
-            let data = this._layoutPoolData.get(pair.layout[Id]);
             if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height || pos.transition !== data.transition) {
-                runInAction(() => this._layoutPoolData.set(pair.layout[Id], pos));
+                runInAction(() => poolData.set(pair.layout[Id], pos));
             }
         });
         return { elements: elements };
@@ -678,8 +680,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     get doLayoutComputation() {
         let computedElementData: { elements: ViewDefResult[] };
         switch (this.Document.freeformLayoutEngine) {
-            case "pivot": computedElementData = this.doPivotLayout; break;
-            default: computedElementData = this.doFreeformLayout; break;
+            case "pivot": computedElementData = this.doPivotLayout(this._layoutPoolData); break;
+            default: computedElementData = this.doFreeformLayout(this._layoutPoolData); break;
         }
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
             computedElementData.elements.push({
@@ -693,14 +695,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     componentDidMount() {
-        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
+        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation; },
             action((computation: { elements: ViewDefResult[] }) => computation && (this._layoutElements = computation.elements)),
-            { fireImmediately: true });
+            { fireImmediately: true, name: "doLayout" });
     }
     componentWillUnmount() {
         this._layoutComputeReaction && this._layoutComputeReaction();
     }
-    @computed.struct get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
+    @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;
 
     @action
@@ -843,7 +845,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return eles;
     }
     render() {
-        // trace();
+        TraceMobx();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         // this.Document.fitX = this.contentBounds && this.contentBounds.x;
         // this.Document.fitY = this.contentBounds && this.contentBounds.y;
@@ -873,9 +875,8 @@ interface CollectionFreeFormOverlayViewProps {
 
 @observer
 class CollectionFreeFormOverlayView extends React.Component<CollectionFreeFormOverlayViewProps>{
-    @computed.struct get overlayViews() { return this.props.elements().filter(ele => ele.bounds && ele.bounds.z).map(ele => ele.ele); }
     render() {
-        return this.overlayViews;
+        return this.props.elements().filter(ele => ele.bounds && ele.bounds.z).map(ele => ele.ele);
     }
 }
 
@@ -898,7 +899,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className={freeformclass} style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children()}
         </div>;
     }
