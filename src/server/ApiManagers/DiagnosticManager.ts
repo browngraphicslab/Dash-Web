@@ -16,8 +16,12 @@ export default class DiagnosticManager extends ApiManager {
             method: Method.GET,
             subscription: "/solrHeartbeat",
             onValidation: async ({ res }) => {
-                const response = await request("http://localhost:8983");
-                res.send(response !== undefined);
+                try {
+                    await request("http://localhost:8983");
+                    res.send({ running: true });
+                } catch (e) {
+                    res.send({ running: false });
+                }
             }
         });
 

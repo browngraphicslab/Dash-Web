@@ -16,10 +16,12 @@ export namespace ClientDiagnostics {
         }, 100);
 
 
+        let executed = false;
         const solrHandle = setInterval(async () => {
             const response = await fetch("/solrHeartbeat");
-            if (!response) {
-                alert("Looks like SOLR is not running on your machine.");
+            if (!(await response.json()).running) {
+                !executed && alert("Looks like SOLR is not running on your machine.");
+                executed = true;
                 clearInterval(solrHandle);
             }
         }, 100);
