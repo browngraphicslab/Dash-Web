@@ -61,9 +61,10 @@ export namespace DashUploadUtils {
         contentType?: string;
     }
 
+    const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
+
     export async function upload(file: File): Promise<any> {
         const { type, path, name } = file;
-        const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
         const types = type.split("/");
 
         const category = types[0];
