@@ -5,7 +5,7 @@ import { GoogleApiServerUtils } from "../apis/google/GoogleApiServerUtils";
 import { BatchedArray, TimeUnit } from "array-batcher";
 import { GooglePhotosUploadUtils } from "../apis/google/GooglePhotosUploadUtils";
 import { Opt } from "../../new_fields/Doc";
-import { DashUploadUtils } from "../DashUploadUtils";
+import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import { Database } from "../database";
 
 const authenticationError = "Unable to authenticate Google credentials before uploading to Google Photos!";
@@ -55,7 +55,7 @@ export default class GooglePhotosManager extends ApiManager {
                         for (let index = 0; index < batch.length; index++) {
                             const { url, description } = batch[index];
                             const fail = (reason: string) => failed.push({ reason, batch: completedBatches + 1, index, url });
-                            const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(token, url).catch(fail);
+                            const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(token, InjectSize(url, SizeSuffix.Original)).catch(fail);
                             if (!uploadToken) {
                                 fail(`${path.extname(url)} is not an accepted extension`);
                             } else {

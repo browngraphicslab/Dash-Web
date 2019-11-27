@@ -21,12 +21,12 @@ export enum SizeSuffix {
     Original = "_o"
 }
 
-export namespace DashUploadUtils {
+export function InjectSize(filename: string, size: SizeSuffix) {
+    const extension = path.extname(filename).toLowerCase();
+    return filename.substring(0, filename.length - extension.length) + size + extension;
+}
 
-    function InjectSize(filename: string, size: SizeSuffix) {
-        const extension = path.extname(filename).toLowerCase();
-        return filename.substring(0, filename.length - extension.length) + size + extension;
-    }
+export namespace DashUploadUtils {
 
     export interface Size {
         width: number;
@@ -72,8 +72,8 @@ export namespace DashUploadUtils {
         switch (category) {
             case "image":
                 if (imageFormats.includes(format)) {
-                    const { clientAccessPath } = await UploadImage(path, basename(path), format);
-                    return { clientAccessPath, name, type };
+                    const results = await UploadImage(path, basename(path), format);
+                    return { ...results, name, type };
                 }
             case "video":
                 if (videoFormats.includes(format)) {

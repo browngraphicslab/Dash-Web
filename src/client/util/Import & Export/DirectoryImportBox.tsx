@@ -119,17 +119,15 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             runInAction(() => this.completed += batch.length);
         });
 
-        const size = "_o";
-        await Promise.all(uploads.map(async upload => {
-            const type = upload.type;
-            const path = Utils.prepend(upload.clientAccessPath);
+        await Promise.all(uploads.map(async ({ name, type, clientAccessPath, exifData }) => {
+            const path = Utils.prepend(clientAccessPath);
             const options = {
                 nativeWidth: 300,
                 width: 300,
-                title: upload.name
+                title: name
             };
             const document = await Docs.Get.DocumentFromType(type, path, options);
-            const { data, error } = upload.exifData;
+            const { data, error } = exifData;
             if (document) {
                 Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data);
                 docs.push(document);
