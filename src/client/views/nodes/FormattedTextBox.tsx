@@ -806,8 +806,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (selectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
+            this._editorView!.focus();
         }
-        this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) })];
     }
@@ -1064,7 +1064,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
-                {this.sidebarWidthPercent === "0%" ?
+                {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} /> :
                     <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
                         style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc?.backgroundColor, "transparent")}` }}>
@@ -1081,7 +1081,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             whenActiveChanged={this.whenActiveChanged}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
-                            addDocument={this.addDocument}
+                            addDocument={(doc:Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
                             CollectionView={undefined}
                             ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
                             ruleProvider={undefined}
