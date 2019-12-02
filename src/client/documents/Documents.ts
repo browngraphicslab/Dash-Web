@@ -299,7 +299,7 @@ export namespace Docs {
             // whatever options pertain to this specific prototype
             let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view.LayoutString(layout.dataField);
-            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
+            return Doc.assign(new Doc(prototypeId, true), { ...options });
         }
 
     }

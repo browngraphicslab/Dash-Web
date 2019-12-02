@@ -267,19 +267,19 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 // embed document when dragging with a userDropAction or an embedDoc flag set
             } else if (de.data.userDropAction || de.data.embedDoc) {
                 let target = de.data.droppedDocuments[0];
-                const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
-                if (link) {
-                    target.fitToBox = true;
-                    let node = schema.nodes.dashDoc.create({
-                        width: target[WidthSym](), height: target[HeightSym](),
-                        title: "dashDoc", docid: target[Id],
-                        float: "right"
-                    });
-                    let view = this._editorView!;
-                    view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
-                    this.tryUpdateHeight();
-                    e.stopPropagation();
-                }
+                // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
+                // if (link) {
+                target.fitToBox = true;
+                let node = schema.nodes.dashDoc.create({
+                    width: target[WidthSym](), height: target[HeightSym](),
+                    title: "dashDoc", docid: target[Id],
+                    float: "right"
+                });
+                let view = this._editorView!;
+                view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
+                this.tryUpdateHeight();
+                e.stopPropagation();
+                // }
             } // otherwise, fall through to outer collection to handle drop
         }
     }
@@ -806,8 +806,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (selectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
+            this._editorView!.focus();
         }
-        this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) })];
     }
@@ -919,24 +919,30 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
-    hitBulletTargets(x: number, y: number, offsetX: number, select: boolean = false) {
+    hitBulletTargets(x: number, y: number, offsetX: number, select: boolean, highlightOnly = false) {
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
         if (this.props.isSelected(true) && offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: x, top: y });
             if (pos && pos.pos > 0) {
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
-                let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
-                if (node === this._nodeClicked && node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
+                let node2 = node?.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
+                if ((node === this._nodeClicked || highlightOnly) && (node2?.type === schema.nodes.ordered_list || node2?.type === schema.nodes.list_item)) {
                     let hit = this._editorView!.domAtPos(pos.pos).node as any;   // let beforeEle = document.querySelector("." + hit.className) as Element;
                     let before = hit ? window.getComputedStyle(hit, ':before') : undefined;
                     let beforeWidth = before ? Number(before.getPropertyValue('width').replace("px", "")) : undefined;
-                    if (beforeWidth && offsetX < beforeWidth) {
+                    if (beforeWidth && offsetX < beforeWidth * .9) {
                         let ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
-                        if (ol && ol.type === schema.nodes.ordered_list && select) {
-                            this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
-                            addStyleSheetRule(FormattedTextBox._bulletStyleSheet, hit.className + ":before", { background: "gray" });
+                        if (ol?.type === schema.nodes.ordered_list && select) {
+                            if (!highlightOnly) {
+                                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
+                            }
+                            addStyleSheetRule(FormattedTextBox._bulletStyleSheet, hit.className + ":before", { background: "lightgray" });
                         } else {
-                            this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                            if (highlightOnly) {
+                                addStyleSheetRule(FormattedTextBox._bulletStyleSheet, hit.className + ":before", { background: "lightgray" });
+                            } else {
+                                this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                            }
                         }
                     }
                 }
@@ -1045,6 +1051,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
+                onPointerMove={e => this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey, true)}
                 onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
@@ -1057,15 +1064,15 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
-                {this.sidebarWidthPercent === "0%" ?
+                {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} /> :
                     <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
                         style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc?.backgroundColor, "transparent")}` }}>
                         <CollectionFreeFormView {...this.props}
-                            PanelHeight={() => this.props.PanelHeight()}
+                            PanelHeight={this.props.PanelHeight}
                             PanelWidth={() => this.sidebarWidth}
                             annotationsKey={this.annotationsKey}
-                            isAnnotationOverlay={true}
+                            isAnnotationOverlay={false}
                             focus={this.props.focus}
                             isSelected={this.props.isSelected}
                             select={emptyFunction}
@@ -1074,7 +1081,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             whenActiveChanged={this.whenActiveChanged}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
-                            addDocument={this.addDocument}
+                            addDocument={(doc:Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
                             CollectionView={undefined}
                             ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
                             ruleProvider={undefined}
@@ -1091,7 +1098,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         e.stopPropagation();
                     }} >
                     <FontAwesomeIcon className="formattedTExtBox-audioFont"
-                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.2 }} icon={"microphone"} size="sm" />
+                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5 }} icon={"microphone"} size="sm" />
                 </div>
             </div>
         );

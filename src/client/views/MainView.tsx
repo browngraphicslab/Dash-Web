@@ -186,22 +186,21 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
+        let workspaces = Cast(this.userDoc.workspaces, Doc) as Doc;
+        let workspaceCount = DocListCast(workspaces.data).length + 1;
         let freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
             width: this._panelWidth * .7,
             height: this._panelHeight,
-            title: "My Blank Collection",
+            title: "Collection " + workspaceCount,
             backgroundColor: "white"
         };
-        let workspaces: FieldResult<Doc>;
         let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
         var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        let mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), {}, id);
-        if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
-            Doc.AddDocToList(workspaces, "data", mainDoc);
-            mainDoc.title = `Workspace ${DocListCast(workspaces.data).length}`;
-        }
+        let mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${workspaceCount}` }, id);
+        Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => this.openWorkspace(mainDoc), 0);
     }
