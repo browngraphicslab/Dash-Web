@@ -233,7 +233,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 addDoc = (doc: Doc) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc) || addDoc(doc);
             }
             let movedDocs = (de.data.options === this.props.treeViewId ? de.data.draggedDocuments : de.data.droppedDocuments);
-            return (de.data.dropAction || de.data.userDropAction) ?
+            return ((de.data.dropAction && (de.data.options !== this.props.treeViewId)) || de.data.userDropAction) ?
                 de.data.droppedDocuments.reduce((added, d) => addDoc(d) || added, false)
                 : de.data.moveDocument ?
                     movedDocs.reduce((added, d) => de.data.moveDocument(d, undefined, addDoc) || added, false)
