@@ -40,6 +40,27 @@ export default class UploadManager extends ApiManager {
 
         register({
             method: Method.POST,
+            subscription: "/upload",
+            onValidation: async ({ req, res }) => {
+                let form = new formidable.IncomingForm();
+                form.uploadDir = pathToDirectory(Directory.parsed_files);
+                form.keepExtensions = true;
+                return new Promise<void>(resolve => {
+                    form.parse(req, async (_err, _fields, files) => {
+                        let results: any[] = [];
+                        for (const key in files) {
+                            const result = await DashUploadUtils.upload(files[key]);
+                            result && results.push(result);
+                        }
+                        _success(res, results);
+                        resolve();
+                    });
+                });
+            }
+        });
+
+        register({
+            method: Method.POST,
             subscription: "/uploadDoc",
             onValidation: ({ req, res }) => {
                 let form = new formidable.IncomingForm();
@@ -136,28 +157,6 @@ export default class UploadManager extends ApiManager {
                                 res.send(JSON.stringify("error"));
                             }
                         } catch (e) { console.log(e); }
-                        resolve();
-                    });
-                });
-            }
-        });
-
-
-        register({
-            method: Method.POST,
-            subscription: "/upload",
-            onValidation: async ({ req, res }) => {
-                let form = new formidable.IncomingForm();
-                form.uploadDir = pathToDirectory(Directory.parsed_files);
-                form.keepExtensions = true;
-                return new Promise<void>(resolve => {
-                    form.parse(req, async (_err, _fields, files) => {
-                        let results: any[] = [];
-                        for (const key in files) {
-                            const result = await DashUploadUtils.upload(files[key]);
-                            result && results.push(result);
-                        }
-                        _success(res, results);
                         resolve();
                     });
                 });

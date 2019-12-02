@@ -20,8 +20,7 @@ export default class GeneralGoogleManager extends ApiManager {
             method: Method.GET,
             subscription: "/readGoogleAccessToken",
             onValidation: async ({ user, res }) => {
-                const userId = user.id;
-                const token = await GoogleApiServerUtils.retrieveAccessToken(userId);
+                const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
                 if (!token) {
                     return res.send(GoogleApiServerUtils.generateAuthenticationUrl());
                 }
@@ -34,18 +33,6 @@ export default class GeneralGoogleManager extends ApiManager {
             subscription: "/writeGoogleAccessToken",
             onValidation: async ({ user, req, res }) => {
                 res.send(await GoogleApiServerUtils.processNewUser(user.id, req.body.authenticationCode));
-            }
-        });
-
-        register({
-            method: Method.GET,
-            subscription: "/deleteWithGoogleCredentials",
-            onValidation: async ({ res, isRelease }) => {
-                if (isRelease) {
-                    return _permission_denied(res, deletionPermissionError);
-                }
-                await Database.Auxiliary.GoogleAuthenticationToken.DeleteAll();
-                res.redirect("/delete");
             }
         });
 

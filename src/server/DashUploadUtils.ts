@@ -85,7 +85,8 @@ export namespace DashUploadUtils {
                     return UploadPdf(path);
                 }
         }
-        console.log(ConsoleColors.Red, `Ignoring unsupported file ${name} with upload type (${type}).`);
+
+        console.log(ConsoleColors.Red, `Ignoring unsupported file (${name}) with upload type (${type}).`);
         return { clientAccessPath: undefined };
     }
 
@@ -169,17 +170,12 @@ export namespace DashUploadUtils {
         if (isLocal) {
             return results;
         }
-        const metadata = (await new Promise<any>((resolve, reject) => {
-            request.head(source, async (error, res) => {
-                if (error) {
-                    return reject(error);
-                }
-                resolve(res);
-            });
-        })).headers;
+        const { headers } = (await new Promise<any>((resolve, reject) => {
+            request.head(source, (error, res) => error ? reject(error) : resolve(res));
+        }));
         return {
-            contentSize: parseInt(metadata[size]),
-            contentType: metadata[type],
+            contentSize: parseInt(headers[size]),
+            contentType: headers[type],
             ...results
         };
     };

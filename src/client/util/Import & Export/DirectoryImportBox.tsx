@@ -106,7 +106,8 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
-        const uploads = await BatchedArray.from(validated, { batchSize: 15 }).batchedMapAsync<any>(async (batch, collector) => {
+        const batched = BatchedArray.from(validated, { batchSize: 15 });
+        const uploads = await batched.batchedMapAsync<any>(async (batch, collector) => {
             const formData = new FormData();
 
             batch.forEach(file => {

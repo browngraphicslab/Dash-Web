@@ -2,8 +2,6 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
-import { EventEmitter } from 'events';
-import { ConsoleColors } from './server/ActionUtilities';
 
 export namespace Utils {
 

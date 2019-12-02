@@ -26,6 +26,8 @@ export interface RouteInitializer {
     onError?: OnError;
 }
 
+const registered = new Map<string, Set<Method>>();
+
 export default class RouteManager {
     private server: express.Express;
     private _isRelease: boolean;
@@ -88,6 +90,18 @@ export default class RouteManager {
                 route = subscriber;
             } else {
                 route = subscriber.build;
+            }
+            const existing = registered.get(route);
+            if (existing) {
+                if (existing.has(method)) {
+                    console.log(ConsoleColors.Red, `\nDuplicate registration error: already registered ${route} with Method[${method}]`);
+                    console.log('Please remove duplicate registrations before continuing...\n');
+                    process.exit(0);
+                }
+            } else {
+                const specific = new Set<Method>();
+                specific.add(method);
+                registered.set(route, specific);
             }
             switch (method) {
                 case Method.GET:

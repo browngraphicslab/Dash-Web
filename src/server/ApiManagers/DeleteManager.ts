@@ -56,7 +56,6 @@ export default class DeleteManager extends ApiManager {
             }
         });
 
-
     }
 
 }

@@ -4,10 +4,11 @@ import RouteSubscriber from "../RouteSubscriber";
 import { exists, createReadStream, createWriteStream } from "fs";
 import * as Pdfjs from 'pdfjs-dist';
 import { createCanvas } from "canvas";
-const probe = require("probe-image-size");
+const imageSize = require("probe-image-size");
 import * as express from "express";
 import * as path from "path";
 import { Directory, serverPathToFile, clientPathToFile } from "./UploadManager";
+import { ConsoleColors } from "../ActionUtilities";
 
 export default class PDFManager extends ApiManager {
 
@@ -16,84 +17,77 @@ export default class PDFManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("thumbnail").add("filename"),
-            onValidation: ({ req, res }) => {
-                let filename = req.params.filename;
-                let noExt = filename.substring(0, filename.length - ".png".length);
-                let pagenumber = parseInt(noExt.split('-')[1]);
-                return new Promise<void>(resolve => {
-                    const path = serverPathToFile(Directory.pdf_thumbnails, filename);
-                    exists(path, (exists: boolean) => {
-                        console.log(`${path} ${exists ? "exists" : "does not exist"}`);
-                        if (exists) {
-                            let input = createReadStream(path);
-                            probe(input, (err: any, { width, height }: any) => {
-                                if (err) {
-                                    console.log(err);
-                                    console.log(`error on ${filename}`);
-                                    return;
-                                }
-                                res.send({
-                                    path: clientPathToFile(Directory.pdf_thumbnails, filename),
-                                    width,
-                                    height
-                                });
-                            });
-                        }
-                        else {
-                            const name = filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf";
-                            LoadPage(serverPathToFile(Directory.pdfs, name), pagenumber, res);
-                        }
-                        resolve();
-                    });
-                });
-            }
+            onValidation: ({ req, res }) => getOrCreateThumbnail(req.params.filename, res)
         });
-
-        function LoadPage(file: string, pageNumber: number, res: express.Response) {
-            console.log(file);
-            Pdfjs.getDocument(file).promise
-                .then((pdf: Pdfjs.PDFDocumentProxy) => {
-                    let factory = new NodeCanvasFactory();
-                    console.log(pageNumber);
-                    pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
-                        console.log("reading " + page);
-                        let viewport = page.getViewport(1 as any);
-                        let canvasAndContext = factory.create(viewport.width, viewport.height);
-                        let renderContext = {
-                            canvasContext: canvasAndContext.context,
-                            canvasFactory: factory,
-                            viewport
-                        };
-                        console.log("read " + pageNumber);
-
-                        page.render(renderContext).promise
-                            .then(() => {
-                                console.log("saving " + pageNumber);
-                                let stream = canvasAndContext.canvas.createPNGStream();
-                                let filenames = path.basename(file).split(".");
-                                const pngFile = serverPathToFile(Directory.pdf_thumbnails, `${filenames[0]}-${pageNumber}.png`);
-                                let out = createWriteStream(pngFile);
-                                stream.pipe(out);
-                                out.on("finish", () => {
-                                    console.log(`Success! Saved to ${pngFile}`);
-                                    res.send({
-                                        path: pngFile,
-                                        width: viewport.width,
-                                        height: viewport.height
-                                    });
-                                });
-                            }, (reason: string) => {
-                                console.error(reason + ` ${pageNumber}`);
-                            });
-                    });
-                });
-        }
 
     }
 
 }
 
+function getOrCreateThumbnail(thumbnailName: string, res: express.Response) {
+    const noExtension = thumbnailName.substring(0, thumbnailName.length - ".png".length);
+    const pageString = noExtension.split('-')[1];
+    const pageNumber = parseInt(pageString);
+    return new Promise<void>(resolve => {
+        const path = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
+        exists(path, (exists: boolean) => {
+            if (exists) {
+                let existingThumbnail = createReadStream(path);
+                imageSize(existingThumbnail, (err: any, { width, height }: any) => {
+                    if (err) {
+                        console.log(ConsoleColors.Red, `In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`);
+                        console.log(err);
+                        return;
+                    }
+                    res.send({
+                        path: clientPathToFile(Directory.pdf_thumbnails, thumbnailName),
+                        width,
+                        height
+                    });
+                });
+            } else {
+                const offset = thumbnailName.length - pageString.length - 5;
+                const name = thumbnailName.substring(0, offset) + ".pdf";
+                const path = serverPathToFile(Directory.pdfs, name);
+                CreateThumbnail(path, pageNumber, res);
+            }
+            resolve();
+        });
+    });
+}
+
+async function CreateThumbnail(file: string, pageNumber: number, res: express.Response) {
+    const documentProxy = await Pdfjs.getDocument(file).promise;
+    const factory = new NodeCanvasFactory();
+    const page = await documentProxy.getPage(pageNumber);
+    const viewport = page.getViewport(1 as any);
+    const { canvas, context } = factory.create(viewport.width, viewport.height);
+    const renderContext = {
+        canvasContext: context,
+        canvasFactory: factory,
+        viewport
+    };
+    await page.render(renderContext).promise;
+    const pngStream = canvas.createPNGStream();
+    const filenames = path.basename(file).split(".");
+    const pngFile = serverPathToFile(Directory.pdf_thumbnails, `${filenames[0]}-${pageNumber}.png`);
+    const out = createWriteStream(pngFile);
+    pngStream.pipe(out);
+    out.on("finish", () => {
+        res.send({
+            path: pngFile,
+            width: viewport.width,
+            height: viewport.height
+        });
+    });
+    out.on("error", error => {
+        console.log(ConsoleColors.Red, `In PDF thumbnail creation, encountered the following error when piping ${pngFile}:`);
+        console.log(error);
+    });
+}
+
 class NodeCanvasFactory {
+
     create = (width: number, height: number) => {
         var canvas = createCanvas(width, height);
         var context = canvas.getContext('2d');
