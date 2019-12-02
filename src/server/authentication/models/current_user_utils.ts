@@ -1,4 +1,4 @@
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs } from "../../../client/documents/Documents";
@@ -11,10 +11,9 @@ import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../RouteStore";
-import { InkingControl } from "../../../client/views/InkingControl";
-import { DragManager } from "../../../client/util/DragManager";
 import { nullAudio } from "../../../new_fields/URLField";
+import { DragManager } from "../../../client/util/DragManager";
+import { InkingControl } from "../../../client/views/InkingControl";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -206,8 +205,8 @@ export class CurrentUserUtils {
         return doc;
     }
 
-    public static loadCurrentUser() {
-        return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
+    public static async loadCurrentUser() {
+        return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
                 const result: { id: string, email: string } = JSON.parse(response);
                 return result;
@@ -220,7 +219,7 @@ export class CurrentUserUtils {
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
-        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
+        await rp.get(Utils.prepend("/getUserDocumentId")).then(id => {
             if (id && id !== "guest") {
                 return DocServer.GetRefField(id).then(async field =>
                     Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(id, true))));

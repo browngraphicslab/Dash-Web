@@ -125,7 +125,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
-        this._coverPath = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.PNG`)));
+        const path = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
+        this._coverPath = JSON.parse(await rp.get(path));
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._searchReactionDisposer = reaction(() => this.Document.search_string, searchString => {

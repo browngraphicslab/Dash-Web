@@ -1,7 +1,6 @@
 import "fs";
 import React = require("react");
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { RouteStore } from "../../../server/RouteStore";
 import { action, observable, autorun, runInAction, computed, reaction, IReactionDisposer } from "mobx";
 import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
@@ -20,18 +19,12 @@ import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 import { BatchedArray } from "array-batcher";
-import { ExifData } from "exif";
+import * as path from 'path';
+import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
 
 const unsupported = ["text/html", "text/plain"];
-
-interface ImageUploadResponse {
-    name: string;
-    path: string;
-    type: string;
-    exif: any;
-}
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -95,7 +88,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
             let file = files.item(i);
-            file && !unsupported.includes(file.type) && validated.push(file);
+            if (file && !unsupported.includes(file.type)) {
+                const ext = path.extname(file.name).toLowerCase();
+                if (AcceptibleMedia.imageFormats.includes(ext)) {
+                    validated.push(file);
+                }
+            }
         }
 
         runInAction(() => {
@@ -109,7 +107,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
         const batched = BatchedArray.from(validated, { batchSize: 15 });
-        const uploads = await batched.batchedMapAsync<ImageUploadResponse>(async (batch, collector) => {
+        const uploads = await batched.batchedMapAsync<any>(async (batch, collector) => {
             const formData = new FormData();
 
             batch.forEach(file => {
@@ -118,20 +116,19 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            collector.push(...(await Identified.PostFormDataToServer(RouteStore.upload, formData)));
+            collector.push(...(await Networking.PostFormDataToServer("/upload", formData)));
             runInAction(() => this.completed += batch.length);
         });
 
-        await Promise.all(uploads.map(async upload => {
-            const type = upload.type;
-            const path = Utils.prepend(upload.path);
+        await Promise.all(uploads.map(async ({ name, type, clientAccessPath, exifData }) => {
+            const path = Utils.prepend(clientAccessPath);
             const options = {
                 nativeWidth: 300,
                 width: 300,
-                title: upload.name
+                title: name
             };
             const document = await Docs.Get.DocumentFromType(type, path, options);
-            const { data, error } = upload.exif;
+            const { data, error } = exifData;
             if (document) {
                 Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data);
                 docs.push(document);

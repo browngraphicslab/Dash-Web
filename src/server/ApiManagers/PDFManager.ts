@@ -1,0 +1,111 @@
+import ApiManager, { Registration } from "./ApiManager";
+import { Method } from "../RouteManager";
+import RouteSubscriber from "../RouteSubscriber";
+import { exists, createReadStream, createWriteStream } from "fs";
+import * as Pdfjs from 'pdfjs-dist';
+import { createCanvas } from "canvas";
+const imageSize = require("probe-image-size");
+import * as express from "express";
+import * as path from "path";
+import { Directory, serverPathToFile, clientPathToFile } from "./UploadManager";
+import { ConsoleColors } from "../ActionUtilities";
+
+export default class PDFManager extends ApiManager {
+
+    protected initialize(register: Registration): void {
+
+        register({
+            method: Method.GET,
+            subscription: new RouteSubscriber("thumbnail").add("filename"),
+            onValidation: ({ req, res }) => getOrCreateThumbnail(req.params.filename, res)
+        });
+
+    }
+
+}
+
+function getOrCreateThumbnail(thumbnailName: string, res: express.Response) {
+    const noExtension = thumbnailName.substring(0, thumbnailName.length - ".png".length);
+    const pageString = noExtension.split('-')[1];
+    const pageNumber = parseInt(pageString);
+    return new Promise<void>(resolve => {
+        const path = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
+        exists(path, (exists: boolean) => {
+            if (exists) {
+                let existingThumbnail = createReadStream(path);
+                imageSize(existingThumbnail, (err: any, { width, height }: any) => {
+                    if (err) {
+                        console.log(ConsoleColors.Red, `In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`);
+                        console.log(err);
+                        return;
+                    }
+                    res.send({
+                        path: clientPathToFile(Directory.pdf_thumbnails, thumbnailName),
+                        width,
+                        height
+                    });
+                });
+            } else {
+                const offset = thumbnailName.length - pageString.length - 5;
+                const name = thumbnailName.substring(0, offset) + ".pdf";
+                const path = serverPathToFile(Directory.pdfs, name);
+                CreateThumbnail(path, pageNumber, res);
+            }
+            resolve();
+        });
+    });
+}
+
+async function CreateThumbnail(file: string, pageNumber: number, res: express.Response) {
+    const documentProxy = await Pdfjs.getDocument(file).promise;
+    const factory = new NodeCanvasFactory();
+    const page = await documentProxy.getPage(pageNumber);
+    const viewport = page.getViewport(1 as any);
+    const { canvas, context } = factory.create(viewport.width, viewport.height);
+    const renderContext = {
+        canvasContext: context,
+        canvasFactory: factory,
+        viewport
+    };
+    await page.render(renderContext).promise;
+    const pngStream = canvas.createPNGStream();
+    const filenames = path.basename(file).split(".");
+    const pngFile = serverPathToFile(Directory.pdf_thumbnails, `${filenames[0]}-${pageNumber}.png`);
+    const out = createWriteStream(pngFile);
+    pngStream.pipe(out);
+    out.on("finish", () => {
+        res.send({
+            path: pngFile,
+            width: viewport.width,
+            height: viewport.height
+        });
+    });
+    out.on("error", error => {
+        console.log(ConsoleColors.Red, `In PDF thumbnail creation, encountered the following error when piping ${pngFile}:`);
+        console.log(error);
+    });
+}
+
+class NodeCanvasFactory {
+
+    create = (width: number, height: number) => {
+        var canvas = createCanvas(width, height);
+        var context = canvas.getContext('2d');
+        return {
+            canvas,
+            context
+        };
+    }
+
+    reset = (canvasAndContext: any, width: number, height: number) => {
+        canvasAndContext.canvas.width = width;
+        canvasAndContext.canvas.height = height;
+    }
+
+    destroy = (canvasAndContext: any) => {
+        canvasAndContext.canvas.width = 0;
+        canvasAndContext.canvas.height = 0;
+        canvasAndContext.canvas = null;
+        canvasAndContext.context = null;
+    }
+}
