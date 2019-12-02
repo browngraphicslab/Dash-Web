@@ -27,7 +27,7 @@ import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummarizedView } from "../../util/RichTextSchema";
+import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummarizedView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -787,6 +787,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
+                    dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
@@ -1081,7 +1082,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             whenActiveChanged={this.whenActiveChanged}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
-                            addDocument={(doc:Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
+                            addDocument={(doc: Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
                             CollectionView={undefined}
                             ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
                             ruleProvider={undefined}

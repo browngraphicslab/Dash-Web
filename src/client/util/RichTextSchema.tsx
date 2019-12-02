@@ -107,6 +107,18 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: "inline"
     },
 
+    dashComment: {
+        attrs: {
+            docid: { default: "" },
+        },
+        inline: true,
+        group: "inline",
+        toDOM(node) {
+            const attrs = { style: `width: 40px` };
+            return ["span", { ...node.attrs, ...attrs }, "←"];
+        },
+    },
+
     star: {
         inline: true,
         attrs: {
@@ -171,7 +183,8 @@ export const nodes: { [index: string]: NodeSpec } = {
             title: { default: null },
             float: { default: "right" },
             location: { default: "onRight" },
-            docid: { default: "" }
+            hidden: { default: false },
+            docid: { default: "" },
         },
         group: "inline",
         draggable: true,
@@ -648,6 +661,38 @@ export class ImageResizeView {
     }
 }
 
+
+export class DashDocCommentView {
+    _collapsed: HTMLElement;
+    _view: any;
+    constructor(node: any, view: any, getPos: any) {
+        this._collapsed = document.createElement("span");
+        this._collapsed.className = "formattedTextBox-inlineComment";
+        this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
+        this._view = view;
+        this._collapsed.onpointerdown = (e: any) => {
+            let node = view.state.doc.nodeAt(getPos() + 1);
+            view.dispatch(view.state.tr.
+                setNodeMarkup(getPos() + 1, undefined, { ...node.attrs, hidden: node.attrs.hidden ? false : true })); // update the attrs 
+            setTimeout(() => node.attrs.hidden && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc)), 100);
+        }
+        this._collapsed.onpointerenter = (e: any) => {
+            let node = view.state.doc.nodeAt(getPos() + 1);
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        this._collapsed.onpointerleave = (e: any) => {
+            let node = view.state.doc.nodeAt(getPos() + 1);
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        (this as any).dom = this._collapsed;
+    }
+    selectNode() { }
+}
+
 export class DashDocView {
     _dashSpan: HTMLDivElement;
     _outer: HTMLElement;
@@ -667,20 +712,33 @@ export class DashDocView {
         this._outer.style.position = "relative";
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
-        this._outer.style.display = "inline-block";
-        this._outer.style.overflow = "hidden";
+        this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";
+        // this._outer.style.overflow = "hidden";  // bcz: not sure if this is needed.  if it's used, then the doc doesn't highlight when you hover over a docComment
         (this._outer.style as any).float = node.attrs.float;
 
         this._dashSpan.style.width = node.attrs.width;
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
+        this._dashSpan.style.borderWidth = "4";
         let removeDoc = () => {
             let pos = getPos();
             let ns = new NodeSelection(view.state.doc.resolve(pos));
             view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
             return true;
         };
+        this._dashSpan.onpointerleave = () => {
+            let ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
+            if (ele) {
+                (ele as HTMLDivElement).style.backgroundColor = "";
+            }
+        }
+        this._dashSpan.onpointerenter = () => {
+            let ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
+            if (ele) {
+                (ele as HTMLDivElement).style.backgroundColor = "orange";
+            }
+        }
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
                 self._dashDoc = dashDoc;

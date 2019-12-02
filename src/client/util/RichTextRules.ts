@@ -147,16 +147,14 @@ export const inpRules = {
         new InputRule(
             new RegExp(/##\s$/),
             (state, match, start, end) => {
-                let node = (state.doc.resolve(start) as any).nodeAfter;
-                let sm = state.storedMarks || undefined;
                 let target = Docs.Create.TextDocument({ width: 75, height: 35, autoHeight: true, fontSize: 9, title: "inline comment" });
-                let replaced = node ? state.tr.insertText("←", start).replaceRangeWith(start + 1, end + 1, schema.nodes.dashDoc.create({
-                    width: 75, height: 35,
-                    title: "dashDoc", docid: target[Id],
-                    float: "right"
-                })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                let node = (state.doc.resolve(start) as any).nodeAfter;
+                let newNode = schema.nodes.dashComment.create({ docid: target[Id] });
+                let dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });
+                let sm = state.storedMarks || undefined;
+                let replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
-                return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 1)));
+                return replaced;//.setSelection(new NodeSelection(replaced.doc.resolve(end)));
             }),
         new InputRule(
             new RegExp(/\(\(/),
