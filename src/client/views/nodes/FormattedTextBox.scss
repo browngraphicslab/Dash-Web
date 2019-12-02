@@ -194,10 +194,12 @@ footnote::after {
     position: relative;
     width: 40px;
     height: 20px;
-}
-
-.formattedTextBox-inlineComment::after {
-    content: "←";
+    &::after {
+        content: "→";
+    }
+    &:hover {
+        background: orange;
+    }
 }
 
 .formattedTextBox-summarizer {
@@ -205,11 +207,9 @@ footnote::after {
     position: relative;
     width: 40px;
     height: 20px;
-}
-
-.formattedTextBox-summarizer::after {
-    content: "←";
-    font-weight: bold;
+    &::after {
+        content: "←";
+    }
 }
 
 .formattedTextBox-summarizer-collapsed {
@@ -217,10 +217,9 @@ footnote::after {
     position: relative;
     width: 40px;
     height: 20px;
-}
-
-.formattedTextBox-summarizer-collapsed::after {
-    content: "...";
+    &::after {
+        content: "...";
+    }
 }
 
 .ProseMirror {
