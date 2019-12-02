@@ -2,7 +2,6 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
-import { RouteStore } from './server/RouteStore';
 
 export namespace Utils {
 
@@ -46,7 +45,12 @@ export namespace Utils {
     }
 
     export function CorsProxy(url: string): string {
-        return prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
+        return prepend("/corsProxy/") + encodeURIComponent(url);
+    }
+
+    export async function getApiKey(target: string): Promise<string> {
+        const response = await fetch(prepend(`environment/${target.toUpperCase()}`));
+        return response.text();
     }
 
     export function CopyText(text: string) {
@@ -255,7 +259,7 @@ export namespace Utils {
         }
         let idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
-        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
+        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)} `);
     }
 
     function loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {

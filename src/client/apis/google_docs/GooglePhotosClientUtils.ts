@@ -1,5 +1,4 @@
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { ImageField } from "../../../new_fields/URLField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { Doc, Opt, DocListCastAsync } from "../../../new_fields/Doc";
@@ -13,7 +12,7 @@ import { Docs, DocumentOptions } from "../../documents/Documents";
 import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
 import { AssertionError } from "assert";
 import { DocumentView } from "../../views/nodes/DocumentView";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
 
 export namespace GooglePhotos {
@@ -78,6 +77,7 @@ export namespace GooglePhotos {
         }
 
         export const CollectionToAlbum = async (options: AlbumCreationOptions): Promise<Opt<AlbumCreationResult>> => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             const { collection, title, descriptionKey, tag } = options;
             const dataDocument = Doc.GetProto(collection);
             const images = ((await DocListCastAsync(dataDocument.data)) || []).filter(doc => Cast(doc.data, ImageField));
@@ -127,6 +127,7 @@ export namespace GooglePhotos {
         export type CollectionConstructor = (data: Array<Doc>, options: DocumentOptions, ...args: any) => Doc;
 
         export const CollectionFromSearch = async (constructor: CollectionConstructor, requested: Opt<Partial<Query.SearchOptions>>): Promise<Doc> => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             let response = await Query.ContentSearch(requested);
             let uploads = await Transactions.WriteMediaItemsToServer(response);
             const children = uploads.map((upload: Transactions.UploadInformation) => {
@@ -147,6 +148,7 @@ export namespace GooglePhotos {
         const comparator = (a: string, b: string) => (a < b) ? -1 : (a > b ? 1 : 0);
 
         export const TagChildImages = async (collection: Doc) => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             const idMapping = await Cast(collection.googlePhotosIdMapping, Doc);
             if (!idMapping) {
                 throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
@@ -304,7 +306,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await Identified.PostToServer(RouteStore.googlePhotosMediaDownload, body);
+            const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", body);
             return uploads;
         };
 
@@ -325,6 +327,7 @@ export namespace GooglePhotos {
         }
 
         export const UploadImages = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption"): Promise<Opt<ImageUploadResults>> => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             if (album && "title" in album) {
                 album = await Create.Album(album.title);
             }
@@ -341,7 +344,7 @@ export namespace GooglePhotos {
                 media.push({ url, description });
             }
             if (media.length) {
-                const results = await Identified.PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                const results = await Networking.PostToServer("/googlePhotosMediaUpload", { media, album });
                 return results;
             }
         };

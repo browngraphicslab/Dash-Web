@@ -377,7 +377,6 @@ export namespace Docs {
                 let extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            // if (target !== "http://www.cs.brown.edu/") {
             requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;

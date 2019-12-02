@@ -11,8 +11,7 @@ import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { RouteStore } from "../../../server/RouteStore";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { Utils, emptyFunction, returnOne } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -182,7 +181,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend(RouteStore.dataUriToImage);
+            let posting = Utils.prepend("/uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
