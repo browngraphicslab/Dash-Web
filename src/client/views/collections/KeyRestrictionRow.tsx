@@ -1,8 +1,6 @@
 import * as React from "react";
 import { observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
-import { Doc } from "../../../new_fields/Doc";
 
 interface IKeyRestrictionProps {
     contains: boolean;
@@ -20,13 +18,13 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
     render() {
         if (this._key && this._value) {
             let parsedValue: string | number = `"${this._value}"`;
-            let parsed = parseInt(this._value);
+            const parsed = parseInt(this._value);
             let type = "string";
             if (!isNaN(parsed)) {
                 parsedValue = parsed;
                 type = "number";
             }
-            let scriptText = `${this._contains ? "" : "!"}(((doc.${this._key} && (doc.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))) ||
+            const scriptText = `${this._contains ? "" : "!"}(((doc.${this._key} && (doc.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))) ||
                 ((doc.data_ext && doc.data_ext.${this._key}) && (doc.data_ext.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))))`;
             // let doc = new Doc();
             // ((doc.data_ext && doc.data_ext!.text) && (doc.data_ext!.text as string).includes("hello"));

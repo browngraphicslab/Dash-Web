@@ -95,7 +95,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     @undoBatch
     @action
     private applyFilter = () => {
-        let scriptText = this._scriptValue ? this._scriptValue :
+        const scriptText = this._scriptValue ? this._scriptValue :
             this._keyValue && this._valueValue ? `this.${this._keyValue} === ${this._valueValue}` : "true";
         this.props.Document.filterScript = ScriptField.MakeFunction(scriptText);
     }
@@ -116,7 +116,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {
-        let pageBtns = <>
+        const pageBtns = <>
             <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
                 onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} style={{ left: 45, top: 5 }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
@@ -186,7 +186,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let funcs: ContextMenuProps[] = [];
+        const funcs: ContextMenuProps[] = [];
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document.fitWidth ? "Off" : "On"), event: () => this.Document.fitWidth = !this.Document.fitWidth, icon: "expand-arrows-alt" });
 
@@ -195,7 +195,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
-        let classname = "pdfBox" + (this.active() ? "-interactive" : "");
+        const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
             width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
             height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,

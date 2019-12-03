@@ -108,7 +108,7 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     @action.bound
     onClick = () => {
-        let newList: string[] = FilterBox.Instance.getIcons();
+        const newList: string[] = FilterBox.Instance.getIcons();
 
         if (!this._isSelected) {
             this._isSelected = true;

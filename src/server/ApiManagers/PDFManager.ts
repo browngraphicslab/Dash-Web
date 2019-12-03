@@ -8,7 +8,7 @@ const imageSize = require("probe-image-size");
 import * as express from "express";
 import * as path from "path";
 import { Directory, serverPathToFile, clientPathToFile } from "./UploadManager";
-import { ConsoleColors } from "../ActionUtilities";
+import { red } from "colors";
 
 export default class PDFManager extends ApiManager {
 
@@ -32,10 +32,10 @@ function getOrCreateThumbnail(thumbnailName: string, res: express.Response) {
         const path = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
         exists(path, (exists: boolean) => {
             if (exists) {
-                let existingThumbnail = createReadStream(path);
+                const existingThumbnail = createReadStream(path);
                 imageSize(existingThumbnail, (err: any, { width, height }: any) => {
                     if (err) {
-                        console.log(ConsoleColors.Red, `In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`);
+                        console.log(red(`In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`));
                         console.log(err);
                         return;
                     }
@@ -81,7 +81,7 @@ async function CreateThumbnail(file: string, pageNumber: number, res: express.Re
         });
     });
     out.on("error", error => {
-        console.log(ConsoleColors.Red, `In PDF thumbnail creation, encountered the following error when piping ${pngFile}:`);
+        console.log(red(`In PDF thumbnail creation, encountered the following error when piping ${pngFile}:`));
         console.log(error);
     });
 }
@@ -89,8 +89,8 @@ async function CreateThumbnail(file: string, pageNumber: number, res: express.Re
 class NodeCanvasFactory {
 
     create = (width: number, height: number) => {
-        var canvas = createCanvas(width, height);
-        var context = canvas.getContext('2d');
+        const canvas = createCanvas(width, height);
+        const context = canvas.getContext('2d');
         return {
             canvas,
             context

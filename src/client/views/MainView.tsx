@@ -60,10 +60,10 @@ export class MainView extends React.Component {
     public isPointerDown = false;
 
     componentWillMount() {
-        var tag = document.createElement('script');
+        const tag = document.createElement('script');
 
         tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
+        const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
@@ -82,9 +82,9 @@ export class MainView extends React.Component {
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== "/home") {
-            let pathname = window.location.pathname.substr(1).split("/");
+            const pathname = window.location.pathname.substr(1).split("/");
             if (pathname.length > 1) {
-                let type = pathname[0];
+                const type = pathname[0];
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
                     if (!this.userDoc) {
@@ -158,7 +158,7 @@ export class MainView extends React.Component {
 
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        let received = CurrentUserUtils.MainDocId;
+        const received = CurrentUserUtils.MainDocId;
         if (received && !this.userDoc) {
             reaction(
                 () => CurrentUserUtils.GuestTarget,
@@ -175,7 +175,7 @@ export class MainView extends React.Component {
                     }),
                 );
             }
-            let doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
+            const doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
             if (doc) {
                 this.openWorkspace(doc);
             } else {
@@ -186,9 +186,9 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        let workspaces = Cast(this.userDoc.workspaces, Doc) as Doc;
-        let workspaceCount = DocListCast(workspaces.data).length + 1;
-        let freeformOptions: DocumentOptions = {
+        const workspaces = Cast(this.userDoc.workspaces, Doc) as Doc;
+        const workspaceCount = DocListCast(workspaces.data).length + 1;
+        const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
             width: this._panelWidth * .7,
@@ -196,10 +196,10 @@ export class MainView extends React.Component {
             title: "Collection " + workspaceCount,
             backgroundColor: "white"
         };
-        let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
-        var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        let mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${workspaceCount}` }, id);
+        const dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+        const mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${workspaceCount}` }, id);
         Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => this.openWorkspace(mainDoc), 0);
@@ -213,7 +213,7 @@ export class MainView extends React.Component {
             !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
             this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
         }
-        let state = this._urlState;
+        const state = this._urlState;
         if (state.sharing === true && !this.userDoc) {
             DocServer.Control.makeReadOnly();
         } else {
@@ -263,8 +263,8 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         const mainContainer = this.mainContainer;
-        let flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
-        let flyoutTranslate = this._flyoutTranslate;
+        const flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
+        const flyoutTranslate = this._flyoutTranslate;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutTranslate ? flyoutWidth : 0}px`, transform: `translate(${flyoutTranslate ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
@@ -352,11 +352,11 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        let sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
+        const sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        let sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
+        const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
         return <div className="mainView-flyoutContainer" >
             <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
@@ -463,7 +463,7 @@ export class MainView extends React.Component {
 
     buttonBarXf = () => {
         if (!this._docBtnRef.current) return Transform.Identity();
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {

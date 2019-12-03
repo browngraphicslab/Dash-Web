@@ -38,16 +38,19 @@ export default class GeneralGoogleManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: new RouteSubscriber("/googleDocs").add("sector", "action"),
+            subscription: new RouteSubscriber("googleDocs").add("sector", "action"),
             onValidation: async ({ req, res, user }) => {
-                let sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
-                let action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
+                const sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
+                const action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
                 const endpoint = await GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id);
-                let handler = EndpointHandlerMap.get(action);
+                const handler = EndpointHandlerMap.get(action);
                 if (endpoint && handler) {
-                    handler(endpoint, req.body)
-                        .then(response => res.send(response.data))
-                        .catch(exception => res.send(exception));
+                    try {
+                        const response = await handler(endpoint, req.body);
+                        res.send(response.data);
+                    } catch (e) {
+                        res.send(e);
+                    }
                     return;
                 }
                 res.send(undefined);

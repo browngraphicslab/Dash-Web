@@ -81,7 +81,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.style.display = "none";
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
             FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
-                let keep = e.target && (e.target as any).type === "checkbox" ? true : false;
+                const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
                     DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
@@ -113,7 +113,7 @@ export class FormattedTextBoxComment {
     }
 
     static update(view: EditorView, lastState?: EditorState) {
-        let state = view.state;
+        const state = view.state;
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) {
@@ -136,11 +136,11 @@ export class FormattedTextBoxComment {
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
-            let naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
-            let noselection = view.state.selection.$from === view.state.selection.$to;
+            const naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
+            const noselection = view.state.selection.$from === view.state.selection.$to;
             let child: any = null;
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
-            let mark = child && findOtherUserMark(child.marks);
+            const mark = child && findOtherUserMark(child.marks);
             if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
                 FormattedTextBoxComment.SetState(FormattedTextBoxComment.textBox, mark.attrs.opened, state.selection.$from.pos - nbef, state.selection.$from.pos + naft, mark);
             }
@@ -153,10 +153,10 @@ export class FormattedTextBoxComment {
         // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
         if (set === "none" && state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findLinkMark);
-            let naft = findEndOfMark(state.selection.$from, view, findLinkMark);
+            const naft = findEndOfMark(state.selection.$from, view, findLinkMark);
             let child: any = null;
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
-            let mark = child && findLinkMark(child.marks);
+            const mark = child && findLinkMark(child.marks);
             if (mark && child && nbef && naft) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + mark.attrs.href;
                 if (mark.attrs.href.startsWith("https://en.wikipedia.org/wiki/")) {
@@ -167,7 +167,7 @@ export class FormattedTextBoxComment {
                 }
                 (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                 if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    const docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
                         if (linkDoc instanceof Doc) {
                             FormattedTextBoxComment.linkDoc = linkDoc;
@@ -210,12 +210,12 @@ export class FormattedTextBoxComment {
         if (set !== "none") {
             // These are in screen coordinates
             // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
-            let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
+            const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
             // The box in which the tooltip is positioned, to use as base
-            let box = (document.getElementById("mainView-container") as any).getBoundingClientRect();
+            const box = (document.getElementById("mainView-container") as any).getBoundingClientRect();
             // Find a center-ish x position from the selection endpoints (when
             // crossing lines, end may be more to the left)
-            let left = Math.max((start.left + end.left) / 2, start.left + 3);
+            const left = Math.max((start.left + end.left) / 2, start.left + 3);
             FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
             FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
         }

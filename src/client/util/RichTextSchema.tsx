@@ -1,4 +1,4 @@
-import { action, observable, runInAction, reaction, IReactionDisposer } from "mobx";
+import { reaction, IReactionDisposer } from "mobx";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -257,9 +257,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             if (node.attrs.mapStyle === "bullet") return ['ul', 0];
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
-            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
-            let fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
-            let ffam = node.attrs.setFontFamily;
+            const map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            const fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
+            const ffam = node.attrs.setFontFamily;
             return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }, 0] :
                 ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }];
         }
@@ -287,7 +287,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             const bs = node.attrs.bulletStyle;
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
-            let map = node.attrs.mapStyle === "decimal" ? decMap : node.attrs.mapStyle === "multi" ? multiMap : "";
+            const map = node.attrs.mapStyle === "decimal" ? decMap : node.attrs.mapStyle === "multi" ? multiMap : "";
             return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
             //return ["li", { class: `${map}` }, 0];
         }
@@ -432,7 +432,7 @@ export const marks: { [index: string]: MarkSpec } = {
                 tag: "span",
                 getAttrs: (p: any) => {
                     if (typeof (p) !== "string") {
-                        let style = getComputedStyle(p);
+                        const style = getComputedStyle(p);
                         if (style.textDecoration === "underline") return null;
                         if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
                             p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1) {
@@ -457,7 +457,7 @@ export const marks: { [index: string]: MarkSpec } = {
                 tag: "span",
                 getAttrs: (p: any) => {
                     if (typeof (p) !== "string") {
-                        let style = getComputedStyle(p);
+                        const style = getComputedStyle(p);
                         if (style.textDecoration === "underline" || p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1) {
                             return null;
                         }
@@ -493,11 +493,11 @@ export const marks: { [index: string]: MarkSpec } = {
         },
         group: "inline",
         toDOM(node: any) {
-            let uid = node.attrs.userid.replace(".", "").replace("@", "");
-            let min = Math.round(node.attrs.modified / 12);
-            let hr = Math.round(min / 60);
-            let day = Math.round(hr / 60 / 24);
-            let remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
+            const uid = node.attrs.userid.replace(".", "").replace("@", "");
+            const min = Math.round(node.attrs.modified / 12);
+            const hr = Math.round(min / 60);
+            const day = Math.round(hr / 60 / 24);
+            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
             return node.attrs.opened ?
                 ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
                 ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
@@ -513,7 +513,7 @@ export const marks: { [index: string]: MarkSpec } = {
         },
         group: "inline",
         toDOM(node: any) {
-            let uid = node.attrs.userid.replace(".", "").replace("@", "");
+            const uid = node.attrs.userid.replace(".", "").replace("@", "");
             return node.attrs.opened ?
                 ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0] :
                 ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, ['span', 0]];
@@ -534,7 +534,7 @@ export const marks: { [index: string]: MarkSpec } = {
         },
         parseDOM: [{
             tag: "span", getAttrs(dom: any) {
-                let cstyle = getComputedStyle(dom);
+                const cstyle = getComputedStyle(dom);
                 if (cstyle.font) {
                     if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
                     if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
@@ -599,7 +599,7 @@ export class ImageResizeView {
         this._handle.style.display = "none";
         this._handle.style.bottom = "-10px";
         this._handle.style.right = "-10px";
-        let self = this;
+        const self = this;
         this._img.onclick = function (e: any) {
             e.stopPropagation();
             e.preventDefault();
@@ -620,8 +620,8 @@ export class ImageResizeView {
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
-            let wid = Number(getComputedStyle(self._img).width.replace(/px/, ""));
-            let hgt = Number(getComputedStyle(self._img).height.replace(/px/, ""));
+            const wid = Number(getComputedStyle(self._img).width.replace(/px/, ""));
+            const hgt = Number(getComputedStyle(self._img).height.replace(/px/, ""));
             const startX = e.pageX;
             const startWidth = parseFloat(node.attrs.width);
             const onpointermove = (e: any) => {
@@ -634,7 +634,7 @@ export class ImageResizeView {
             const onpointerup = () => {
                 document.removeEventListener("pointermove", onpointermove);
                 document.removeEventListener("pointerup", onpointerup);
-                let pos = view.state.selection.from;
+                const pos = view.state.selection.from;
                 view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: self._outer.style.width, height: self._outer.style.height }));
                 view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(pos))));
             };
@@ -671,19 +671,19 @@ export class DashDocCommentView {
         this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
         this._view = view;
         this._collapsed.onpointerdown = (e: any) => {
-            let node = view.state.doc.nodeAt(getPos() + 1);
+            const node = view.state.doc.nodeAt(getPos() + 1);
             view.dispatch(view.state.tr.
                 setNodeMarkup(getPos() + 1, undefined, { ...node.attrs, hidden: node.attrs.hidden ? false : true })); // update the attrs 
             setTimeout(() => node.attrs.hidden && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc)), 100);
-        }
+        };
         this._collapsed.onpointerenter = (e: any) => {
-            let node = view.state.doc.nodeAt(getPos() + 1);
+            const node = view.state.doc.nodeAt(getPos() + 1);
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
             e.preventDefault();
             e.stopPropagation();
         };
         this._collapsed.onpointerleave = (e: any) => {
-            let node = view.state.doc.nodeAt(getPos() + 1);
+            const node = view.state.doc.nodeAt(getPos() + 1);
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
             e.preventDefault();
             e.stopPropagation();
@@ -701,7 +701,7 @@ export class DashDocView {
     _textBox: FormattedTextBox;
 
     getDocTransform = () => {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
     contentScaling = () => NumCast(this._dashDoc!.nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!.nativeWidth) : 1;
@@ -721,24 +721,24 @@ export class DashDocView {
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
         this._dashSpan.style.borderWidth = "4";
-        let removeDoc = () => {
-            let pos = getPos();
-            let ns = new NodeSelection(view.state.doc.resolve(pos));
+        const removeDoc = () => {
+            const pos = getPos();
+            const ns = new NodeSelection(view.state.doc.resolve(pos));
             view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
             return true;
         };
         this._dashSpan.onpointerleave = () => {
-            let ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
+            const ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
             if (ele) {
                 (ele as HTMLDivElement).style.backgroundColor = "";
             }
-        }
+        };
         this._dashSpan.onpointerenter = () => {
-            let ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
+            const ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
             if (ele) {
                 (ele as HTMLDivElement).style.backgroundColor = "orange";
             }
-        }
+        };
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
                 self._dashDoc = dashDoc;
@@ -777,7 +777,7 @@ export class DashDocView {
                 />, this._dashSpan);
             }
         });
-        let self = this;
+        const self = this;
         this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onwheel = function (e: any) { e.preventDefault(); };
@@ -830,7 +830,7 @@ export class FootnoteView {
     }
     open() {
         // Append a tooltip to the outer node
-        let tooltip = this.dom.appendChild(document.createElement("div"));
+        const tooltip = this.dom.appendChild(document.createElement("div"));
         tooltip.className = "footnote-tooltip";
         // And put a sub-ProseMirror into that
         this.innerView = new EditorView(tooltip, {
@@ -885,14 +885,14 @@ export class FootnoteView {
         this.dom.textContent = "";
     }
     dispatchInner(tr: any) {
-        let { state, transactions } = this.innerView.state.applyTransaction(tr);
+        const { state, transactions } = this.innerView.state.applyTransaction(tr);
         this.innerView.updateState(state);
 
         if (!tr.getMeta("fromOutside")) {
-            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
-            for (let transaction of transactions) {
-                let steps = transaction.steps;
-                for (let step of steps) {
+            const outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
+            for (const transaction of transactions) {
+                const steps = transaction.steps;
+                for (const step of steps) {
                     outerTr.step(step.map(offsetMap));
                 }
             }
@@ -903,11 +903,11 @@ export class FootnoteView {
         if (!node.sameMarkup(this.node)) return false;
         this.node = node;
         if (this.innerView) {
-            let state = this.innerView.state;
-            let start = node.content.findDiffStart(state.doc.content);
+            const state = this.innerView.state;
+            const start = node.content.findDiffStart(state.doc.content);
             if (start !== null) {
                 let { a: endA, b: endB } = node.content.findDiffEnd(state.doc.content);
-                let overlap = start - Math.min(endA, endB);
+                const overlap = start - Math.min(endA, endB);
                 if (overlap > 0) { endA += overlap; endB += overlap; }
                 this.innerView.dispatch(
                     state.tr
@@ -967,10 +967,10 @@ export class SummarizedView {
     className = (visible: boolean) => "formattedTextBox-summarizer" + (visible ? "" : "-collapsed");
 
     updateSummarizedText(start?: any) {
-        let mark = this._view.state.schema.marks.highlight.create();
+        const mark = this._view.state.schema.marks.highlight.create();
         let endPos = start;
 
-        let visited = new Set();
+        const visited = new Set();
         for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
             let skip = false;
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
@@ -999,7 +999,7 @@ export const schema = new Schema({ nodes, marks });
 const fromJson = schema.nodeFromJSON;
 
 schema.nodeFromJSON = (json: any) => {
-    let node = fromJson(json);
+    const node = fromJson(json);
     if (json.type === "star") {
         node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
     }

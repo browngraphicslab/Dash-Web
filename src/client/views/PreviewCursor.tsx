@@ -26,7 +26,7 @@ export class PreviewCursor extends React.Component<{}> {
     paste = (e: ClipboardEvent) => {
         if (PreviewCursor.Visible) {
             if (e.clipboardData) {
-                let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+                const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
                 runInAction(() => { PreviewCursor.Visible = false; });
 
 
@@ -44,7 +44,7 @@ export class PreviewCursor extends React.Component<{}> {
                     }
 
                     // tests for URL and makes web document
-                    let re: any = /^https?:\/\//g;
+                    const re: any = /^https?:\/\//g;
                     if (re.test(e.clipboardData.getData("text/plain"))) {
                         const url = e.clipboardData.getData("text/plain");
                         PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
@@ -56,7 +56,7 @@ export class PreviewCursor extends React.Component<{}> {
                     }
 
                     // creates text document
-                    let newBox = Docs.Create.TextDocument({
+                    const newBox = Docs.Create.TextDocument({
                         width: 200, height: 100,
                         x: newPoint[0],
                         y: newPoint[1],
@@ -69,10 +69,10 @@ export class PreviewCursor extends React.Component<{}> {
                 }
                 //pasting in images
                 if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
-                    let re: any = /<img src="(.*?)"/g;
-                    let arr: any[] = re.exec(e.clipboardData.getData("text/html"));
+                    const re: any = /<img src="(.*?)"/g;
+                    const arr: any[] = re.exec(e.clipboardData.getData("text/html"));
 
-                    let img: Doc = Docs.Create.ImageDocument(
+                    const img: Doc = Docs.Create.ImageDocument(
                         arr[1], {
                         width: 300, title: arr[1],
                         x: newPoint[0],

@@ -44,12 +44,12 @@ export abstract class BaseOperation {
                 }
             }
 
-            let operationParameters = this.CreateOperationParameters();
+            const operationParameters = this.CreateOperationParameters();
             if (this.Result) {
                 this.Result.progress = 0;
             } // bcz: used to set Result to undefined, but that causes the display to blink
             this.Error = "";
-            let salt = Math.random().toString();
+            const salt = Math.random().toString();
             this.RequestSalt = salt;
 
             if (!operationParameters) {
@@ -59,27 +59,27 @@ export abstract class BaseOperation {
 
             this.ComputationStarted = true;
             //let start = performance.now();
-            let promise = Gateway.Instance.StartOperation(operationParameters.toJSON());
+            const promise = Gateway.Instance.StartOperation(operationParameters.toJSON());
             promise.catch(err => {
                 action(() => {
                     this.Error = err;
                     console.error(err);
                 });
             });
-            let operationReference = await promise;
+            const operationReference = await promise;
 
 
             if (operationReference) {
                 this.OperationReference = operationReference;
 
-                let resultParameters = new ResultParameters();
+                const resultParameters = new ResultParameters();
                 resultParameters.operationReference = operationReference;
 
-                let pollPromise = new PollPromise(salt, operationReference);
+                const pollPromise = new PollPromise(salt, operationReference);
                 BaseOperation._currentOperations.set(this.Id, pollPromise);
 
                 pollPromise.Start(async () => {
-                    let result = await Gateway.Instance.GetResult(resultParameters.toJSON());
+                    const result = await Gateway.Instance.GetResult(resultParameters.toJSON());
                     if (result instanceof ErrorResult) {
                         throw new Error((result).message);
                     }

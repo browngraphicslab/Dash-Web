@@ -2,7 +2,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { Transform } from "../../util/Transform";
 import React = require("react");
 import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
-import { Doc, HeightSym } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { NumCast } from "../../../new_fields/Types";
 import "./CollectionStaffView.scss";
 import { observer } from "mobx-react";
@@ -32,9 +32,9 @@ export class CollectionStaffView extends CollectionSubView(doc => doc) {
     }
 
     @computed get staves() {
-        let staves = [];
+        const staves = [];
         for (let i = 0; i < this._staves; i++) {
-            let rows = [];
+            const rows = [];
             for (let j = 0; j < 5; j++) {
                 rows.push(<div key={`staff-${i}-${j}`} className="collectionStaffView-line"></div>);
             }

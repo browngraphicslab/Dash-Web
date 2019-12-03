@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -148,7 +148,7 @@ export namespace DocServer {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache
-        let cached = _cache[id];
+        const cached = _cache[id];
         if (cached === undefined) {
             // NOT CACHED => we'll have to send a request to the server
 
@@ -195,7 +195,7 @@ export namespace DocServer {
     }
 
     export async function getYoutubeChannels() {
-        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
+        const apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
         return apiKey;
     }
 
@@ -255,7 +255,7 @@ export namespace DocServer {
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let prom = SerializationHelper.Deserialize(field).then(deserialized => {
+                    const prom = SerializationHelper.Deserialize(field).then(deserialized => {
                         fieldMap[field.id] = deserialized;
 
                         //overwrite or delete any promises (that we inserted as flags
@@ -411,7 +411,7 @@ export namespace DocServer {
     }
 
     let _RespondToUpdate = _respondToUpdateImpl;
-    let _respondToDelete = _respondToDeleteImpl;
+    const _respondToDelete = _respondToDeleteImpl;
 
     function respondToUpdate(diff: any) {
         _RespondToUpdate(diff);

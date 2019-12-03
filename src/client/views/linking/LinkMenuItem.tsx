@@ -36,15 +36,15 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     renderMetadata = (): JSX.Element => {
-        let groups = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
-        let index = groups.findIndex(groupDoc => StrCast(groupDoc.type).toUpperCase() === this.props.groupType.toUpperCase());
-        let groupDoc = index > -1 ? groups[index] : undefined;
+        const groups = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
+        const index = groups.findIndex(groupDoc => StrCast(groupDoc.type).toUpperCase() === this.props.groupType.toUpperCase());
+        const groupDoc = index > -1 ? groups[index] : undefined;
 
         let mdRows: Array<JSX.Element> = [];
         if (groupDoc) {
-            let mdDoc = Cast(groupDoc.metadata, Doc, null);
+            const mdDoc = Cast(groupDoc.metadata, Doc, null);
             if (mdDoc) {
-                let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
+                const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
                 mdRows = keys.map(key => {
                     return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
                 });
@@ -110,8 +110,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     render() {
 
-        let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
-        let canExpand = keys ? keys.length > 0 : false;
+        const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
+        const canExpand = keys ? keys.length > 0 : false;
 
         return (
             <div className="linkMenu-item">

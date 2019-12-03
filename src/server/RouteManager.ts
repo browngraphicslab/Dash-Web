@@ -1,7 +1,7 @@
 import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
-import { ConsoleColors } from "./ActionUtilities";
+import { yellow, cyan, red } from 'colors';
 
 export enum Method {
     GET,
@@ -41,6 +41,12 @@ export default class RouteManager {
         this._isRelease = isRelease;
     }
 
+    log = () => {
+        console.log(yellow("\nthe following server routes have been registered:"));
+        Array.from(registered.keys()).sort().forEach(route => console.log(cyan(route)));
+        console.log();
+    }
+
     /**
      * 
      * @param initializer 
@@ -48,14 +54,14 @@ export default class RouteManager {
     addSupervisedRoute = (initializer: RouteInitializer): void => {
         const { method, subscription, onValidation, onUnauthenticated, onError } = initializer;
         const isRelease = this._isRelease;
-        let supervised = async (req: express.Request, res: express.Response) => {
+        const supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;
             const core = { req, res, isRelease };
             const tryExecute = async (toExecute: (args: any) => any | Promise<any>, args: any) => {
                 try {
                     await toExecute(args);
                 } catch (e) {
-                    console.log(ConsoleColors.Red, target, user?.email ?? "<user logged out>");
+                    console.log(red(target), user?.email ?? "<user logged out>");
                     if (onError) {
                         onError({ ...core, error: e });
                     } else {
@@ -78,7 +84,7 @@ export default class RouteManager {
             }
             setTimeout(() => {
                 if (!res.headersSent) {
-                    console.log("Initiating fallback for ", target);
+                    console.log(`Initiating fallback for ${target}`);
                     const warning = `request to ${target} fell through - this is a fallback response`;
                     res.send({ warning });
                 }
@@ -94,7 +100,7 @@ export default class RouteManager {
             const existing = registered.get(route);
             if (existing) {
                 if (existing.has(method)) {
-                    console.log(ConsoleColors.Red, `\nDuplicate registration error: already registered ${route} with Method[${method}]`);
+                    console.log(red(`\nDuplicate registration error: already registered ${route} with Method[${method}]`));
                     console.log('Please remove duplicate registrations before continuing...\n');
                     process.exit(0);
                 }

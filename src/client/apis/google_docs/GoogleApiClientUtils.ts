@@ -1,4 +1,4 @@
-import { docs_v1, slides_v1 } from "googleapis";
+import { docs_v1 } from "googleapis";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
@@ -94,7 +94,7 @@ export namespace GoogleApiClientUtils {
 
             export type ExtractResult = { text: string, paragraphs: DeconstructedParagraph[] };
             export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false): ExtractResult => {
-                let paragraphs = extractParagraphs(document);
+                const paragraphs = extractParagraphs(document);
                 let text = paragraphs.map(paragraph => paragraph.contents.filter(content => !("inlineObjectId" in content)).map(run => run as docs_v1.Schema$TextRun).join("")).join("");
                 text = text.substring(0, text.length - 1);
                 removeNewlines && text.ReplaceAll("\n", "");
@@ -107,14 +107,14 @@ export namespace GoogleApiClientUtils {
                 const fragments: DeconstructedParagraph[] = [];
                 if (document.body && document.body.content) {
                     for (const element of document.body.content) {
-                        let runs: ContentArray = [];
+                        const runs: ContentArray = [];
                         let bullet: Opt<number>;
                         if (element.paragraph) {
                             if (element.paragraph.elements) {
                                 for (const inner of element.paragraph.elements) {
                                     if (inner) {
                                         if (inner.textRun) {
-                                            let run = inner.textRun;
+                                            const run = inner.textRun;
                                             (run.content || !filterEmpty) && runs.push(inner.textRun);
                                         } else if (inner.inlineObjectElement) {
                                             runs.push(inner.inlineObjectElement);
@@ -182,8 +182,8 @@ export namespace GoogleApiClientUtils {
         export const read = async (options: ReadOptions): Promise<Opt<ReadResult>> => {
             return retrieve({ documentId: options.documentId }).then(document => {
                 if (document) {
-                    let title = document.title!;
-                    let body = Utils.extractText(document, options.removeNewlines).text;
+                    const title = document.title!;
+                    const body = Utils.extractText(document, options.removeNewlines).text;
                     return { title, body };
                 }
             });
@@ -192,7 +192,7 @@ export namespace GoogleApiClientUtils {
         export const readLines = async (options: ReadOptions): Promise<Opt<ReadLinesResult>> => {
             return retrieve({ documentId: options.documentId }).then(document => {
                 if (document) {
-                    let title = document.title;
+                    const title = document.title;
                     let bodyLines = Utils.extractText(document).text.split("\n");
                     options.removeNewlines && (bodyLines = bodyLines.filter(line => line.length));
                     return { title, bodyLines };
@@ -201,7 +201,7 @@ export namespace GoogleApiClientUtils {
         };
 
         export const setStyle = async (options: UpdateOptions) => {
-            let replies: any = await update({
+            const replies: any = await update({
                 documentId: options.documentId,
                 requests: options.requests
             });
@@ -221,7 +221,7 @@ export namespace GoogleApiClientUtils {
             let index = options.index;
             const mode = options.mode;
             if (!(index && mode === WriteMode.Insert)) {
-                let schema = await retrieve({ documentId });
+                const schema = await retrieve({ documentId });
                 if (!schema || !(index = Utils.endOf(schema))) {
                     return undefined;
                 }
@@ -248,7 +248,7 @@ export namespace GoogleApiClientUtils {
                 return undefined;
             }
             requests.push(...options.content.requests);
-            let replies: any = await update({ documentId: documentId, requests });
+            const replies: any = await update({ documentId: documentId, requests });
             if ("errors" in replies) {
                 console.log("Write operation failed:");
                 console.log(replies.errors.map((error: any) => error.message));

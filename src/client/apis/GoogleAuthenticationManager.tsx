@@ -30,7 +30,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     }
 
     public fetchOrGenerateAccessToken = async () => {
-        let response = await Networking.FetchFromServer("/readGoogleAccessToken");
+        const response = await Networking.FetchFromServer("/readGoogleAccessToken");
         // if this is an authentication url, activate the UI to register the new access token
         if (new RegExp(AuthenticationUrl).test(response)) {
             this.isOpen = true;

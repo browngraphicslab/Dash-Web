@@ -9,10 +9,11 @@ import { AcceptibleMedia } from './SharedMediaTypes';
 import { filesDirectory } from '.';
 import { File } from 'formidable';
 import { basename } from "path";
-import { ConsoleColors, createIfNotExists } from './ActionUtilities';
+import { createIfNotExists } from './ActionUtilities';
 import { ParsedPDF } from "../server/PdfTypes";
 const parse = require('pdf-parse');
 import { Directory, serverPathToFile, clientPathToFile } from './ApiManagers/UploadManager';
+import { red } from 'colors';
 
 export enum SizeSuffix {
     Small = "_s",
@@ -86,12 +87,12 @@ export namespace DashUploadUtils {
                 }
         }
 
-        console.log(ConsoleColors.Red, `Ignoring unsupported file (${name}) with upload type (${type}).`);
+        console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
         return { clientAccessPath: undefined };
     }
 
     async function UploadPdf(absolutePath: string) {
-        let dataBuffer = fs.readFileSync(absolutePath);
+        const dataBuffer = fs.readFileSync(absolutePath);
         const result: ParsedPDF = await parse(dataBuffer);
         const parsedName = basename(absolutePath);
         await new Promise<void>((resolve, reject) => {
@@ -194,7 +195,7 @@ export namespace DashUploadUtils {
         const { isLocal, stream, normalizedUrl, contentSize, contentType, exifData } = metadata;
         const resolved = filename || generate(prefix, normalizedUrl);
         const extension = format || sanitizeExtension(normalizedUrl || resolved);
-        let information: ImageUploadInformation = {
+        const information: ImageUploadInformation = {
             clientAccessPath: clientPathToFile(Directory.images, resolved),
             serverAccessPaths: {},
             exifData,
@@ -215,8 +216,7 @@ export namespace DashUploadUtils {
             } else if (jpgs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.jpeg());
             }
-            for (let { resizer, suffix } of resizers) {
-                let mediaPath: string;
+            for (const { resizer, suffix } of resizers) {
                 await new Promise<void>(resolve => {
                     const filename = InjectSize(resolved, suffix);
                     information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, filename);

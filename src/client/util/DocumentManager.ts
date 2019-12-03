@@ -33,7 +33,7 @@ export class DocumentManager {
 
     //gets all views
     public getDocumentViewsById(id: string) {
-        let toReturn: DocumentView[] = [];
+        const toReturn: DocumentView[] = [];
         DocumentManager.Instance.DocumentViews.map(view => {
             if (view.props.Document[Id] === id) {
                 toReturn.push(view);
@@ -41,7 +41,7 @@ export class DocumentManager {
         });
         if (toReturn.length === 0) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                let doc = view.props.Document.proto;
+                const doc = view.props.Document.proto;
                 if (doc && doc[Id] && doc[Id] === id) {
                     toReturn.push(view);
                 }
@@ -57,9 +57,9 @@ export class DocumentManager {
     public getDocumentViewById(id: string, preferredCollection?: CollectionView): DocumentView | undefined {
 
         let toReturn: DocumentView | undefined;
-        let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
+        const passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
-        for (let pass of passes) {
+        for (const pass of passes) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 if (view.props.Document[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;
@@ -68,7 +68,7 @@ export class DocumentManager {
             });
             if (!toReturn) {
                 DocumentManager.Instance.DocumentViews.map(view => {
-                    let doc = view.props.Document.proto;
+                    const doc = view.props.Document.proto;
                     if (doc && doc[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                         toReturn = view;
                     }
@@ -90,7 +90,7 @@ export class DocumentManager {
         return views.length ? views[0] : undefined;
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
-        let toReturn: DocumentView[] = [];
+        const toReturn: DocumentView[] = [];
 
         DocumentManager.Instance.DocumentViews.map(view =>
             Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
@@ -100,17 +100,17 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv =>
+        const pairs = DocumentManager.Instance.DocumentViews.filter(dv =>
             (dv.isSelected() || Doc.IsBrushed(dv.props.Document)) // draw links from DocumentViews that are selected or brushed OR
             || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
-                let rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
-                let init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
+                const rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
+                const init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
                 return init && rest;
             })
         ).reduce((pairs, dv) => {
-            let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
+            const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
-                let linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
                 linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
                     if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
                         pairs.push({ a: dv, b: docView1, l: link });
@@ -125,7 +125,7 @@ export class DocumentManager {
     }
 
     public jumpToDocument = async (targetDoc: Doc, willZoom: boolean, dockFunc?: (doc: Doc) => void, docContext?: Doc, linkId?: string, closeContextIfNotFound: boolean = false): Promise<void> => {
-        let highlight = () => {
+        const highlight = () => {
             const finalDocView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
             finalDocView && (finalDocView.Document.scrollToLinkID = linkId);
             finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
@@ -199,12 +199,12 @@ export class DocumentManager {
 
     @action
     zoomIntoScale = (docDelegate: Doc, scale: number) => {
-        let docView = DocumentManager.Instance.getDocumentView(Doc.GetProto(docDelegate));
+        const docView = DocumentManager.Instance.getDocumentView(Doc.GetProto(docDelegate));
         docView && docView.props.zoomToScale(scale);
     }
 
     getScaleOfDocView = (docDelegate: Doc) => {
-        let doc = Doc.GetProto(docDelegate);
+        const doc = Doc.GetProto(docDelegate);
 
         const docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {

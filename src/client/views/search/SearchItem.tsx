@@ -52,7 +52,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     }
 
     async fetchDocuments() {
-        let aliases = (await SearchUtil.GetViewsOfDocument(this.props.doc)).filter(doc => doc !== this.props.doc);
+        const aliases = (await SearchUtil.GetViewsOfDocument(this.props.doc)).filter(doc => doc !== this.props.doc);
         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.doc[Id]}"` });
         const map: Map<Doc, Doc> = new Map;
         const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
@@ -82,7 +82,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
             <div className="parents">
                 <p className="contexts">Contexts:</p>
                 {[...this._docs, ...this._otherDocs].map(doc => {
-                    let item = React.createRef<HTMLDivElement>();
+                    const item = React.createRef<HTMLDivElement>();
                     return <div className="collection" key={doc.col[Id] + doc.target[Id]} ref={item}>
                         <div className="collection-item" onPointerDown={
                             SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
@@ -146,11 +146,11 @@ export class SearchItem extends React.Component<SearchItemProps> {
     //@computed
     @action
     public DocumentIcon() {
-        let layoutresult = StrCast(this.props.doc.type);
+        const layoutresult = StrCast(this.props.doc.type);
         if (!this._useIcons) {
-            let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
-            let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(Doc.Layout(this.props.doc).nativeWidth, returnXDimension());
+            const returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
+            const returnYDimension = () => this._displayDim;
+            const scale = () => returnXDimension() / NumCast(Doc.Layout(this.props.doc).nativeWidth, returnXDimension());
             const docview = <div
                 onPointerDown={action(() => {
                     this._useIcons = !this._useIcons;
@@ -184,7 +184,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             </div>;
             return docview;
         }
-        let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
+        const button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
                 layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
                     layoutresult.indexOf(DocumentType.VID) !== -1 ? faFilm :
@@ -201,7 +201,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     collectionRef = React.createRef<HTMLDivElement>();
     startDocDrag = () => {
-        let doc = this.props.doc;
+        const doc = this.props.doc;
         const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
         if (isProto) {
             return Doc.MakeDelegate(doc);
@@ -218,7 +218,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     nextHighlight = (e: React.PointerEvent) => {
         e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e);
-        let sstring = StrCast(this.props.doc.search_string);
+        const sstring = StrCast(this.props.doc.search_string);
         this.props.doc.search_string = "";
         setTimeout(() => this.props.doc.search_string = sstring, 0);
     }
@@ -226,8 +226,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
-                let doc1 = Cast(this.props.doc.anchor1, Doc, null);
-                let doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                const doc1 = Cast(this.props.doc.anchor1, Doc, null);
+                const doc2 = Cast(this.props.doc.anchor2, Doc, null);
                 Doc.BrushDoc(doc1);
                 Doc.BrushDoc(doc2);
             }
@@ -241,8 +241,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
-                let doc1 = Cast(this.props.doc.anchor1, Doc, null);
-                let doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                const doc1 = Cast(this.props.doc.anchor1, Doc, null);
+                const doc2 = Cast(this.props.doc.anchor2, Doc, null);
                 Doc.UnBrushDoc(doc1);
                 Doc.UnBrushDoc(doc2);
             }

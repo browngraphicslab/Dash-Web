@@ -128,10 +128,10 @@ export namespace GooglePhotos {
 
         export const CollectionFromSearch = async (constructor: CollectionConstructor, requested: Opt<Partial<Query.SearchOptions>>): Promise<Doc> => {
             await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
-            let response = await Query.ContentSearch(requested);
-            let uploads = await Transactions.WriteMediaItemsToServer(response);
+            const response = await Query.ContentSearch(requested);
+            const uploads = await Transactions.WriteMediaItemsToServer(response);
             const children = uploads.map((upload: Transactions.UploadInformation) => {
-                let document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
+                const document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
                 document.fillColumn = true;
                 document.contentSize = upload.contentSize;
                 return document;
@@ -157,12 +157,12 @@ export namespace GooglePhotos {
             const images = (await DocListCastAsync(collection.data))!.map(Doc.GetProto);
             images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
             const values = Object.values(ContentCategories);
-            for (let value of values) {
+            for (const value of values) {
                 if (value !== ContentCategories.NONE) {
                     const results = await ContentSearch({ included: [value] });
                     if (results.mediaItems) {
                         const ids = results.mediaItems.map(item => item.id);
-                        for (let id of ids) {
+                        for (const id of ids) {
                             const image = await Cast(idMapping[id], Doc);
                             if (image) {
                                 const key = image[Id];
@@ -220,9 +220,9 @@ export namespace GooglePhotos {
 
         export const AlbumSearch = async (albumId: string, pageSize = 100): Promise<MediaItem[]> => {
             const photos = await endpoint();
-            let mediaItems: MediaItem[] = [];
+            const mediaItems: MediaItem[] = [];
             let nextPageTokenStored: Opt<string> = undefined;
-            let found = 0;
+            const found = 0;
             do {
                 const response: any = await photos.mediaItems.search(albumId, pageSize, nextPageTokenStored);
                 mediaItems.push(...response.mediaItems);
@@ -332,7 +332,7 @@ export namespace GooglePhotos {
                 album = await Create.Album(album.title);
             }
             const media: MediaInput[] = [];
-            for (let source of sources) {
+            for (const source of sources) {
                 const data = Cast(Doc.GetProto(source).data, ImageField);
                 if (!data) {
                     return;

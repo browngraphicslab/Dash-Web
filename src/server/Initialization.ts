@@ -19,8 +19,9 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { ConsoleColors, logPort } from './ActionUtilities';
+import { logPort } from './ActionUtilities';
 import { timeMap } from './ApiManagers/UserManager';
+import { blue, yellow } from 'colors';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -53,10 +54,13 @@ export default async function InitializeServer(options: InitializationOptions) {
     registerAuthenticationRoutes(server);
     registerCorsProxy(server);
 
-    const isRelease = determineEnvironment(); //vs. dev mode
+    const isRelease = determineEnvironment();
     routeSetter(new RouteManager(server, isRelease));
 
-    server.listen(listenAtPort, () => logPort("server", listenAtPort));
+    server.listen(listenAtPort, () => {
+        logPort("server", listenAtPort);
+        console.log();
+    });
     return isRelease;
 }
 
@@ -92,8 +96,9 @@ function buildWithMiddleware(server: express.Express) {
 function determineEnvironment() {
     const isRelease = process.env.RELEASE === "true";
 
-    console.log(`running server in ${isRelease ? 'release' : 'debug'} mode`);
-    console.log(process.env.PWD);
+    const color = isRelease ? blue : yellow;
+    const label = isRelease ? "release" : "development";
+    console.log(`\nrunning server in ${color(label)} mode`);
 
     let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
     clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(isRelease))}`;

@@ -29,8 +29,8 @@ export namespace InteractionUtils {
      * @param pts - n-arbitrary long list of points
      */
     export function CenterPoint(pts: React.Touch[]): { X: number, Y: number } {
-        let centerX = pts.map(pt => pt.clientX).reduce((a, b) => a + b, 0) / pts.length;
-        let centerY = pts.map(pt => pt.clientY).reduce((a, b) => a + b, 0) / pts.length;
+        const centerX = pts.map(pt => pt.clientX).reduce((a, b) => a + b, 0) / pts.length;
+        const centerY = pts.map(pt => pt.clientY).reduce((a, b) => a + b, 0) / pts.length;
         return { X: centerX, Y: centerY };
     }
 
@@ -42,9 +42,9 @@ export namespace InteractionUtils {
      * @param oldPoint2 - previous point 2
      */
     export function Pinching(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
-        let threshold = 4;
-        let oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
-        let newDist = TwoPointEuclidist(pt1, pt2);
+        const threshold = 4;
+        const oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
+        const newDist = TwoPointEuclidist(pt1, pt2);
 
         /** if they have the same sign, then we are either pinching in or out.
           * threshold it by 10 (it has to be pinching by at least threshold to be a valid pinch)
@@ -64,12 +64,12 @@ export namespace InteractionUtils {
      * @param oldPoint2 - previous point 2
      */
     export function Pinning(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
-        let threshold = 4;
+        const threshold = 4;
 
-        let pt1Dist = TwoPointEuclidist(oldPoint1, pt1);
-        let pt2Dist = TwoPointEuclidist(oldPoint2, pt2);
+        const pt1Dist = TwoPointEuclidist(oldPoint1, pt1);
+        const pt2Dist = TwoPointEuclidist(oldPoint2, pt2);
 
-        let pinching = Pinching(pt1, pt2, oldPoint1, oldPoint2);
+        const pinching = Pinching(pt1, pt2, oldPoint1, oldPoint2);
 
         if (pinching !== 0) {
             if ((pt1Dist < threshold && pt2Dist > threshold) || (pt1Dist > threshold && pt2Dist < threshold)) {

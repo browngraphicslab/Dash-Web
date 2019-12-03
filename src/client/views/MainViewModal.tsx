@@ -14,9 +14,9 @@ export interface MainViewOverlayProps {
 export default class MainViewModal extends React.Component<MainViewOverlayProps> {
 
     render() {
-        let p = this.props;
-        let dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
-        let overlayOpacity = p.overlayDisplayedOpacity || 0.4;
+        const p = this.props;
+        const dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
+        const overlayOpacity = p.overlayDisplayedOpacity || 0.4;
         return !p.isDisplayed ? (null) : (
             <div style={{ pointerEvents: p.isDisplayed ? p.interactive ? "all" : "none" : "none" }}>
                 <div

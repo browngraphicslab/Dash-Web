@@ -24,7 +24,7 @@ CursorField;
 function applyToDoc(doc: { [index: string]: FieldResult }, key: string, scriptString: string): boolean;
 function applyToDoc(doc: { [index: number]: FieldResult }, key: number, scriptString: string): boolean;
 function applyToDoc(doc: any, key: string | number, scriptString: string): boolean {
-    let script = CompileScript(scriptString, { addReturn: true, params: { this: doc instanceof Doc ? Doc.name : List.name } });
+    const script = CompileScript(scriptString, { addReturn: true, params: { this: doc instanceof Doc ? Doc.name : List.name } });
     if (!script.compiled) {
         return false;
     }
@@ -85,7 +85,7 @@ class DocumentViewer extends React.Component<{ field: Doc }> {
         let content;
         if (this.expanded) {
             const keys = Object.keys(this.props.field);
-            let fields = keys.map(key => {
+            const fields = keys.map(key => {
                 return (
                     <div key={key}>
                         <b>({key}): </b>

@@ -2,7 +2,7 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method, _success } from "../RouteManager";
 import * as formidable from 'formidable';
 import v4 = require('uuid/v4');
-var AdmZip = require('adm-zip');
+const AdmZip = require('adm-zip');
 import { extname, basename, dirname } from 'path';
 import { createReadStream, createWriteStream, unlink, readFileSync } from "fs";
 import { publicDirectory, filesDirectory } from "..";
@@ -42,12 +42,12 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/upload",
             onValidation: async ({ req, res }) => {
-                let form = new formidable.IncomingForm();
+                const form = new formidable.IncomingForm();
                 form.uploadDir = pathToDirectory(Directory.parsed_files);
                 form.keepExtensions = true;
                 return new Promise<void>(resolve => {
                     form.parse(req, async (_err, _fields, files) => {
-                        let results: any[] = [];
+                        const results: any[] = [];
                         for (const key in files) {
                             const result = await DashUploadUtils.upload(files[key]);
                             result && results.push(result);
@@ -63,7 +63,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/uploadDoc",
             onValidation: ({ req, res }) => {
-                let form = new formidable.IncomingForm();
+                const form = new formidable.IncomingForm();
                 form.keepExtensions = true;
                 // let path = req.body.path;
                 const ids: { [id: string]: string } = {};
@@ -122,8 +122,8 @@ export default class UploadManager extends ApiManager {
                                 zip.getEntries().forEach((entry: any) => {
                                     if (!entry.entryName.startsWith("files/")) return;
                                     let directory = dirname(entry.entryName) + "/";
-                                    let extension = extname(entry.entryName);
-                                    let base = basename(entry.entryName).split(".")[0];
+                                    const extension = extname(entry.entryName);
+                                    const base = basename(entry.entryName).split(".")[0];
                                     try {
                                         zip.extractEntryTo(entry.entryName, publicDirectory, true, false);
                                         directory = "/" + directory;
@@ -139,7 +139,7 @@ export default class UploadManager extends ApiManager {
                                 const json = zip.getEntry("doc.json");
                                 let docs: any;
                                 try {
-                                    let data = JSON.parse(json.getData().toString("utf8"));
+                                    const data = JSON.parse(json.getData().toString("utf8"));
                                     docs = data.docs;
                                     id = data.id;
                                     docs = Object.keys(docs).map(key => docs[key]);
@@ -189,7 +189,7 @@ export default class UploadManager extends ApiManager {
                 return imageDataUri.outputFile(uri, serverPathToFile(Directory.images, filename)).then((savedName: string) => {
                     const ext = extname(savedName).toLowerCase();
                     const { pngs, jpgs } = AcceptibleMedia;
-                    let resizers = [
+                    const resizers = [
                         { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
                         { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
                         { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },

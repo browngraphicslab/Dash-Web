@@ -57,13 +57,12 @@ export default class DownloadManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: new RouteSubscriber("/serializeDoc").add("docId"),
+            subscription: new RouteSubscriber("serializeDoc").add("docId"),
             onValidation: async ({ req, res }) => {
                 const { docs, files } = await getDocs(req.params.docId);
                 res.send({ docs, files: Array.from(files) });
             }
         });
-
 
     }
 

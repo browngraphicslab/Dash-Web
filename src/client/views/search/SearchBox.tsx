@@ -89,7 +89,7 @@ export class SearchBox extends React.Component {
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend("/uploadURI");
+            const posting = Utils.prepend("/uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
@@ -166,7 +166,7 @@ export class SearchBox extends React.Component {
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
-                    let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+                    const filteredDocs = FilterBox.Instance.filterDocsByType(docs);
                     runInAction(() => {
                         // this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
@@ -198,8 +198,8 @@ export class SearchBox extends React.Component {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        let res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
-        let filtered = FilterBox.Instance.filterDocsByType(res.docs);
+        const res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
+        const filtered = FilterBox.Instance.filterDocsByType(res.docs);
         // console.log(this._results)
         const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
@@ -266,10 +266,10 @@ export class SearchBox extends React.Component {
 
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
-        let scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
-        let itemHght = 53;
-        let startIndex = Math.floor(Math.max(0, scrollY / itemHght));
-        let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current!.getBoundingClientRect().height / itemHght)));
+        const scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
+        const itemHght = 53;
+        const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
+        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current!.getBoundingClientRect().height / itemHght)));
 
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 
@@ -307,7 +307,7 @@ export class SearchBox extends React.Component {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
@@ -315,7 +315,7 @@ export class SearchBox extends React.Component {
                     else {
                         result = this._results[i];
                         if (result) {
-                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }

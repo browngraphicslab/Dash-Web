@@ -35,11 +35,11 @@ export default class UtilManager extends ApiManager {
             method: Method.GET,
             subscription: "/buxton",
             onValidation: async ({ res }) => {
-                let cwd = '../scraping/buxton';
+                const cwd = '../scraping/buxton';
 
-                let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
-                let onRejected = (err: any) => { console.error(err.message); res.send(err); };
-                let tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+                const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
+                const onRejected = (err: any) => { console.error(err.message); res.send(err); };
+                const tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
 
                 return command_line('python scraper.py', cwd).then(onResolved, tryPython3);
             },

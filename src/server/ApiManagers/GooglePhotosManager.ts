@@ -47,7 +47,7 @@ export default class GooglePhotosManager extends ApiManager {
                 if (!token) {
                     return _error(res, authenticationError);
                 }
-                let failed: GooglePhotosUploadFailure[] = [];
+                const failed: GooglePhotosUploadFailure[] = [];
                 const batched = BatchedArray.from<GooglePhotosUploadUtils.UploadSource>(media, { batchSize: 25 });
                 const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
                     { magnitude: 100, unit: TimeUnit.Milliseconds },
@@ -87,7 +87,7 @@ export default class GooglePhotosManager extends ApiManager {
                 let failed = 0;
                 if (contents) {
                     const completed: Opt<DashUploadUtils.ImageUploadInformation>[] = [];
-                    for (let item of contents.mediaItems) {
+                    for (const item of contents.mediaItems) {
                         const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
                         const found: Opt<DashUploadUtils.ImageUploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
                         if (!found) {

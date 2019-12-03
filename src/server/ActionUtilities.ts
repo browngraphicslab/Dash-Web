@@ -3,10 +3,11 @@ import { ExecOptions } from 'shelljs';
 import { exec } from 'child_process';
 import * as path from 'path';
 import * as rimraf from "rimraf";
+import { yellow } from 'colors';
 
 export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
-        let options: ExecOptions = {};
+        const options: ExecOptions = {};
         if (fromDirectory) {
             options.cwd = path.join(__dirname, fromDirectory);
         }
@@ -15,14 +16,14 @@ export const command_line = (command: string, fromDirectory?: string) => {
 };
 
 export const read_text_file = (relativePath: string) => {
-    let target = path.join(__dirname, relativePath);
+    const target = path.join(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
         fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
     });
 };
 
 export const write_text_file = (relativePath: string, contents: any) => {
-    let target = path.join(__dirname, relativePath);
+    const target = path.join(__dirname, relativePath);
     return new Promise<void>((resolve, reject) => {
         fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
@@ -42,31 +43,19 @@ export async function log_execution({ startMessage, endMessage, action }: LogDat
     console.log(color, endMessage);
 }
 
-export enum ConsoleColors {
-    Black = `\x1b[30m%s\x1b[0m`,
-    Red = `\x1b[31m%s\x1b[0m`,
-    Green = `\x1b[32m%s\x1b[0m`,
-    Yellow = `\x1b[33m%s\x1b[0m`,
-    Blue = `\x1b[34m%s\x1b[0m`,
-    Magenta = `\x1b[35m%s\x1b[0m`,
-    Cyan = `\x1b[36m%s\x1b[0m`,
-    White = `\x1b[37m%s\x1b[0m`
-}
-
 export function logPort(listener: string, port: number) {
-    process.stdout.write(`${listener} listening on port `);
-    console.log(ConsoleColors.Yellow, port);
+    console.log(`${listener} listening on port ${yellow(String(port))}`);
 }
 
 export function msToTime(duration: number) {
-    let milliseconds = Math.floor((duration % 1000) / 100),
+    const milliseconds = Math.floor((duration % 1000) / 100),
         seconds = Math.floor((duration / 1000) % 60),
         minutes = Math.floor((duration / (1000 * 60)) % 60),
         hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
 
-    let hoursS = (hours < 10) ? "0" + hours : hours;
-    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
-    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
+    const hoursS = (hours < 10) ? "0" + hours : hours;
+    const minutesS = (minutes < 10) ? "0" + minutes : minutes;
+    const secondsS = (seconds < 10) ? "0" + seconds : seconds;
 
     return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
 }

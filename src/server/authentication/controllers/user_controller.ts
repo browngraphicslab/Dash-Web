@@ -68,9 +68,9 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
 
 };
 
-let tryRedirectToTarget = (req: Request, res: Response) => {
+const tryRedirectToTarget = (req: Request, res: Response) => {
     if (req.session && req.session.target) {
-        let target = req.session.target;
+        const target = req.session.target;
         req.session.target = undefined;
         res.redirect(target);
     } else {
@@ -148,7 +148,6 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
     const email = req.body.email;
     async.waterfall([
         function (done: any) {
-            let token: string;
             c.randomBytes(20, function (err: any, buffer: Buffer) {
                 if (err) {
                     done(null);

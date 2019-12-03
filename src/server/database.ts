@@ -71,7 +71,7 @@ export namespace Database {
 
         public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
             if (this.db) {
-                let collection = this.db.collection(collectionName);
+                const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
                 let newProm: Promise<void>;
                 const run = (): Promise<void> => {
@@ -96,7 +96,7 @@ export namespace Database {
 
         public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
             if (this.db) {
-                let collection = this.db.collection(collectionName);
+                const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
                 let newProm: Promise<void>;
                 const run = (): Promise<void> => {

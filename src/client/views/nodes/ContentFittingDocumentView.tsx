@@ -47,7 +47,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     private get nativeWidth() { return NumCast(this.layoutDoc!.nativeWidth, this.props.PanelWidth()); }
     private get nativeHeight() { return NumCast(this.layoutDoc!.nativeHeight, this.props.PanelHeight()); }
     private contentScaling = () => {
-        let wscale = this.props.PanelWidth() / (this.nativeWidth ? this.nativeWidth : this.props.PanelWidth());
+        const wscale = this.props.PanelWidth() / (this.nativeWidth ? this.nativeWidth : this.props.PanelWidth());
         if (wscale * this.nativeHeight > this.props.PanelHeight()) {
             return this.props.PanelHeight() / (this.nativeHeight ? this.nativeHeight : this.props.PanelHeight());
         }
@@ -59,7 +59,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                let target = Doc.GetProto(otherdoc);
+                const target = Doc.GetProto(otherdoc);
                 target.layout = ComputedField.MakeFunction("this.image_data[0]");
                 target.layoutCustom = Doc.MakeDelegate(de.data.draggedDocuments[0]);
             });

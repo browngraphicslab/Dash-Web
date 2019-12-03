@@ -33,8 +33,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
     }
 
     componentDidMount = () => {
-
-        let totalWidth = 265;
+        const totalWidth = 265;
 
         if (this._originalStatus) {
             this._forwardTimeline.add({

@@ -42,10 +42,10 @@ export class CurrentUserUtils {
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc) {
-        let notes = CurrentUserUtils.setupNoteTypes(doc);
+        const notes = CurrentUserUtils.setupNoteTypes(doc);
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
         doc.activePen = doc;
-        let docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
+        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "collection", icon: "folder", ignoreClick: true, drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
             { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
@@ -278,7 +278,7 @@ export class CurrentUserUtils {
         if (this._northstarCatalog && CurrentUserUtils._northstarSchemas) {
             this._northstarCatalog.schemas!.push(schema);
             CurrentUserUtils._northstarSchemas.push(schemaDoc);
-            let schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
+            const schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
             schemas.push(schema.displayName!);
             CurrentUserUtils.UserDocument.DBSchemas = new List<string>(schemas);
         }

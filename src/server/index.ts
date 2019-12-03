@@ -51,7 +51,7 @@ async function preliminaryFunctions() {
  * that will manage the registration of new routes
  * with the server
  */
-function routeSetter({ isRelease, addSupervisedRoute }: RouteManager) {
+function routeSetter({ isRelease, addSupervisedRoute, log }: RouteManager) {
     const managers = [
         new UserManager(),
         new UploadManager(),
@@ -67,6 +67,7 @@ function routeSetter({ isRelease, addSupervisedRoute }: RouteManager) {
 
     // initialize API Managers
     managers.forEach(manager => manager.register(addSupervisedRoute));
+    log();
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
@@ -82,8 +83,8 @@ function routeSetter({ isRelease, addSupervisedRoute }: RouteManager) {
     });
 
     const serve: OnUnauthenticated = ({ req, res }) => {
-        let detector = new mobileDetect(req.headers['user-agent'] || "");
-        let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
+        const detector = new mobileDetect(req.headers['user-agent'] || "");
+        const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
 
@@ -104,8 +105,8 @@ function routeSetter({ isRelease, addSupervisedRoute }: RouteManager) {
 
 (async function start() {
     await log_execution({
-        startMessage: "starting execution of preliminary functions",
-        endMessage: "completed preliminary functions",
+        startMessage: "\nstarting execution of preliminary functions",
+        endMessage: "completed preliminary functions\n",
         action: preliminaryFunctions
     });
     await initializeServer({ listenAtPort: 1050, routeSetter });

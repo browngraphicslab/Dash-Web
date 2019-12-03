@@ -92,37 +92,37 @@ export class MathUtil {
 
     public static DistToLineSegment(v: PIXIPoint, w: PIXIPoint, p: PIXIPoint) {
         // Return minimum distance between line segment vw and point p
-        var l2 = MathUtil.DistSquared(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
+        const l2 = MathUtil.DistSquared(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
         if (l2 === 0.0) return MathUtil.Dist(p, v);   // v === w case
         // Consider the line extending the segment, parameterized as v + t (w - v).
         // We find projection of point p onto the line. 
         // It falls where t = [(p-v) . (w-v)] / |w-v|^2
         // We clamp t from [0,1] to handle points outside the segment vw.
-        var dot = MathUtil.Dot(
+        const dot = MathUtil.Dot(
             MathUtil.SubtractPoint(p, v),
             MathUtil.SubtractPoint(w, v)) / l2;
-        var t = Math.max(0, Math.min(1, dot));
+        const t = Math.max(0, Math.min(1, dot));
         // Projection falls on the segment
-        var projection = MathUtil.AddPoint(v,
+        const projection = MathUtil.AddPoint(v,
             MathUtil.MultiplyConstant(
                 MathUtil.SubtractPoint(w, v), t));
         return MathUtil.Dist(p, projection);
     }
 
     public static LineSegmentIntersection(ps1: PIXIPoint, pe1: PIXIPoint, ps2: PIXIPoint, pe2: PIXIPoint): PIXIPoint | undefined {
-        var a1 = pe1.y - ps1.y;
-        var b1 = ps1.x - pe1.x;
+        const a1 = pe1.y - ps1.y;
+        const b1 = ps1.x - pe1.x;
 
-        var a2 = pe2.y - ps2.y;
-        var b2 = ps2.x - pe2.x;
+        const a2 = pe2.y - ps2.y;
+        const b2 = ps2.x - pe2.x;
 
-        var delta = a1 * b2 - a2 * b1;
+        const delta = a1 * b2 - a2 * b1;
         if (delta === 0) {
             return undefined;
         }
-        var c2 = a2 * ps2.x + b2 * ps2.y;
-        var c1 = a1 * ps1.x + b1 * ps1.y;
-        var invdelta = 1 / delta;
+        const c2 = a2 * ps2.x + b2 * ps2.y;
+        const c1 = a1 * ps1.x + b1 * ps1.y;
+        const invdelta = 1 / delta;
         return new PIXIPoint((b2 * c1 - b1 * c2) * invdelta, (a1 * c2 - a2 * c1) * invdelta);
     }
 
@@ -144,13 +144,13 @@ export class MathUtil {
     }
 
     public static LinePIXIRectangleIntersection(lineFrom: PIXIPoint, lineTo: PIXIPoint, rect: PIXIRectangle): Array<PIXIPoint> {
-        var r1 = new PIXIPoint(rect.left, rect.top);
-        var r2 = new PIXIPoint(rect.right, rect.top);
-        var r3 = new PIXIPoint(rect.right, rect.bottom);
-        var r4 = new PIXIPoint(rect.left, rect.bottom);
-        var ret = new Array<PIXIPoint>();
-        var dist = this.Dist(lineFrom, lineTo);
-        var inter = this.LineSegmentIntersection(lineFrom, lineTo, r1, r2);
+        const r1 = new PIXIPoint(rect.left, rect.top);
+        const r2 = new PIXIPoint(rect.right, rect.top);
+        const r3 = new PIXIPoint(rect.right, rect.bottom);
+        const r4 = new PIXIPoint(rect.left, rect.bottom);
+        const ret = new Array<PIXIPoint>();
+        const dist = this.Dist(lineFrom, lineTo);
+        let inter = this.LineSegmentIntersection(lineFrom, lineTo, r1, r2);
         if (inter && this.PointInPIXIRectangle(inter, rect) &&
             this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist) {
             ret.push(inter);
@@ -190,7 +190,7 @@ export class MathUtil {
     }
 
     public static Normalize(p1: PIXIPoint) {
-        var d = this.Length(p1);
+        const d = this.Length(p1);
         return new PIXIPoint(p1.x / d, p1.y / d);
     }
 
@@ -236,8 +236,8 @@ export class MathUtil {
     }
 
     public static Combinations<T>(chars: T[]) {
-        let result = new Array<T>();
-        let f = (prefix: any, chars: any) => {
+        const result = new Array<T>();
+        const f = (prefix: any, chars: any) => {
             for (let i = 0; i < chars.length; i++) {
                 result.push(prefix.concat(chars[i]));
                 f(prefix.concat(chars[i]), chars.slice(i + 1));

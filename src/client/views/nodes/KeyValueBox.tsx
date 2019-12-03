@@ -53,13 +53,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         }
     }
     public static CompileKVPScript(value: string): KVPScript | undefined {
-        let eq = value.startsWith("=");
+        const eq = value.startsWith("=");
         value = eq ? value.substr(1) : value;
         const dubEq = value.startsWith(":=") ? "computed" : value.startsWith(";=") ? "script" : false;
         value = dubEq ? value.substr(2) : value;
-        let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
+        const options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
         if (dubEq) options.typecheck = false;
-        let script = CompileScript(value, options);
+        const script = CompileScript(value, options);
         if (!script.compiled) {
             return undefined;
         }
@@ -76,7 +76,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         } else if (type === "script") {
             field = new ScriptField(script);
         } else {
-            let res = script.run({ this: target }, console.log);
+            const res = script.run({ this: target }, console.log);
             if (!res.success) return false;
             field = res.result;
         }
@@ -106,14 +106,14 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     rowHeight = () => 30;
 
     createTable = () => {
-        let doc = this.fieldDocToLayout;
+        const doc = this.fieldDocToLayout;
         if (!doc) {
             return <tr><td>Loading...</td></tr>;
         }
-        let realDoc = doc;
+        const realDoc = doc;
 
-        let ids: { [key: string]: string } = {};
-        let protos = Doc.GetAllPrototypes(doc);
+        const ids: { [key: string]: string } = {};
+        const protos = Doc.GetAllPrototypes(doc);
         for (const proto of protos) {
             Object.keys(proto).forEach(key => {
                 if (!(key in ids) && realDoc[key] !== ComputedField.undefined) {
@@ -122,10 +122,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             });
         }
 
-        let rows: JSX.Element[] = [];
+        const rows: JSX.Element[] = [];
         let i = 0;
         const self = this;
-        for (let key of Object.keys(ids).slice().sort()) {
+        for (const key of Object.keys(ids).slice().sort()) {
             rows.push(<KeyValuePair doc={realDoc} addDocTab={this.props.addDocTab} PanelWidth={this.props.PanelWidth} PanelHeight={this.rowHeight}
                 ref={(function () {
                     let oldEl: KeyValuePair | undefined;
@@ -163,7 +163,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     @action
     onDividerMove = (e: PointerEvent): void => {
-        let nativeWidth = this._mainCont.current!.getBoundingClientRect();
+        const nativeWidth = this._mainCont.current!.getBoundingClientRect();
         this.props.Document.schemaSplitPercentage = Math.max(0, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100));
     }
     @action
@@ -179,10 +179,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        let parent = Docs.Create.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        const parent = Docs.Create.StackingDocument([], { width: 800, height: 800, title: "Template" });
         parent.singleColumn = false;
         parent.columnWidth = 100;
-        for (let row of this.rows.filter(row => row.isChecked)) {
+        for (const row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);
             row.uncheck();
         }
@@ -190,17 +190,17 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTemplateField = async (parentStackingDoc: Doc, row: KeyValuePair) => {
-        let metaKey = row.props.keyName;
-        let sourceDoc = await Cast(this.props.Document.data, Doc);
+        const metaKey = row.props.keyName;
+        const sourceDoc = await Cast(this.props.Document.data, Doc);
         if (!sourceDoc) {
             return;
         }
 
-        let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
+        const fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
         if (!fieldTemplate) {
             return;
         }
-        let previousViewType = fieldTemplate.viewType;
+        const previousViewType = fieldTemplate.viewType;
         Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(parentStackingDoc));
         previousViewType && (fieldTemplate.viewType = previousViewType);
 
@@ -208,14 +208,14 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     inferType = async (data: FieldResult, metaKey: string) => {
-        let options = { width: 300, height: 300, title: metaKey };
+        const options = { width: 300, height: 300, title: metaKey };
         if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
             return Docs.Create.TextDocument(options);
         } else if (data instanceof List) {
             if (data.length === 0) {
                 return Docs.Create.StackingDocument([], options);
             }
-            let first = await Cast(data[0], Doc);
+            const first = await Cast(data[0], Doc);
             if (!first || !first.data) {
                 return Docs.Create.StackingDocument([], options);
             }
@@ -235,7 +235,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        let dividerDragger = this.splitPercentage === 0 ? (null) :
+        const dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
                 <div className="keyValueBox-dividerDraggerThumb" onPointerDown={this.onDividerDown} />
             </div>;

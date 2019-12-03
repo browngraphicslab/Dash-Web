@@ -7,12 +7,13 @@ import { Search } from "../Search";
 import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { ConsoleColors, logPort } from "../ActionUtilities";
+import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
+import { green } from "colors";
 
 export namespace WebSocket {
 
-    let clients: { [key: string]: Client } = {};
+    const clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
 
     export async function start(serverPort: number, isRelease: boolean) {
@@ -27,7 +28,7 @@ export namespace WebSocket {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
             socket.use((_packet, next) => {
-                let userEmail = socketMap.get(socket);
+                const userEmail = socketMap.get(socket);
                 if (userEmail) {
                     timeMap[userEmail] = Date.now();
                 }
@@ -85,7 +86,7 @@ export namespace WebSocket {
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
         clients[userEmail] = new Client(userEmail.toString());
-        console.log(ConsoleColors.Green, `user ${userEmail} has connected to the web socket`);
+        console.log(green(`user ${userEmail} has connected to the web socket`));
         socketMap.set(socket, userEmail);
     }
 
@@ -178,12 +179,12 @@ export namespace WebSocket {
         for (let key in docfield) {
             if (!key.startsWith("fields.")) continue;
             dynfield = true;
-            let val = docfield[key];
+            const val = docfield[key];
             key = key.substring(7);
             Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
-            let term = ToSearchTerm(val);
+            const term = ToSearchTerm(val);
             if (term !== undefined) {
-                let { suffix, value } = term;
+                const { suffix, value } = term;
                 update[key + suffix] = { set: value };
             }
         }

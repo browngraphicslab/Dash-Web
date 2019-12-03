@@ -8,7 +8,7 @@ export namespace Networking {
     }
 
     export async function PostToServer(relativeRoute: string, body?: any) {
-        let options = {
+        const options = {
             uri: Utils.prepend(relativeRoute),
             method: "POST",
             body,

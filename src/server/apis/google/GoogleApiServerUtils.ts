@@ -135,7 +135,7 @@ export namespace GoogleApiServerUtils {
                 return resolve();
             }
             let routed: Opt<Endpoint>;
-            let parameters: any = { auth, version: "v1" };
+            const parameters: any = { auth, version: "v1" };
             switch (sector) {
                 case Service.Documents:
                     routed = google.docs(parameters).documents;
@@ -318,7 +318,7 @@ export namespace GoogleApiServerUtils {
      */
     async function retrieveCredentials(userId: string): Promise<{ credentials: Opt<Credentials>, refreshed: boolean }> {
         let credentials: Opt<Credentials> = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
-        let refreshed = false;
+        const refreshed = false;
         if (!credentials) {
             return { credentials: undefined, refreshed };
         }
@@ -340,9 +340,9 @@ export namespace GoogleApiServerUtils {
      * @returns the updated credentials
      */
     async function refreshAccessToken(credentials: Credentials, userId: string): Promise<Credentials> {
-        let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+        const headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
         const { client_id, client_secret } = GoogleCredentialsLoader.ProjectCredentials;
-        let url = `https://oauth2.googleapis.com/token?${qs.stringify({
+        const url = `https://oauth2.googleapis.com/token?${qs.stringify({
             refreshToken: credentials.refresh_token,
             client_id,
             client_secret,
