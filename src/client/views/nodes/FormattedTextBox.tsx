@@ -34,7 +34,6 @@ import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
-import { DocumentDecorations } from '../DocumentDecorations';
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
@@ -92,6 +91,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
+    private _buttonBarReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
     @observable private _ruleFontSize = 0;
@@ -472,10 +472,15 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     componentDidMount() {
-        if (DocumentButtonBar.Instance) {
-            this.pullFromGoogleDoc(this.checkState);
-            this.dataDoc[GoogleRef] && this.dataDoc.unchanged && runInAction(() => DocumentButtonBar.Instance.isAnimatingFetch = true);
-        }
+        this._buttonBarReactionDisposer = reaction(
+            () => DocumentButtonBar.Instance,
+            instance => {
+                if (instance) {
+                    this.pullFromGoogleDoc(this.checkState);
+                    this.dataDoc[GoogleRef] && this.dataDoc.unchanged && runInAction(() => instance.isAnimatingFetch = true);
+                }
+            }
+        );
 
         this._reactionDisposer = reaction(
             () => {
@@ -835,6 +840,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this._pullReactionDisposer && this._pullReactionDisposer();
         this._heightReactionDisposer && this._heightReactionDisposer();
         this._searchReactionDisposer && this._searchReactionDisposer();
+        this._buttonBarReactionDisposer && this._buttonBarReactionDisposer();
         this._editorView && this._editorView.destroy();
     }
     onPointerDown = (e: React.PointerEvent): void => {

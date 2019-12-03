@@ -22,6 +22,7 @@ import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import DiagnosticManager from "./ApiManagers/DiagnosticManager";
+import { yellow } from "colors";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -51,7 +52,7 @@ async function preliminaryFunctions() {
  * that will manage the registration of new routes
  * with the server
  */
-function routeSetter({ isRelease, addSupervisedRoute, log }: RouteManager) {
+function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: RouteManager) {
     const managers = [
         new UserManager(),
         new UploadManager(),
@@ -66,8 +67,9 @@ function routeSetter({ isRelease, addSupervisedRoute, log }: RouteManager) {
     ];
 
     // initialize API Managers
+    console.log(yellow("\nregistering server routes..."));
     managers.forEach(manager => manager.register(addSupervisedRoute));
-    log();
+    logRegistrationOutcome();
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)

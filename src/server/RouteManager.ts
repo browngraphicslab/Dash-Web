@@ -1,7 +1,7 @@
 import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
 import * as express from 'express';
-import { yellow, cyan, red } from 'colors';
+import { cyan, red, green } from 'colors';
 
 export enum Method {
     GET,
@@ -28,9 +28,15 @@ export interface RouteInitializer {
 
 const registered = new Map<string, Set<Method>>();
 
+enum RegistrationError {
+    Malformed,
+    Duplicate
+}
+
 export default class RouteManager {
     private server: express.Express;
     private _isRelease: boolean;
+    private failedRegistrations: { route: string, reason: RegistrationError }[] = [];
 
     public get isRelease() {
         return this._isRelease;
@@ -41,10 +47,35 @@ export default class RouteManager {
         this._isRelease = isRelease;
     }
 
-    log = () => {
-        console.log(yellow("\nthe following server routes have been registered:"));
-        Array.from(registered.keys()).sort().forEach(route => console.log(cyan(route)));
-        console.log();
+    logRegistrationOutcome = () => {
+        if (this.failedRegistrations.length) {
+            let duplicateCount = 0;
+            let malformedCount = 0;
+            this.failedRegistrations.forEach(({ reason, route }) => {
+                let error: string;
+                if (reason === RegistrationError.Duplicate) {
+                    error = `duplicate registration error: ${route} is already registered `;
+                    duplicateCount++;
+                } else {
+                    error = `malformed route error: ${route} is invalid`;
+                    malformedCount++;
+                }
+                console.log(red(error));
+            });
+            console.log();
+            if (duplicateCount) {
+                console.log('please remove all duplicate routes before continuing');
+            }
+            if (malformedCount) {
+                console.log(`please ensure all routes adhere to ^\/[A-Za-z]+(\/\:[A-Za-z]+)*$`);
+            }
+            console.log();
+            process.exit(0);
+        } else {
+            console.log(green("all server routes have been successfully registered:"));
+            Array.from(registered.keys()).sort().forEach(route => console.log(cyan(route)));
+            console.log();
+        }
     }
 
     /**
@@ -84,7 +115,7 @@ export default class RouteManager {
             }
             setTimeout(() => {
                 if (!res.headersSent) {
-                    console.log(`Initiating fallback for ${target}`);
+                    console.log(red(`Initiating fallback for ${target}. Please remove dangling promise from route handler`));
                     const warning = `request to ${target} fell through - this is a fallback response`;
                     res.send({ warning });
                 }
@@ -97,25 +128,34 @@ export default class RouteManager {
             } else {
                 route = subscriber.build;
             }
-            const existing = registered.get(route);
-            if (existing) {
-                if (existing.has(method)) {
-                    console.log(red(`\nDuplicate registration error: already registered ${route} with Method[${method}]`));
-                    console.log('Please remove duplicate registrations before continuing...\n');
-                    process.exit(0);
-                }
+            if (!/^\/[A-Za-z]+(\/\:[A-Za-z]+)*$/g.test(route)) {
+                this.failedRegistrations.push({
+                    reason: RegistrationError.Malformed,
+                    route
+                });
             } else {
-                const specific = new Set<Method>();
-                specific.add(method);
-                registered.set(route, specific);
-            }
-            switch (method) {
-                case Method.GET:
-                    this.server.get(route, supervised);
-                    break;
-                case Method.POST:
-                    this.server.post(route, supervised);
-                    break;
+                const existing = registered.get(route);
+                if (existing) {
+                    if (existing.has(method)) {
+                        this.failedRegistrations.push({
+                            reason: RegistrationError.Duplicate,
+                            route
+                        });
+                        return;
+                    }
+                } else {
+                    const specific = new Set<Method>();
+                    specific.add(method);
+                    registered.set(route, specific);
+                }
+                switch (method) {
+                    case Method.GET:
+                        this.server.get(route, supervised);
+                        break;
+                    case Method.POST:
+                        this.server.post(route, supervised);
+                        break;
+                }
             }
         };
         if (Array.isArray(subscription)) {
