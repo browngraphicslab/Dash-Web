@@ -13,8 +13,8 @@ import React = require("react");
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
 
-export function CreatePolyline(points: { x: number, y: number }[], left: number, top: number, color?: string, width?: number) {
-    let pts = points.reduce((acc: string, pt: { x: number, y: number }) => acc + `${pt.x - left},${pt.y - top} `, "");
+export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
+    let pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
     return (
         <polyline
             points={pts}
@@ -36,8 +36,8 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
 
     render() {
         let data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
-        let xs = data.map(p => p.x);
-        let ys = data.map(p => p.y);
+        let xs = data.map(p => p.X);
+        let ys = data.map(p => p.Y);
         let left = Math.min(...xs);
         let top = Math.min(...ys);
         let right = Math.max(...xs);

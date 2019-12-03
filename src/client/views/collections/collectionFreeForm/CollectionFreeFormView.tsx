@@ -41,6 +41,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { computedFn, keepAlive } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
+import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -272,7 +273,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return clusterColor;
     }
 
-    @observable private _points: { x: number, y: number }[] = [];
+    @observable private _points: { X: number, Y: number }[] = [];
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -288,7 +289,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 e.stopPropagation();
                 e.preventDefault();
                 let point = this.getTransform().transformPoint(e.pageX, e.pageY);
-                this._points.push({ x: point[0], y: point[1] });
+                this._points.push({ X: point[0], Y: point[1] });
             }
             // if not using a pen and in no ink mode
             else if (InkingControl.Instance.selectedTool === InkTool.None) {
@@ -336,11 +337,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         if (this._points.length > 1) {
             let B = this.svgBounds;
-            let points = this._points.map(p => ({ x: p.x - B.left, y: p.y - B.top }));
+            let points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
-            let result = Utils.GestureRecognizer.Recognize(new Array(points));
+            let result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
             if (result) {
                 console.log(result.Name);
+                this._points = [];
             }
             else {
                 let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
@@ -405,7 +407,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const selectedTool = InkingControl.Instance.selectedTool;
             if (selectedTool === InkTool.Highlighter || selectedTool === InkTool.Pen || InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 let point = this.getTransform().transformPoint(e.clientX, e.clientY);
-                this._points.push({ x: point[0], y: point[1] });
+                this._points.push({ X: point[0], Y: point[1] });
             }
             else if (selectedTool === InkTool.None) {
                 if (this._hitCluster && this.tryDragCluster(e)) {
@@ -440,7 +442,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
                 else if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
                     let point = this.getTransform().transformPoint(pt.clientX, pt.clientY);
-                    this._points.push({ x: point[0], y: point[1] });
+                    this._points.push({ X: point[0], Y: point[1] });
                 }
             }
             e.stopPropagation();
@@ -846,8 +848,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get svgBounds() {
-        let xs = this._points.map(p => p.x);
-        let ys = this._points.map(p => p.y);
+        let xs = this._points.map(p => p.X);
+        let ys = this._points.map(p => p.Y);
         let right = Math.max(...xs);
         let left = Math.min(...xs);
         let bottom = Math.max(...ys);
@@ -863,7 +865,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let B = this.svgBounds;
 
         return (
-            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)` }}>
+            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, position: "relative", zIndex: 30000 }}>
                 {CreatePolyline(this._points, B.left, B.top)}
             </svg>
         );
@@ -932,7 +934,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
         return <div className={freeformclass} style={{ touchAction: "none", borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
-            {this.props.children}
+            {this.props.children()}
         </div>;
     }
 }

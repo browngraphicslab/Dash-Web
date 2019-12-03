@@ -13,14 +13,14 @@ export enum InkTool {
 }
 
 export interface PointData {
-    x: number;
-    y: number;
+    X: number;
+    Y: number;
 }
 
 export type InkData = Array<PointData>;
 
 const pointSchema = createSimpleSchema({
-    x: true, y: true
+    X: true, Y: true
 });
 
 const strokeDataSchema = createSimpleSchema({

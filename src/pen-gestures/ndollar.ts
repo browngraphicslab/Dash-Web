@@ -1,3 +1,5 @@
+import { GestureUtils } from "./GestureUtils";
+
 /**
  * The $N Multistroke Recognizer (JavaScript version)
  * Converted to TypeScript -syip2
@@ -125,13 +127,9 @@ export class Multistroke {
         var unistrokes = MakeUnistrokes(strokes, orders); // returns array of point arrays
         this.Unistrokes = new Array(unistrokes.length); // unistrokes for this multistroke
         for (var j = 0; j < unistrokes.length; j++) {
-            this.Unistrokes[j] = new Unistroke(name, useBoundedRotationInvariance, unistrokes[j]);
+            this.Unistrokes[j] = new Unistroke(this.Name, useBoundedRotationInvariance, unistrokes[j]);
         }
     }
-}
-
-export enum Gestures {
-    Box = "box"
 }
 
 //
@@ -169,7 +167,7 @@ export class NDollarRecognizer {
         // one predefined multistroke for each multistroke type
         //
         this.Multistrokes = new Array(NumMultistrokes);
-        this.Multistrokes[0] = new Multistroke(Gestures.Box, useBoundedRotationInvariance, new Array(
+        this.Multistrokes[0] = new Multistroke(GestureUtils.Gestures.Box, useBoundedRotationInvariance, new Array(
             new Array(new Point(30, 146), new Point(30, 222), new Point(106, 225), new Point(106, 146))
         ));
 
