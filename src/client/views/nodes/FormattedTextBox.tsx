@@ -360,6 +360,20 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
+    sidebarDown = (e: React.PointerEvent) => {
+        document.addEventListener("pointermove", this.sidebarMove);
+        document.addEventListener("pointerup", this.sidebarUp);
+        e.stopPropagation();
+    }
+    sidebarMove = (e: PointerEvent) => {
+        let bounds = this.CurrentDiv.getBoundingClientRect();
+        this.props.Document.sidebarWidthPercent = "" + 100 * (1 - (e.clientX - bounds.left) / bounds.width) + "%";
+    }
+    sidebarUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.sidebarMove);
+        document.removeEventListener("pointerup", this.sidebarUp);
+    }
+
     toggleSidebar = () => this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%";
 
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -1074,7 +1088,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
                 {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
-                    <div className="formattedTextBox-sidebar-handle" onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} /> :
+                    <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} /> :
                     <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
                         style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc?.backgroundColor, "transparent")}` }}>
                         <CollectionFreeFormView {...this.props}
@@ -1098,7 +1112,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                             chromeCollapsed={true}>
                         </CollectionFreeFormView>
-                        <div className="formattedTextBox-sidebar-handle" onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} />
+                        <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} />
                     </div>}
                 <div className="formattedTextBox-dictation"
                     onClick={e => {
