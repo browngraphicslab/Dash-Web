@@ -184,6 +184,9 @@ export class TooltipTextMenu {
     }
 
     initFontSizes() {
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 7 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 8 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 9 }));
         this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 10 }));
         this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 12 }));
         this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 14 }));

@@ -813,8 +813,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (selectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
-            this._editorView!.focus();
         }
+        const rtf = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
+        (selectOnLoad || (rtf && !rtf.Text)) && this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) })];
     }

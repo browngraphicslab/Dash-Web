@@ -92,7 +92,7 @@ export default class RouteManager {
                 try {
                     await toExecute(args);
                 } catch (e) {
-                    console.log(red(target), user?.email ?? "<user logged out>");
+                    console.log(red(target), user && ("email" in user) ? "<user logged out>" : undefined);
                     if (onError) {
                         onError({ ...core, error: e });
                     } else {

@@ -730,7 +730,6 @@ export class DashDocView {
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
-        this._dashSpan.style.borderWidth = "4";
         const removeDoc = () => {
             const pos = getPos();
             const ns = new NodeSelection(view.state.doc.resolve(pos));
