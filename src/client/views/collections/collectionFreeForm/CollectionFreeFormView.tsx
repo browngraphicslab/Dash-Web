@@ -337,9 +337,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (this._points.length > 1) {
             let B = this.svgBounds;
             let points = this._points.map(p => ({ x: p.x - B.left, y: p.y - B.top }));
-            let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
-            this.addDocument(inkDoc);
-            this._points = [];
+
+            let result = Utils.GestureRecognizer.Recognize(new Array(points));
+            if (result) {
+                console.log(result.Name);
+            }
+            else {
+                let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
+                this.addDocument(inkDoc);
+                this._points = [];
+            }
         }
 
         document.removeEventListener("pointermove", this.onPointerMove);

@@ -3,8 +3,11 @@ import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { RouteStore } from './server/RouteStore';
+import { NDollarRecognizer } from './ndollar';
 
 export namespace Utils {
+
+    export const GestureRecognizer = new NDollarRecognizer(false);
 
     export const DRAG_THRESHOLD = 4;
 
