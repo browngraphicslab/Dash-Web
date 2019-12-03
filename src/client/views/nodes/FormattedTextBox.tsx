@@ -82,6 +82,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _applyingChange: boolean = false;
     private _nodeClicked: any;
     private _searchIndex = 0;
+    private _sidebarMovement = 0;
+    private _lastX = 0;
+    private _lastY = 0;
     private _undoTyping?: UndoManager.Batch;
     private _searchReactionDisposer?: Lambda;
     private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
@@ -361,12 +364,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     sidebarDown = (e: React.PointerEvent) => {
+        this._lastX = e.clientX;
+        this._lastY = e.clientY;
+        this._sidebarMovement = 0;
         document.addEventListener("pointermove", this.sidebarMove);
         document.addEventListener("pointerup", this.sidebarUp);
         e.stopPropagation();
     }
     sidebarMove = (e: PointerEvent) => {
         let bounds = this.CurrentDiv.getBoundingClientRect();
+        this._sidebarMovement += Math.sqrt((e.clientX - this._lastX) * (e.clientX - this._lastX) + (e.clientY - this._lastY) * (e.clientY - this._lastY))
         this.props.Document.sidebarWidthPercent = "" + 100 * (1 - (e.clientX - bounds.left) / bounds.width) + "%";
     }
     sidebarUp = (e: PointerEvent) => {
@@ -374,7 +381,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         document.removeEventListener("pointerup", this.sidebarUp);
     }
 
-    toggleSidebar = () => this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%";
+    toggleSidebar = () => this._sidebarMovement < 5 && (this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%");
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
