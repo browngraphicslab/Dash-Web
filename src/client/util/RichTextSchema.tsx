@@ -18,6 +18,7 @@ import { Transform } from "./Transform";
 import React = require("react");
 import { BoolCast, NumCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { any } from "bluebird";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -670,20 +671,29 @@ export class DashDocCommentView {
         this._collapsed.className = "formattedTextBox-inlineComment";
         this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
         this._view = view;
+        let targetNode = () => {
+            for (let i = getPos() + 1; i < view.state.doc.nodeSize; i++) {
+                let m = view.state.doc.nodeAt(i);
+                if (m && m.type === view.state.schema.nodes.dashDoc && m.attrs.docid === node.attrs.docid) {
+                    return { node: m, pos: i } as { node: any, pos: number };
+                }
+            }
+            return undefined;
+        }
         this._collapsed.onpointerdown = (e: any) => {
-            const node = view.state.doc.nodeAt(getPos() + 1);
-            view.dispatch(view.state.tr.
-                setNodeMarkup(getPos() + 1, undefined, { ...node.attrs, hidden: node.attrs.hidden ? false : true })); // update the attrs 
-            setTimeout(() => node.attrs.hidden && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc)), 100);
+            const target = targetNode();
+            if (target) {
+                view.dispatch(view.state.tr.
+                    setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true })); // update the attrs 
+                setTimeout(() => node.attrs.hidden && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc)), 100);
+            }
         };
         this._collapsed.onpointerenter = (e: any) => {
-            const node = view.state.doc.nodeAt(getPos() + 1);
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
             e.preventDefault();
             e.stopPropagation();
         };
         this._collapsed.onpointerleave = (e: any) => {
-            const node = view.state.doc.nodeAt(getPos() + 1);
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
             e.preventDefault();
             e.stopPropagation();
