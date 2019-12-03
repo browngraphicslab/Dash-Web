@@ -1,11 +1,11 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { EditableView } from "../../views/EditableView";
-import { observable, action, computed } from "mobx";
+import { action, computed } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { Opt, Doc } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { StrCast, BoolCast } from "../../../new_fields/Types";
 
 interface KeyValueProps {
@@ -85,7 +85,7 @@ export default class ImportMetadataEntry extends React.Component<KeyValueProps> 
     }
 
     render() {
-        let keyValueStyle: React.CSSProperties = {
+        const keyValueStyle: React.CSSProperties = {
             paddingLeft: 10,
             width: "50%",
             opacity: this.valid ? 1 : 0.5,

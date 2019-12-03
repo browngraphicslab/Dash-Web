@@ -5,41 +5,105 @@ import * as sharp from 'sharp';
 import request = require('request-promise');
 import { ExifData, ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
+import { AcceptibleMedia } from './SharedMediaTypes';
+import { filesDirectory } from '.';
+import { File } from 'formidable';
+import { basename } from "path";
+import { createIfNotExists } from './ActionUtilities';
+import { ParsedPDF } from "../server/PdfTypes";
+const parse = require('pdf-parse');
+import { Directory, serverPathToFile, clientPathToFile } from './ApiManagers/UploadManager';
+import { red } from 'colors';
 
-const uploadDirectory = path.join(__dirname, './public/files/');
+export enum SizeSuffix {
+    Small = "_s",
+    Medium = "_m",
+    Large = "_l",
+    Original = "_o"
+}
+
+export function InjectSize(filename: string, size: SizeSuffix) {
+    const extension = path.extname(filename).toLowerCase();
+    return filename.substring(0, filename.length - extension.length) + size + extension;
+}
 
 export namespace DashUploadUtils {
 
     export interface Size {
         width: number;
-        suffix: string;
+        suffix: SizeSuffix;
+    }
+
+    export interface ImageFileResponse {
+        name: string;
+        path: string;
+        type: string;
+        exif: Opt<DashUploadUtils.EnrichedExifData>;
     }
 
     export const Sizes: { [size: string]: Size } = {
-        SMALL: { width: 100, suffix: "_s" },
-        MEDIUM: { width: 400, suffix: "_m" },
-        LARGE: { width: 900, suffix: "_l" },
+        SMALL: { width: 100, suffix: SizeSuffix.Small },
+        MEDIUM: { width: 400, suffix: SizeSuffix.Medium },
+        LARGE: { width: 900, suffix: SizeSuffix.Large },
     };
 
-    const gifs = [".gif"];
-    const pngs = [".png"];
-    const jpgs = [".jpg", ".jpeg"];
-    export const imageFormats = [...pngs, ...jpgs, ...gifs];
-    const videoFormats = [".mov", ".mp4"];
+    export function validateExtension(url: string) {
+        return AcceptibleMedia.imageFormats.includes(path.extname(url).toLowerCase());
+    }
 
     const size = "content-length";
     const type = "content-type";
 
-    export interface UploadInformation {
-        mediaPaths: string[];
-        fileNames: { [key: string]: string };
+    export interface ImageUploadInformation {
+        clientAccessPath: string;
+        serverAccessPaths: { [key: string]: string };
         exifData: EnrichedExifData;
         contentSize?: number;
         contentType?: string;
     }
 
+    const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
+
+    export async function upload(file: File): Promise<any> {
+        const { type, path, name } = file;
+        const types = type.split("/");
+
+        const category = types[0];
+        const format = `.${types[1]}`;
+
+        switch (category) {
+            case "image":
+                if (imageFormats.includes(format)) {
+                    const results = await UploadImage(path, basename(path), format);
+                    return { ...results, name, type };
+                }
+            case "video":
+                if (videoFormats.includes(format)) {
+                    return MoveParsedFile(path, Directory.videos);
+                }
+            case "application":
+                if (applicationFormats.includes(format)) {
+                    return UploadPdf(path);
+                }
+        }
+
+        console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
+        return { clientAccessPath: undefined };
+    }
+
+    async function UploadPdf(absolutePath: string) {
+        const dataBuffer = fs.readFileSync(absolutePath);
+        const result: ParsedPDF = await parse(dataBuffer);
+        const parsedName = basename(absolutePath);
+        await new Promise<void>((resolve, reject) => {
+            const textFilename = `${parsedName.substring(0, parsedName.length - 4)}.txt`;
+            const writeStream = fs.createWriteStream(serverPathToFile(Directory.text, textFilename));
+            writeStream.write(result.text, error => error ? reject(error) : resolve());
+        });
+        return MoveParsedFile(absolutePath, Directory.pdfs);
+    }
+
     const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${sanitizeExtension(url)}`;
-    const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
     const sanitizeExtension = (source: string) => {
         let extension = path.extname(source);
         extension = extension.toLowerCase();
@@ -58,15 +122,15 @@ export namespace DashUploadUtils {
      * @param {string} prefix is a string prepended to the generated image name in the
      * event that @param filename is not specified
      * 
-     * @returns {UploadInformation} This method returns
+     * @returns {ImageUploadInformation} This method returns
      * 1) the paths to the uploaded images (plural due to resizing)
      * 2) the file name of each of the resized images
      * 3) the size of the image, in bytes (4432130)
      * 4) the content type of the image, i.e. image/(jpeg | png | ...)
      */
-    export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<UploadInformation> => {
+    export const UploadImage = async (source: string, filename?: string, format?: string, prefix: string = ""): Promise<ImageUploadInformation> => {
         const metadata = await InspectImage(source);
-        return UploadInspectedImage(metadata, filename, prefix);
+        return UploadInspectedImage(metadata, filename, format, prefix);
     };
 
     export interface InspectionResults {
@@ -81,6 +145,11 @@ export namespace DashUploadUtils {
     export interface EnrichedExifData {
         data: ExifData;
         error?: string;
+    }
+
+    export async function buildFileDirectories() {
+        const pending = Object.keys(Directory).map(sub => createIfNotExists(`${filesDirectory}/${sub}`));
+        return Promise.all(pending);
     }
 
     /**
@@ -102,65 +171,63 @@ export namespace DashUploadUtils {
         if (isLocal) {
             return results;
         }
-        const metadata = (await new Promise<any>((resolve, reject) => {
-            request.head(source, async (error, res) => {
-                if (error) {
-                    return reject(error);
-                }
-                resolve(res);
-            });
-        })).headers;
+        const { headers } = (await new Promise<any>((resolve, reject) => {
+            request.head(source, (error, res) => error ? reject(error) : resolve(res));
+        }));
         return {
-            contentSize: parseInt(metadata[size]),
-            contentType: metadata[type],
+            contentSize: parseInt(headers[size]),
+            contentType: headers[type],
             ...results
         };
     };
 
-    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<UploadInformation> => {
+    export async function MoveParsedFile(absolutePath: string, destination: Directory): Promise<{ clientAccessPath: Opt<string> }> {
+        return new Promise<{ clientAccessPath: Opt<string> }>(resolve => {
+            const filename = basename(absolutePath);
+            const destinationPath = serverPathToFile(destination, filename);
+            fs.rename(absolutePath, destinationPath, error => {
+                resolve({ clientAccessPath: error ? undefined : clientPathToFile(destination, filename) });
+            });
+        });
+    }
+
+    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, format?: string, prefix = ""): Promise<ImageUploadInformation> => {
         const { isLocal, stream, normalizedUrl, contentSize, contentType, exifData } = metadata;
-        const resolved = filename ? sanitize(filename) : generate(prefix, normalizedUrl);
-        const extension = sanitizeExtension(normalizedUrl || resolved);
-        let information: UploadInformation = {
-            mediaPaths: [],
-            fileNames: { clean: resolved },
+        const resolved = filename || generate(prefix, normalizedUrl);
+        const extension = format || sanitizeExtension(normalizedUrl || resolved);
+        const information: ImageUploadInformation = {
+            clientAccessPath: clientPathToFile(Directory.images, resolved),
+            serverAccessPaths: {},
             exifData,
             contentSize,
             contentType,
         };
-        return new Promise<UploadInformation>(async (resolve, reject) => {
+        const { pngs, jpgs } = AcceptibleMedia;
+        return new Promise<ImageUploadInformation>(async (resolve, reject) => {
             const resizers = [
-                { resizer: sharp().rotate(), suffix: "_o" },
+                { resizer: sharp().rotate(), suffix: SizeSuffix.Original },
                 ...Object.values(Sizes).map(size => ({
                     resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
                     suffix: size.suffix
                 }))
             ];
-            let nonVisual = false;
             if (pngs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.png());
             } else if (jpgs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.jpeg());
-            } else if (![...imageFormats, ...videoFormats].includes(extension.toLowerCase())) {
-                nonVisual = true;
             }
-            if (imageFormats.includes(extension)) {
-                for (let resizer of resizers) {
-                    const suffix = resizer.suffix;
-                    let mediaPath: string;
-                    await new Promise<void>(resolve => {
-                        const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
-                        information.mediaPaths.push(mediaPath = uploadDirectory + filename);
-                        information.fileNames[suffix] = filename;
-                        stream(normalizedUrl).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
-                            .on('close', resolve)
-                            .on('error', reject);
-                    });
-                }
-            }
-            if (!isLocal || nonVisual) {
+            for (const { resizer, suffix } of resizers) {
                 await new Promise<void>(resolve => {
-                    stream(normalizedUrl).pipe(fs.createWriteStream(uploadDirectory + resolved)).on('close', resolve);
+                    const filename = InjectSize(resolved, suffix);
+                    information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, filename);
+                    stream(normalizedUrl).pipe(resizer).pipe(fs.createWriteStream(serverPathToFile(Directory.images, filename)))
+                        .on('close', resolve)
+                        .on('error', reject);
+                });
+            }
+            if (isLocal) {
+                await new Promise<boolean>(resolve => {
+                    fs.unlink(normalizedUrl, error => resolve(error === null));
                 });
             }
             resolve(information);
@@ -187,14 +254,5 @@ export namespace DashUploadUtils {
             });
         });
     };
-
-    export const createIfNotExists = async (path: string) => {
-        if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
-            return true;
-        }
-        return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
-    };
-
-    export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
 
 }

@@ -1,6 +1,7 @@
 /// <reference types="node" />
 
 declare module 'googlephotos';
+declare module 'react-image-lightbox-with-rotate';
 
 declare module '@react-pdf/renderer' {
     import * as React from 'react';

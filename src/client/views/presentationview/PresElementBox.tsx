@@ -161,9 +161,9 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
             return (null);
         }
 
-        let propDocWidth = NumCast(this.layoutDoc.nativeWidth);
-        let propDocHeight = NumCast(this.layoutDoc.nativeHeight);
-        let scale = () => 175 / NumCast(this.layoutDoc.nativeWidth, 175);
+        const propDocWidth = NumCast(this.layoutDoc.nativeWidth);
+        const propDocHeight = NumCast(this.layoutDoc.nativeHeight);
+        const scale = () => 175 / NumCast(this.layoutDoc.nativeWidth, 175);
         return (
             <div className="presElementBox-embedded" style={{
                 height: propDocHeight === 0 ? NumCast(this.layoutDoc.height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
@@ -193,9 +193,9 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
     }
 
     render() {
-        let treecontainer = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.viewType === CollectionViewType.Tree;
-        let className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
-        let pbi = "presElementBox-interaction";
+        const treecontainer = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.viewType === CollectionViewType.Tree;
+        const className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
+        const pbi = "presElementBox-interaction";
         return (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}

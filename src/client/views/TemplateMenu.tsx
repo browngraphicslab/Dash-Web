@@ -61,19 +61,19 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
-        let topDocView = this.props.docs[0];
-        let topDoc = topDocView.props.Document;
-        let xf = topDocView.props.ScreenToLocalTransform();
-        let ex = e.target.clientLeft;
-        let ey = e.target.clientTop;
+        const topDocView = this.props.docs[0];
+        const topDoc = topDocView.props.Document;
+        const xf = topDocView.props.ScreenToLocalTransform();
+        const ex = e.target.clientLeft;
+        const ey = e.target.clientTop;
         undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
         if (e.target.checked) {
             setTimeout(() => {
-                let newDocView = DocumentManager.Instance.getDocumentView(topDoc);
+                const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
                 if (newDocView) {
-                    let de = new DragManager.DocumentDragData([topDoc]);
+                    const de = new DragManager.DocumentDragData([topDoc]);
                     de.moveDocument = topDocView.props.moveDocument;
-                    let xf = newDocView.ContentDiv!.getBoundingClientRect();
+                    const xf = newDocView.ContentDiv!.getBoundingClientRect();
                     DragManager.StartDocumentDrag([newDocView.ContentDiv!], de, ex, ey, {
                         offsetX: (ex - xf.left), offsetY: (ey - xf.top),
                         handlers: { dragComplete: () => { }, },
@@ -82,9 +82,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 }
             }, 10);
         } else if (topDocView.props.ContainingCollectionView) {
-            let collView = topDocView.props.ContainingCollectionView;
-            let [sx, sy] = xf.inverse().transformPoint(0, 0);
-            let [x, y] = collView.props.ScreenToLocalTransform().transformPoint(sx, sy);
+            const collView = topDocView.props.ContainingCollectionView;
+            const [sx, sy] = xf.inverse().transformPoint(0, 0);
+            const [x, y] = collView.props.ScreenToLocalTransform().transformPoint(sx, sy);
             topDoc.x = x;
             topDoc.y = y;
         }
@@ -122,7 +122,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleChrome = (): void => {
         this.props.docs.map(dv => {
-            let layout = Doc.Layout(dv.Document);
+            const layout = Doc.Layout(dv.Document);
             layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
@@ -147,8 +147,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             document.removeEventListener("pointermove", this.onAliasButtonMoved);
             document.removeEventListener("pointerup", this.onAliasButtonUp);
 
-            let dragDocView = this.props.docs[0];
-            let dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const dragDocView = this.props.docs[0];
+            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             dragData.embedDoc = true;
             dragData.dropAction = "alias";
@@ -165,8 +165,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 
     render() {
-        let layout = Doc.Layout(this.props.docs[0].Document);
-        let templateMenu: Array<JSX.Element> = [];
+        const layout = Doc.Layout(this.props.docs[0].Document);
+        const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);

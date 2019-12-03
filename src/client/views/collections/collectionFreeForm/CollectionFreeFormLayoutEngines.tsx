@@ -1,5 +1,5 @@
 import { Doc, Field, FieldResult } from "../../../../new_fields/Doc";
-import { NumCast, StrCast, Cast } from "../../../../new_fields/Types";
+import { NumCast, StrCast, Cast, DateCast } from "../../../../new_fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
 import { ScriptField } from "../../../../new_fields/ScriptField";
@@ -8,6 +8,7 @@ import { emptyFunction } from "../../../../Utils";
 import React = require("react");
 import { ObservableMap, runInAction } from "mobx";
 import { Id } from "../../../../new_fields/FieldSymbols";
+import { DateField } from "../../../../new_fields/DateField";
 
 interface PivotData {
     type: string;
@@ -31,6 +32,16 @@ export interface ViewDefBounds {
 export interface ViewDefResult {
     ele: JSX.Element;
     bounds?: ViewDefBounds;
+}
+
+function toLabel(target: FieldResult<Field>) {
+    if (target instanceof DateField) {
+        const date = DateCast(target).date;
+        if (date) {
+            return `${date.toDateString()} ${date.toTimeString()}`;
+        }
+    }
+    return String(target);
 }
 
 export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
@@ -58,7 +69,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
         let xCount = 0;
         groupNames.push({
             type: "text",
-            text: String(key),
+            text: toLabel(key),
             x,
             y: pivotAxisWidth + 50,
             width: pivotAxisWidth * expander * numCols,
@@ -66,7 +77,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
             fontSize: NumCast(pivotDoc.pivotFontSize, 10)
         });
         for (const doc of val) {
-            let layoutDoc = Doc.Layout(doc);
+            const layoutDoc = Doc.Layout(doc);
             let wid = pivotAxisWidth;
             let hgt = layoutDoc.nativeWidth ? (NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
             if (hgt > pivotAxisWidth) {
@@ -89,7 +100,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
     });
 
     childPairs.map(pair => {
-        let defaultPosition = {
+        const defaultPosition = {
             x: NumCast(pair.layout.x),
             y: NumCast(pair.layout.y),
             z: NumCast(pair.layout.z),
@@ -97,7 +108,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
             height: NumCast(pair.layout.height)
         };
         const pos = docMap.get(pair.layout) || defaultPosition;
-        let data = poolData.get(pair.layout[Id]);
+        const data = poolData.get(pair.layout[Id]);
         if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height) {
             runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...pos }));
         }
@@ -107,10 +118,10 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {
     return () => {
-        let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
+        const addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
             let overlayDisposer: () => void = emptyFunction; // filled in below after we have a reference to the scriptingBox
             const scriptField = Cast(doc[key], ScriptField);
-            let scriptingBox = <ScriptBox initialText={scriptField && scriptField.script.originalScript}
+            const scriptingBox = <ScriptBox initialText={scriptField && scriptField.script.originalScript}
                 // tslint:disable-next-line: no-unnecessary-callback-wrapper
                 onCancel={() => overlayDisposer()}  // don't get rid of the function wrapper-- we don't want to use the current value of overlayDiposer, but the one set below
                 onSave={(text, onError) => {

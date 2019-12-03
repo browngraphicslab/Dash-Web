@@ -6,7 +6,7 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { Cast } from "../../../new_fields/Types";
+import { Cast, NumCast } from "../../../new_fields/Types";
 import { PdfField } from "../../../new_fields/URLField";
 import { Utils } from '../../../Utils';
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
@@ -95,7 +95,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     @undoBatch
     @action
     private applyFilter = () => {
-        let scriptText = this._scriptValue ? this._scriptValue :
+        const scriptText = this._scriptValue ? this._scriptValue :
             this._keyValue && this._valueValue ? `this.${this._keyValue} === ${this._valueValue}` : "true";
         this.props.Document.filterScript = ScriptField.MakeFunction(scriptText);
     }
@@ -116,7 +116,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {
-        let pageBtns = <>
+        const pageBtns = <>
             <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
                 onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} style={{ left: 45, top: 5 }}>
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
@@ -135,27 +135,27 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                     <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
                     <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={this.prevAnnotation} >
-                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="sm" />
+                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="lg" />
                     </button>
                     <button className="pdfBox-nextIcon" title="Next Annotation" onClick={this.nextAnnotation} >
-                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="sm" />
+                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="lg" />
                     </button>
                 </div>
                 <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar" style={{ bottom: 0, right: 0 }}>
                     <div className="pdfBox-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
-                        <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon={this._searching ? "times" : "search"} size="3x" /></div>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="lg" /></div>
                 </button>
                 <input value={`${(this.Document.curPage || 1)}`}
                     onChange={e => this.gotoPage(Number(e.currentTarget.value))}
-                    style={{ left: 5, top: 5, height: "30px", width: "30px", position: "absolute", pointerEvents: "all" }}
+                    style={{ left: 5, top: 5, height: "20px", width: "20px", position: "absolute", pointerEvents: "all" }}
                     onClick={action(() => this._pageControls = !this._pageControls)} />
                 {this._pageControls ? pageBtns : (null)}
                 <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                         <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />
                         <div className="pdfBox-settingsButton-iconCont">
-                            <FontAwesomeIcon style={{ color: "white", padding: 5 }} icon="cog" size="3x" />
+                            <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="lg" />
                         </div>
                     </button>
                     <div className="pdfBox-settingsFlyout" style={{ right: `${this._flyout ? 20 : -600}px` }} >
@@ -186,17 +186,22 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        let funcs: ContextMenuProps[] = [];
+        const funcs: ContextMenuProps[] = [];
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document.fitWidth ? "Off" : "On"), event: () => this.Document.fitWidth = !this.Document.fitWidth, icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
+    @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
-        let classname = "pdfBox-cont" + (this.active() ? "-interactive" : "");
-        return <div className="pdfBox-title-outer" >
-            <div className={classname} >
+        const classname = "pdfBox" + (this.active() ? "-interactive" : "");
+        return <div className={classname} style={{
+            width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
+            height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,
+            transform: `scale(${this.props.ContentScaling()})`
+        }}  >
+            <div className="pdfBox-title-outer">
                 <strong className="pdfBox-title" >{this.props.Document.title}</strong>
             </div>
         </div>;
@@ -205,7 +210,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox-cont"} onContextMenu={this.specificContextMenu}>
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}

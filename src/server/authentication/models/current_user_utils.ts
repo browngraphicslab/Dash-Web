@@ -1,4 +1,4 @@
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs } from "../../../client/documents/Documents";
@@ -11,10 +11,9 @@ import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../RouteStore";
-import { InkingControl } from "../../../client/views/InkingControl";
-import { DragManager } from "../../../client/util/DragManager";
 import { nullAudio } from "../../../new_fields/URLField";
+import { DragManager } from "../../../client/util/DragManager";
+import { InkingControl } from "../../../client/views/InkingControl";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -43,10 +42,10 @@ export class CurrentUserUtils {
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc) {
-        let notes = CurrentUserUtils.setupNoteTypes(doc);
+        const notes = CurrentUserUtils.setupNoteTypes(doc);
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
         doc.activePen = doc;
-        let docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
+        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "collection", icon: "folder", ignoreClick: true, drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
             { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
@@ -206,8 +205,8 @@ export class CurrentUserUtils {
         return doc;
     }
 
-    public static loadCurrentUser() {
-        return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
+    public static async loadCurrentUser() {
+        return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
                 const result: { id: string, email: string } = JSON.parse(response);
                 return result;
@@ -220,7 +219,7 @@ export class CurrentUserUtils {
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
-        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
+        await rp.get(Utils.prepend("/getUserDocumentId")).then(id => {
             if (id && id !== "guest") {
                 return DocServer.GetRefField(id).then(async field =>
                     Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(id, true))));
@@ -279,7 +278,7 @@ export class CurrentUserUtils {
         if (this._northstarCatalog && CurrentUserUtils._northstarSchemas) {
             this._northstarCatalog.schemas!.push(schema);
             CurrentUserUtils._northstarSchemas.push(schemaDoc);
-            let schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
+            const schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
             schemas.push(schema.displayName!);
             CurrentUserUtils.UserDocument.DBSchemas = new List<string>(schemas);
         }

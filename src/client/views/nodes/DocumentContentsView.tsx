@@ -83,7 +83,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     CreateBindings(): JsxBindings {
-        let list = {
+        const list = {
             ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,

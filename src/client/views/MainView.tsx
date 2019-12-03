@@ -15,7 +15,6 @@ import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
@@ -62,10 +61,10 @@ export class MainView extends React.Component {
     public isPointerDown = false;
 
     componentWillMount() {
-        var tag = document.createElement('script');
+        const tag = document.createElement('script');
 
         tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
+        const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
@@ -83,10 +82,10 @@ export class MainView extends React.Component {
         this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
-        if (window.location.pathname !== RouteStore.home) {
-            let pathname = window.location.pathname.substr(1).split("/");
+        if (window.location.pathname !== "/home") {
+            const pathname = window.location.pathname.substr(1).split("/");
             if (pathname.length > 1) {
-                let type = pathname[0];
+                const type = pathname[0];
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
                     if (!this.userDoc) {
@@ -160,7 +159,7 @@ export class MainView extends React.Component {
 
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        let received = CurrentUserUtils.MainDocId;
+        const received = CurrentUserUtils.MainDocId;
         if (received && !this.userDoc) {
             reaction(
                 () => CurrentUserUtils.GuestTarget,
@@ -177,7 +176,7 @@ export class MainView extends React.Component {
                     }),
                 );
             }
-            let doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
+            const doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
             if (doc) {
                 this.openWorkspace(doc);
             } else {
@@ -188,22 +187,21 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        let freeformOptions: DocumentOptions = {
+        const workspaces = Cast(this.userDoc.workspaces, Doc) as Doc;
+        const workspaceCount = DocListCast(workspaces.data).length + 1;
+        const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
             width: this._panelWidth * .7,
             height: this._panelHeight,
-            title: "My Blank Collection",
+            title: "Collection " + workspaceCount,
             backgroundColor: "white"
         };
-        let workspaces: FieldResult<Doc>;
-        let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        let mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), {}, id);
-        if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
-            Doc.AddDocToList(workspaces, "data", mainDoc);
-            mainDoc.title = `Workspace ${DocListCast(workspaces.data).length}`;
-        }
+        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
+        const dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+        const mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${workspaceCount}` }, id);
+        Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => this.openWorkspace(mainDoc), 0);
     }
@@ -216,7 +214,7 @@ export class MainView extends React.Component {
             !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
             this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
         }
-        let state = this._urlState;
+        const state = this._urlState;
         if (state.sharing === true && !this.userDoc) {
             DocServer.Control.makeReadOnly();
         } else {
@@ -266,8 +264,8 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         const mainContainer = this.mainContainer;
-        let flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
-        let flyoutTranslate = this._flyoutTranslate;
+        const flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
+        const flyoutTranslate = this._flyoutTranslate;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutTranslate ? flyoutWidth : 0}px`, transform: `translate(${flyoutTranslate ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
@@ -355,11 +353,11 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        let sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
+        const sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        let sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
+        const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
         return <div className="mainView-flyoutContainer" >
             <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
@@ -416,10 +414,11 @@ export class MainView extends React.Component {
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                     Settings
                 </button>
-                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>
+                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
-            </div></div>;
+            </div>
+        </div>;
     }
 
     @computed get mainContent() {
@@ -468,11 +467,11 @@ export class MainView extends React.Component {
 
     buttonBarXf = () => {
         if (!this._docBtnRef.current) return Transform.Identity();
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        if (CurrentUserUtils.UserDocument.expandingButtons instanceof Doc) {
+        if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />

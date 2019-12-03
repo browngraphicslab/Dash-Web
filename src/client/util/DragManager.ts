@@ -1,7 +1,6 @@
 import { action, runInAction } from "mobx";
 import { Doc, Field } from "../../new_fields/Doc";
-import { Cast, StrCast, ScriptCast } from "../../new_fields/Types";
-import { URLField } from "../../new_fields/URLField";
+import { Cast, ScriptCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -27,14 +26,14 @@ export function SetupDrag(
     dontHideOnDrop?: boolean,
     dragStarted?: () => void
 ) {
-    let onRowMove = async (e: PointerEvent) => {
+    const onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-        let doc = await docFunc();
-        var dragData = new DragManager.DocumentDragData([doc]);
+        const doc = await docFunc();
+        const dragData = new DragManager.DocumentDragData([doc]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         dragData.options = options;
@@ -42,11 +41,11 @@ export function SetupDrag(
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
         dragStarted && dragStarted();
     };
-    let onRowUp = (): void => {
+    const onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
     };
-    let onItemDown = async (e: React.PointerEvent) => {
+    const onItemDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
@@ -74,11 +73,11 @@ function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: 
 }
 
 export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
-    let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
+    const draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
     if (draggeddoc) {
-        let moddrag = await Cast(draggeddoc.annotationOn, Doc);
-        let dragdocs = moddrag ? [moddrag] : [draggeddoc];
-        let dragData = new DragManager.DocumentDragData(dragdocs);
+        const moddrag = await Cast(draggeddoc.annotationOn, Doc);
+        const dragdocs = moddrag ? [moddrag] : [draggeddoc];
+        const dragData = new DragManager.DocumentDragData(dragdocs);
         dragData.moveDocument = moveLinkedDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
@@ -90,26 +89,26 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
 }
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc, singleLink?: Doc) {
-    let srcTarg = sourceDoc.proto;
+    const srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
     if (srcTarg) {
-        let linkDocs = singleLink ? [singleLink] : LinkManager.Instance.getAllRelatedLinks(srcTarg);
+        const linkDocs = singleLink ? [singleLink] : LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
             draggedDocs = linkDocs.map(link => {
-                let opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
+                const opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
                 if (opp) return opp;
             }) as Doc[];
         }
     }
     if (draggedDocs.length) {
-        let moddrag: Doc[] = [];
+        const moddrag: Doc[] = [];
         for (const draggedDoc of draggedDocs) {
-            let doc = await Cast(draggedDoc.annotationOn, Doc);
+            const doc = await Cast(draggedDoc.annotationOn, Doc);
             if (doc) moddrag.push(doc);
         }
-        let dragdocs = moddrag.length ? moddrag : draggedDocs;
-        let dragData = new DragManager.DocumentDragData(dragdocs);
+        const dragdocs = moddrag.length ? moddrag : draggedDocs;
+        const dragData = new DragManager.DocumentDragData(dragdocs);
         dragData.moveDocument = moveLinkedDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
@@ -254,11 +253,11 @@ export namespace DragManager {
     }
 
     export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
-        let dragData = new DragManager.DocumentDragData([]);
+        const dragData = new DragManager.DocumentDragData([]);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
-                let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
+                const bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
                 bd.onClick = ScriptField.MakeScript(script);
                 params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
                 initialize && initialize(bd);
@@ -273,11 +272,11 @@ export namespace DragManager {
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) => {
-                let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
-                    let dvs = DocumentManager.Instance.getDocumentViews(d);
+                const droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
+                    const dvs = DocumentManager.Instance.getDocumentViews(d);
                     if (dvs.length) {
-                        let containingView = SelectionManager.SelectedDocuments()[0] ? SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView : undefined;
-                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === containingView);
+                        const containingView = SelectionManager.SelectedDocuments()[0] ? SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView : undefined;
+                        const inContext = dvs.filter(dv => dv.props.ContainingCollectionView === containingView);
                         if (inContext.length) {
                             inContext.forEach(dv => droppedDocs.push(dv.props.Document));
                         } else {
@@ -336,26 +335,26 @@ export namespace DragManager {
             DragManager.Root().appendChild(dragDiv);
         }
         SelectionManager.SetIsDragging(true);
-        let scaleXs: number[] = [];
-        let scaleYs: number[] = [];
-        let xs: number[] = [];
-        let ys: number[] = [];
+        const scaleXs: number[] = [];
+        const scaleYs: number[] = [];
+        const xs: number[] = [];
+        const ys: number[] = [];
 
         const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments :
             dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
-        let dragElements = eles.map(ele => {
+        const dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / w,
                 scaleY = rect.height / h;
-            let x = rect.left,
+            const x = rect.left,
                 y = rect.top;
             xs.push(x);
             ys.push(y);
             scaleXs.push(scaleX);
             scaleYs.push(scaleY);
-            let dragElement = ele.cloneNode(true) as HTMLElement;
+            const dragElement = ele.cloneNode(true) as HTMLElement;
             dragElement.style.opacity = "0.7";
             dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
             dragElement.style.position = "absolute";
@@ -372,25 +371,25 @@ export namespace DragManager {
             dragElement.style.height = `${rect.height / scaleY}px`;
 
             if (docs.length) {
-                var pdfBox = dragElement.getElementsByTagName("canvas");
-                var pdfBoxSrc = ele.getElementsByTagName("canvas");
+                const pdfBox = dragElement.getElementsByTagName("canvas");
+                const pdfBoxSrc = ele.getElementsByTagName("canvas");
                 Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
-                var pdfView = dragElement.getElementsByClassName("pdfViewer-viewer");
-                var pdfViewSrc = ele.getElementsByClassName("pdfViewer-viewer");
-                let tops = Array.from(pdfViewSrc).map(p => p.scrollTop);
-                let oldopacity = dragElement.style.opacity;
+                const pdfView = dragElement.getElementsByClassName("pdfViewer-viewer");
+                const pdfViewSrc = ele.getElementsByClassName("pdfViewer-viewer");
+                const tops = Array.from(pdfViewSrc).map(p => p.scrollTop);
+                const oldopacity = dragElement.style.opacity;
                 dragElement.style.opacity = "0";
                 setTimeout(() => {
                     dragElement.style.opacity = oldopacity;
                     Array.from(pdfView).map((v, i) => v.scrollTo({ top: tops[i] }));
                 }, 0);
             }
-            let set = dragElement.getElementsByTagName('*');
+            const set = dragElement.getElementsByTagName('*');
             if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
             // tslint:disable-next-line: prefer-for-of
             for (let i = 0; i < set.length; i++) {
                 if (set[i].hasAttribute("style")) {
-                    let s = set[i];
+                    const s = set[i];
                     (s as any).style.pointerEvents = "none";
                 }
             }
@@ -429,8 +428,8 @@ export namespace DragManager {
                 }, dragData.droppedDocuments);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
-            let moveX = e.pageX - lastX;
-            let moveY = e.pageY - lastY;
+            const moveX = e.pageX - lastX;
+            const moveY = e.pageY - lastY;
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
@@ -438,11 +437,11 @@ export namespace DragManager {
             );
         };
 
-        let hideDragShowOriginalElements = () => {
+        const hideDragShowOriginalElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => ele.hidden = false);
         };
-        let endDrag = () => {
+        const endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             if (options) {
@@ -466,17 +465,17 @@ export namespace DragManager {
     }
 
     function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
-        let removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
+        const removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
             // let parent = dragEle.parentElement;
             // if (parent) parent.removeChild(dragEle);
-            let ret = [dragEle, dragEle.style.width, dragEle.style.height];
+            const ret = [dragEle, dragEle.style.width, dragEle.style.height];
             dragEle.style.width = "0";
             dragEle.style.height = "0";
             return ret;
         });
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
-            let dragEle = r[0] as HTMLElement;
+            const dragEle = r[0] as HTMLElement;
             dragEle.style.width = r[1] as string;
             dragEle.style.height = r[2] as string;
             // let parent = r[1];

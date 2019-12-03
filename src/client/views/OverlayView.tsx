@@ -148,7 +148,7 @@ export class OverlayView extends React.Component {
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
             d.inOverlay = true;
             let offsetx = 0, offsety = 0;
-            let onPointerMove = action((e: PointerEvent) => {
+            const onPointerMove = action((e: PointerEvent) => {
                 if (e.buttons === 1) {
                     d.x = e.clientX + offsetx;
                     d.y = e.clientY + offsety;
@@ -156,14 +156,14 @@ export class OverlayView extends React.Component {
                     e.preventDefault();
                 }
             });
-            let onPointerUp = action((e: PointerEvent) => {
+            const onPointerUp = action((e: PointerEvent) => {
                 document.removeEventListener("pointermove", onPointerMove);
                 document.removeEventListener("pointerup", onPointerUp);
                 e.stopPropagation();
                 e.preventDefault();
             });
 
-            let onPointerDown = (e: React.PointerEvent) => {
+            const onPointerDown = (e: React.PointerEvent) => {
                 offsetx = NumCast(d.x) - e.clientX;
                 offsety = NumCast(d.y) - e.clientY;
                 e.stopPropagation();

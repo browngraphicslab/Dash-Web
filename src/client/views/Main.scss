@@ -13,12 +13,12 @@ body {
     left: 0;
 }
 
-div {
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-}
+// div {
+//     user-select: none;
+//     -moz-user-select: none;
+//     -webkit-user-select: none;
+//     -ms-user-select: none;
+// }
 
 
 .jsx-parser {
@@ -38,7 +38,7 @@ p {
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     height: 8px;
-    width: 20px;
+    width:  8px;
 }
 
 ::-webkit-scrollbar-thumb {

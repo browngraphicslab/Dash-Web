@@ -36,12 +36,12 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         (e.button === 0 && !e.ctrlKey) && e.stopPropagation();
     }
     onPointerMove = action((e: PointerEvent) => {
-        let cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
+        const cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
         if (cdiv && (Math.abs(e.clientX - this._downx) > 5 || Math.abs(e.clientY - this._downy) > 5)) {
-            let bounds = cdiv.getBoundingClientRect();
-            let pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
-            let separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
-            let dragdist = Math.sqrt((pt[0] - this._downx) * (pt[0] - this._downx) + (pt[1] - this._downy) * (pt[1] - this._downy));
+            const bounds = cdiv.getBoundingClientRect();
+            const pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
+            const separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
+            const dragdist = Math.sqrt((pt[0] - this._downx) * (pt[0] - this._downx) + (pt[1] - this._downy) * (pt[1] - this._downy));
             if (separation > 100) {
                 DragLinksAsDocuments(this._ref.current!, pt[0], pt[1], Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, this.props.Document); // Containging collection is the document, not a collection... hack.
                 document.removeEventListener("pointermove", this.onPointerMove);
@@ -67,14 +67,14 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
 
     render() {
-        let anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
-        let hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;
-        let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
-        let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
-        let c = StrCast(this.props.Document.backgroundColor, "lightblue");
-        let anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
-        let timecode = this.props.Document[anchor + "Timecode"];
-        let targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
+        const anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
+        const hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;
+        const y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
+        const x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
+        const c = StrCast(this.props.Document.backgroundColor, "lightblue");
+        const anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
+        const timecode = this.props.Document[anchor + "Timecode"];
+        const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
         return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle}
             ref={this._ref} style={{
                 background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,

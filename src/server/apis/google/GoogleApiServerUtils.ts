@@ -1,142 +1,282 @@
 import { google } from "googleapis";
-import { createInterface } from "readline";
-import { readFile, writeFile } from "fs";
-import { OAuth2Client, Credentials } from "google-auth-library";
+import { OAuth2Client, Credentials, OAuth2ClientOptions } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
-import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';
-import Photos = require('googlephotos');
 import { Database } from "../../database";
+import { GoogleCredentialsLoader } from "../../credentials/CredentialsLoader";
+
 /**
- * Server side authentication for Google Api queries.
+ * Scopes give Google users fine granularity of control
+ * over the information they make accessible via the API.
+ * This is the somewhat overkill list of what Dash requests
+ * from the user.
+ */
+const scope = [
+    'documents.readonly',
+    'documents',
+    'presentations',
+    'presentations.readonly',
+    'drive',
+    'drive.file',
+    'photoslibrary',
+    'photoslibrary.appendonly',
+    'photoslibrary.sharing',
+    'userinfo.profile'
+].map(relative => `https://www.googleapis.com/auth/${relative}`);
+
+/**
+ * This namespace manages server side authentication for Google API queries, either
+ * from the standard v1 APIs or the Google Photos REST API.
  */
 export namespace GoogleApiServerUtils {
 
-    // If modifying these scopes, delete token.json.
-    const prefix = 'https://www.googleapis.com/auth/';
-    const SCOPES = [
-        'documents.readonly',
-        'documents',
-        'presentations',
-        'presentations.readonly',
-        'drive',
-        'drive.file',
-        'photoslibrary',
-        'photoslibrary.appendonly',
-        'photoslibrary.sharing',
-        'userinfo.profile'
-    ];
-
-    export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
-
+    /**
+     * As we expand out to more Google APIs that are accessible from
+     * the 'googleapis' module imported above, this enum will record
+     * the list and provide a unified string representation of each API.
+     */
     export enum Service {
         Documents = "Documents",
         Slides = "Slides"
     }
 
-    export interface CredentialInformation {
-        credentialsPath: string;
-        userId: string;
+    /**
+     * Global credentials read once from a JSON file
+     * before the server is started that
+     * allow us to build OAuth2 clients with Dash's
+     * application specific credentials.
+     */
+    let oAuthOptions: OAuth2ClientOptions;
+
+    /**
+     * This is a global authorization client that is never 
+     * passed around, and whose credentials are never set.
+     * Its job is purely to generate new authentication urls
+     * (users will follow to get to Google's permissions GUI)
+     * and to use the codes returned from that process to generate the
+     * initial credentials.
+     */
+    let worker: OAuth2Client;
+
+    /**
+     * This function is called once before the server is started,
+     * reading in Dash's project-specific credentials (client secret
+     * and client id) for later repeated access. It also sets up the
+     * global, intentionally unauthenticated worker OAuth2 client instance. 
+     */
+    export function processProjectCredentials(): void {
+        const { client_secret, client_id, redirect_uris } = GoogleCredentialsLoader.ProjectCredentials;
+        // initialize the global authorization client
+        oAuthOptions = {
+            clientId: client_id,
+            clientSecret: client_secret,
+            redirectUri: redirect_uris[0]
+        };
+        worker = generateClient();
     }
 
+    /**
+     * A briefer format for the response from a 'googleapis' API request
+     */
     export type ApiResponse = Promise<GaxiosResponse>;
+
+    /**
+     * A generic form for a handler that executes some request on the endpoint
+     */
     export type ApiRouter = (endpoint: Endpoint, parameters: any) => ApiResponse;
+
+    /**
+     * A generic form for the asynchronous function that actually submits the
+     * request to the API and returns the corresporing response. Helpful when
+     * making an extensible endpoint definition.
+     */
     export type ApiHandler = (parameters: any, methodOptions?: any) => ApiResponse;
+
+    /**
+     * A literal union type indicating the valid actions for these 'googleapis'
+     * requestions
+     */
     export type Action = "create" | "retrieve" | "update";
 
-    export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };
-    export type EndpointParameters = GlobalOptions & { version: "v1" };
+    /**
+     * An interface defining any entity on which one can invoke
+     * anuy of the following handlers. All 'googleapis' wrappers
+     * such as google.docs().documents and google.slides().presentations
+     * satisfy this interface.
+     */
+    export interface Endpoint {
+        get: ApiHandler;
+        create: ApiHandler;
+        batchUpdate: ApiHandler;
+    }
 
-    export const GetEndpoint = (sector: string, paths: CredentialInformation) => {
-        return new Promise<Opt<Endpoint>>(resolve => {
-            RetrieveCredentials(paths).then(authentication => {
-                let routed: Opt<Endpoint>;
-                let parameters: EndpointParameters = { auth: authentication.client, version: "v1" };
-                switch (sector) {
-                    case Service.Documents:
-                        routed = google.docs(parameters).documents;
-                        break;
-                    case Service.Slides:
-                        routed = google.slides(parameters).presentations;
-                        break;
-                }
-                resolve(routed);
-            });
+    /**
+     * Maps the Dash user id of a given user to their single
+     * associated OAuth2 client, mitigating the creation
+     * of needless duplicate clients that would arise from
+     * making one new client instance per request.
+     */
+    const authenticationClients = new Map<String, OAuth2Client>();
+
+    /**
+     * This function receives the target sector ("which G-Suite app's API am I interested in?")
+     * and the id of the Dash user making the request to the API. With this information, it generates
+     * an authenticated OAuth2 client and passes it into the relevant 'googleapis' wrapper.
+     * @param sector the particular desired G-Suite 'googleapis' API (docs, slides, etc.)
+     * @param userId the id of the Dash user making the request to the API
+     * @returns the relevant 'googleapis' wrapper, if any
+     */
+    export async function GetEndpoint(sector: string, userId: string): Promise<Opt<Endpoint>> {
+        return new Promise(async resolve => {
+            const auth = await retrieveOAuthClient(userId);
+            if (!auth) {
+                return resolve();
+            }
+            let routed: Opt<Endpoint>;
+            const parameters: any = { auth, version: "v1" };
+            switch (sector) {
+                case Service.Documents:
+                    routed = google.docs(parameters).documents;
+                    break;
+                case Service.Slides:
+                    routed = google.slides(parameters).presentations;
+                    break;
+            }
+            resolve(routed);
         });
-    };
+    }
 
-    export const RetrieveAccessToken = (information: CredentialInformation) => {
-        return new Promise<string>((resolve, reject) => {
-            RetrieveCredentials(information).then(
-                credentials => resolve(credentials.token.access_token!),
-                error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
-            );
+    /**
+     * Returns the lengthy string or access token that can be passed into
+     * the headers of an API request or into the constructor of the Photos
+     * client API wrapper.
+     * @param userId the Dash user id of the user requesting his/her associated
+     * access_token
+     * @returns the current access_token associated with the requesting
+     * Dash user. The access_token is valid for only an hour, and
+     * is then refreshed.
+     */
+    export async function retrieveAccessToken(userId: string): Promise<string> {
+        return new Promise(async resolve => {
+            const { credentials } = await retrieveCredentials(userId);
+            if (!credentials) {
+                return resolve();
+            }
+            resolve(credentials.access_token!);
         });
-    };
+    }
 
-    const RetrieveOAuthClient = async (information: CredentialInformation) => {
-        return new Promise<OAuth2Client>((resolve, reject) => {
-            readFile(information.credentialsPath, async (err, credentials) => {
-                if (err) {
-                    reject(err);
-                    return console.log('Error loading client secret file:', err);
-                }
-                const { client_secret, client_id, redirect_uris } = parseBuffer(credentials).installed;
-                resolve(new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]));
-            });
+    /**
+     * Manipulates a mapping such that, in the limit, each Dash user has
+     * an associated authenticated OAuth2 client at their disposal. This
+     * function ensures that the client's credentials always remain up to date
+     * @param userId the Dash user id of the user requesting account integration
+     * @returns returns an initialized OAuth2 client instance, likely to be passed into Google's
+     * npm-installed API wrappers that use authenticated client instances rather than access codes for
+     * security.
+     */
+    export async function retrieveOAuthClient(userId: string): Promise<OAuth2Client> {
+        return new Promise(async resolve => {
+            const { credentials, refreshed } = await retrieveCredentials(userId);
+            if (!credentials) {
+                return resolve();
+            }
+            let client = authenticationClients.get(userId);
+            if (!client) {
+                authenticationClients.set(userId, client = generateClient(credentials));
+            } else if (refreshed) {
+                client.setCredentials(credentials);
+            }
+            resolve(client);
         });
-    };
+    }
 
-    export const GenerateAuthenticationUrl = async (information: CredentialInformation) => {
-        const client = await RetrieveOAuthClient(information);
-        return client.generateAuthUrl({
-            access_type: 'offline',
-            scope: SCOPES.map(relative => prefix + relative),
-        });
-    };
+    /**
+     * Creates a new OAuth2Client instance, and if provided, sets
+     * the specific credentials on the client
+     * @param credentials if you have access to the credentials that you'll eventually set on
+     * the client, just pass them in at initialization
+     * @returns the newly created, potentially certified, OAuth2 client instance
+     */
+    function generateClient(credentials?: Credentials): OAuth2Client {
+        const client = new google.auth.OAuth2(oAuthOptions);
+        credentials && client.setCredentials(credentials);
+        return client;
+    }
 
+    /**
+     * Calls on the worker (which does not have and does not need
+     * any credentials) to produce a url to which the user can
+     * navigate to give Dash the necessary Google permissions.
+     * @returns the newly generated url to the authentication landing page
+     */
+    export function generateAuthenticationUrl(): string {
+        return worker.generateAuthUrl({ scope, access_type: 'offline' });
+    }
+
+    /**
+     * This is what we return to the server in processNewUser(), after the
+     * worker OAuth2Client has used the user-pasted authentication code
+     * to retrieve an access token and an info token. The avatar is the
+     * URL to the Google-hosted mono-color, single white letter profile 'image'.
+     */
     export interface GoogleAuthenticationResult {
         access_token: string;
         avatar: string;
         name: string;
     }
-    export const ProcessClientSideCode = async (information: CredentialInformation, authenticationCode: string): Promise<GoogleAuthenticationResult> => {
-        const oAuth2Client = await RetrieveOAuthClient(information);
-        return new Promise<GoogleAuthenticationResult>((resolve, reject) => {
-            oAuth2Client.getToken(authenticationCode, async (err, token) => {
-                if (err || !token) {
-                    reject(err);
-                    return console.error('Error retrieving access token', err);
-                }
-                oAuth2Client.setCredentials(token);
-                const enriched = injectUserInfo(token);
-                await Database.Auxiliary.GoogleAuthenticationToken.Write(information.userId, enriched);
-                const { given_name, picture } = enriched.userInfo;
-                resolve({
-                    access_token: enriched.access_token!,
-                    avatar: picture,
-                    name: given_name
-                });
-            });
-        });
-    };
 
     /**
-     * It's pretty cool: the credentials id_token is split into thirds by periods.
-     * The middle third contains a base64-encoded JSON string with all the
-     * user info contained in the interface below. So, we isolate that middle third,
-     * base64 decode with atob and parse the JSON. 
-     * @param credentials the client credentials returned from OAuth after the user
-     * has executed the authentication routine
+     * This method receives the authentication code that the
+     * user pasted into the overlay in the client side and uses the worker
+     * and the authentication code to fetch the full set of credentials that
+     * we'll store in the database for each user. This is called once per
+     * new account integration.
+     * @param userId the Dash user id of the user requesting account integration, used to associate the new credentials
+     * with a Dash user in the googleAuthentication table of the database.
+     * @param authenticationCode the Google-provided authentication code that the user copied
+     * from Google's permissions UI and pasted into the overlay.
+     * 
+     * EXAMPLE CODE: 4/sgF2A5uGg4xASHf7VQDnLtdqo3mUlfQqLSce_HYz5qf1nFtHj9YTeGs
+     * 
+     * @returns the information necessary to authenticate a client side google photos request
+     * and display basic user information in the overlay on successful authentication. 
+     * This can be expanded as needed by adding properties to the interface GoogleAuthenticationResult.
      */
-    const injectUserInfo = (credentials: Credentials): EnrichedCredentials => {
-        const userInfo = JSON.parse(atob(credentials.id_token!.split(".")[1]));
-        return { ...credentials, userInfo };
-    };
+    export async function processNewUser(userId: string, authenticationCode: string): Promise<GoogleAuthenticationResult> {
+        const credentials = await new Promise<Credentials>((resolve, reject) => {
+            worker.getToken(authenticationCode, async (err, credentials) => {
+                if (err || !credentials) {
+                    reject(err);
+                    return;
+                }
+                resolve(credentials);
+            });
+        });
+        const enriched = injectUserInfo(credentials);
+        await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, enriched);
+        const { given_name, picture } = enriched.userInfo;
+        return {
+            access_token: enriched.access_token!,
+            avatar: picture,
+            name: given_name
+        };
+    }
 
+    /**
+     * This type represents the union of the full set of OAuth2 credentials
+     * and all of a Google user's publically available information. This is the strucure
+     * of the JSON object we ultimately store in the googleAuthentication table of the database. 
+     */
     export type EnrichedCredentials = Credentials & { userInfo: UserInfo };
+
+    /**
+     * This interface defines all of the information we
+     * receive from parsing the base64 encoded info-token
+     * for a Google user.
+     */
     export interface UserInfo {
         at_hash: string;
         aud: string;
@@ -152,70 +292,73 @@ export namespace GoogleApiServerUtils {
         sub: string;
     }
 
-    export const RetrieveCredentials = (information: CredentialInformation) => {
-        return new Promise<TokenResult>((resolve, reject) => {
-            readFile(information.credentialsPath, async (err, credentials) => {
-                if (err) {
-                    reject(err);
-                    return console.log('Error loading client secret file:', err);
-                }
-                authorize(parseBuffer(credentials), information.userId).then(resolve, reject);
-            });
-        });
-    };
-
-    export const RetrievePhotosEndpoint = (paths: CredentialInformation) => {
-        return new Promise<any>((resolve, reject) => {
-            RetrieveAccessToken(paths).then(
-                token => resolve(new Photos(token)),
-                reject
-            );
-        });
-    };
-
-    type TokenResult = { token: Credentials, client: OAuth2Client };
     /**
-     * Create an OAuth2 client with the given credentials, and returns the promise resolving to the authenticated client
-     * @param {Object} credentials The authorization client credentials.
+     * It's pretty cool: the credentials id_token is split into thirds by periods.
+     * The middle third contains a base64-encoded JSON string with all the
+     * user info contained in the interface below. So, we isolate that middle third,
+     * base64 decode with atob and parse the JSON. 
+     * @param credentials the client credentials returned from OAuth after the user
+     * has executed the authentication routine
+     * @returns the full set of credentials in the structure in which they'll be stored
+     * in the database.
      */
-    export function authorize(credentials: any, userId: string): Promise<TokenResult> {
-        const { client_secret, client_id, redirect_uris } = credentials.installed;
-        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-        return new Promise<TokenResult>((resolve, reject) => {
-            // Attempting to authorize user (${userId})
-            Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId).then(token => {
-                if (token!.expiry_date! < new Date().getTime()) {
-                    // Token has expired, so submitting a request for a refreshed access token
-                    return refreshToken(token!, client_id, client_secret, oAuth2Client, userId).then(resolve, reject);
-                }
-                // Authentication successful!
-                oAuth2Client.setCredentials(token!);
-                resolve({ token: token!, client: oAuth2Client });
-            });
-        });
+    function injectUserInfo(credentials: Credentials): EnrichedCredentials {
+        const userInfo: UserInfo = JSON.parse(atob(credentials.id_token!.split(".")[1]));
+        return { ...credentials, userInfo };
     }
 
-    const refreshEndpoint = "https://oauth2.googleapis.com/token";
-    const refreshToken = (credentials: Credentials, client_id: string, client_secret: string, oAuth2Client: OAuth2Client, userId: string) => {
-        return new Promise<TokenResult>(resolve => {
-            let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-            let queryParameters = {
-                refreshToken: credentials.refresh_token,
-                client_id,
-                client_secret,
-                grant_type: "refresh_token"
-            };
-            let url = `${refreshEndpoint}?${qs.stringify(queryParameters)}`;
-            request.post(url, headerParameters).then(async response => {
-                let { access_token, expires_in } = JSON.parse(response);
-                const expiry_date = new Date().getTime() + (expires_in * 1000);
-                await Database.Auxiliary.GoogleAuthenticationToken.Update(userId, access_token, expiry_date);
-                credentials.access_token = access_token;
-                credentials.expiry_date = expiry_date;
-                oAuth2Client.setCredentials(credentials);
-                resolve({ token: credentials, client: oAuth2Client });
-            });
+    /**
+     * Looks in the database for any credentials object with the given user id,
+     * and returns them. If the credentials are found but expired, the function will
+     * automatically refresh the credentials and then resolve with the updated values.
+     * @param userId the id of the Dash user requesting his/her credentials. Eventually, each user might
+     * be associated with multiple different sets of Google credentials.
+     * @returns the credentials, or undefined if the user has no stored associated credentials,
+     * and a flag indicating whether or not they were refreshed during retrieval
+     */
+    async function retrieveCredentials(userId: string): Promise<{ credentials: Opt<Credentials>, refreshed: boolean }> {
+        let credentials: Opt<Credentials> = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+        const refreshed = false;
+        if (!credentials) {
+            return { credentials: undefined, refreshed };
+        }
+        // check for token expiry
+        if (credentials.expiry_date! <= new Date().getTime()) {
+            credentials = await refreshAccessToken(credentials, userId);
+        }
+        return { credentials, refreshed };
+    }
+
+    /**
+     * This function submits a request to OAuth with the local refresh token
+     * to revalidate the credentials for a given Google user associated with
+     * the Dash user id passed in. In addition to returning the credentials, it
+     * writes the diff to the database.
+     * @param credentials the credentials
+     * @param userId the id of the Dash user implicitly requesting that 
+     * his/her credentials be refreshed
+     * @returns the updated credentials
+     */
+    async function refreshAccessToken(credentials: Credentials, userId: string): Promise<Credentials> {
+        const headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+        const { client_id, client_secret } = GoogleCredentialsLoader.ProjectCredentials;
+        const url = `https://oauth2.googleapis.com/token?${qs.stringify({
+            refreshToken: credentials.refresh_token,
+            client_id,
+            client_secret,
+            grant_type: "refresh_token"
+        })}`;
+        const { access_token, expires_in } = await new Promise<any>(async resolve => {
+            const response = await request.post(url, headerParameters);
+            resolve(JSON.parse(response));
         });
-    };
+        // expires_in is in seconds, but we're building the new expiry date in milliseconds
+        const expiry_date = new Date().getTime() + (expires_in * 1000);
+        await Database.Auxiliary.GoogleAuthenticationToken.Update(userId, access_token, expiry_date);
+        // update the relevant properties
+        credentials.access_token = access_token;
+        credentials.expiry_date = expiry_date;
+        return credentials;
+    }
 
 }

@@ -3,7 +3,7 @@ import 'source-map-support/register';
 import { Without } from "../../Utils";
 
 function getBatchName(target: any, key: string | symbol): string {
-    let keyName = key.toString();
+    const keyName = key.toString();
     if (target && target.constructor && target.constructor.name) {
         return `${target.constructor.name}.${keyName}`;
     }
@@ -23,7 +23,7 @@ function propertyDecorator(target: any, key: string | symbol) {
                 writable: true,
                 configurable: true,
                 value: function (...args: any[]) {
-                    let batch = UndoManager.StartBatch(getBatchName(target, key));
+                    const batch = UndoManager.StartBatch(getBatchName(target, key));
                     try {
                         return value.apply(this, args);
                     } finally {
@@ -40,7 +40,7 @@ export function undoBatch(fn: (...args: any[]) => any): (...args: any[]) => any;
 export function undoBatch(target: any, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
     if (!key) {
         return function () {
-            let batch = UndoManager.StartBatch("");
+            const batch = UndoManager.StartBatch("");
             try {
                 return target.apply(undefined, arguments);
             } finally {
@@ -55,7 +55,7 @@ export function undoBatch(target: any, key?: string | symbol, descriptor?: Typed
     const oldFunction = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
-        let batch = UndoManager.StartBatch(getBatchName(target, key));
+        const batch = UndoManager.StartBatch(getBatchName(target, key));
         try {
             return oldFunction.apply(this, args);
         } finally {
@@ -98,7 +98,7 @@ export namespace UndoManager {
         GetOpenBatches().forEach(batch => console.log(batch.batchName));
     }
 
-    let openBatches: Batch[] = [];
+    const openBatches: Batch[] = [];
     export function GetOpenBatches(): Without<Batch, 'end'>[] {
         return openBatches;
     }
@@ -146,7 +146,7 @@ export namespace UndoManager {
 
     //TODO Make this return the return value
     export function RunInBatch<T>(fn: () => T, batchName: string) {
-        let batch = StartBatch(batchName);
+        const batch = StartBatch(batchName);
         try {
             return runInAction(fn);
         } finally {
@@ -159,7 +159,7 @@ export namespace UndoManager {
             return;
         }
 
-        let commands = undoStack.pop();
+        const commands = undoStack.pop();
         if (!commands) {
             return;
         }
@@ -178,7 +178,7 @@ export namespace UndoManager {
             return;
         }
 
-        let commands = redoStack.pop();
+        const commands = redoStack.pop();
         if (!commands) {
             return;
         }

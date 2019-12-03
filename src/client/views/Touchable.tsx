@@ -17,22 +17,28 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
-            this.prevPoints.set(pt.identifier, pt);
+            const pt: any = e.targetTouches.item(i);
+            // pen is also a touch, but with a radius of 0.5 (at least with the surface pens). i doubt anyone's fingers are 2 pixels wide,
+            // and this seems to be the only way of differentiating pen and touch on touch events
+            if (pt.radiusX > 2 && pt.radiusY > 2) {
+                this.prevPoints.set(pt.identifier, pt);
+            }
         }
 
-        switch (e.targetTouches.length) {
-            case 1:
-                this.handle1PointerDown(e);
-                break;
-            case 2:
-                this.handle2PointersDown(e);
-        }
+        if (this.prevPoints.size) {
+            switch (e.targetTouches.length) {
+                case 1:
+                    this.handle1PointerDown(e);
+                    break;
+                case 2:
+                    this.handle2PointersDown(e);
+            }
 
-        document.removeEventListener("touchmove", this.onTouch);
-        document.addEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
-        document.addEventListener("touchend", this.onTouchEnd);
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+        }
     }
 
     /**
@@ -41,7 +47,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouch = (e: TouchEvent): void => {
         // if we're not actually moving a lot, don't consider it as dragging yet
-        if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
+        // if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         switch (e.targetTouches.length) {
             case 1:
@@ -50,6 +56,18 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             case 2:
                 this.handle2PointersMove(e);
                 break;
+        }
+
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            const pt = e.targetTouches.item(i);
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.set(pt.identifier, pt);
+                }
+                else {
+                    this.prevPoints.set(pt.identifier, pt);
+                }
+            }
         }
     }
 
@@ -60,7 +78,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
         // remove all the touches associated with the event
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
+            const pt = e.targetTouches.item(i);
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
                     this.prevPoints.delete(pt.identifier);

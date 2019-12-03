@@ -31,8 +31,8 @@
     flex-direction: row;
 
     .formattedTextBox-dictation {
-        height: 20px;
-        width: 20px;
+        height: 12px;
+        width: 10px;
         top: 0px;
         left: 0px;
         position: absolute;
@@ -50,6 +50,7 @@
     width: 100%;
     height: 100%;
 }
+
 .formattedTextBox-sidebar-handle {
     position: absolute;
     top: calc(50% - 17.5px);
@@ -58,19 +59,23 @@
     background: lightgray;
     border-radius: 20px;
 }
-.formattedTextBox-cont > .formattedTextBox-sidebar-handle {
+
+.formattedTextBox-cont>.formattedTextBox-sidebar-handle {
     right: 0;
     left: unset;
 }
-.formattedTextBox-sidebar, .formattedTextBox-sidebar-inking {
-    border-left: dashed 1px black; 
-    height: 100%; 
+
+.formattedTextBox-sidebar,
+.formattedTextBox-sidebar-inking {
+    border-left: dashed 1px black;
+    height: 100%;
     display: inline-block;
     position: absolute;
     right: 0;
-    > .formattedTextBox-sidebar-handle {
-        right:unset;
-        left:-5;
+
+    >.formattedTextBox-sidebar-handle {
+        right: unset;
+        left: -5;
     }
 }
 
@@ -184,15 +189,27 @@ footnote::after {
     width: 0;
 }
 
+
+.formattedTextBox-inlineComment {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    &::after {
+        content: "→";
+    }
+    &:hover {
+        background: orange;
+    }
+}
+
 .formattedTextBox-summarizer {
     opacity: 0.5;
     position: relative;
     width: 40px;
     height: 20px;
-}
-
-.formattedTextBox-summarizer::after {
-    content: "←";
+    &::after {
+        content: "←";
+    }
 }
 
 .formattedTextBox-summarizer-collapsed {
@@ -200,10 +217,9 @@ footnote::after {
     position: relative;
     width: 40px;
     height: 20px;
-}
-
-.formattedTextBox-summarizer-collapsed::after {
-    content: "...";
+    &::after {
+        content: "...";
+    }
 }
 
 .ProseMirror {
@@ -214,218 +230,27 @@ footnote::after {
         padding-left: 0px;
     }
 
-    .decimal1-ol {
-        counter-reset: deci1;
+    .decimal1-ol { counter-reset: deci1; p { display: inline };                     ul, ol { padding-left: 30px; } }
+    .decimal2-ol { counter-reset: deci2; p { display: inline }; font-size: smaller; ul, ol { padding-left: 30px; } }
+    .decimal3-ol { counter-reset: deci3; p { display: inline }; font-size: smaller; ul, ol { padding-left: 30px; } }
+    .decimal4-ol { counter-reset: deci4; p { display: inline }; font-size: smaller; ul, ol { padding-left: 30px; } }
+    .decimal5-ol { counter-reset: deci5; p { display: inline }; font-size: smaller; ul, ol { padding-left: 30px; } }
+    .decimal6-ol { counter-reset: deci6; p { display: inline }; font-size: smaller; ul, ol { padding-left: 30px; } }
+    .decimal7-ol { counter-reset: deci7; p { display: inline }; font-size: smaller; ul, ol { padding-left: 30px; } }
 
-        p {
-            display: inline
-        }
+    .upper-alpha-ol { counter-reset: ualph;  p { display: inline}; font-size: smaller; }
+    .lower-roman-ol { counter-reset: lroman; p { display: inline}; font-size: smaller; }
+    .lower-alpha-ol { counter-reset: lalpha; p { display: inline}; font-size: smaller; }
 
-        ;
-        font-size: 24;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .decimal2-ol {
-        counter-reset: deci2;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 18;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .decimal3-ol {
-        counter-reset: deci3;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 14;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .decimal4-ol {
-        counter-reset: deci4;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 10;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .decimal5-ol {
-        counter-reset: deci5;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 10;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .decimal6-ol {
-        counter-reset: deci6;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 10;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .decimal7-ol {
-        counter-reset: deci7;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 10;
-
-        ul,
-        ol {
-            padding-left: 30px;
-        }
-    }
-
-    .upper-alpha-ol {
-        counter-reset: ualph;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 18;
-    }
-
-    .lower-roman-ol {
-        counter-reset: lroman;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 14;
-    }
-
-    .lower-alpha-ol {
-        counter-reset: lalpha;
-
-        p {
-            display: inline
-        }
-
-        ;
-        font-size: 10;
-    }
-
-    .decimal1:before {
-        content: counter(deci1) ") ";
-        counter-increment: deci1;
-        display: inline-block;
-        min-width: 30;
-    }
-
-    .decimal2:before {
-        content: counter(deci1) "."counter(deci2) ") ";
-        counter-increment: deci2;
-        display: inline-block;
-        min-width: 35
-    }
-
-    .decimal3:before {
-        content: counter(deci1) "."counter(deci2) "."counter(deci3) ") ";
-        counter-increment: deci3;
-        display: inline-block;
-        min-width: 35
-    }
-
-    .decimal4:before {
-        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) ") ";
-        counter-increment: deci4;
-        display: inline-block;
-        min-width: 40
-    }
-
-    .decimal5:before {
-        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) ") ";
-        counter-increment: deci5;
-        display: inline-block;
-        min-width: 40
-    }
-
-    .decimal6:before {
-        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) ") ";
-        counter-increment: deci6;
-        display: inline-block;
-        min-width: 45
-    }
-
-    .decimal7:before {
-        content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) "."counter(deci7) ") ";
-        counter-increment: deci7;
-        display: inline-block;
-        min-width: 50
-    }
-
-    .upper-alpha:before {
-        content: counter(deci1) "."counter(ualph, upper-alpha) ") ";
-        counter-increment: ualph;
-        display: inline-block;
-        min-width: 35
-    }
-
-    .lower-roman:before {
-        content: counter(deci1) "."counter(ualph, upper-alpha) "."counter(lroman, lower-roman) ") ";
-        counter-increment: lroman;
-        display: inline-block;
-        min-width: 50
-    }
-
-    .lower-alpha:before {
-        content: counter(deci1) "."counter(ualph, upper-alpha) "."counter(lroman, lower-roman) "."counter(lalpha, lower-alpha) ") ";
-        counter-increment: lalpha;
-        display: inline-block;
-        min-width: 35
-    }
+    .decimal1:before { counter-increment: deci1; display: inline-block; content: counter(deci1) ". ";  }
+    .decimal2:before { counter-increment: deci2; display: inline-block; content: counter(deci1) "."counter(deci2) ". ";  }
+    .decimal3:before { counter-increment: deci3; display: inline-block; content: counter(deci1) "."counter(deci2) "."counter(deci3) ". "; }
+    .decimal4:before { counter-increment: deci4; display: inline-block; content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) ". "; }
+    .decimal5:before { counter-increment: deci5; display: inline-block; content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) ". "; }
+    .decimal6:before { counter-increment: deci5; display: inline-block; content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) ". "; }
+    .decimal7:before { counter-increment: deci5; display: inline-block; content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) "."counter(deci7) ". "; }
+    
+    .upper-alpha:before { counter-increment: ualph;  display: inline-block; content: counter(deci1) "."counter(ualph, upper-alpha) ". "; }
+    .lower-roman:before { counter-increment: lroman; display: inline-block; content: counter(deci1) "."counter(ualph, upper-alpha) "."counter(lroman, lower-roman) ". "; }
+    .lower-alpha:before { counter-increment: lalpha; display: inline-block; content: counter(deci1) "."counter(ualph, upper-alpha) "."counter(lroman, lower-roman) "."counter(lalpha, lower-alpha) ". "; }
 }

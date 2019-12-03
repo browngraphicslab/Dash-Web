@@ -1,0 +1,19 @@
+extends ./layout
+
+block content
+    style
+        include ./stylesheets/authentication.css
+    .outermost
+        .online-container
+            .partition(id="active-partition")
+                span.user-type Active Users
+                .inner-activity(id="active-inner")
+                    ol
+                        each val in active
+                            li= val
+            .partition(id="inactive-partition")
+                span.user-type Inactive Users
+                .inner-activity(id="inactive-inner")
+                    ol
+                        each val in inactive
+                            li= val

@@ -51,10 +51,10 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let funcs: ContextMenuProps[] = [];
+        const funcs: ContextMenuProps[] = [];
         funcs.push({
             description: "Clear Script Params", event: () => {
-                let params = FieldValue(this.Document.buttonParams);
+                const params = FieldValue(this.Document.buttonParams);
                 params && params.map(p => this.props.Document[p] = undefined);
             }, icon: "trash"
         });
@@ -73,8 +73,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     }
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
-        let params = this.Document.buttonParams;
-        let missingParams = params && params.filter(p => this.props.Document[p] === undefined);
+        const params = this.Document.buttonParams;
+        const missingParams = params && params.filter(p => this.props.Document[p] === undefined);
         params && params.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
             <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}

@@ -99,8 +99,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
             } else {
                 let childSuccess = true;
                 if (this._addChildren) {
-                    for (let document of doc) {
-                        let collectionChildren = await DocListCastAsync(document.data);
+                    for (const document of doc) {
+                        const collectionChildren = await DocListCastAsync(document.data);
                         if (collectionChildren) {
                             childSuccess = collectionChildren.every(c => KeyValueBox.ApplyKVPScript(c, this._currentKey, script));
                         }

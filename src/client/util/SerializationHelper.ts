@@ -1,7 +1,6 @@
-import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
-import { Field, Doc } from "../../new_fields/Doc";
+import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema } from "serializr";
+import { Field } from "../../new_fields/Doc";
 import { ClientUtils } from "./ClientUtils";
-import { emptyFunction } from "../../Utils";
 
 let serializing = 0;
 export function afterDocDeserialize(cb: (err: any, val: any) => void, err: any, newValue: any) {
@@ -65,8 +64,8 @@ export namespace SerializationHelper {
     }
 }
 
-let serializationTypes: { [name: string]: { ctor: { new(): any }, afterDeserialize?: (obj: any) => void | Promise<any> } } = {};
-let reverseMap: { [ctor: string]: string } = {};
+const serializationTypes: { [name: string]: { ctor: { new(): any }, afterDeserialize?: (obj: any) => void | Promise<any> } } = {};
+const reverseMap: { [ctor: string]: string } = {};
 
 export interface DeserializableOpts {
     (constructor: { new(...args: any[]): any }): void;

@@ -34,7 +34,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     }
 
     async fetchDocuments() {
-        let aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
+        const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
         const map: Map<Doc, Doc> = new Map;
         const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
@@ -129,7 +129,7 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
     render() {
         let flyout;
         if (this.hover) {
-            let view = DocumentManager.Instance.getDocumentView(this.props.Document);
+            const view = DocumentManager.Instance.getDocumentView(this.props.Document);
             flyout = !view ? (null) : (
                 <div className="PDS-flyout" title=" " onMouseLeave={this.onMouseLeave}>
                     <DocumentButtonBar views={[view]} stack={this.props.Stack} />

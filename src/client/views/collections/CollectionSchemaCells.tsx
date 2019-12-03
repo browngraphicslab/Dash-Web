@@ -1,7 +1,7 @@
 import React = require("react");
-import { action, computed, observable, trace, untracked, toJS } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, Column } from "react-table";
+import { CellInfo } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync, Field, Opt } from "../../../new_fields/Doc";
@@ -9,7 +9,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../globalCssVariables.scss';
+import { MAX_ROW_HEIGHT } from '../globalCssVariables.scss';
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -89,8 +89,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         // this._isEditing = true;
         // this.props.setIsEditing(true);
 
-        let field = this.props.rowProps.original[this.props.rowProps.column.id!];
-        let doc = FieldValue(Cast(field, Doc));
+        const field = this.props.rowProps.original[this.props.rowProps.column.id!];
+        const doc = FieldValue(Cast(field, Doc));
         if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
     }
 
@@ -106,12 +106,12 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     private drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let fieldKey = this.props.rowProps.column.id as string;
+            const fieldKey = this.props.rowProps.column.id as string;
             if (de.data.draggedDocuments.length === 1) {
                 this._document[fieldKey] = de.data.draggedDocuments[0];
             }
             else {
-                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.data.draggedDocuments, {});
+                const coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.data.draggedDocuments, {});
                 this._document[fieldKey] = coll;
             }
             e.stopPropagation();
@@ -138,9 +138,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     // }
 
     renderCellWithType(type: string | undefined) {
-        let dragRef: React.RefObject<HTMLDivElement> = React.createRef();
+        const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
-        let props: FieldViewProps = {
+        const props: FieldViewProps = {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
             fieldKey: this.props.rowProps.column.id as string,
@@ -161,23 +161,23 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             ContentScaling: returnOne
         };
 
-        let field = props.Document[props.fieldKey];
-        let doc = FieldValue(Cast(field, Doc));
-        let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
+        const field = props.Document[props.fieldKey];
+        const doc = FieldValue(Cast(field, Doc));
+        const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
-        let onItemDown = (e: React.PointerEvent) => {
+        const onItemDown = (e: React.PointerEvent) => {
             if (fieldIsDoc) {
                 SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
                     this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
                     this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
             }
         };
-        let onPointerEnter = (e: React.PointerEvent): void => {
+        const onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
             }
         };
-        let onPointerLeave = (e: React.PointerEvent): void => {
+        const onPointerLeave = (e: React.PointerEvent): void => {
             dragRef.current!.className = "collectionSchemaView-cellContainer";
         };
 
@@ -187,7 +187,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
         if (type === "document") {
-            let doc = FieldValue(Cast(field, Doc));
+            const doc = FieldValue(Cast(field, Doc));
             contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
         }
 
@@ -215,7 +215,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
-                                let field = props.Document[props.fieldKey];
+                                const field = props.Document[props.fieldKey];
                                 if (Field.IsField(field)) {
                                     return Field.toScriptString(field);
                                 }
@@ -226,7 +226,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 if (value.startsWith(":=")) {
                                     return this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
                                 }
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                const script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (!script.compiled) {
                                     return false;
                                 }
@@ -287,15 +287,15 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     @action
     toggleChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._isChecked = e.target.checked;
-        let script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
+        const script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
         if (script.compiled) {
             this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
         }
     }
 
     render() {
-        let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = (e: React.PointerEvent) => {
+        const reference = React.createRef<HTMLDivElement>();
+        const onItemDown = (e: React.PointerEvent) => {
             (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
                 SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };

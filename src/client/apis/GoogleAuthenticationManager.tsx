@@ -3,8 +3,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { Opt } from "../../new_fields/Doc";
-import { Identified } from "../Network";
-import { RouteStore } from "../../server/RouteStore";
+import { Networking } from "../Network";
 import "./GoogleAuthenticationManager.scss";
 
 const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -31,7 +30,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     }
 
     public fetchOrGenerateAccessToken = async () => {
-        let response = await Identified.FetchFromServer(RouteStore.readGoogleAccessToken);
+        const response = await Networking.FetchFromServer("/readGoogleAccessToken");
         // if this is an authentication url, activate the UI to register the new access token
         if (new RegExp(AuthenticationUrl).test(response)) {
             this.isOpen = true;
@@ -39,24 +38,25 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
             return new Promise<string>(async resolve => {
                 const disposer = reaction(
                     () => this.authenticationCode,
-                    authenticationCode => {
-                        if (authenticationCode) {
-                            Identified.PostToServer(RouteStore.writeGoogleAccessToken, { authenticationCode }).then(
-                                ({ access_token, avatar, name }) => {
-                                    runInAction(() => {
-                                        this.avatar = avatar;
-                                        this.username = name;
-                                    });
-                                    this.beginFadeout();
-                                    disposer();
-                                    resolve(access_token);
-                                },
-                                action(() => {
-                                    this.hasBeenClicked = false;
-                                    this.success = false;
-                                })
-                            );
+                    async authenticationCode => {
+                        if (!authenticationCode) {
+                            return;
                         }
+                        const { access_token, avatar, name } = await Networking.PostToServer(
+                            "/writeGoogleAccessToken",
+                            { authenticationCode }
+                        );
+                        runInAction(() => {
+                            this.avatar = avatar;
+                            this.username = name;
+                        });
+                        this.beginFadeout();
+                        disposer();
+                        resolve(access_token);
+                        action(() => {
+                            this.hasBeenClicked = false;
+                            this.success = false;
+                        });
                     }
                 );
             });

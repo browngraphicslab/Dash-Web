@@ -35,10 +35,10 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting, CompileScript } from "../util/Scripting";
+import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
@@ -50,8 +50,8 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
-var requestImageSize = require('../util/request-image-size');
-var path = require('path');
+const requestImageSize = require('../util/request-image-size');
+const path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -215,7 +215,8 @@ export namespace Docs {
                 layout: { view: PresElementBox, dataField: data }
             }],
             [DocumentType.INK, {
-                layout: { view: InkingStroke, dataField: data }
+                layout: { view: InkingStroke, dataField: data },
+                options: { backgroundColor: "transparent" }
             }]
         ]);
 
@@ -238,16 +239,16 @@ export namespace Docs {
             ProxyField.initPlugin();
             ComputedField.initPlugin();
             // non-guid string ids for each document prototype
-            let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
+            const prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
-            let actualProtos = await DocServer.GetRefFields(prototypeIds);
+            const actualProtos = await DocServer.GetRefFields(prototypeIds);
 
             // update this object to include any default values: DocumentOptions for all prototypes
             prototypeIds.map(id => {
-                let existing = actualProtos[id] as Doc;
-                let type = id.replace(suffix, "") as DocumentType;
+                const existing = actualProtos[id] as Doc;
+                const type = id.replace(suffix, "") as DocumentType;
                 // get or create prototype of the specified type...
-                let target = existing || buildPrototype(type, id);
+                const target = existing || buildPrototype(type, id);
                 // ...and set it if not undefined (can be undefined only if TemplateMap does not contain
                 // an entry dedicated to the given DocumentType)
                 target && PrototypeMap.set(type, target);
@@ -286,19 +287,19 @@ export namespace Docs {
          */
         function buildPrototype(type: DocumentType, prototypeId: string): Opt<Doc> {
             // load template from type
-            let template = TemplateMap.get(type);
+            const template = TemplateMap.get(type);
             if (!template) {
                 return undefined;
             }
-            let layout = template.layout;
+            const layout = template.layout;
             // create title
-            let upper = suffix.toUpperCase();
-            let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
+            const upper = suffix.toUpperCase();
+            const title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
-            let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
+            const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view.LayoutString(layout.dataField);
-            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
+            return Doc.assign(new Doc(prototypeId, true), { ...options });
         }
 
     }
@@ -342,8 +343,8 @@ export namespace Docs {
 
             protoProps.isPrototype = true;
 
-            let dataDoc = MakeDataDelegate(proto, protoProps, data);
-            let viewDoc = Doc.MakeDelegate(dataDoc, delegId);
+            const dataDoc = MakeDataDelegate(proto, protoProps, data);
+            const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
             AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
 
@@ -369,17 +370,16 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let imgField = new ImageField(new URL(url));
-            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
+            const imgField = new ImageField(new URL(url));
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
             let target = imgField.url.href;
             if (new RegExp(window.location.origin).test(target)) {
-                let extension = path.extname(target);
+                const extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            // if (target !== "http://www.cs.brown.edu/") {
             requestImageSize(target)
                 .then((size: any) => {
-                    let aspect = size.height / size.width;
+                    const aspect = size.height / size.width;
                     if (!inst.nativeWidth) {
                         inst.nativeWidth = size.width;
                     }
@@ -423,7 +423,7 @@ export namespace Docs {
         }
 
         export function InkDocument(color: string, tool: number, strokeWidth: number, points: { x: number, y: number }[], options: DocumentOptions = {}) {
-            let doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
             doc.color = color;
             doc.strokeWidth = strokeWidth;
             doc.tool = tool;
@@ -439,12 +439,12 @@ export namespace Docs {
         }
 
         export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
-            let schemaName = options.title ? options.title : "-no schema-";
-            let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
+            const schemaName = options.title ? options.title : "-no schema-";
+            const ctlog = await Gateway.Instance.GetSchema(url, schemaName);
             if (ctlog && ctlog.schemas) {
-                let schema = ctlog.schemas[0];
-                let schemaDoc = Docs.Create.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
-                let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
+                const schema = ctlog.schemas[0];
+                const schemaDoc = Docs.Create.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
+                const schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
                 if (!schemaDocuments) {
                     return;
                 }
@@ -455,8 +455,8 @@ export namespace Docs {
                         if (field instanceof Doc) {
                             docs.push(field);
                         } else {
-                            var atmod = new ColumnAttributeModel(attr);
-                            let histoOp = new HistogramOperation(schema.displayName!,
+                            const atmod = new ColumnAttributeModel(attr);
+                            const histoOp = new HistogramOperation(schema.displayName!,
                                 new AttributeTransformationModel(atmod, AggregateFunction.None),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
@@ -523,7 +523,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            Doc.GetProto(inst).data = new List<Doc>(documents);
+            return inst;
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
@@ -536,7 +538,7 @@ export namespace Docs {
         };
 
         export function StandardCollectionDockingDocument(configs: Array<DocConfig>, options: DocumentOptions, id?: string, type: string = "row") {
-            let layoutConfig = {
+            const layoutConfig = {
                 content: [
                     {
                         type: type,
@@ -601,7 +603,8 @@ export namespace Docs {
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
         const convertObject = (object: any, title?: string): Doc => {
-            let target = new Doc(), result: Opt<Field>;
+            const target = new Doc();
+            let result: Opt<Field>;
             Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
             title && !target.title && (target.title = title);
             return target;
@@ -615,7 +618,8 @@ export namespace Docs {
          * might involve arbitrary recursion (since toField might itself call convertList)
          */
         const convertList = (list: Array<any>): List<Field> => {
-            let target = new List(), result: Opt<Field>;
+            const target = new List();
+            let result: Opt<Field>;
             list.map(item => (result = toField(item)) && target.push(result));
             return target;
         };
@@ -656,11 +660,11 @@ export namespace Docs {
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes(window.location.hostname)) {
-                    let s = path.split('/');
-                    let id = s[s.length - 1];
+                    const s = path.split('/');
+                    const id = s[s.length - 1];
                     return DocServer.GetRefField(id).then(field => {
                         if (field instanceof Doc) {
-                            let alias = Doc.MakeAlias(field);
+                            const alias = Doc.MakeAlias(field);
                             alias.x = options.x || 0;
                             alias.y = options.y || 0;
                             alias.width = options.width || 300;
@@ -697,9 +701,9 @@ export namespace DocUtils {
                     DocListCastAsync(promoteDoc.links).then(links => {
                         links && links.map(async link => {
                             if (link) {
-                                let a1 = await Cast(link.anchor1, Doc);
+                                const a1 = await Cast(link.anchor1, Doc);
                                 if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
-                                let a2 = await Cast(link.anchor2, Doc);
+                                const a2 = await Cast(link.anchor2, Doc);
                                 if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
                                 LinkManager.Instance.deleteLink(link);
                                 LinkManager.Instance.addLink(link);
@@ -712,11 +716,11 @@ export namespace DocUtils {
     }
 
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
-        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDocProto = new Doc(id, true);
+        const linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 

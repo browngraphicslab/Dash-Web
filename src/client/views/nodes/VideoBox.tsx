@@ -9,10 +9,9 @@ import { Doc } from "../../../new_fields/Doc";
 import { InkTool } from "../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { RouteStore } from "../../../server/RouteStore";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { Utils, emptyFunction, returnOne } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -23,7 +22,7 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
 import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
-var path = require('path');
+const path = require('path');
 
 export const timeSchema = createSchema({
     currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
@@ -55,9 +54,9 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     }
 
     videoLoad = () => {
-        let aspect = this.player!.videoWidth / this.player!.videoHeight;
-        var nativeWidth = (this.Document.nativeWidth || 0);
-        var nativeHeight = (this.Document.nativeHeight || 0);
+        const aspect = this.player!.videoWidth / this.player!.videoHeight;
+        const nativeWidth = (this.Document.nativeWidth || 0);
+        const nativeHeight = (this.Document.nativeHeight || 0);
         if (!nativeWidth || !nativeHeight) {
             if (!this.Document.nativeWidth) this.Document.nativeWidth = this.player!.videoWidth;
             this.Document.nativeHeight = (this.Document.nativeWidth || 0) / aspect;
@@ -102,12 +101,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     }
 
     @action public Snapshot() {
-        let width = this.Document.width || 0;
-        let height = this.Document.height || 0;
-        var canvas = document.createElement('canvas');
+        const width = this.Document.width || 0;
+        const height = this.Document.height || 0;
+        const canvas = document.createElement('canvas');
         canvas.width = 640;
         canvas.height = 640 * (this.Document.nativeHeight || 0) / (this.Document.nativeWidth || 1);
-        var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
+        const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             ctx.rect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "blue";
@@ -116,20 +115,20 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         }
 
         if (!this._videoRef) { // can't find a way to take snapshots of videos
-            let b = Docs.Create.ButtonDocument({
+            const b = Docs.Create.ButtonDocument({
                 x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
                 width: 150, height: 50, title: (this.Document.currentTimecode || 0).toString()
             });
             b.onClick = ScriptField.MakeScript(`this.currentTimecode = ${(this.Document.currentTimecode || 0)}`);
         } else {
             //convert to desired file format
-            var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
+            const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            let filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.Document.title).replace(/\..*$/, "") + "_" + (this.Document.currentTimecode || 0).toString().replace(/\./, "_")));
+            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.Document.title).replace(/\..*$/, "") + "_" + (this.Document.currentTimecode || 0).toString().replace(/\./, "_")));
             VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
                 if (returnedFilename) {
-                    let url = this.choosePath(Utils.prepend(returnedFilename));
-                    let imageSummary = Docs.Create.ImageDocument(url, {
+                    const url = this.choosePath(Utils.prepend(returnedFilename));
+                    const imageSummary = Docs.Create.ImageDocument(url, {
                         x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
                         width: 150, height: height / width * 150, title: "--snapshot" + (this.Document.currentTimecode || 0) + " image-"
                     });
@@ -151,9 +150,9 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         if (this.props.setVideoBox) this.props.setVideoBox(this);
 
         if (this.youtubeVideoId) {
-            let youtubeaspect = 400 / 315;
-            var nativeWidth = (this.Document.nativeWidth || 0);
-            var nativeHeight = (this.Document.nativeHeight || 0);
+            const youtubeaspect = 400 / 315;
+            const nativeWidth = (this.Document.nativeWidth || 0);
+            const nativeHeight = (this.Document.nativeHeight || 0);
             if (!nativeWidth || !nativeHeight) {
                 if (!this.Document.nativeWidth) this.Document.nativeWidth = 600;
                 this.Document.nativeHeight = (this.Document.nativeWidth || 0) / youtubeaspect;
@@ -182,7 +181,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend(RouteStore.dataUriToImage);
+            const posting = Utils.prepend("/uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
@@ -197,10 +196,10 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         }
     }
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
+        const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         if (field) {
-            let url = field.url.href;
-            let subitems: ContextMenuProps[] = [];
+            const url = field.url.href;
+            const subitems: ContextMenuProps[] = [];
             subitems.push({ description: "Copy path", event: () => { Utils.CopyText(url); }, icon: "expand-arrows-alt" });
             subitems.push({ description: "Toggle Show Controls", event: action(() => VideoBox._showControls = !VideoBox._showControls), icon: "expand-arrows-alt" });
             subitems.push({ description: "Take Snapshot", event: () => this.Snapshot(), icon: "expand-arrows-alt" });
@@ -209,9 +208,9 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     }
 
     @computed get content() {
-        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
-        let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
-        let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
+        const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
+        const interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
+        const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
             <video className={`${style}`} key="video" ref={this.setVideoRef} onCanPlay={this.videoLoad} controls={VideoBox._showControls}
                 onPlay={() => this.Play()} onSeeked={this.updateTimecode} onPause={() => this.Pause()} onClick={e => e.preventDefault()}>
@@ -221,7 +220,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     }
 
     @computed get youtubeVideoId() {
-        let field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
+        const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         return field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
     }
 
@@ -232,9 +231,9 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         }
         else this._youtubeContentCreated = false;
 
-        let iframe = e.target;
+        const iframe = e.target;
         let started = true;
-        let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
+        const onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
                 started = false;
                 this._youtubePlayer && this._youtubePlayer.unMute();
@@ -244,12 +243,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             if (event.data === YT.PlayerState.PLAYING && !this._playing) this.Play(false);
             if (event.data === YT.PlayerState.PAUSED && this._playing) this.Pause(false);
         });
-        let onYoutubePlayerReady = (event: any) => {
+        const onYoutubePlayerReady = (event: any) => {
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
             this._reactionDisposer = reaction(() => this.Document.currentTimecode, () => !this._playing && this.Seek(this.Document.currentTimecode || 0));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
-                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
+                const interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
         };
@@ -262,20 +261,20 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     }
     private get uIButtons() {
-        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
-        let curTime = (this.Document.currentTimecode || 0);
-        return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling})` }}>
+        const scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
+        const curTime = (this.Document.currentTimecode || 0);
+        return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} >
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
-        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} style={{ transform: `scale(${scaling})` }}>
+        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
             <FontAwesomeIcon icon="camera" size="lg" />
         </div>,
         VideoBox._showControls ? (null) : [
-            <div className="videoBox-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling})` }}>
+            <div className="videoBox-play" key="play" onPointerDown={this.onPlayDown} >
                 <FontAwesomeIcon icon={this._playing ? "pause" : "play"} size="lg" />
             </div>,
-            <div className="videoBox-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling})` }}>
+            <div className="videoBox-full" key="full" onPointerDown={this.onFullDown} >
                 F
             </div>
         ]]);
@@ -319,8 +318,8 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
-        let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
-        let start = untracked(() => Math.round(this.Document.currentTimecode || 0));
+        const style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
+        const start = untracked(() => Math.round(this.Document.currentTimecode || 0));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.Document.nativeWidth || 640)} height={(this.Document.nativeHeight || 390)}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
@@ -328,37 +327,39 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     @action.bound
     addDocumentWithTimestamp(doc: Doc): boolean {
-        var curTime = (this.Document.currentTimecode || -1);
+        const curTime = (this.Document.currentTimecode || -1);
         curTime !== -1 && (doc.displayTimecode = curTime);
         return this.addDocument(doc);
     }
 
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
-        return (<div className={"videoBox-container"} onContextMenu={this.specificContextMenu}
+        return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
-            <CollectionFreeFormView {...this.props}
-                PanelHeight={this.props.PanelHeight}
-                PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationsKey}
-                focus={this.props.focus}
-                isSelected={this.props.isSelected}
-                isAnnotationOverlay={true}
-                select={emptyFunction}
-                active={this.annotationsActive}
-                ContentScaling={returnOne}
-                whenActiveChanged={this.whenActiveChanged}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={this.addDocumentWithTimestamp}
-                CollectionView={undefined}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                ruleProvider={undefined}
-                renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
-                {this.contentFunc}
-            </CollectionFreeFormView>
+            <div className="videoBox-viewer" >
+                <CollectionFreeFormView {...this.props}
+                    PanelHeight={this.props.PanelHeight}
+                    PanelWidth={this.props.PanelWidth}
+                    annotationsKey={this.annotationsKey}
+                    focus={this.props.focus}
+                    isSelected={this.props.isSelected}
+                    isAnnotationOverlay={true}
+                    select={emptyFunction}
+                    active={this.annotationsActive}
+                    ContentScaling={returnOne}
+                    whenActiveChanged={this.whenActiveChanged}
+                    removeDocument={this.removeDocument}
+                    moveDocument={this.moveDocument}
+                    addDocument={this.addDocumentWithTimestamp}
+                    CollectionView={undefined}
+                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    ruleProvider={undefined}
+                    renderDepth={this.props.renderDepth + 1}
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                    chromeCollapsed={true}>
+                    {this.contentFunc}
+                </CollectionFreeFormView>
+            </div>
             {this.uIButtons}
         </div >);
     }

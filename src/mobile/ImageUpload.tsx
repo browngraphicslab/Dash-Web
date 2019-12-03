@@ -1,7 +1,6 @@
 import * as ReactDOM from 'react-dom';
 import * as rp from 'request-promise';
 import { Docs } from '../client/documents/Documents';
-import { RouteStore } from '../server/RouteStore';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
@@ -35,13 +34,13 @@ class Uploader extends React.Component {
         try {
             this.status = "initializing protos";
             await Docs.Prototypes.initialize();
-            let imgPrev = document.getElementById("img_preview");
+            const imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
-                let files: FileList | null = inputRef.current!.files;
+                const files: FileList | null = inputRef.current!.files;
                 if (files && files.length !== 0) {
                     console.log(files[0]);
                     const name = files[0].name;
-                    let formData = new FormData();
+                    const formData = new FormData();
                     formData.append("file", files[0]);
 
                     const upload = window.location.origin + "/upload";
@@ -53,12 +52,12 @@ class Uploader extends React.Component {
                     this.status = "upload image, getting json";
                     const json = await res.json();
                     json.map(async (file: any) => {
-                        let path = window.location.origin + file;
-                        var doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
+                        const path = window.location.origin + file;
+                        const doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
 
                         this.status = "getting user document";
 
-                        const res = await rp.get(Utils.prepend(RouteStore.getUserDocumentId));
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
                         if (!res) {
                             throw new Error("No user id returned");
                         }

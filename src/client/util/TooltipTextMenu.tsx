@@ -2,7 +2,7 @@ import { action } from "mobx";
 import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
 import { wrapInList } from 'prosemirror-schema-list';
-import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
@@ -86,7 +86,7 @@ export class TooltipTextMenu {
         this.basicTools.className = "basic-tools";
 
         // init buttons to the tooltip -- paths to svgs are obtained from fontawesome
-        let items = [
+        const items = [
             { command: toggleMark(schema.marks.strong), dom: this.svgIcon("strong", "Bold", "M333.49 238a122 122 0 0 0 27-65.21C367.87 96.49 308 32 233.42 32H34a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h31.87v288H34a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h209.32c70.8 0 134.14-51.75 141-122.4 4.74-48.45-16.39-92.06-50.83-119.6zM145.66 112h87.76a48 48 0 0 1 0 96h-87.76zm87.76 288h-87.76V288h87.76a56 56 0 0 1 0 112z") },
             { command: toggleMark(schema.marks.em), dom: this.svgIcon("em", "Italic", "M320 48v32a16 16 0 0 1-16 16h-62.76l-80 320H208a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16H16a16 16 0 0 1-16-16v-32a16 16 0 0 1 16-16h62.76l80-320H112a16 16 0 0 1-16-16V48a16 16 0 0 1 16-16h192a16 16 0 0 1 16 16z") },
             { command: toggleMark(schema.marks.underline), dom: this.svgIcon("underline", "Underline", "M32 64h32v160c0 88.22 71.78 160 160 160s160-71.78 160-160V64h32a16 16 0 0 0 16-16V16a16 16 0 0 0-16-16H272a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h32v160a80 80 0 0 1-160 0V64h32a16 16 0 0 0 16-16V16a16 16 0 0 0-16-16H32a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16zm400 384H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16z") },
@@ -145,7 +145,7 @@ export class TooltipTextMenu {
 
         // link menu
         this.updateLinkMenu();
-        let dropdown = await this.createLinkDropdown();
+        const dropdown = await this.createLinkDropdown();
         this._linkDropdownDom = dropdown.render(this.view).dom;
         this.tooltip.appendChild(this._linkDropdownDom);
 
@@ -184,6 +184,9 @@ export class TooltipTextMenu {
     }
 
     initFontSizes() {
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 7 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 8 }));
+        this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 9 }));
         this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 10 }));
         this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 12 }));
         this.fontSizes.push(schema.marks.pFontSize.create({ fontSize: 14 }));
@@ -209,17 +212,17 @@ export class TooltipTextMenu {
     // creates dragger element that allows dragging and collapsing (on double click) 
     // of editor and appends it to the wrapper
     createDragger() {
-        let draggerWrapper = document.createElement("div");
+        const draggerWrapper = document.createElement("div");
         draggerWrapper.className = "dragger-wrapper";
 
-        let dragger = document.createElement("div");
+        const dragger = document.createElement("div");
         dragger.className = "dragger";
 
-        let line1 = document.createElement("span");
+        const line1 = document.createElement("span");
         line1.className = "dragger-line";
-        let line2 = document.createElement("span");
+        const line2 = document.createElement("span");
         line2.className = "dragger-line";
-        let line3 = document.createElement("span");
+        const line3 = document.createElement("span");
         line3.className = "dragger-line";
 
         dragger.appendChild(line1);
@@ -293,12 +296,12 @@ export class TooltipTextMenu {
     //label of dropdown will change to given label
     updateFontSizeDropdown(label: string) {
         //font SIZES
-        let fontSizeBtns: MenuItem[] = [];
+        const fontSizeBtns: MenuItem[] = [];
         this.fontSizes.forEach(mark => {
             fontSizeBtns.push(this.dropdownFontSizeBtn(String(mark.attrs.fontSize), "color: black; width: 50px;", mark, this.view, this.changeToFontSize));
         });
 
-        let newfontSizeDom = (new Dropdown(fontSizeBtns, {
+        const newfontSizeDom = (new Dropdown(fontSizeBtns, {
             label: label,
             css: "color:black; min-width: 60px;"
         }) as MenuItem).render(this.view).dom;
@@ -312,12 +315,12 @@ export class TooltipTextMenu {
     //label of dropdown will change to given label
     updateFontStyleDropdown(label: string) {
         //font STYLES
-        let fontBtns: MenuItem[] = [];
+        const fontBtns: MenuItem[] = [];
         this.fontStyles.forEach((mark) => {
             fontBtns.push(this.dropdownFontFamilyBtn(mark.attrs.family, "color: black; font-family: " + mark.attrs.family + ", sans-serif; width: 125px;", mark, this.view, this.changeToFontFamily));
         });
 
-        let newfontStyleDom = (new Dropdown(fontBtns, {
+        const newfontStyleDom = (new Dropdown(fontBtns, {
             label: label,
             css: "color:black; width: 125px;"
         }) as MenuItem).render(this.view).dom;
@@ -339,19 +342,19 @@ export class TooltipTextMenu {
             this.linkText.style.overflow = "hidden";
             this.linkText.style.color = "white";
             this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
-            let linkBtn = document.createElement("div");
+            const linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
             linkBtn.style.width = "10px";
             linkBtn.style.height = "10px";
             linkBtn.style.color = "white";
             linkBtn.style.cssFloat = "left";
             linkBtn.onpointerdown = (e: PointerEvent) => {
-                let node = this.view.state.selection.$from.nodeAfter;
-                let link = node && node.marks.find(m => m.type.name === "link");
+                const node = this.view.state.selection.$from.nodeAfter;
+                const link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
-                    let href: string = link.attrs.href;
+                    const href: string = link.attrs.href;
                     if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                        let docid = href.replace(Utils.prepend("/doc/"), "");
+                        const docid = href.replace(Utils.prepend("/doc/"), "");
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
@@ -374,23 +377,23 @@ export class TooltipTextMenu {
             this.linkDrag.id = "link-drag";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 if (!this.editorProps) return;
-                let dragData = new DragManager.LinkDragData(this.editorProps.Document);
+                const dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
                 // hack to get source context -sy
-                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
+                const docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
                 e.stopPropagation();
-                let ctrlKey = e.ctrlKey;
+                const ctrlKey = e.ctrlKey;
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
                     {
                         handlers: {
                             dragComplete: action(() => {
                                 if (dragData.linkDocument) {
-                                    let linkDoc = dragData.linkDocument;
-                                    let proto = Doc.GetProto(linkDoc);
+                                    const linkDoc = dragData.linkDocument;
+                                    const proto = Doc.GetProto(linkDoc);
                                     if (proto && docView) {
                                         proto.sourceContext = docView.props.ContainingCollectionDoc;
                                     }
-                                    let text = this.makeLink(linkDoc, StrCast(linkDoc.anchor2.title), ctrlKey ? "onRight" : "inTab");
+                                    const text = this.makeLink(linkDoc, StrCast(linkDoc.anchor2.title), ctrlKey ? "onRight" : "inTab");
                                     if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
                                         proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
                                     }
@@ -406,8 +409,8 @@ export class TooltipTextMenu {
             this.tooltip.appendChild(this.linkEditor);
         }
 
-        let node = this.view.state.selection.$from.nodeAfter;
-        let link = node && node.marks.find(m => m.type.name === "link");
+        const node = this.view.state.selection.$from.nodeAfter;
+        const link = node && node.marks.find(m => m.type.name === "link");
         this.linkText.textContent = link ? link.attrs.href : "-empty-";
 
         this.linkText.onkeydown = (e: KeyboardEvent) => {
@@ -420,19 +423,19 @@ export class TooltipTextMenu {
     }
 
     async getTextLinkTargetTitle() {
-        let node = this.view.state.selection.$from.nodeAfter;
-        let link = node && node.marks.find(m => m.type.name === "link");
+        const node = this.view.state.selection.$from.nodeAfter;
+        const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            let href = link.attrs.href;
+            const href = link.attrs.href;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     if (linkclicked) {
-                        let linkDoc = await DocServer.GetRefField(linkclicked);
+                        const linkDoc = await DocServer.GetRefField(linkclicked);
                         if (linkDoc instanceof Doc) {
-                            let anchor1 = await Cast(linkDoc.anchor1, Doc);
-                            let anchor2 = await Cast(linkDoc.anchor2, Doc);
-                            let currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+                            const anchor1 = await Cast(linkDoc.anchor1, Doc);
+                            const anchor2 = await Cast(linkDoc.anchor2, Doc);
+                            const currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
                             if (currentDoc && anchor1 && anchor2) {
                                 if (Doc.AreProtosEqual(currentDoc, anchor1)) {
                                     return StrCast(anchor2.title);
@@ -453,18 +456,18 @@ export class TooltipTextMenu {
     }
 
     async createLinkDropdown() {
-        let targetTitle = await this.getTextLinkTargetTitle();
-        let input = document.createElement("input");
+        const targetTitle = await this.getTextLinkTargetTitle();
+        const input = document.createElement("input");
 
         // menu item for input for hyperlink url 
         // TODO: integrate search to allow users to search for a doc to link to
-        let linkInfo = new MenuItem({
+        const linkInfo = new MenuItem({
             title: "",
             execEvent: "",
             class: "button-setting-disabled",
             css: "",
             render() {
-                let p = document.createElement("p");
+                const p = document.createElement("p");
                 p.textContent = "Linked to:";
 
                 input.type = "text";
@@ -475,7 +478,7 @@ export class TooltipTextMenu {
                     input.focus();
                 };
 
-                let div = document.createElement("div");
+                const div = document.createElement("div");
                 div.appendChild(p);
                 div.appendChild(input);
                 return div;
@@ -487,13 +490,13 @@ export class TooltipTextMenu {
         });
 
         // menu item to update/apply the hyperlink to the selected text
-        let linkApply = new MenuItem({
+        const linkApply = new MenuItem({
             title: "",
             execEvent: "",
             class: "",
             css: "",
             render() {
-                let button = document.createElement("button");
+                const button = document.createElement("button");
                 button.className = "link-url-button";
                 button.textContent = "Apply hyperlink";
                 return button;
@@ -507,17 +510,17 @@ export class TooltipTextMenu {
 
         // menu item to remove the link
         // TODO: allow this to be undoable
-        let self = this;
-        let deleteLink = new MenuItem({
+        const self = this;
+        const deleteLink = new MenuItem({
             title: "Delete link",
             execEvent: "",
             class: "separated-button",
             css: "",
             render() {
-                let button = document.createElement("button");
+                const button = document.createElement("button");
                 button.textContent = "Remove link";
 
-                let wrapper = document.createElement("div");
+                const wrapper = document.createElement("div");
                 wrapper.appendChild(button);
                 return wrapper;
             },
@@ -525,15 +528,15 @@ export class TooltipTextMenu {
             async run() {
                 self.deleteLink();
                 // update link dropdown
-                let dropdown = await self.createLinkDropdown();
-                let newLinkDropdowndom = dropdown.render(self.view).dom;
+                const dropdown = await self.createLinkDropdown();
+                const newLinkDropdowndom = dropdown.render(self.view).dom;
                 self._linkDropdownDom && self.tooltip.replaceChild(newLinkDropdowndom, self._linkDropdownDom);
                 self._linkDropdownDom = newLinkDropdowndom;
             }
         });
 
 
-        let linkDropdown = new Dropdown(targetTitle ? [linkInfo, linkApply, deleteLink] : [linkInfo, linkApply], { class: "buttonSettings-dropdown" }) as MenuItem;
+        const linkDropdown = new Dropdown(targetTitle ? [linkInfo, linkApply, deleteLink] : [linkInfo, linkApply], { class: "buttonSettings-dropdown" }) as MenuItem;
         return linkDropdown;
     }
 
@@ -542,10 +545,10 @@ export class TooltipTextMenu {
     // }
 
     makeLink = (targetDoc: Doc, title: string, location: string): string => {
-        let link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + targetDoc[Id]), title: title, location: location });
+        const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + targetDoc[Id]), title: title, location: location });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
             addMark(this.view.state.selection.from, this.view.state.selection.to, link));
-        let node = this.view.state.selection.$from.nodeAfter;
+        const node = this.view.state.selection.$from.nodeAfter;
         if (node && node.text) {
             return node.text;
         }
@@ -562,9 +565,9 @@ export class TooltipTextMenu {
     }
 
     deleteLink = () => {
-        let node = this.view.state.selection.$from.nodeAfter;
-        let link = node && node.marks.find(m => m.type === this.view.state.schema.marks.link);
-        let href = link!.attrs.href;
+        const node = this.view.state.selection.$from.nodeAfter;
+        const link = node && node.marks.find(m => m.type === this.view.state.schema.marks.link);
+        const href = link!.attrs.href;
         if (href) {
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -599,7 +602,7 @@ export class TooltipTextMenu {
     }
 
     createLink() {
-        let markType = schema.marks.link;
+        const markType = schema.marks.link;
         return new MenuItem({
             title: "Add or remove link",
             label: "Add or remove link",
@@ -613,8 +616,8 @@ export class TooltipTextMenu {
                 let curLink = "";
                 if (this.markActive(state, markType)) {
 
-                    let { from, $from, to, empty } = state.selection;
-                    let node = state.doc.nodeAt(from);
+                    const { from, $from, to, empty } = state.selection;
+                    const node = state.doc.nodeAt(from);
                     node && node.marks.map(m => {
                         m.type === markType && (curLink = m.attrs.href);
                     });
@@ -649,7 +652,7 @@ export class TooltipTextMenu {
         if (listTypeBtn) { this.tooltip.removeChild(listTypeBtn); }
 
         //Make a dropdown of all list types
-        let toAdd: MenuItem[] = [];
+        const toAdd: MenuItem[] = [];
         this.listTypeToIcon.forEach((icon, type) => {
             toAdd.push(this.dropdownNodeBtn(icon, "color: black; width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
         });
@@ -683,22 +686,22 @@ export class TooltipTextMenu {
 
     public static insertStar(state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
-        let mark = state.schema.marks.highlight.create();
-        let tr = state.tr;
+        const mark = state.schema.marks.highlight.create();
+        const tr = state.tr;
         tr.addMark(state.selection.from, state.selection.to, mark);
-        let content = tr.selection.content();
-        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        const content = tr.selection.content();
+        const newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
         dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
 
     public static insertComment(state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
-        let mark = state.schema.marks.highlight.create();
-        let tr = state.tr;
+        const mark = state.schema.marks.highlight.create();
+        const tr = state.tr;
         tr.addMark(state.selection.from, state.selection.to, mark);
-        let content = tr.selection.content();
-        let newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        const content = tr.selection.content();
+        const newNode = state.schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
         dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
@@ -710,17 +713,17 @@ export class TooltipTextMenu {
             class: "menuicon",
             execEvent: "",
             render() {
-                let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 svg.setAttribute("viewBox", "-100 -100 650 650");
-                let path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+                const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
                 path.setAttributeNS(null, "d", "M0 479.98L99.92 512l35.45-35.45-67.04-67.04L0 479.98zm124.61-240.01a36.592 36.592 0 0 0-10.79 38.1l13.05 42.83-50.93 50.94 96.23 96.23 50.86-50.86 42.74 13.08c13.73 4.2 28.65-.01 38.15-10.78l35.55-41.64-173.34-173.34-41.52 35.44zm403.31-160.7l-63.2-63.2c-20.49-20.49-53.38-21.52-75.12-2.35L190.55 183.68l169.77 169.78L530.27 154.4c19.18-21.74 18.15-54.63-2.35-75.13z");
                 svg.appendChild(path);
 
-                let color = document.createElement("div");
+                const color = document.createElement("div");
                 color.className = "buttonColor";
                 color.style.backgroundColor = TooltipTextMenuManager.Instance.highlight.toString();
 
-                let wrapper = document.createElement("div");
+                const wrapper = document.createElement("div");
                 wrapper.id = "colorPicker";
                 wrapper.appendChild(svg);
                 wrapper.appendChild(color);
@@ -735,26 +738,26 @@ export class TooltipTextMenu {
     public static insertHighlight(color: String, state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
 
-        let highlightMark = state.schema.mark(state.schema.marks.marker, { highlight: color });
+        const highlightMark = state.schema.mark(state.schema.marks.marker, { highlight: color });
         dispatch(state.tr.addMark(state.selection.from, state.selection.to, highlightMark));
     }
 
     createHighlightDropdown() {
         // menu item for color picker
-        let self = this;
-        let colors = new MenuItem({
+        const self = this;
+        const colors = new MenuItem({
             title: "",
             execEvent: "",
             class: "button-setting-disabled",
             css: "",
             render() {
-                let p = document.createElement("p");
+                const p = document.createElement("p");
                 p.textContent = "Change highlight:";
 
-                let colorsWrapper = document.createElement("div");
+                const colorsWrapper = document.createElement("div");
                 colorsWrapper.className = "colorPicker-wrapper";
 
-                let colors = [
+                const colors = [
                     PastelSchemaPalette.get("pink2"),
                     PastelSchemaPalette.get("purple4"),
                     PastelSchemaPalette.get("bluegreen1"),
@@ -768,7 +771,7 @@ export class TooltipTextMenu {
                 ];
 
                 colors.forEach(color => {
-                    let button = document.createElement("button");
+                    const button = document.createElement("button");
                     button.className = color === TooltipTextMenuManager.Instance.highlight ? "colorPicker active" : "colorPicker";
                     if (color) {
                         button.style.backgroundColor = color;
@@ -779,8 +782,8 @@ export class TooltipTextMenu {
                             TooltipTextMenu.insertHighlight(TooltipTextMenuManager.Instance.highlight, self.view.state, self.view.dispatch);
 
                             // update color menu
-                            let highlightDom = self.createHighlightTool().render(self.view).dom;
-                            let highlightDropdownDom = self.createHighlightDropdown().render(self.view).dom;
+                            const highlightDom = self.createHighlightTool().render(self.view).dom;
+                            const highlightDropdownDom = self.createHighlightDropdown().render(self.view).dom;
                             self.highlightDom && self.tooltip.replaceChild(highlightDom, self.highlightDom);
                             self.highlightDropdownDom && self.tooltip.replaceChild(highlightDropdownDom, self.highlightDropdownDom);
                             self.highlightDom = highlightDom;
@@ -790,7 +793,7 @@ export class TooltipTextMenu {
                     colorsWrapper.appendChild(button);
                 });
 
-                let div = document.createElement("div");
+                const div = document.createElement("div");
                 div.appendChild(p);
                 div.appendChild(colorsWrapper);
                 return div;
@@ -801,7 +804,7 @@ export class TooltipTextMenu {
             }
         });
 
-        let colorDropdown = new Dropdown([colors], { class: "buttonSettings-dropdown" }) as MenuItem;
+        const colorDropdown = new Dropdown([colors], { class: "buttonSettings-dropdown" }) as MenuItem;
         return colorDropdown;
     }
 
@@ -812,17 +815,17 @@ export class TooltipTextMenu {
             class: "menuicon",
             execEvent: "",
             render() {
-                let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 svg.setAttribute("viewBox", "-100 -100 650 650");
-                let path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+                const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
                 path.setAttributeNS(null, "d", "M204.3 5C104.9 24.4 24.8 104.3 5.2 203.4c-37 187 131.7 326.4 258.8 306.7 41.2-6.4 61.4-54.6 42.5-91.7-23.1-45.4 9.9-98.4 60.9-98.4h79.7c35.8 0 64.8-29.6 64.9-65.3C511.5 97.1 368.1-26.9 204.3 5zM96 320c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm32-128c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128-64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128 64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z");
                 svg.appendChild(path);
 
-                let color = document.createElement("div");
+                const color = document.createElement("div");
                 color.className = "buttonColor";
                 color.style.backgroundColor = TooltipTextMenuManager.Instance.color.toString();
 
-                let wrapper = document.createElement("div");
+                const wrapper = document.createElement("div");
                 wrapper.id = "colorPicker";
                 wrapper.appendChild(svg);
                 wrapper.appendChild(color);
@@ -837,26 +840,26 @@ export class TooltipTextMenu {
     public static insertColor(color: String, state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
 
-        let colorMark = state.schema.mark(state.schema.marks.color, { color: color });
+        const colorMark = state.schema.mark(state.schema.marks.color, { color: color });
         dispatch(state.tr.addMark(state.selection.from, state.selection.to, colorMark));
     }
 
     createColorDropdown() {
         // menu item for color picker
-        let self = this;
-        let colors = new MenuItem({
+        const self = this;
+        const colors = new MenuItem({
             title: "",
             execEvent: "",
             class: "button-setting-disabled",
             css: "",
             render() {
-                let p = document.createElement("p");
+                const p = document.createElement("p");
                 p.textContent = "Change color:";
 
-                let colorsWrapper = document.createElement("div");
+                const colorsWrapper = document.createElement("div");
                 colorsWrapper.className = "colorPicker-wrapper";
 
-                let colors = [
+                const colors = [
                     DarkPastelSchemaPalette.get("pink2"),
                     DarkPastelSchemaPalette.get("purple4"),
                     DarkPastelSchemaPalette.get("bluegreen1"),
@@ -870,7 +873,7 @@ export class TooltipTextMenu {
                 ];
 
                 colors.forEach(color => {
-                    let button = document.createElement("button");
+                    const button = document.createElement("button");
                     button.className = color === TooltipTextMenuManager.Instance.color ? "colorPicker active" : "colorPicker";
                     if (color) {
                         button.style.backgroundColor = color;
@@ -880,8 +883,8 @@ export class TooltipTextMenu {
                             TooltipTextMenu.insertColor(TooltipTextMenuManager.Instance.color, self.view.state, self.view.dispatch);
 
                             // update color menu
-                            let colorDom = self.createColorTool().render(self.view).dom;
-                            let colorDropdownDom = self.createColorDropdown().render(self.view).dom;
+                            const colorDom = self.createColorTool().render(self.view).dom;
+                            const colorDropdownDom = self.createColorDropdown().render(self.view).dom;
                             self.colorDom && self.tooltip.replaceChild(colorDom, self.colorDom);
                             self.colorDropdownDom && self.tooltip.replaceChild(colorDropdownDom, self.colorDropdownDom);
                             self.colorDom = colorDom;
@@ -891,7 +894,7 @@ export class TooltipTextMenu {
                     colorsWrapper.appendChild(button);
                 });
 
-                let div = document.createElement("div");
+                const div = document.createElement("div");
                 div.appendChild(p);
                 div.appendChild(colorsWrapper);
                 return div;
@@ -902,7 +905,7 @@ export class TooltipTextMenu {
             }
         });
 
-        let colorDropdown = new Dropdown([colors], { class: "buttonSettings-dropdown" }) as MenuItem;
+        const colorDropdown = new Dropdown([colors], { class: "buttonSettings-dropdown" }) as MenuItem;
         return colorDropdown;
     }
 
@@ -911,7 +914,7 @@ export class TooltipTextMenu {
             height: 32, width: 32,
             path: "M30.828 1.172c-1.562-1.562-4.095-1.562-5.657 0l-5.379 5.379-3.793-3.793-4.243 4.243 3.326 3.326-14.754 14.754c-0.252 0.252-0.358 0.592-0.322 0.921h-0.008v5c0 0.552 0.448 1 1 1h5c0 0 0.083 0 0.125 0 0.288 0 0.576-0.11 0.795-0.329l14.754-14.754 3.326 3.326 4.243-4.243-3.793-3.793 5.379-5.379c1.562-1.562 1.562-4.095 0-5.657zM5.409 30h-3.409v-3.409l14.674-14.674 3.409 3.409-14.674 14.674z"
         };
-        let self = this;
+        const self = this;
         return new MenuItem({
             title: "Brush tool",
             label: "Brush tool",
@@ -923,7 +926,7 @@ export class TooltipTextMenu {
                 this.brush_function(state, dispatch);
 
                 // update dropdown with marks
-                let newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
+                const newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
                 self._brushDropdownDom && self.tooltip.replaceChild(newBrushDropdowndom, self._brushDropdownDom);
                 self._brushDropdownDom = newBrushDropdowndom;
             },
@@ -947,7 +950,7 @@ export class TooltipTextMenu {
             }
         }
         else {
-            let { from, to, $from } = this.view.state.selection;
+            const { from, to, $from } = this.view.state.selection;
             if (this._brushdom) {
                 if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
                     if (TooltipTextMenuManager.Instance._brushMarks && to - from > 0) {
@@ -982,7 +985,7 @@ export class TooltipTextMenu {
         }
 
 
-        let brushInfo = new MenuItem({
+        const brushInfo = new MenuItem({
             title: "",
             label: label,
             execEvent: "",
@@ -994,17 +997,17 @@ export class TooltipTextMenu {
             }
         });
 
-        let self = this;
-        let clearBrush = new MenuItem({
+        const self = this;
+        const clearBrush = new MenuItem({
             title: "Clear brush",
             execEvent: "",
             class: "separated-button",
             css: "",
             render() {
-                let button = document.createElement("button");
+                const button = document.createElement("button");
                 button.textContent = "Clear brush";
 
-                let wrapper = document.createElement("div");
+                const wrapper = document.createElement("div");
                 wrapper.appendChild(button);
                 return wrapper;
             },
@@ -1015,24 +1018,24 @@ export class TooltipTextMenu {
 
                 // update brush tool
                 // TODO: this probably isn't very clean
-                let newBrushdom = self.createBrush().render(self.view).dom;
+                const newBrushdom = self.createBrush().render(self.view).dom;
                 self._brushdom && self.tooltip.replaceChild(newBrushdom, self._brushdom);
                 self._brushdom = newBrushdom;
-                let newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
+                const newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
                 self._brushDropdownDom && self.tooltip.replaceChild(newBrushDropdowndom, self._brushDropdownDom);
                 self._brushDropdownDom = newBrushDropdowndom;
             }
         });
 
-        let hasMarks = TooltipTextMenuManager.Instance._brushMarks && TooltipTextMenuManager.Instance._brushMarks.size > 0;
-        let brushDom = new Dropdown(hasMarks ? [brushInfo, clearBrush] : [brushInfo], { class: "buttonSettings-dropdown" }) as MenuItem;
+        const hasMarks = TooltipTextMenuManager.Instance._brushMarks && TooltipTextMenuManager.Instance._brushMarks.size > 0;
+        const brushDom = new Dropdown(hasMarks ? [brushInfo, clearBrush] : [brushInfo], { class: "buttonSettings-dropdown" }) as MenuItem;
         return brushDom;
     }
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected textchangeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
     changeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
-        let { $cursor, ranges } = view.state.selection as TextSelection;
-        let state = view.state;
-        let dispatch = view.dispatch;
+        const { $cursor, ranges } = view.state.selection as TextSelection;
+        const state = view.state;
+        const dispatch = view.dispatch;
 
         //remove all other active font marks
         fontMarks.forEach((type) => {
@@ -1044,10 +1047,10 @@ export class TooltipTextMenu {
                 } else {
                     let has = false;
                     for (let i = 0; !has && i < ranges.length; i++) {
-                        let { $from, $to } = ranges[i];
+                        const { $from, $to } = ranges[i];
                         has = state.doc.rangeHasMark($from.pos, $to.pos, type);
                     }
-                    for (let i of ranges) {
+                    for (const i of ranges) {
                         if (has) {
                             toggleMark(type)(view.state, view.dispatch, view);
                         }
@@ -1059,7 +1062,7 @@ export class TooltipTextMenu {
         if (markType) {
             //actually apply font
             if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
-                let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+                const status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
                     { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: markType.name, setFontSize: Number(markType.name.replace(/p/, "")) }), view.state.schema);
                 view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
             }
@@ -1068,9 +1071,9 @@ export class TooltipTextMenu {
     }
 
     changeToFontFamily = (mark: Mark, view: EditorView) => {
-        let { $cursor, ranges } = view.state.selection as TextSelection;
-        let state = view.state;
-        let dispatch = view.dispatch;
+        const { $cursor, ranges } = view.state.selection as TextSelection;
+        const state = view.state;
+        const dispatch = view.dispatch;
 
         //remove all other active font marks
         if ($cursor) {
@@ -1080,28 +1083,28 @@ export class TooltipTextMenu {
         } else {
             let has = false;
             for (let i = 0; !has && i < ranges.length; i++) {
-                let { $from, $to } = ranges[i];
+                const { $from, $to } = ranges[i];
                 has = state.doc.rangeHasMark($from.pos, $to.pos, view.state.schema.marks.pFontFamily);
             }
-            for (let i of ranges) {
+            for (const i of ranges) {
                 if (has) {
                     toggleMark(view.state.schema.marks.pFontFamily)(view.state, view.dispatch, view);
                 }
             }
         }
 
-        let fontName = mark.attrs.family;
+        const fontName = mark.attrs.family;
         if (fontName) { this.updateFontStyleDropdown(fontName); }
         if (this.editorProps) {
-            let ruleProvider = this.editorProps.ruleProvider;
-            let heading = NumCast(this.editorProps.Document.heading);
+            const ruleProvider = this.editorProps.ruleProvider;
+            const heading = NumCast(this.editorProps.Document.heading);
             if (ruleProvider && heading) {
                 ruleProvider["ruleFont_" + heading] = fontName;
             }
         }
         //actually apply font
         if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
-            let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+            const status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
                 { ...(view.state.selection as NodeSelection).node.attrs, setFontFamily: fontName }), view.state.schema);
             view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
         }
@@ -1110,9 +1113,9 @@ export class TooltipTextMenu {
     }
 
     changeToFontSize = (mark: Mark, view: EditorView) => {
-        let { $cursor, ranges } = view.state.selection as TextSelection;
-        let state = view.state;
-        let dispatch = view.dispatch;
+        const { $cursor, ranges } = view.state.selection as TextSelection;
+        const state = view.state;
+        const dispatch = view.dispatch;
 
         //remove all other active font marks
         if ($cursor) {
@@ -1122,28 +1125,28 @@ export class TooltipTextMenu {
         } else {
             let has = false;
             for (let i = 0; !has && i < ranges.length; i++) {
-                let { $from, $to } = ranges[i];
+                const { $from, $to } = ranges[i];
                 has = state.doc.rangeHasMark($from.pos, $to.pos, view.state.schema.marks.pFontSize);
             }
-            for (let i of ranges) {
+            for (const i of ranges) {
                 if (has) {
                     toggleMark(view.state.schema.marks.pFontSize)(view.state, view.dispatch, view);
                 }
             }
         }
 
-        let size = mark.attrs.fontSize;
+        const size = mark.attrs.fontSize;
         if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
         if (this.editorProps) {
-            let ruleProvider = this.editorProps.ruleProvider;
-            let heading = NumCast(this.editorProps.Document.heading);
+            const ruleProvider = this.editorProps.ruleProvider;
+            const heading = NumCast(this.editorProps.Document.heading);
             if (ruleProvider && heading) {
                 ruleProvider["ruleSize_" + heading] = size;
             }
         }
         //actually apply font
         if ((view.state.selection as any).node && (view.state.selection as any).node.type === view.state.schema.nodes.ordered_list) {
-            let status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
+            const status = updateBullets(view.state.tr.setNodeMarkup(view.state.selection.from, (view.state.selection as any).node.type,
                 { ...(view.state.selection as NodeSelection).node.attrs, setFontSize: size }), view.state.schema);
             view.dispatch(status.setSelection(new NodeSelection(status.doc.resolve(view.state.selection.from))));
         }
@@ -1154,20 +1157,20 @@ export class TooltipTextMenu {
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType = (nodeType: NodeType | undefined) => {
         //remove oldif (nodeType) { //add new
-        let view = this.view;
+        const view = this.view;
         if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
         } else {
-            var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
+            const marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
             if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                let tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
+                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
                 view.dispatch(tx2);
             })) {
-                let tx2 = view.state.tr;
-                let tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
+                const tx2 = view.state.tr;
+                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
@@ -1223,15 +1226,15 @@ export class TooltipTextMenu {
         });
     }
 
-    markActive = function(state: EditorState<any>, type: MarkType<Schema<string, string>>) {
-        let { from, $from, to, empty } = state.selection;
+    markActive = function (state: EditorState<any>, type: MarkType<Schema<string, string>>) {
+        const { from, $from, to, empty } = state.selection;
         if (empty) return type.isInSet(state.storedMarks || $from.marks());
         else return state.doc.rangeHasMark(from, to, type);
     };
 
     // Helper function to create menu icons
     icon(text: string, name: string, title: string = name) {
-        let span = document.createElement("span");
+        const span = document.createElement("span");
         span.className = name + " menuicon";
         span.title = title;
         span.textContent = text;
@@ -1240,13 +1243,13 @@ export class TooltipTextMenu {
     }
 
     svgIcon(name: string, title: string = name, dpath: string) {
-        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svg.setAttribute("viewBox", "-100 -100 650 650");
-        let path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+        const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
         path.setAttributeNS(null, "d", dpath);
         svg.appendChild(path);
 
-        let span = document.createElement("span");
+        const span = document.createElement("span");
         span.className = name + " menuicon";
         span.title = title;
         span.appendChild(svg);
@@ -1256,9 +1259,9 @@ export class TooltipTextMenu {
 
     //method for checking whether node can be inserted
     canInsert(state: EditorState, nodeType: NodeType<Schema<string, string>>) {
-        let $from = state.selection.$from;
+        const $from = state.selection.$from;
         for (let d = $from.depth; d >= 0; d--) {
-            let index = $from.index(d);
+            const index = $from.index(d);
             if ($from.node(d).canReplaceWith(index, index, nodeType)) return true;
         }
         return false;
@@ -1267,13 +1270,13 @@ export class TooltipTextMenu {
 
     //adapted this method - use it to check if block has a tag (ie bulleting)
     blockActive(type: NodeType<Schema<string, string>>, state: EditorState) {
-        let attrs = {};
+        const attrs = {};
 
         if (state.selection instanceof NodeSelection) {
             const sel: NodeSelection = state.selection;
-            let $from = sel.$from;
-            let to = sel.to;
-            let node = sel.node;
+            const $from = sel.$from;
+            const to = sel.to;
+            const node = sel.node;
 
             if (node) {
                 return node.hasMarkup(type, attrs);
@@ -1292,10 +1295,10 @@ export class TooltipTextMenu {
     }
 
     getMarksInSelection(state: EditorState<any>) {
-        let found = new Set<Mark>();
-        let { from, to } = state.selection as TextSelection;
+        const found = new Set<Mark>();
+        const { from, to } = state.selection as TextSelection;
         state.doc.nodesBetween(from, to, (node) => {
-            let marks = node.marks;
+            const marks = node.marks;
             if (marks) {
                 marks.forEach(m => {
                     found.add(m);
@@ -1306,7 +1309,7 @@ export class TooltipTextMenu {
     }
 
     reset_mark_doms() {
-        let iterator = this._marksToDoms.values();
+        const iterator = this._marksToDoms.values();
         let next = iterator.next();
         while (!next.done) {
             next.value.style.color = "white";
@@ -1322,7 +1325,7 @@ export class TooltipTextMenu {
             return;
         }
         this.view = view;
-        let state = view.state;
+        const state = view.state;
         DocumentDecorations.Instance.showTextBar();
         props && (this.editorProps = props);
         // Don't do anything if the document/selection didn't change
@@ -1338,13 +1341,13 @@ export class TooltipTextMenu {
         }
 
         // update link dropdown
-        let linkDropdown = await this.createLinkDropdown();
-        let newLinkDropdowndom = linkDropdown.render(this.view).dom;
+        const linkDropdown = await this.createLinkDropdown();
+        const newLinkDropdowndom = linkDropdown.render(this.view).dom;
         this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
         this._linkDropdownDom = newLinkDropdowndom;
 
         //UPDATE FONT STYLE DROPDOWN
-        let activeStyles = this.activeFontFamilyOnSelection();
+        const activeStyles = this.activeFontFamilyOnSelection();
         if (activeStyles !== undefined) {
             if (activeStyles.length === 1) {
                 console.log("updating font style dropdown", activeStyles[0]);
@@ -1353,7 +1356,7 @@ export class TooltipTextMenu {
         }
 
         //UPDATE FONT SIZE DROPDOWN
-        let activeSizes = this.activeFontSizeOnSelection();
+        const activeSizes = this.activeFontSizeOnSelection();
         if (activeSizes !== undefined) {
             if (activeSizes.length === 1) { //if there's only one active font size
                 activeSizes[0] && this.updateFontSizeDropdown(String(activeSizes[0]) + " pt");
@@ -1366,7 +1369,7 @@ export class TooltipTextMenu {
         this.reset_mark_doms();
         this._activeMarks.forEach((mark) => {
             if (this._marksToDoms.has(mark)) {
-                let dom = this._marksToDoms.get(mark);
+                const dom = this._marksToDoms.get(mark);
                 if (dom) dom.style.color = "greenyellow";
             }
         });
@@ -1385,8 +1388,8 @@ export class TooltipTextMenu {
     //finds fontSize at start of selection
     activeFontSizeOnSelection() {
         //current selection
-        let state = this.view.state;
-        let activeSizes: number[] = [];
+        const state = this.view.state;
+        const activeSizes: number[] = [];
         const pos = this.view.state.selection.$from;
         const ref_node: ProsNode = this.reference_node(pos);
         if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
@@ -1397,8 +1400,8 @@ export class TooltipTextMenu {
     //finds fontSize at start of selection
     activeFontFamilyOnSelection() {
         //current selection
-        let state = this.view.state;
-        let activeFamilies: string[] = [];
+        const state = this.view.state;
+        const activeFamilies: string[] = [];
         const pos = this.view.state.selection.$from;
         const ref_node: ProsNode = this.reference_node(pos);
         if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
@@ -1409,15 +1412,15 @@ export class TooltipTextMenu {
     //finds all active marks on selection in given group
     activeMarksOnSelection(markGroup: MarkType[]) {
         //current selection
-        let { empty, ranges, $to } = this.view.state.selection as TextSelection;
-        let state = this.view.state;
-        let dispatch = this.view.dispatch;
+        const { empty, ranges, $to } = this.view.state.selection as TextSelection;
+        const state = this.view.state;
+        const dispatch = this.view.dispatch;
         let activeMarks: MarkType[];
         if (!empty) {
             activeMarks = markGroup.filter(mark => {
-                let has = false;
+                const has = false;
                 for (let i = 0; !has && i < ranges.length; i++) {
-                    let { $from, $to } = ranges[i];
+                    const { $from, $to } = ranges[i];
                     return state.doc.rangeHasMark($from.pos, $to.pos, mark);
                 }
                 return false;
@@ -1440,7 +1443,7 @@ export class TooltipTextMenu {
                     if (mark_type === state.schema.marks.pFontSize) {
                         return ref_node.marks.some(m => m.type.name === state.schema.marks.pFontSize.name);
                     }
-                    let mark = state.schema.mark(mark_type);
+                    const mark = state.schema.mark(mark_type);
                     return ref_node.marks.includes(mark);
                     return false;
                 });

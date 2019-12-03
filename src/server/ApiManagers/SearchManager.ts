@@ -1,0 +1,49 @@
+import ApiManager, { Registration } from "./ApiManager";
+import { Method } from "../RouteManager";
+import { Search } from "../Search";
+const findInFiles = require('find-in-files');
+import * as path from 'path';
+import { pathToDirectory, Directory } from "./UploadManager";
+
+export default class SearchManager extends ApiManager {
+
+    protected initialize(register: Registration): void {
+
+        register({
+            method: Method.GET,
+            subscription: "/textsearch",
+            onValidation: async ({ req, res }) => {
+                const q = req.query.q;
+                if (q === undefined) {
+                    res.send([]);
+                    return;
+                }
+                const results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, pathToDirectory(Directory.text), ".txt$");
+                const resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
+                for (const result in results) {
+                    resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+                    resObj.lines.push(results[result].line);
+                    resObj.numFound++;
+                }
+                res.send(resObj);
+            }
+        });
+
+        register({
+            method: Method.GET,
+            subscription: "/search",
+            onValidation: async ({ req, res }) => {
+                const solrQuery: any = {};
+                ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+                if (solrQuery.q === undefined) {
+                    res.send([]);
+                    return;
+                }
+                const results = await Search.Instance.search(solrQuery);
+                res.send(results);
+            }
+        });
+
+    }
+
+}

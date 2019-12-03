@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Doc } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
@@ -31,7 +30,7 @@ interface DocExtendableProps {
     renderDepth: number;
 }
 export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
+    class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
@@ -53,7 +52,7 @@ interface DocAnnotatableProps {
     renderDepth: number;
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
+    class Component extends Touchable<P> {
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
@@ -65,8 +64,8 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @action.bound
         removeDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = undefined;
-            let value = this.extensionDoc && Cast(this.extensionDoc[this.annotationsKey], listSpec(Doc), []);
-            let index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
+            const value = this.extensionDoc && Cast(this.extensionDoc[this.annotationsKey], listSpec(Doc), []);
+            const index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
             return index !== -1 && value && value.splice(index, 1) ? true : false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.

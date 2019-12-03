@@ -14,21 +14,21 @@ import { createSchema, makeInterface, defaultSpec } from '../src/new_fields/Sche
 import { ImageField } from '../src/new_fields/URLField';
 describe("Document", () => {
     it('should hold fields', () => {
-        let key = "Test";
-        let key2 = "Test2";
-        let field = 15;
-        let doc = new Doc();
+        const key = "Test";
+        const key2 = "Test2";
+        const field = 15;
+        const doc = new Doc();
         doc[key] = field;
-        let getField = Cast(doc[key], "number");
-        let getField2 = Cast(doc[key2], "number");
+        const getField = Cast(doc[key], "number");
+        const getField2 = Cast(doc[key2], "number");
         expect(getField).to.equal(field);
         expect(getField2).to.equal(undefined);
     });
 
     it('should update', () => {
-        let doc = new Doc();
-        let key = "Test";
-        let key2 = "Test2";
+        const doc = new Doc();
+        const key = "Test";
+        const key2 = "Test2";
         let ran = false;
         reaction(() => doc[key], (field) => { ran = true; });
         expect(ran).to.equal(false);

@@ -3,7 +3,6 @@ import * as passportLocal from 'passport-local';
 import _ from "lodash";
 import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
-import { RouteStore } from '../../RouteStore';
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -35,13 +34,13 @@ export let isAuthenticated = (req: Request, res: Response, next: NextFunction) =
     if (req.isAuthenticated()) {
         return next();
     }
-    return res.redirect(RouteStore.login);
+    return res.redirect("/login");
 };
 
 export let isAuthorized = (req: Request, res: Response, next: NextFunction) => {
     const provider = req.path.split("/").slice(-1)[0];
 
-    if (_.find((req.user as any).tokens, { kind: provider })) {
+    if (_.find(req.user && "tokens" in req.user ? req.user["tokens"] : undefined, { kind: provider })) {
         next();
     } else {
         res.redirect(`/auth/${provider}`);

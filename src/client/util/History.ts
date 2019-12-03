@@ -1,6 +1,5 @@
-import { Doc, Opt, Field } from "../../new_fields/Doc";
+import { Doc } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
-import { RouteStore } from "../../server/RouteStore";
 import { MainView } from "../views/MainView";
 import * as qs from 'query-string';
 import { Utils, OmitKeys } from "../../Utils";
@@ -26,7 +25,7 @@ export namespace HistoryUtil {
 
     // const handlers: ((state: ParsedUrl | null) => void)[] = [];
     function onHistory(e: PopStateEvent) {
-        if (window.location.pathname !== RouteStore.home) {
+        if (window.location.pathname !== "/home") {
             const url = e.state as ParsedUrl || parseUrl(window.location);
             if (url) {
                 switch (url.type) {
@@ -54,7 +53,7 @@ export namespace HistoryUtil {
     }
 
     export function getState(): ParsedUrl {
-        let state = copyState(history.state);
+        const state = copyState(history.state);
         state.initializers = state.initializers || {};
         return state;
     }
@@ -161,7 +160,7 @@ export namespace HistoryUtil {
         const pathname = location.pathname.substring(1);
         const search = location.search;
         const opts = search.length ? qs.parse(search, { sort: false }) : {};
-        let pathnameSplit = pathname.split("/");
+        const pathnameSplit = pathname.split("/");
 
         const type = pathnameSplit[0];
 

@@ -51,11 +51,11 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
                 document.removeEventListener("pointermove", this.onLinkButtonMoved);
                 document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-                let draggedDocs = this.props.group.map(linkDoc => {
-                    let opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+                const draggedDocs = this.props.group.map(linkDoc => {
+                    const opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
                     if (opp) return opp;
                 }) as Doc[];
-                let dragData = new DragManager.DocumentDragData(draggedDocs);
+                const dragData = new DragManager.DocumentDragData(draggedDocs);
 
                 DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
                     handlers: {
@@ -69,19 +69,19 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
     }
 
     viewGroupAsTable = (groupType: string): JSX.Element => {
-        let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-        let index = keys.indexOf("");
+        const keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+        const index = keys.indexOf("");
         if (index > -1) keys.splice(index, 1);
-        let cols = ["anchor1", "anchor2", ...[...keys]].map(c => new SchemaHeaderField(c, "#f1efeb"));
-        let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
-        let ref = React.createRef<HTMLDivElement>();
+        const cols = ["anchor1", "anchor2", ...[...keys]].map(c => new SchemaHeaderField(c, "#f1efeb"));
+        const docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
+        const createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        const ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
 
     render() {
-        let groupItems = this.props.group.map(linkDoc => {
-            let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+        const groupItems = this.props.group.map(linkDoc => {
+            const destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
             if (destination && this.props.sourceDoc) {
                 return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]}
                     groupType={this.props.groupType}
