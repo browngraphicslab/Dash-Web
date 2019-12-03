@@ -21,7 +21,6 @@ import React = require("react");
 import { DocumentView } from './nodes/DocumentView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { DocumentDecorations } from './DocumentDecorations';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -57,13 +56,13 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
 
     @observable private openHover = false;
 
-    public static Instance: DocumentButtonBar;
+    @observable public static Instance: DocumentButtonBar;
     public static hasPushedHack = false;
     public static hasPulledHack = false;
 
     constructor(props: { views: DocumentView[] }) {
         super(props);
-        DocumentButtonBar.Instance = this;
+        runInAction(() => DocumentButtonBar.Instance = this);
     }
 
     public startPullOutcome = action((success: boolean) => {
