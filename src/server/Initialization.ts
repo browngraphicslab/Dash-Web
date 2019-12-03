@@ -19,7 +19,7 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort } from './ActionUtilities';
+import { logPort, addBeforeExitHandler } from './ActionUtilities';
 import { timeMap } from './ApiManagers/UserManager';
 import { blue, yellow } from 'colors';
 
@@ -27,18 +27,18 @@ import { blue, yellow } from 'colors';
    from being exposed. */
 export type RouteSetter = (server: RouteManager) => void;
 export interface InitializationOptions {
-    listenAtPort: number;
+    serverPort: number;
     routeSetter: RouteSetter;
 }
 
 export default async function InitializeServer(options: InitializationOptions) {
-    const { listenAtPort, routeSetter } = options;
-    const server = buildWithMiddleware(express());
+    const { serverPort, routeSetter } = options;
+    const app = buildWithMiddleware(express());
 
-    server.use(express.static(publicDirectory));
-    server.use("/images", express.static(publicDirectory));
+    app.use(express.static(publicDirectory));
+    app.use("/images", express.static(publicDirectory));
 
-    server.use("*", ({ user, originalUrl }, _res, next) => {
+    app.use("*", ({ user, originalUrl }, _res, next) => {
         if (!originalUrl.includes("Heartbeat")) {
             const userEmail = user && ("email" in user) ? user["email"] : undefined;
             if (userEmail) {
@@ -48,19 +48,20 @@ export default async function InitializeServer(options: InitializationOptions) {
         next();
     });
 
-    server.use(wdm(compiler, { publicPath: config.output.publicPath }));
-    server.use(whm(compiler));
+    app.use(wdm(compiler, { publicPath: config.output.publicPath }));
+    app.use(whm(compiler));
 
-    registerAuthenticationRoutes(server);
-    registerCorsProxy(server);
+    registerAuthenticationRoutes(app);
+    registerCorsProxy(app);
 
     const isRelease = determineEnvironment();
-    routeSetter(new RouteManager(server, isRelease));
+    routeSetter(new RouteManager(app, isRelease));
 
-    server.listen(listenAtPort, () => {
-        logPort("server", listenAtPort);
+    const server = app.listen(serverPort, () => {
+        logPort("server", serverPort);
         console.log();
     });
+    addBeforeExitHandler(async () => { await new Promise<Error>(resolve => server.close(resolve)); });
     return isRelease;
 }
 

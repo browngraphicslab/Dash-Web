@@ -111,5 +111,5 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         endMessage: "completed preliminary functions\n",
         action: preliminaryFunctions
     });
-    await initializeServer({ listenAtPort: 1050, routeSetter });
+    await initializeServer({ serverPort: 1050, routeSetter });
 })();

@@ -6,6 +6,7 @@ import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 import * as mongoose from 'mongoose';
+import { addBeforeExitHandler } from './ActionUtilities';
 
 export namespace Database {
 
@@ -24,18 +25,10 @@ export namespace Database {
     export async function tryInitializeConnection() {
         try {
             const { connection } = mongoose;
-            process.on('SIGINT', () => {
-                connection.close(() => {
-                    console.log(`SIGINT closed mongoose connection at ${url}`);
-                    process.exit(0);
-                });
-            });
+            addBeforeExitHandler(async () => { await new Promise<any>(resolve => connection.close(resolve)); });
             if (connection.readyState === ConnectionStates.disconnected) {
                 await new Promise<void>((resolve, reject) => {
                     connection.on('error', reject);
-                    connection.on('disconnected', () => {
-                        console.log(`disconnecting mongoose connection at ${url}`);
-                    });
                     connection.on('connected', () => {
                         console.log(`mongoose established default connection at ${url}`);
                         resolve();
