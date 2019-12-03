@@ -8,6 +8,17 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
+    export function GetMyTargetTouches(e: TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
+        let myTouches = new Array<React.Touch>();
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            let pt = e.targetTouches.item(i);
+            if (pt && prevPoints.has(pt.identifier)) {
+                myTouches.push(pt);
+            }
+        }
+        return myTouches;
+    }
+
     export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2

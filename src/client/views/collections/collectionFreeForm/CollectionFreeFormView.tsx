@@ -418,7 +418,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     handle1PointerMove = (e: TouchEvent) => {
         // panning a workspace
         if (!e.cancelBubble) {
-            let pt = e.targetTouches.item(0);
+            let myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            let pt = myTouches[0];
             if (pt) {
                 if (InkingControl.Instance.selectedTool === InkTool.None) {
                     if (this._hitCluster && this.tryDragCluster(e)) {
@@ -443,9 +444,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     handle2PointersMove = (e: TouchEvent) => {
         // pinch zooming
         if (!e.cancelBubble) {
-            let pt1: Touch | null = e.targetTouches.item(0);
-            let pt2: Touch | null = e.targetTouches.item(1);
-            if (!pt1 || !pt2) return;
+            let myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            let pt1 = myTouches[0];
+            let pt2 = myTouches[1];
 
             if (this.prevPoints.size === 2) {
                 let oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -923,8 +924,8 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return <div className={freeformclass} style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
-            {this.props.children()}
+        return <div className={freeformclass} style={{ touchAction: "none", borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
+            {this.props.children}
         </div>;
     }
 }

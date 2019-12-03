@@ -32,6 +32,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                     break;
                 case 2:
                     this.handle2PointersDown(e);
+                    break;
             }
 
             document.removeEventListener("touchmove", this.onTouch);
@@ -46,10 +47,12 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     */
     @action
     protected onTouch = (e: TouchEvent): void => {
+        let myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+
         // if we're not actually moving a lot, don't consider it as dragging yet
         // if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
-        switch (e.targetTouches.length) {
+        switch (myTouches.length) {
             case 1:
                 this.handle1PointerMove(e);
                 break;
@@ -73,6 +76,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
     @action
     protected onTouchEnd = (e: TouchEvent): void => {
+        console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
         this._touchDrag = false;
         e.stopPropagation();
 
@@ -81,6 +85,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             let pt = e.targetTouches.item(i);
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
+                    console.log("delete");
                     this.prevPoints.delete(pt.identifier);
                 }
             }
@@ -89,7 +94,10 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         if (e.targetTouches.length === 0) {
             this.prevPoints.clear();
         }
-        this.cleanUpInteractions();
+
+        if (this.prevPoints.size === 0 && e.targetTouches.length === 0) {
+            this.cleanUpInteractions();
+        }
     }
 
     cleanUpInteractions = (): void => {

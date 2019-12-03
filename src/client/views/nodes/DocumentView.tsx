@@ -142,7 +142,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler ?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 let fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias.layoutCustom !== undefined) {
                     fullScreenAlias.layoutKey = "layoutCustom";
@@ -362,7 +362,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     setCustomView = (custom: boolean): void => {
-        if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
+        if (this.props.ContainingCollectionView ?.props.DataDoc || this.props.ContainingCollectionView ?.props.Document.isTemplateDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
         } else {
             custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc) : DocumentView.makeNativeViewClicked(this.props.Document);
@@ -651,16 +651,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     handle2PointersMove = (e: TouchEvent) => {
-        let pt1 = e.targetTouches.item(0);
-        let pt2 = e.targetTouches.item(1);
-        if (pt1 && pt2 && this.prevPoints.has(pt1.identifier) && this.prevPoints.has(pt2.identifier)) {
-            let oldPoint1 = this.prevPoints.get(pt1.identifier);
-            let oldPoint2 = this.prevPoints.get(pt2.identifier);
-            let pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
-            if (pinching !== 0) {
-                let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
-                this.props.Document.width = newWidth;
-            }
+        let myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        let pt1 = myTouches[0];
+        let pt2 = myTouches[1];
+        let oldPoint1 = this.prevPoints.get(pt1.identifier);
+        let oldPoint2 = this.prevPoints.get(pt2.identifier);
+        let pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+        if (pinching !== 0) {
+            let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
+            this.props.Document.width = newWidth;
         }
     }
 
