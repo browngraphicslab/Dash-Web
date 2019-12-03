@@ -7,7 +7,7 @@ import { Search } from "../Search";
 import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { logPort } from "../ActionUtilities";
+import { logPort, addBeforeExitHandler } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
 
@@ -53,6 +53,7 @@ export namespace WebSocket {
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
         });
+        addBeforeExitHandler(async () => { await new Promise<void>(resolve => endpoint.close(resolve)); });
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }
