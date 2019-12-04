@@ -828,7 +828,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }} >
                 {this.innards}
             </div>
-            {this._showKPQuery ? <KeyphraseQueryView keyphrases={["bitch", "boy"]}></KeyphraseQueryView> : undefined}
+            {this._showKPQuery ? <KeyphraseQueryView keyphrases={["hello", "world"]}></KeyphraseQueryView> : undefined}
         </div>;
     }
 }
