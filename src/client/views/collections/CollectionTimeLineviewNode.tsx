@@ -15,6 +15,8 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionTimelineView.scss";
 import React = require("react");
 import { Id } from "../../../new_fields/FieldSymbols";
+import { DocumentContentsView } from '../nodes/DocumentContentsView';
+import { SelectionManager } from "../../util/SelectionManager";
 
 
 @observer
@@ -47,18 +49,21 @@ export class
         let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
         return (
             <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: width - 3, height: height - 3, overflow: "hidden" }}>
-                <DocumentView
-                    pinToPres={this.props.pinToPres}
+                <DocumentContentsView
+                    ContainingCollectionView={this.props.CollectionView}
+                    ContainingCollectionDoc={this.props.doc}
+                    ruleProvider={undefined} pinToPres={this.props.pinToPres}
                     Document={d}
-                    ruleProvider={undefined}
+                    isSelected={() => false}
+                    select={(isCtrlPressed: boolean) => { }}
                     ScreenToLocalTransform={getTransform}
                     renderDepth={this.props.renderDepth + 1}
                     PanelWidth={d[WidthSym]}
                     PanelHeight={d[HeightSym]}
                     ContentScaling={contentScaling}
-                    ContainingCollectionView={this.props.CollectionView}
-                    ContainingCollectionDoc={this.props.doc}
                     focus={emptyFunction}
+                    layoutKey={"layout"}
+                    onClick={undefined}
                     backgroundColor={returnEmptyString}
                     parentActive={this.props.active}
                     bringToFront={emptyFunction}
@@ -167,11 +172,7 @@ export class
     @action
     private setvisible() {
         this.props.timelinedoc.currdoc = this.props.doc;
-        console.log("MASSIVE ")
-        console.log(this.props.doc[this.props.sortstate]);
         this.props.timelinedoc.currval = this.props.doc[this.props.sortstate];
-
-        console.log(this.visible);
     }
     @action
     private setvisible2() {

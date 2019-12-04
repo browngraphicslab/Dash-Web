@@ -24,6 +24,8 @@ import { RichTextUtils } from "../../../new_fields/RichTextUtils";
 import { DocumentView } from "../nodes/DocumentView";
 import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+
 
 
 
@@ -110,23 +112,35 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     @observable
-    private previewdoc = new Doc();
+    private previewdoc: Doc | undefined;
     @action
-    make(squad: Doc, string: string) {
+    makePreview(newdoc: Doc, string: string) {
         console.log("SWAGGY");
         let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
         let proto = text.proto!;
-        let swaggy = "SWAGGY";
-        let swagger = StrCast(squad[this.currentSortingKey]);
-        console.log(string);
-        proto.data = new RichTextField(RichTextUtils.Initialize(string));
-        let text2 = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
-        let proto2 = text2.proto!;
-        proto2.data = new RichTextField(RichTextUtils.Initialize(StrCast(squad[this.currentSortingKey])));
-        let doc = Docs.Create.StackingDocument([squad, text, text2], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" });
+        let ting = NumCast(newdoc[this.currentSortingKey]);
+        console.log(ting);
+        console.log(newdoc[this.currentSortingKey]);
+        proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
+        let doc = Docs.Create.StackingDocument([newdoc, text,], { width: 500, height: 500, title: "Untitled Collection", chromeStatus: "disabled" });
         doc.title = "preview";
         this.previewdoc = doc;
         //this.props.addDocument(doc);
+    }
+
+    @action
+    updatePreview(newdoc: Doc, string: string) {
+        const doclist = Cast(this.previewdoc.data, listSpec(Doc));
+        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
+        let proto = text.proto!;
+        let ting = NumCast(newdoc[this.currentSortingKey]);
+        console.log(ting);
+        console.log(newdoc[this.currentSortingKey]);
+        proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
+        if (doclist) {
+            doclist[0] = newdoc;
+            doclist[1] = text;
+        }
     }
 
 
@@ -154,7 +168,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             async () => {
                 let doc = await Cast(this.props.Document.currdoc, Doc);
                 let string = await StrCast(this.props.Document.currval);
-                doc ? this.make(doc, string) : undefined;
+                if (!this.previewdoc) {
+                    doc ? this.makePreview(doc, string) : undefined;
+                }
+                else {
+                    doc ? this.updatePreview(doc, string) : undefined;
+                }
             }
         );
 
@@ -1354,50 +1373,83 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.previewdoc = doc;
     }
 
+    @observable
+    private previewwidth: number = 500;
+
+    @observable
+    private previewheight: number = 500;
+
+    _ignore = 0;
+    onPreWheel = (e: React.WheelEvent) => {
+        this._ignore = e.timeStamp;
+    }
+    onPrePointer = (e: React.PointerEvent) => {
+        this._ignore = e.timeStamp;
+    }
+    onPostPointer = (e: React.PointerEvent) => {
+        if (this._ignore !== e.timeStamp) {
+            e.stopPropagation();
+        }
+    }
+    onPostWheel = (e: React.WheelEvent) => {
+        if (this._ignore !== e.timeStamp) {
+            e.stopPropagation();
+        }
+    }
+
     render() {
-        //console.log(DocListCast(this.props.Document.data).length);
-        this.props.Document.currdoc ? console.log(StrCast(this.props.Document.currdoc)) : undefined;
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let d = this.previewdoc;
         let width = 50;
         let height = 50;
-        let nativeWidth = NumCast(d.nativeWidth, width);
-        let nativeHeight = NumCast(d.nativeHeight, height);
-        let wscale = width / (nativeWidth ? nativeWidth : width);
-        if (wscale * nativeHeight > height) {
-            wscale = height / (nativeHeight ? nativeHeight : height);
+        if (d) {
+            let nativeWidth = NumCast(d.nativeWidth, width);
+            let nativeHeight = NumCast(d.nativeHeight, height);
+
+            let wscale = width / (nativeWidth ? nativeWidth : width);
+            if (wscale * nativeHeight > height) {
+                wscale = height / (nativeHeight ? nativeHeight : height);
+            }
+            let contentScaling = () => wscale;
+            let transform = () => new Transform(0, 0, 1);
+            let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
+
+            let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
+            console.log(NumCast(this.previewdoc.x));
         }
-        let contentScaling = () => wscale;
-        let transform = () => new Transform(0, 0, 1);
-        let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
-
-        let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
-
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                    <DocumentView
-                        pinToPres={this.props.pinToPres}
-                        Document={d}
-                        ruleProvider={undefined}
-                        ScreenToLocalTransform={getTransform}
-                        renderDepth={this.props.renderDepth + 1}
-                        PanelWidth={d[WidthSym]}
-                        PanelHeight={d[HeightSym]}
-                        ContentScaling={contentScaling}
-                        ContainingCollectionView={this.props.CollectionView}
-                        ContainingCollectionDoc={this.props.Document}
-                        focus={emptyFunction}
-                        backgroundColor={returnEmptyString}
-                        parentActive={this.props.active}
-                        bringToFront={emptyFunction}
-                        whenActiveChanged={this.props.whenActiveChanged}
-                        addDocTab={this.props.addDocTab}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}>
-                    </DocumentView>
+                    <div>
+                        {this.previewdoc !== undefined ? <div style={{ left: NumCast(this.previewdoc.x), top: NumCast(this.previewdoc.y), width: NumCast(this.previewdoc.width), zIndex: 500, height: NumCast(this.previewdoc.height), position: "absolute", }}>
+                            <ContentFittingDocumentView
+                                Document={d}
+                                PanelWidth={() => NumCast(this.previewdoc.width)}
+                                PanelHeight={() => NumCast(this.previewdoc.height)}
+                                DataDocument={this.dataDoc}
+                                fieldKey={this.props.fieldKey}
+                                renderDepth={this.props.renderDepth}
+                                ruleProvider={this.props.ruleProvider}
+                                fitToBox={this.props.fitToBox}
+                                onClick={this.props.onClick}
+                                getTransform={() => this.props.ScreenToLocalTransform()}
+                                focus={this.props.focus}
+                                CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
+                                CollectionView={this.props.CollectionView}
+                                addDocument={this.props.addDocument}
+                                moveDocument={this.props.moveDocument}
+                                removeDocument={this.props.removeDocument}
+                                active={this.props.active}
+                                whenActiveChanged={this.props.whenActiveChanged}
+                                addDocTab={this.props.addDocTab}
+                                pinToPres={this.props.pinToPres}
+                                setPreviewScript={emptyFunction}
+                                previewScript={undefined}></ContentFittingDocumentView>
+                        </div> : undefined}
+
+                    </div>
                     <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
                         {<div style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                             {this._visible ? this.marqueeDiv : null}
