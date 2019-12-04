@@ -40,7 +40,7 @@ export default async function InitializeServer(options: InitializationOptions) {
 
     app.use("*", ({ user, originalUrl }, res, next) => {
         if (user && !originalUrl.includes("Heartbeat")) {
-            const userEmail = user.email;
+            const userEmail = (user as any).email;
             if (userEmail) {
                 timeMap[userEmail] = Date.now();
             }

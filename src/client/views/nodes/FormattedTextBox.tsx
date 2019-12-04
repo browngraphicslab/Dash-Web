@@ -197,6 +197,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
+            this.extensionDoc && !this.extensionDoc.lastModified && (this.extensionDoc.backgroundColor = "lightGray");
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
@@ -1131,7 +1132,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         e.stopPropagation();
                     }} >
                     <FontAwesomeIcon className="formattedTExtBox-audioFont"
-                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5 }} icon={"microphone"} size="sm" />
+                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
                 </div>
             </div>
         );
