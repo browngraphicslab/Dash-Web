@@ -72,28 +72,28 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
         new InputRule(
-            new RegExp(/t/),
+            new RegExp(/t$/),
             (state, match, start, end) => {
                 if (state.selection.to === state.selection.from) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "todo", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
         new InputRule(
-            new RegExp(/i/),
+            new RegExp(/i$/),
             (state, match, start, end) => {
                 if (state.selection.to === state.selection.from) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "ignore", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
         new InputRule(
-            new RegExp(/\!/),
+            new RegExp(/!$/),
             (state, match, start, end) => {
                 if (state.selection.to === state.selection.from) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "important", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
         new InputRule(
-            new RegExp(/\x/),
+            new RegExp(/x$/),
             (state, match, start, end) => {
                 if (state.selection.to === state.selection.from) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;

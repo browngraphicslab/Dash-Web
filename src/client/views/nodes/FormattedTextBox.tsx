@@ -142,6 +142,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     constructor(props: any) {
         super(props);
         FormattedTextBox.Instance = this;
+        this.updateHighlights();
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -191,6 +192,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             }
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
+            (tx.storedMarks && !this._editorView.state.storedMarks) && (this._editorView.state.storedMarks = tx.storedMarks);
 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
@@ -328,7 +330,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         return ret;
     }
-    static _highlights: string[] = [];
+    static _highlights: string[] = ["Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
 
     updateHighlights = () => {
         clearStyleSheetRules(FormattedTextBox._userStyleSheet);
@@ -370,6 +372,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         document.addEventListener("pointermove", this.sidebarMove);
         document.addEventListener("pointerup", this.sidebarUp);
         e.stopPropagation();
+        e.preventDefault(); // prevents text from being selected during drag
     }
     sidebarMove = (e: PointerEvent) => {
         let bounds = this.CurrentDiv.getBoundingClientRect();
