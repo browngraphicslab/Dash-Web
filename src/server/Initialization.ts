@@ -39,8 +39,8 @@ export default async function InitializeServer(options: InitializationOptions) {
     app.use("/images", express.static(publicDirectory));
 
     app.use("*", ({ user, originalUrl }, _res, next) => {
-        if (!originalUrl.includes("Heartbeat")) {
-            const userEmail = user && ("email" in user) ? user["email"] : undefined;
+        if (user && !originalUrl.includes("Heartbeat")) {
+            const userEmail = user.email;
             if (userEmail) {
                 timeMap[userEmail] = Date.now();
             }
@@ -55,6 +55,7 @@ export default async function InitializeServer(options: InitializationOptions) {
     registerCorsProxy(app);
 
     const isRelease = determineEnvironment();
+
     routeSetter(new RouteManager(app, isRelease));
 
     const server = app.listen(serverPort, () => {
@@ -62,6 +63,7 @@ export default async function InitializeServer(options: InitializationOptions) {
         console.log();
     });
     addBeforeExitHandler(async () => { await new Promise<Error>(resolve => server.close(resolve)); });
+
     return isRelease;
 }
 

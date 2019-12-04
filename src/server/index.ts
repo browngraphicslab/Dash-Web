@@ -69,11 +69,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     // initialize API Managers
     console.log(yellow("\nregistering server routes..."));
     managers.forEach(manager => manager.register(addSupervisedRoute));
-    logRegistrationOutcome();
-
-    // initialize the web socket (bidirectional communication: if a user changes
-    // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(serverPort, isRelease);
 
     /**
      * Accessing root index redirects to home
@@ -103,6 +98,12 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
             }
         }
     });
+
+    logRegistrationOutcome();
+
+    // initialize the web socket (bidirectional communication: if a user changes
+    // a field on one client, that change must be broadcast to all other clients)
+    WebSocket.initialize(serverPort, isRelease);
 }
 
 (async function start() {

@@ -67,9 +67,8 @@ export default class RouteManager {
                 console.log('please remove all duplicate routes before continuing');
             }
             if (malformedCount) {
-                console.log(`please ensure all routes adhere to ^\/[A-Za-z]+(\/\:[A-Za-z]+)*$`);
+                console.log(`please ensure all routes adhere to ^\/$|^\/[A-Za-z]+(\/\:[A-Za-z]+)*$`);
             }
-            console.log();
             process.exit(0);
         } else {
             console.log(green("all server routes have been successfully registered:"));
@@ -128,7 +127,7 @@ export default class RouteManager {
             } else {
                 route = subscriber.build;
             }
-            if (!/^\/[A-Za-z]+(\/\:[A-Za-z]+)*$/g.test(route)) {
+            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z]+)*$/g.test(route)) {
                 this.failedRegistrations.push({
                     reason: RegistrationError.Malformed,
                     route
