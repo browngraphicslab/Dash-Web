@@ -627,6 +627,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ...this.props,
             DataDoc: childData,
             Document: childLayout,
+            LibraryPath: this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : [],
             layoutKey: undefined,
             ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them

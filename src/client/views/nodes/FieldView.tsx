@@ -30,6 +30,7 @@ export interface FieldViewProps {
     ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;
+    LibraryPath: Doc[];
     onClick?: ScriptField;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;

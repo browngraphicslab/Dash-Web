@@ -170,8 +170,9 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <ContentFittingDocumentView
-                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.targetDoc}
+                    LibraryPath={[]}
+                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}

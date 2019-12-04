@@ -198,8 +198,7 @@ export class MainView extends React.Component {
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
-        const dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        const mainDoc = Docs.Create.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${workspaceCount}` }, id);
+        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().documents as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
         Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => this.openWorkspace(mainDoc), 0);
@@ -271,6 +270,7 @@ export class MainView extends React.Component {
                     {!mainContainer ? (null) :
                         <DocumentView Document={mainContainer}
                             DataDoc={undefined}
+                            LibraryPath={[]}
                             addDocument={undefined}
                             addDocTab={this.addDocTabFunc}
                             pinToPres={emptyFunction}
@@ -338,7 +338,7 @@ export class MainView extends React.Component {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string) => {
+    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]) => {
         if (where === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
         }
@@ -346,7 +346,7 @@ export class MainView extends React.Component {
             this.openWorkspace(doc);
             return true;
         } else {
-            return CollectionDockingView.AddRightSplit(doc, undefined);
+            return CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
         }
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
@@ -363,6 +363,7 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
+                    LibraryPath={[]}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -389,6 +390,7 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarContent}
                     DataDoc={undefined}
+                    LibraryPath={[]}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -474,6 +476,7 @@ export class MainView extends React.Component {
                 <CollectionLinearView
                     Document={CurrentUserUtils.UserDocument.expandingButtons}
                     DataDoc={undefined}
+                    LibraryPath={[]}
                     fieldKey={"data"}
                     annotationsKey={""}
                     select={emptyFunction}

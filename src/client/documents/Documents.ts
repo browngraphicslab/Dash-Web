@@ -534,7 +534,8 @@ export namespace Docs {
 
         export type DocConfig = {
             doc: Doc,
-            initialWidth?: number
+            initialWidth?: number,
+            path?: Doc[]
         };
 
         export function StandardCollectionDockingDocument(configs: Array<DocConfig>, options: DocumentOptions, id?: string, type: string = "row") {
@@ -543,7 +544,7 @@ export namespace Docs {
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth, config.path))
                         ]
                     }
                 ]

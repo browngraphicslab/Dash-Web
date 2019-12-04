@@ -174,6 +174,7 @@ export class OverlayView extends React.Component {
             return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)`, display: d.isMinimized ? "none" : "" }}>
                 <DocumentView
                     Document={d}
+                    LibraryPath={[]}
                     ChromeHeight={returnZero}
                     // isSelected={returnFalse}
                     // select={emptyFunction}

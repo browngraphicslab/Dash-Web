@@ -39,7 +39,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     @observable public static Instances: CollectionDockingView[] = [];
     @computed public static get Instance() { return CollectionDockingView.Instances[0]; }
-    public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
+    public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number, libraryPath?: Doc[]) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
@@ -47,7 +47,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             width: width,
             props: {
                 documentId: document[Id],
-                dataDocumentId: dataDoc && dataDoc[Id] !== document[Id] ? dataDoc[Id] : ""
+                dataDocumentId: dataDoc && dataDoc[Id] !== document[Id] ? dataDoc[Id] : "",
+                libraryPath: libraryPath ? libraryPath.map(d => d[Id]) : []
                 //collectionDockingView: CollectionDockingView.Instance
             }
         };
@@ -95,12 +96,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public OpenFullScreen(docView: DocumentView) {
+    public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
         const document = Doc.MakeAlias(docView.props.Document);
         const dataDoc = docView.props.DataDoc;
         const newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
         };
         const docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
         this._goldenLayout.root.contentItems[0].addChild(docconfig);
@@ -174,12 +175,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @undoBatch
     @action
-    public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) {
+    public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, minimize: boolean = false, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
         };
 
         const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
@@ -211,9 +212,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
+    public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined, libraryPath?: Doc[]) => {
         Doc.GetProto(document).lastOpened = new DateField;
-        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
+        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument, undefined, libraryPath);
         if (stack === undefined) {
             let stack: any = this._goldenLayout.root;
             while (!stack.isStack) {
@@ -427,10 +428,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             });
                         }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
                 ReactDOM.render(<ButtonSelector Document={doc} Stack={stack} />, gearSpan);
-                // ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, data, where) => {
-                //     where === "onRight" ? CollectionDockingView.AddRightSplit(doc, dataDoc) : CollectionDockingView.Instance.AddTab(stack, doc, dataDoc);
-                //     return true;
-                // }} />, upDiv);
                 tab.reactComponents = [dragSpan, gearSpan, upDiv];
                 tab.element.append(dragSpan);
                 tab.element.append(gearSpan);
@@ -532,11 +529,13 @@ interface DockedFrameProps {
     documentId: FieldId;
     dataDocumentId: FieldId;
     glContainer: any;
+    libraryPath: (FieldId[])
     //collectionDockingView: CollectionDockingView
 }
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     _mainCont: HTMLDivElement | null = null;
+    @observable private _libraryPath: Doc[] = [];
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
@@ -554,6 +553,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 DocServer.GetRefField(this.props.dataDocumentId).then(action((f: Opt<Field>) => this._dataDoc = f as Doc));
             }
         }));
+        this.props.libraryPath && this.setupLibraryPath();
+    }
+
+    async setupLibraryPath() {
+        Promise.all(this.props.libraryPath.map(async docid => {
+            let d = await DocServer.GetRefField(docid);
+            return d instanceof Doc ? d : undefined
+        })).then(action((list: (Doc | undefined)[]) => this._libraryPath = list.filter(d => d).map(d => d as Doc)));
     }
 
     /**
@@ -640,17 +647,17 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
     get widthpercent() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? `${(this.nativeWidth() * this.contentScaling()) / this.panelWidth() * 100}%` : undefined; }
 
-    addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
         if (doc.dockingConfig) {
             MainView.Instance.openWorkspace(doc);
             return true;
         } else if (location === "onRight") {
-            return CollectionDockingView.AddRightSplit(doc, dataDoc);
+            return CollectionDockingView.AddRightSplit(doc, dataDoc, undefined, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
         } else {
-            return CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
+            return CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc, libraryPath);
         }
     }
 
@@ -659,6 +666,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         const document = this._document;
         const resolvedDataDoc = document.layout instanceof Doc ? document : this._dataDoc;
         return <DocumentView key={document[Id]}
+            LibraryPath={this._libraryPath}
             Document={document}
             DataDoc={resolvedDataDoc}
             bringToFront={emptyFunction}

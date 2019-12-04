@@ -17,6 +17,7 @@ import { CollectionView } from "../collections/CollectionView";
 interface ContentFittingDocumentViewProps {
     Document?: Doc;
     DataDocument?: Doc;
+    LibraryPath: Doc[];
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
@@ -85,8 +86,9 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         width: `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%`
                     }}>
                     <DocumentView {...this.props}
-                        DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
+                        DataDoc={this.props.DataDocument}
+                        LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
                         ruleProvider={this.props.ruleProvider}

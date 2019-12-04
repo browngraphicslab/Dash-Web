@@ -168,6 +168,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
+            LibraryPath={this.props.LibraryPath}
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
             ruleProvider={this.props.Document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}

@@ -761,8 +761,9 @@ export class DashDocView {
                     this._dashSpan.style.width = this._outer.style.width = dashDoc[WidthSym]() + "px";
                 });
                 ReactDOM.render(<DocumentView
-                    fitToBox={BoolCast(dashDoc.fitToBox)}
                     Document={dashDoc}
+                    LibraryPath={tbox.props.LibraryPath}
+                    fitToBox={BoolCast(dashDoc.fitToBox)}
                     addDocument={returnFalse}
                     removeDocument={removeDoc}
                     ruleProvider={undefined}

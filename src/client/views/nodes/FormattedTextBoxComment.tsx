@@ -177,8 +177,9 @@ export class FormattedTextBoxComment {
                             } catch (e) { }
                             if (target) {
                                 ReactDOM.render(<ContentFittingDocumentView
-                                    fitToBox={true}
                                     Document={target}
+                                    LibraryPath={[]}
+                                    fitToBox={true}
                                     moveDocument={returnFalse}
                                     getTransform={Transform.Identity}
                                     active={returnFalse}
