@@ -10,7 +10,7 @@ export interface EditableProps {
     /**
      * Called to get the initial value for editing
      *  */
-    GetValue(): string;
+    GetValue(): string | undefined;
 
     /**
      * Called to apply changes
@@ -108,8 +108,8 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     private finalizeEdit(value: string, shiftDown: boolean) {
+        this._editing = false;
         if (this.props.SetValue(value, shiftDown)) {
-            this._editing = false;
             this.props.isEditingCallback && this.props.isEditingCallback(false);
         }
     }
@@ -124,7 +124,7 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     render() {
-        if (this._editing) {
+        if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.autosuggestProps
                 ? <Autosuggest
                     {...this.props.autosuggestProps.autosuggestProps}

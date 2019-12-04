@@ -66,10 +66,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return { script, type: dubEq, onDelegate: eq };
     }
 
-    public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript): boolean {
+    public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript, forceOnDelegate?: boolean): boolean {
         const { script, type, onDelegate } = kvpScript;
         //const target = onDelegate ? Doc.Layout(doc.layout) : Doc.GetProto(doc); // bcz: TODO need to be able to set fields on layout templates
-        const target = onDelegate ? doc : Doc.GetProto(doc);
+        const target = forceOnDelegate || onDelegate ? doc : Doc.GetProto(doc);
         let field: Field;
         if (type === "computed") {
             field = new ComputedField(script);
@@ -88,10 +88,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     @undoBatch
-    public static SetField(doc: Doc, key: string, value: string) {
+    public static SetField(doc: Doc, key: string, value: string, forceOnDelegate?: boolean) {
         const script = this.CompileKVPScript(value);
         if (!script) return false;
-        return this.ApplyKVPScript(doc, key, script);
+        return this.ApplyKVPScript(doc, key, script, forceOnDelegate);
     }
 
     onPointerDown = (e: React.PointerEvent): void => {

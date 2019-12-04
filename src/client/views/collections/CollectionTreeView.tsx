@@ -279,7 +279,7 @@ class TreeView extends React.Component<TreeViewProps> {
             const contents = doc[key];
             let contentElement: (JSX.Element | null)[] | JSX.Element = [];
 
-            if (contents instanceof Doc || Cast(contents, listSpec(Doc))) {
+            if (contents instanceof Doc || (Cast(contents, listSpec(Doc)) && (Cast(contents, listSpec(Doc))!.length && Cast(contents, listSpec(Doc))![0] instanceof Doc))) {
                 const remDoc = (doc: Doc) => this.remove(doc, key);
                 const addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
@@ -294,7 +294,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     height={13}
                     fontSize={12}
                     GetValue={() => Field.toKeyValueString(doc, key)}
-                    SetValue={(value: string) => KeyValueBox.SetField(doc, key, value)} />;
+                    SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)} />;
             }
             rows.push(<div style={{ display: "flex" }} key={key}>
                 <span style={{ fontWeight: "bold" }}>{key + ":"}</span>
@@ -302,6 +302,18 @@ class TreeView extends React.Component<TreeViewProps> {
                 {contentElement}
             </div>);
         }
+        rows.push(<div style={{ display: "flex" }} key={"newKeyValue"}>
+            <EditableView
+                key="editableView"
+                contents={"+key:value"}
+                height={13}
+                fontSize={12}
+                GetValue={() => ""}
+                SetValue={(value: string) => {
+                    value.indexOf(":") !== -1 && KeyValueBox.SetField(doc, value.substring(0, value.indexOf(":")), value.substring(value.indexOf(":") + 1, value.length), true);
+                    return true;
+                }} />
+        </div>);
         return rows;
     }
 

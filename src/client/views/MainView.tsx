@@ -450,7 +450,7 @@ export class MainView extends React.Component {
 
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
-        MainView.Instance.flyoutWidth = 250;
+        MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
     });
 
     @computed get expandButton() {
