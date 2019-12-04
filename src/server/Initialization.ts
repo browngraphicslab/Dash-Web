@@ -38,12 +38,15 @@ export default async function InitializeServer(options: InitializationOptions) {
     app.use(express.static(publicDirectory));
     app.use("/images", express.static(publicDirectory));
 
-    app.use("*", ({ user, originalUrl }, _res, next) => {
+    app.use("*", ({ user, originalUrl }, res, next) => {
         if (user && !originalUrl.includes("Heartbeat")) {
             const userEmail = user.email;
             if (userEmail) {
                 timeMap[userEmail] = Date.now();
             }
+        }
+        if (!user && originalUrl === "/") {
+            return res.redirect("/login");
         }
         next();
     });
