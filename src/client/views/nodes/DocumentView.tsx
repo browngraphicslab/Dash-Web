@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction, trace } from "mobx";
+import { action, computed, runInAction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -119,6 +119,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _showKPQuery: boolean = false;
+    private _queries: string = "";
 
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active() { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
@@ -643,16 +644,28 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
 
+    @action
     externalRecommendation = async (e: React.MouseEvent, api: string) => {
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         ClientRecommender.Instance.reset_docs();
         const doc = Doc.GetDataDoc(this.props.Document);
         const extdoc = doc.data_ext as Doc;
-        const values = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false, api);
+        const recs_and_kps = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false, api);
+        let recs: any;
+        let kps: any;
+        if (recs_and_kps) {
+            recs = recs_and_kps.recs;
+            kps = recs_and_kps.keyterms;
+        }
+        else {
+            console.log("recommender system failed :(");
+            return;
+        }
+        console.log("ibm keyterms: ", kps.toString());
         const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
         let bodies: Doc[] = [];
-        const titles = values.title_vals;
-        const urls = values.url_vals;
+        const titles = recs.title_vals;
+        const urls = recs.url_vals;
         for (let i = 0; i < 5; i++) {
             const body = Docs.Create.FreeformDocument([], { title: titles[i] });
             body.href = urls[i];
@@ -660,6 +673,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
         this._showKPQuery = true;
+        this._queries = kps.toString();
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
@@ -828,7 +842,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }} >
                 {this.innards}
             </div>
-            {this._showKPQuery ? <KeyphraseQueryView keyphrases={["hello", "world"]}></KeyphraseQueryView> : undefined}
+            {this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined}
         </div>;
     }
 }

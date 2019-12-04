@@ -45,6 +45,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     static Instance: ClientRecommender;
     private mainDoc?: RecommenderDocument;
     private docVectors: Set<RecommenderDocument> = new Set();
+    public _queries: string[] = [];
 
     @observable private corr_matrix = [[0, 0], [0, 0]]; // for testing
 
@@ -277,11 +278,17 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     const sorted_keywords = response.result.keywords;
                     if (sorted_keywords.length > 0) {
                         console.log("IBM keyphrase", sorted_keywords[0]);
-                        highKP = [sorted_keywords[0].text];
+                        highKP = [];
+                        for (let i = 0; i < 5; i++) {
+                            if (sorted_keywords[i]) {
+                                highKP.push(sorted_keywords[i].text);
+                            }
+                        }
+                        keyterms = new List<string>(highKP);
                     }
                 });
-                let kpqv = new KeyphraseQueryView({ keyphrases: ["hello"] });
-                ext_recs = await this.sendRequest(highKP, api);
+                //let kpqv = new KeyphraseQueryView({ keyphrases: ["hello"] });
+                ext_recs = await this.sendRequest([highKP[0]], api);
             }
 
             // keyterms: list for extDoc, kp_string: input to TF, ext_recs: {titles, urls} of retrieved results from highKP query

@@ -398,7 +398,7 @@ export namespace CognitiveServices {
                     //await vectorize([data], dataDoc, isMainDoc);
                     await vectorize(kp_string, dataDoc, isMainDoc);
                 } else {
-                    return external_recommendations;
+                    return { recs: external_recommendations, keyterms: keyterms };
                 }
             };
 
