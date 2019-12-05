@@ -5,6 +5,7 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { NumCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { TooltipTextMenuManager } from "../util/TooltipTextMenu";
 import { Docs } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
 
@@ -70,6 +71,27 @@ export const inpRules = {
                     return state.tr.deleteRange(start, end);
                 }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
+            }),
+        new InputRule(
+            new RegExp(/%[a-z]*\s$/),
+            (state, match, start, end) => {
+                const color = match[0].substring(1, match[0].length - 1);
+                let marks = TooltipTextMenuManager.Instance._brushMap.get(color);
+                if (marks) {
+                    let tr = state.tr.deleteRange(start, end);
+                    return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;
+                }
+                if (color) {
+                    return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontColor.create({ color: color }));
+                }
+                return state.tr.deleteRange(start, end);
+            }),
+        new InputRule(
+            new RegExp(/%%$/),
+            (state, match, start, end) => {
+                let tr = state.tr.deleteRange(start, end);
+                let marks = state.tr.selection.$anchor.nodeBefore?.marks;
+                return marks ? Array.from(marks).filter(m => m !== state.schema.marks.user_mark).reduce((tr, m) => tr.removeStoredMark(m), tr) : tr;
             }),
         new InputRule(
             new RegExp(/t$/),

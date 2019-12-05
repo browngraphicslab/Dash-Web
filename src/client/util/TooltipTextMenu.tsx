@@ -20,6 +20,7 @@ import { updateBullets } from './ProsemirrorExampleTransfer';
 import { DocumentDecorations } from '../views/DocumentDecorations';
 import { SelectionManager } from './SelectionManager';
 import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
+import { Keys } from "../views/search/FilterBox";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
@@ -840,7 +841,7 @@ export class TooltipTextMenu {
     public static insertColor(color: String, state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
 
-        const colorMark = state.schema.mark(state.schema.marks.color, { color: color });
+        const colorMark = state.schema.mark(state.schema.marks.pFontColor, { color: color });
         dispatch(state.tr.addMark(state.selection.from, state.selection.to, colorMark));
     }
 
@@ -998,6 +999,7 @@ export class TooltipTextMenu {
         });
 
         const self = this;
+        const input = document.createElement("input");
         const clearBrush = new MenuItem({
             title: "Clear brush",
             execEvent: "",
@@ -1007,7 +1009,31 @@ export class TooltipTextMenu {
                 const button = document.createElement("button");
                 button.textContent = "Clear brush";
 
+                input.textContent = "editme";
+                input.style.width = "75px";
+                input.style.height = "30px";
+                input.style.background = "white";
+                input.setAttribute("contenteditable", "true");
+                input.style.whiteSpace = "nowrap";
+                input.type = "text";
+                input.placeholder = "Enter URL";
+                input.onpointerdown = (e: PointerEvent) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                };
+                input.onclick = (e: MouseEvent) => {
+                    input.select();
+                    input.focus();
+                };
+                input.onkeypress = (e: KeyboardEvent) => {
+                    if (e.key === "Enter") {
+                        TooltipTextMenuManager.Instance._brushMarks && TooltipTextMenuManager.Instance._brushMap.set(input.value, TooltipTextMenuManager.Instance._brushMarks);
+                        input.style.background = "lightGray";
+                    }
+                }
+
                 const wrapper = document.createElement("div");
+                wrapper.appendChild(input);
                 wrapper.appendChild(button);
                 return wrapper;
             },
@@ -1488,7 +1514,7 @@ export class TooltipTextMenu {
 }
 
 
-class TooltipTextMenuManager {
+export class TooltipTextMenuManager {
     private static _instance: TooltipTextMenuManager;
 
     public pinnedX: number = 0;
@@ -1498,6 +1524,7 @@ class TooltipTextMenuManager {
     private _isPinned: boolean = false;
 
     public _brushMarks: Set<Mark> | undefined;
+    public _brushMap: Map<string, Set<Mark>> = new Map();
     public _brushIsEmpty: boolean = true;
 
     public color: String = "#000";

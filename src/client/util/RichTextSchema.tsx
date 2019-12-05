@@ -324,8 +324,9 @@ export const marks: { [index: string]: MarkSpec } = {
         }
     },
 
+
     // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
-    color: {
+    pFontColor: {
         attrs: {
             color: { default: "#000" }
         },
