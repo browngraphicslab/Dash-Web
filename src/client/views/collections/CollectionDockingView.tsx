@@ -529,7 +529,7 @@ interface DockedFrameProps {
     documentId: FieldId;
     dataDocumentId: FieldId;
     glContainer: any;
-    libraryPath: (FieldId[])
+    libraryPath: (FieldId[]);
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -558,8 +558,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     async setupLibraryPath() {
         Promise.all(this.props.libraryPath.map(async docid => {
-            let d = await DocServer.GetRefField(docid);
-            return d instanceof Doc ? d : undefined
+            const d = await DocServer.GetRefField(docid);
+            return d instanceof Doc ? d : undefined;
         })).then(action((list: (Doc | undefined)[]) => this._libraryPath = list.filter(d => d).map(d => d as Doc)));
     }
 

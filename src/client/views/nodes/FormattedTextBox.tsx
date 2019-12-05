@@ -376,8 +376,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         e.preventDefault(); // prevents text from being selected during drag
     }
     sidebarMove = (e: PointerEvent) => {
-        let bounds = this.CurrentDiv.getBoundingClientRect();
-        this._sidebarMovement += Math.sqrt((e.clientX - this._lastX) * (e.clientX - this._lastX) + (e.clientY - this._lastY) * (e.clientY - this._lastY))
+        const bounds = this.CurrentDiv.getBoundingClientRect();
+        this._sidebarMovement += Math.sqrt((e.clientX - this._lastX) * (e.clientX - this._lastX) + (e.clientY - this._lastY) * (e.clientY - this._lastY));
         this.props.Document.sidebarWidthPercent = "" + 100 * (1 - (e.clientX - bounds.left) / bounds.width) + "%";
     }
     sidebarUp = (e: PointerEvent) => {

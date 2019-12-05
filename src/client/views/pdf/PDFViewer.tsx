@@ -634,6 +634,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     @computed get overlayLayer() {
         return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
+                LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? []}
                 annotationsKey={this.annotationsKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}

@@ -671,15 +671,15 @@ export class DashDocCommentView {
         this._collapsed.className = "formattedTextBox-inlineComment";
         this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
         this._view = view;
-        let targetNode = () => {
+        const targetNode = () => {
             for (let i = getPos() + 1; i < view.state.doc.nodeSize; i++) {
-                let m = view.state.doc.nodeAt(i);
+                const m = view.state.doc.nodeAt(i);
                 if (m && m.type === view.state.schema.nodes.dashDoc && m.attrs.docid === node.attrs.docid) {
                     return { node: m, pos: i } as { node: any, pos: number };
                 }
             }
             return undefined;
-        }
+        };
         this._collapsed.onpointerdown = (e: any) => {
             const target = targetNode();
             if (target) {

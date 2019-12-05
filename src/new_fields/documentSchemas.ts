@@ -27,6 +27,9 @@ export const documentSchema = createSchema({
     isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     type: "string",             // enumerated type of document
+    treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
+    treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
+    preventTreeViewOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     currentTimecode: "number",   // current play back time of a temporal document (video / audio)
     summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
     maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)

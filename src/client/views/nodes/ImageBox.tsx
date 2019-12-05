@@ -308,7 +308,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (field instanceof ImageField) paths = [[this.choosePath(field.url), nativeWidth / nativeHeight]];
         paths.push(...altpaths);
         // }
-        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         const rotation = NumCast(this.Document.rotation, 0);
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
@@ -318,7 +317,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
         !this.Document.ignoreAspect && this.resize(srcpath);
 
-        return <div className={`imageBox-cont${dragging}`} key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
@@ -350,7 +349,9 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     contentFunc = () => [this.content];
     render() {
-        return (<div className="imageBox" onContextMenu={this.specificContextMenu}
+        TraceMobx();
+        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
+        return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
                 transform: `scale(${this.props.ContentScaling()})`,
                 width: `${100 / this.props.ContentScaling()}%`,
