@@ -13,6 +13,7 @@ import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
 import { CollectionView } from "../collections/CollectionView";
+import { TraceMobx } from "../../../new_fields/util";
 
 interface ContentFittingDocumentViewProps {
     Document?: Doc;
@@ -76,6 +77,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     @computed get borderRounding() { return StrCast(this.props.Document!.borderRounding); }
 
     render() {
+        TraceMobx();
         return (<div className="contentFittingDocumentView" style={{ width: this.props.PanelWidth(), height: this.props.PanelHeight() }}>
             {!this.props.Document || !this.props.PanelWidth ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc"
