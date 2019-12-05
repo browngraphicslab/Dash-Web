@@ -5,3 +5,4 @@ dist/
 ClientUtils.ts
 solr-8.1.1/server/
 src/server/public/files/
+src/scraping/acm/package-lock.json
