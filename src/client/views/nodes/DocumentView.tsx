@@ -532,7 +532,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: `path: ${path}`, event: () => {
                 this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);
-                Doc.BrushDoc(this.props.Document);
+                Doc.linkFollowHighlight(this.props.Document);
             }, icon: "check"
         });
     }
