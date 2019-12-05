@@ -2,6 +2,8 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import { Database } from "../database";
 import { msToTime } from "../ActionUtilities";
+import * as bcrypt from "bcrypt-nodejs";
+import { Opt } from "../../new_fields/Doc";
 
 export const timeMap: { [id: string]: number } = {};
 interface ActivityUnit {
@@ -35,6 +37,53 @@ export default class UserManager extends ApiManager {
             onValidation: ({ res, user }) => res.send(JSON.stringify(user)),
             onUnauthenticated: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
         });
+
+        register({
+            method: Method.POST,
+            subscription: '/internalResetPassword',
+            onValidation: async ({ user, req, res }) => {
+                const result: any = {};
+                const { curr_pass, new_pass, new_confirm } = req.body;
+                // perhaps should assert whether curr password is entered correctly
+                const validated = await new Promise<Opt<boolean>>(resolve => {
+                    bcrypt.compare(curr_pass, user.password, (err, passwords_match) => {
+                        if (err) {
+                            result.error = "Incorrect current password";
+                            res.send(result);
+                            resolve(undefined);
+                        } else {
+                            resolve(passwords_match);
+                        }
+                    });
+                });
+
+                if (validated === undefined) {
+                    return;
+                }
+
+                req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
+                req.assert("new_confirm", "Passwords do not match").equals(new_pass);
+
+                // was there error in validating new passwords?
+                if (req.validationErrors()) {
+                    // was there error?
+                    result.error = req.validationErrors();
+                }
+
+                user.password = new_pass;
+                user.passwordResetToken = undefined;
+                user.passwordResetExpires = undefined;
+
+                user.save(err => {
+                    if (err) {
+                        result.error = "saving";
+                    }
+                });
+
+                res.send(result);
+            }
+        });
+
 
         register({
             method: Method.GET,

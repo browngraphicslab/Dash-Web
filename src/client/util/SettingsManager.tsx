@@ -7,7 +7,7 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "./SelectionManager";
 import "./SettingsManager.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Identified } from "../Network";
+import { Networking } from "../Network";
 
 library.add(fa.faWindowClose);
 
@@ -36,21 +36,31 @@ export default class SettingsManager extends React.Component<{}> {
     }
 
     private dispatchRequest = async () => {
-        const curr_pass = this.curr_password_ref.current!.value;
-        const new_pass = this.new_password_ref.current!.value;
-        const new_confirm = this.new_confirm_ref.current!.value;
-        console.log('ready!');
-        // const { error, hello } = await Identified.PostToServer('/internalResetPassword', { curr_pass, new_pass, new_confirm });
-        const resp = await Identified.PostToServer('/internalResetPassword', { curr_pass, new_pass, new_confirm });
-        console.log('set!');
-        console.log('response', resp);
-        console.log('hm', resp.hm);
-        if (resp.error) {
-            // we failed
-            console.log(resp.error);
+        const curr_pass = this.curr_password_ref.current?.value;
+        const new_pass = this.new_password_ref.current?.value;
+        const new_confirm = this.new_confirm_ref.current?.value;
+
+        if (!(curr_pass && new_pass && new_confirm)) {
+            alert("Hey we're missing some fields!");
+            return;
         }
-        console.log('go!');
-        // do stuff with response
+
+        const passwordBundle = {
+            curr_pass,
+            new_pass,
+            new_confirm
+        };
+        const { error } = await Networking.PostToServer('/internalResetPassword', passwordBundle);
+        if (error) {
+            alert("Uh oh! " + error);
+            return;
+        }
+
+        alert("Password successfully updated!");
+    }
+
+    onClick = (event: any) => {
+        console.log(event);
     }
 
     private get settingsInterface() {
@@ -64,13 +74,13 @@ export default class SettingsManager extends React.Component<{}> {
                 </div>
                 <div className="settings-body">
                     <div className="settings-type">
-                        <p>changeable settings</p>
-                        <p>static data</p>
+                        <button onClick={this.onClick} value="settings">settings</button>
+                        <button onClick={this.onClick} value="data">data</button>
                     </div>
                     <div className="settings-content">
-                        <input ref={this.curr_password_ref} />
-                        <input ref={this.new_password_ref} />
-                        <input ref={this.new_confirm_ref} />
+                        <input placeholder="current password" ref={this.curr_password_ref} />
+                        <input placeholder="new password" ref={this.new_password_ref} />
+                        <input placeholder="confirm new password" ref={this.new_confirm_ref} />
                         <button onClick={this.dispatchRequest}>submit</button>
                         this changes with what you select!
                     </div>
