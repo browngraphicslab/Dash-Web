@@ -174,7 +174,7 @@ export const inpRules = {
                 const newNode = schema.nodes.dashComment.create({ docid: target[Id] });
                 const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });
                 const sm = state.storedMarks || undefined;
-                const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).insertText(" ", start + 2).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced;//.setSelection(new NodeSelection(replaced.doc.resolve(end)));
             }),

@@ -913,6 +913,20 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     static _userStyleSheet: any = addStyleSheet();
 
     onClick = (e: React.MouseEvent): void => {
+        if ((this._editorView!.root as any).getSelection().isCollapsed) { // this is a hack to allow the cursor to be placed at the end of a document when the document ends in an inline dash comment.  Apparently Chrome on Windows has a bug/feature which breaks this when clicking after the end of the text.
+            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            if (pcords && node?.type === this._editorView!.state.schema.nodes.dashComment) {
+                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pcords.pos + 2)));
+                e.preventDefault();
+            }
+            if (!node && this._proseRef) {
+                let lastNode = this._proseRef.children[this._proseRef.children.length - 1].children[this._proseRef.children[this._proseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
+                if (e.clientY > lastNode.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
+                    this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
+                }
+            }
+        }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
         // if (e.button === 0 && ((!this.props.isSelected(true) && !e.ctrlKey) || (this.props.isSelected(true) && e.ctrlKey)) && !e.metaKey && e.target) {

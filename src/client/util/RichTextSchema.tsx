@@ -672,23 +672,34 @@ export class DashDocCommentView {
         this._collapsed.className = "formattedTextBox-inlineComment";
         this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
         this._view = view;
-        const targetNode = () => {
-            for (let i = getPos() + 1; i < view.state.doc.nodeSize; i++) {
+        const targetNode = () => {  // search forward in the prosemirror doc for the attached dashDocNode that is the target of the comment anchor
+            for (let i = getPos() + 1; i < view.state.doc.content.size; i++) {
                 const m = view.state.doc.nodeAt(i);
                 if (m && m.type === view.state.schema.nodes.dashDoc && m.attrs.docid === node.attrs.docid) {
-                    return { node: m, pos: i } as { node: any, pos: number };
+                    return { node: m, pos: i, hidden: m.attrs.hidden } as { node: any, pos: number, hidden: boolean };
                 }
             }
+            const dashDoc = view.state.schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: node.attrs.docid, float: "right" });
+            view.dispatch(view.state.tr.insert(getPos() + 1, dashDoc));
+            setTimeout(() => { try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + 2))) } catch (e) { } }, 0);
             return undefined;
         };
         this._collapsed.onpointerdown = (e: any) => {
+            e.stopPropagation();
+        };
+        this._collapsed.onpointerup = (e: any) => {
             const target = targetNode();
             if (target) {
-                view.dispatch(view.state.tr.
-                    setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true })); // update the attrs 
-                setTimeout(() => node.attrs.hidden && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc)), 100);
+                let expand = target.hidden;
+                let tr = view.state.tr.setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true });
+                view.dispatch(tr.setSelection(TextSelection.create(tr.doc, getPos() + (expand ? 2 : 1)))); // update the attrs 
+                setTimeout(() => {
+                    expand && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
+                    try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + (expand ? 2 : 1)))) } catch (e) { }
+                }, 0);
             }
-        };
+            e.stopPropagation();
+        }
         this._collapsed.onpointerenter = (e: any) => {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
             e.preventDefault();
