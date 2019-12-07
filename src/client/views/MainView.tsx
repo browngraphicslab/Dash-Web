@@ -39,6 +39,7 @@ import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsM
 import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
+import { TraceMobx } from '../../new_fields/util';
 
 @observer
 export class MainView extends React.Component {
@@ -260,38 +261,41 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
+    _emptyPath = [];
+    @computed get mainDocView() {
+        return <DocumentView Document={this.mainContainer!}
+            DataDoc={undefined}
+            LibraryPath={this._emptyPath}
+            addDocument={undefined}
+            addDocTab={this.addDocTabFunc}
+            pinToPres={emptyFunction}
+            onClick={undefined}
+            ruleProvider={undefined}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            PanelWidth={this.getPWidth}
+            PanelHeight={this.getPHeight}
+            renderDepth={0}
+            backgroundColor={returnEmptyString}
+            focus={emptyFunction}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            bringToFront={emptyFunction}
+            ContainingCollectionView={undefined}
+            ContainingCollectionDoc={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne}
+        />
+    }
     @computed get dockingContent() {
+        TraceMobx();
         const mainContainer = this.mainContainer;
-        const flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
-        const flyoutTranslate = this._flyoutTranslate;
+        const width = this.flyoutWidth;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutTranslate ? flyoutWidth : 0}px`, transform: `translate(${flyoutTranslate ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
-                    {!mainContainer ? (null) :
-                        <DocumentView Document={mainContainer}
-                            DataDoc={undefined}
-                            LibraryPath={[]}
-                            addDocument={undefined}
-                            addDocTab={this.addDocTabFunc}
-                            pinToPres={emptyFunction}
-                            onClick={undefined}
-                            ruleProvider={undefined}
-                            removeDocument={undefined}
-                            ScreenToLocalTransform={Transform.Identity}
-                            ContentScaling={returnOne}
-                            PanelWidth={this.getPWidth}
-                            PanelHeight={this.getPHeight}
-                            renderDepth={0}
-                            backgroundColor={returnEmptyString}
-                            focus={emptyFunction}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
-                            bringToFront={emptyFunction}
-                            ContainingCollectionView={undefined}
-                            ContainingCollectionDoc={undefined}
-                            zoomToScale={emptyFunction}
-                            getScale={returnOne}
-                        />}
+                <div ref={measureRef} className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
+                    {!mainContainer ? (null) : this.mainDocView}
                 </div>
             }
         </Measure>;
@@ -416,6 +420,7 @@ export class MainView extends React.Component {
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
             </div>
+            {this.docButtons}
         </div>;
     }
 
@@ -423,10 +428,9 @@ export class MainView extends React.Component {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" >
-                <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger}>
-                    <div className="mainView-libraryHandle"
-                        style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
-                        onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>
+                <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
+                    <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
+                        style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }} >
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -435,11 +439,9 @@ export class MainView extends React.Component {
                         }} />
                     </div>
                     <div className="mainView-libraryFlyout" style={{
-                        width: `${this.flyoutWidth}px`,
-                        zIndex: 1,
-                        transformOrigin: this._flyoutTranslate ? "" : "left center",
+                        //transformOrigin: this._flyoutTranslate ? "" : "left center",
                         transition: this._flyoutTranslate ? "" : "width .5s",
-                        transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
+                        //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
                         boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
                     }}>
                         {this.flyout}
@@ -471,7 +473,7 @@ export class MainView extends React.Component {
     @computed get docButtons() {
         if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
-                style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
+                style={{ height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
                 <CollectionLinearView
                     Document={CurrentUserUtils.UserDocument.expandingButtons}
@@ -515,7 +517,6 @@ export class MainView extends React.Component {
             {this.mainContent}
             <PreviewCursor />
             <ContextMenu />
-            {this.docButtons}
             <PDFMenu />
             <MarqueeOptionsMenu />
             <OverlayView />

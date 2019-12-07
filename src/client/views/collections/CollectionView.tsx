@@ -32,6 +32,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import './CollectionView.scss';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
+const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
@@ -234,10 +235,17 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     lightbox = (images: string[]) => {
+        if (!images.length) return (null);
+        const mainPath = path.extname(images[this._curLightboxImg]);
+        const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length]);
+        const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length]);
+        let main = images[this._curLightboxImg].replace(mainPath, "_o" + mainPath);
+        let next = images[(this._curLightboxImg + 1) % images.length].replace(nextPath, "_o" + nextPath);
+        let prev = images[(this._curLightboxImg + images.length - 1) % images.length].replace(prevPath, "_o" + prevPath);
         return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
-            mainSrc={images[this._curLightboxImg]}
-            nextSrc={images[(this._curLightboxImg + 1) % images.length]}
-            prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
+            mainSrc={main}
+            nextSrc={next}
+            prevSrc={prev}
             onCloseRequest={action(() => this._isLightboxOpen = false)}
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);

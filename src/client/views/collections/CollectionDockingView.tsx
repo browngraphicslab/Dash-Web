@@ -32,6 +32,7 @@ import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ComputedField } from '../../../new_fields/ScriptField';
+import { TraceMobx } from '../../../new_fields/util';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -662,6 +663,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     @computed get docView() {
+        TraceMobx();
         if (!this._document) return (null);
         const document = this._document;
         const resolvedDataDoc = document.layout instanceof Doc ? document : this._dataDoc;

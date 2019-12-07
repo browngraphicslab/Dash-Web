@@ -45,6 +45,7 @@ interface ContentFittingDocumentViewProps {
 
 @observer
 export class ContentFittingDocumentView extends React.Component<ContentFittingDocumentViewProps>{
+    public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     private get layoutDoc() { return this.props.Document && Doc.Layout(this.props.Document); }
     private get nativeWidth() { return NumCast(this.layoutDoc!.nativeWidth, this.props.PanelWidth()); }
     private get nativeHeight() { return NumCast(this.layoutDoc!.nativeHeight, this.props.PanelHeight()); }
