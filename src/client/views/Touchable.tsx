@@ -18,9 +18,9 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     protected onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
             let pt: any = e.targetTouches.item(i);
-            // pen is also a touch, but with a radius of 0.5 (at least with the surface pens). i doubt anyone's fingers are 2 pixels wide,
+            // pen is also a touch, but with a radius of 0.5 (at least with the surface pens).
             // and this seems to be the only way of differentiating pen and touch on touch events
-            if (pt.radiusX > 2 && pt.radiusY > 2) {
+            if (pt.radiusX > 0.5 && pt.radiusY > 0.5) {
                 this.prevPoints.set(pt.identifier, pt);
             }
         }

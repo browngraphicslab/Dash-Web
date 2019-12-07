@@ -340,8 +340,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
             let result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
-            if (result) {
-                console.log(result.Name);
+            if (result && result.Score > 0.75) {
+                switch (result.Name) {
+                    case GestureUtils.Gestures.Box:
+                        let bounds = { x: Math.min(...this._points.map(p => p.X)), r: Math.max(...this._points.map(p => p.X)), y: Math.min(...this._points.map(p => p.y)), b: Math.max(...this._points.map(p => p.Y)) };
+                        let sel = this.getActiveDocuments().filter(doc => {
+                            let l = NumCast(doc.x);
+                            let r = l + doc[WidthSym]();
+                            let t = NumCast(doc.y);
+                            let b = t + doc[HeightSym]();
+                            doc.x = l - B.left - B.width / 2;
+                            doc.y = t - B.top - B.height / 2;
+                            return !(bounds.x > r || bounds.r < l || bounds.y > b || bounds.b < t);
+                        });
+                        this.addDocument(Docs.Create.FreeformDocument(sel, { x: B.left, y: B.top, width: B.width, height: B.height, panX: 0, panY: 0 }));
+                        sel.forEach(d => this.props.removeDocument(d));
+                        break;
+                }
                 this._points = [];
             }
             else {
@@ -474,8 +489,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         let rawDelta = (dir * (d1 + d2));
 
                         // this floors and ceils the delta value to prevent jitteriness
-                        let delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 16);
-                        this.zoom(centerX, centerY, delta);
+                        let delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 8);
+                        this.zoom(centerX, centerY, delta * window.devicePixelRatio);
                         this.prevPoints.set(pt1.identifier, pt1);
                         this.prevPoints.set(pt2.identifier, pt2);
                     }
