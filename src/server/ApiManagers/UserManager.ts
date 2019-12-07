@@ -64,9 +64,15 @@ export default class UserManager extends ApiManager {
                 // req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
                 req.assert("new_confirm", "Passwords do not match").equals(new_pass);
 
+<<<<<<< HEAD
                 // if (req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 })) {
                 //     result.inch = "interesting";
                 // }
+=======
+                if (req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 })) {
+                    result.inch = "interesting";
+                }
+>>>>>>> a9dab5e6befa36c54afd1e46507f266fda30a42e
 
                 // was there error in validating new passwords?
                 if (req.validationErrors()) {
