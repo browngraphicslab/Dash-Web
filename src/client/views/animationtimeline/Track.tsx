@@ -45,6 +45,17 @@ export class Track extends React.Component<IProps> {
         "baseLayout",
         "backgroundLayout",
         "layout",
+        "title", 
+        "AnimationLength", 
+        "author", 
+        "baseProto", 
+        "creationDate", 
+        "isATOn", 
+        "isPrototype", 
+        "lastOpened", 
+        "proto", 
+        "type", 
+        "zIndex"
     ];
     private readonly MAX_TITLE_HEIGHT = 75; 
     private _trackHeight = 0;

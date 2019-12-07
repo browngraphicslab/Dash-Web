@@ -300,7 +300,10 @@ export class Keyframe extends React.Component<IProps> {
         } else if (NumCast(this.keyframes[1].time) + offset >= NumCast(this.keyframes[2].time)) {
             this.regiondata.position = NumCast(this.keyframes[2].time) - this.regiondata.fadeIn;
             this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - NumCast(this.keyframes[2].time) + this.regiondata.fadeIn;
-        } else {
+        } else if (NumCast(this.keyframes[0].time) + offset <= 0){
+            this.regiondata.position = 0; 
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time); 
+        }else {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
