@@ -46,7 +46,6 @@ export default class SettingsManager extends React.Component<{}> {
 
         if (!(curr_pass && new_pass && new_confirm)) {
             this.changeAlertText("Hey, we're missing some fields!", "");
-            // alert("Hey we're missing some fields!");
             return;
         }
 
@@ -56,19 +55,13 @@ export default class SettingsManager extends React.Component<{}> {
             new_confirm
         };
 
-        const res = await Networking.PostToServer('/internalResetPassword', passwordBundle);
-        const error = res.error;
-        console.log(res, "is res");
+        const { error } = await Networking.PostToServer('/internalResetPassword', passwordBundle);
         if (error) {
-            console.log(error, error[0].msg);
             this.changeAlertText("Uh oh! " + error[0].msg + "...", "");
-            // alert("Uh oh! " + error.msg);
             return;
         }
 
         this.changeAlertText("", "Password successfully updated!");
-        console.log('success!');
-        // alert("Password successfully updated!");
     }
 
     @action
@@ -105,6 +98,7 @@ export default class SettingsManager extends React.Component<{}> {
                             {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
                             {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
                             <button onClick={this.dispatchRequest}>submit</button>
+                            <a href="/forgotPassword">forgot password?</a>
 
                         </div>
                         :

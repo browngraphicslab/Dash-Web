@@ -61,28 +61,23 @@ export default class UserManager extends ApiManager {
                     return;
                 }
 
-                // req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
+                req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
                 req.assert("new_confirm", "Passwords do not match").equals(new_pass);
-
-<<<<<<< HEAD
-                // if (req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 })) {
-                //     result.inch = "interesting";
-                // }
-=======
-                if (req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 })) {
-                    result.inch = "interesting";
+                if (curr_pass === new_pass) {
+                    result.error = [{ msg: "Current and new password are the same" }];
                 }
->>>>>>> a9dab5e6befa36c54afd1e46507f266fda30a42e
-
                 // was there error in validating new passwords?
                 if (req.validationErrors()) {
                     // was there error?
                     result.error = req.validationErrors();
                 }
 
-                user.password = new_pass;
-                user.passwordResetToken = undefined;
-                user.passwordResetExpires = undefined;
+                // will only change password if there are no errors.
+                if (!result.error) {
+                    user.password = new_pass;
+                    user.passwordResetToken = undefined;
+                    user.passwordResetExpires = undefined;
+                }
 
                 user.save(err => {
                     if (err) {
