@@ -17,7 +17,7 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private isOpen = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
-    @observable private settingsContent = "settings";
+    @observable private settingsContent = "password";
     @observable private errorText = "";
     @observable private successText = "";
     private curr_password_ref = React.createRef<HTMLInputElement>();
@@ -86,10 +86,10 @@ export default class SettingsManager extends React.Component<{}> {
                 </div>
                 <div className="settings-body">
                     <div className="settings-type">
-                        <button onClick={this.onClick} value="settings">settings</button>
-                        <button onClick={this.onClick} value="data">data</button>
+                        <button onClick={this.onClick} value="password">reset password</button>
+                        <button onClick={this.onClick} value="data">reset data</button>
                     </div>
-                    {this.settingsContent === "settings" ?
+                    {this.settingsContent === "password" ?
                         <div className="settings-content">
                             change password here:
                             <input placeholder="current password" ref={this.curr_password_ref} />
@@ -97,12 +97,12 @@ export default class SettingsManager extends React.Component<{}> {
                             <input placeholder="confirm new password" ref={this.new_confirm_ref} />
                             {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
                             {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
-                            <button onClick={this.dispatchRequest}>submit</button>
-                            <a href="/forgotPassword">forgot password?</a>
-
+                            <button onClick={this.dispatchRequest}>submit</button> <a href="/forgotPassword">forgot password?</a>
                         </div>
-                        :
-                        <div className="settings-content">hello?</div>}
+                        : undefined}
+                    {this.settingsContent === "data" ?
+                        <div className="settings-content">hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii</div>
+                        : undefined}
                 </div>
 
             </div>
