@@ -39,6 +39,8 @@ library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
 
+export type CloseCall = (toBeDeleted: DocumentView[]) => void;
+
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
@@ -69,12 +71,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public isAnimatingFetch = false;
     @observable public isAnimatingPulse = false;
     @observable public openHover = false;
+    @observable private addedCloseCalls: CloseCall[] = [];
+
 
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
         this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this._edtingTitle = false);
+    }
+
+    addCloseCall = (handler: CloseCall) => {
+        const currentOffset = this.addedCloseCalls.length - 1;
+        this.addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
+            this.addedCloseCalls.splice(currentOffset, 1);
+            handler(toBeDeleted);
+        });
     }
 
     @action titleChanged = (event: any) => { this._title = event.target.value; };
@@ -239,10 +251,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         if (e.button === 0) {
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
-            SelectionManager.SelectedDocuments().map(dv => {
+            const selectedDocuments = SelectionManager.SelectedDocuments();
+            selectedDocuments.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
             });
+            this.addedCloseCalls.forEach(handler => handler(selectedDocuments));
             SelectionManager.DeselectAll();
             document.removeEventListener("pointermove", this.onCloseMove);
             document.removeEventListener("pointerup", this.onCloseUp);

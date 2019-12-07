@@ -283,10 +283,15 @@ export namespace DashWebRTC {
         console.log('Remote stream removed. Event: ', event);
     }
 
-    function hangup() {
+    export function hangup() {
         console.log('Hanging up.');
-        stop();
-        sendMessage('bye');
+        if (pc) {
+            stop();
+            sendMessage('bye');
+        }
+        //stop local tracks on hang-up
+        //localVideo.srcObject!.getTracks().forEach(track => track.stop());
+
     }
 
     function handleRemoteHangup() {

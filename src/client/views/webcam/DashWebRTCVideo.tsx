@@ -3,13 +3,16 @@ import React = require("react");
 import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { observable } from "mobx";
-import { DocumentDecorations } from "../DocumentDecorations";
+import { DocumentDecorations, CloseCall } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
 import "./DashWebRTC.scss";
 import adapter from 'webrtc-adapter';
 import { DashWebRTC } from "./DashWebRTC";
 import { DocServer } from "../../DocServer";
+import { DocumentView } from "../nodes/DocumentView";
+import { Utils } from "../../../Utils";
+import { MessageStore } from "../../../server/Message";
 
 
 
@@ -39,6 +42,20 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     private startButton: HTMLButtonElement | undefined;
     private hangupButton: HTMLButtonElement | undefined;
     private roomText: HTMLInputElement | undefined;
+    private roomOfCam: string = "";
+
+    componentDidMount() {
+        DocumentDecorations.Instance.addCloseCall(this.closeConnection);
+    }
+
+    closeConnection: CloseCall = () => {
+        //Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: 'bye', room: this.roomOfCam });
+        DashWebRTC.hangup();
+    }
+
+    componentWillUnmount() {
+        // DocumentDecorations.Instance.removeCloseCall(this.closeConnection);
+    }
 
     // componentDidMount() {
     //     // DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
@@ -289,6 +306,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
             let submittedTitle = this.roomText!.value;
             this.roomText!.value = "";
             this.roomText!.blur();
+            this.roomOfCam = submittedTitle;
             DashWebRTC.init(submittedTitle);
         }
     }
