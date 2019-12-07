@@ -10,7 +10,7 @@ import initializeServer from './Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import SearchManager from './ApiManagers/SearchManager';
+import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -21,11 +21,12 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import DiagnosticManager from "./ApiManagers/DiagnosticManager";
 import { yellow } from "colors";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
+
+export const ExitHandlers = new Array<() => void>();
 
 /**
  * These are the functions run before the server starts
@@ -33,6 +34,35 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
+    process.on('SIGINT', () => {
+        const { stdin, stdout, stderr } = process;
+        stdin.resume();
+        stdout.resume();
+        stderr.resume();
+        ExitHandlers.forEach(handler => handler());
+        console.log("Okay, now we're done...");
+        // process.exit(0);
+    });
+
+    (process as any).on('cleanup', () => {
+        console.log("CLEANING UP!");
+    });
+
+    process.on('exit', function () {
+        (process.emit as Function)('cleanup');
+    });
+
+    //catch uncaught exceptions, trace, then exit normally
+    process.on('uncaughtException', function (e) {
+        console.log('Uncaught Exception...');
+        process.exit(99);
+    });
+    process.on('unhandledRejection', function (e) {
+        console.log('Unhandled Rejection...');
+        process.exit(99);
+    });
+
+    await SolrManager.initializeSolr();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
@@ -57,7 +87,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
-        new DiagnosticManager(),
         new SearchManager(),
         new PDFManager(),
         new DeleteManager(),
@@ -77,6 +106,12 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: "/",
         onValidation: ({ res }) => res.redirect("/home")
+    });
+
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/serverHeartbeat",
+        onValidation: ({ res }) => res.send(true)
     });
 
     const serve: OnUnauthenticated = ({ req, res }) => {

@@ -10,6 +10,7 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort, addBeforeExitHandler } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
+import { ExitHandlers } from "..";
 
 export namespace WebSocket {
 
@@ -52,8 +53,9 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+
+            ExitHandlers.push(() => socket.broadcast.emit("connection_terminated", Date.now()));
         });
-        addBeforeExitHandler(async () => { await new Promise<void>(resolve => endpoint.close(resolve)); });
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }
