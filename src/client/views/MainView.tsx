@@ -15,7 +15,7 @@ import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils, emptyPath } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -261,11 +261,10 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    _emptyPath = [];
     @computed get mainDocView() {
         return <DocumentView Document={this.mainContainer!}
             DataDoc={undefined}
-            LibraryPath={this._emptyPath}
+            LibraryPath={emptyPath}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
@@ -367,7 +366,7 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -394,7 +393,7 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarContent}
                     DataDoc={undefined}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -478,7 +477,7 @@ export class MainView extends React.Component {
                 <CollectionLinearView
                     Document={CurrentUserUtils.UserDocument.expandingButtons}
                     DataDoc={undefined}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     fieldKey={"data"}
                     annotationsKey={""}
                     select={emptyFunction}

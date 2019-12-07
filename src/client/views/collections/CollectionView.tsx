@@ -32,6 +32,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import './CollectionView.scss';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
+import { TraceMobx } from '../../../new_fields/util';
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -251,6 +252,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
     render() {
+        TraceMobx();
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
             removeDocument: this.removeDocument,
