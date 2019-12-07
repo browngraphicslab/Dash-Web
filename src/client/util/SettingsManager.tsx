@@ -17,6 +17,9 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private isOpen = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
+    @observable private settingsContent = "settings";
+    @observable private errorText = "";
+    @observable private successText = "";
     private curr_password_ref = React.createRef<HTMLInputElement>();
     private new_password_ref = React.createRef<HTMLInputElement>();
     private new_confirm_ref = React.createRef<HTMLInputElement>();
@@ -35,13 +38,15 @@ export default class SettingsManager extends React.Component<{}> {
         SettingsManager.Instance = this;
     }
 
+    @action
     private dispatchRequest = async () => {
         const curr_pass = this.curr_password_ref.current?.value;
         const new_pass = this.new_password_ref.current?.value;
         const new_confirm = this.new_confirm_ref.current?.value;
 
         if (!(curr_pass && new_pass && new_confirm)) {
-            alert("Hey we're missing some fields!");
+            this.changeAlertText("Hey, we're missing some fields!", "");
+            // alert("Hey we're missing some fields!");
             return;
         }
 
@@ -50,17 +55,31 @@ export default class SettingsManager extends React.Component<{}> {
             new_pass,
             new_confirm
         };
-        const { error } = await Networking.PostToServer('/internalResetPassword', passwordBundle);
+
+        const res = await Networking.PostToServer('/internalResetPassword', passwordBundle);
+        const error = res.error;
+        console.log(res, "is res");
         if (error) {
-            alert("Uh oh! " + error);
+            console.log(error, error[0].msg);
+            this.changeAlertText("Uh oh! " + error[0].msg + "...", "");
+            // alert("Uh oh! " + error.msg);
             return;
         }
 
-        alert("Password successfully updated!");
+        this.changeAlertText("", "Password successfully updated!");
+        console.log('success!');
+        // alert("Password successfully updated!");
     }
 
+    @action
+    private changeAlertText = (errortxt: string, successtxt: string) => {
+        this.errorText = errortxt;
+        this.successText = successtxt;
+    }
+
+    @action
     onClick = (event: any) => {
-        console.log(event);
+        this.settingsContent = event.currentTarget.value;
     }
 
     private get settingsInterface() {
@@ -77,13 +96,19 @@ export default class SettingsManager extends React.Component<{}> {
                         <button onClick={this.onClick} value="settings">settings</button>
                         <button onClick={this.onClick} value="data">data</button>
                     </div>
-                    <div className="settings-content">
-                        <input placeholder="current password" ref={this.curr_password_ref} />
-                        <input placeholder="new password" ref={this.new_password_ref} />
-                        <input placeholder="confirm new password" ref={this.new_confirm_ref} />
-                        <button onClick={this.dispatchRequest}>submit</button>
-                        this changes with what you select!
-                    </div>
+                    {this.settingsContent === "settings" ?
+                        <div className="settings-content">
+                            change password here:
+                            <input placeholder="current password" ref={this.curr_password_ref} />
+                            <input placeholder="new password" ref={this.new_password_ref} />
+                            <input placeholder="confirm new password" ref={this.new_confirm_ref} />
+                            {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
+                            {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
+                            <button onClick={this.dispatchRequest}>submit</button>
+
+                        </div>
+                        :
+                        <div className="settings-content">hello?</div>}
                 </div>
 
             </div>

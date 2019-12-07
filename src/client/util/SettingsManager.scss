@@ -47,6 +47,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            text-align: left;
 
             button {
                 background: $darker-alt-accent;
@@ -54,6 +55,14 @@
 
             input {
                 min-width: 100%;
+            }
+
+            .error-text {
+                color: #C40233;
+            }
+
+            .success-text {
+                color: #009F6B;
             }
         }
     }

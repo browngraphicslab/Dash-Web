@@ -47,8 +47,8 @@ export default class UserManager extends ApiManager {
                 // perhaps should assert whether curr password is entered correctly
                 const validated = await new Promise<Opt<boolean>>(resolve => {
                     bcrypt.compare(curr_pass, user.password, (err, passwords_match) => {
-                        if (err) {
-                            result.error = "Incorrect current password";
+                        if (err || !passwords_match) {
+                            result.error = [{ msg: "Incorrect current password" }];
                             res.send(result);
                             resolve(undefined);
                         } else {
@@ -61,8 +61,12 @@ export default class UserManager extends ApiManager {
                     return;
                 }
 
-                req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
+                // req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 });
                 req.assert("new_confirm", "Passwords do not match").equals(new_pass);
+
+                if (req.assert("new_pass", "Password must be at least 4 characters long").len({ min: 4 })) {
+                    result.inch = "interesting";
+                }
 
                 // was there error in validating new passwords?
                 if (req.validationErrors()) {
@@ -76,7 +80,7 @@ export default class UserManager extends ApiManager {
 
                 user.save(err => {
                     if (err) {
-                        result.error = "saving";
+                        result.error = [{ msg: "Error while saving new password" }];
                     }
                 });
 
