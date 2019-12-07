@@ -53,7 +53,7 @@ export namespace InteractionUtils {
      * @param oldPoint2 - previous point 2
      */
     export function Pinching(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
-        let threshold = 4;
+        let threshold = 3;
         let oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
         let newDist = TwoPointEuclidist(pt1, pt2);
 

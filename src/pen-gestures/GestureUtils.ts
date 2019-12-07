@@ -6,14 +6,14 @@ import { Doc } from "../new_fields/Doc";
 
 export namespace GestureUtils {
     namespace GestureDataTypes {
-        export type BoxData = Doc[];
+        export type BoxData = Array<Doc>;
     }
-
-    export const GestureRecognizer = new NDollarRecognizer(false);
 
     export enum Gestures {
         Box = "box"
     }
+
+    export const GestureRecognizer = new NDollarRecognizer(false);
 
     export function GestureOptions(name: Gestures, gestureData: any): (() => any)[] {
         switch (name) {
@@ -27,7 +27,7 @@ export namespace GestureUtils {
     }
 
     function BoxOptions(gestureData: GestureDataTypes.BoxData): (() => any)[] {
-        if (gestureData instanceof Doc[]) {
+        if (gestureData instanceof Array) {
             return [() => Docs.Create.FreeformDocument(gestureData as Doc[], {})];
         }
         return [];

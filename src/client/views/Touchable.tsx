@@ -26,7 +26,8 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         }
 
         if (this.prevPoints.size) {
-            switch (e.targetTouches.length) {
+            console.log(e.targetTouches.length);
+            switch (this.prevPoints.size) {
                 case 1:
                     this.handle1PointerDown(e);
                     break;
@@ -67,35 +68,29 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 if (this.prevPoints.has(pt.identifier)) {
                     this.prevPoints.set(pt.identifier, pt);
                 }
-                else {
-                    this.prevPoints.set(pt.identifier, pt);
-                }
             }
         }
     }
 
     @action
     protected onTouchEnd = (e: TouchEvent): void => {
-        console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
+        // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
+        // remove all the touches associated with the event
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            let pt = e.changedTouches.item(i);
+            if (pt && this.prevPoints.has(pt.identifier)) {
+                this.prevPoints.delete(pt.identifier);
+            }
+        }
         this._touchDrag = false;
         e.stopPropagation();
 
-        // remove all the touches associated with the event
-        for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
-            if (pt) {
-                if (this.prevPoints.has(pt.identifier)) {
-                    console.log("delete");
-                    this.prevPoints.delete(pt.identifier);
-                }
-            }
-        }
 
-        if (e.targetTouches.length === 0) {
-            this.prevPoints.clear();
-        }
+        // if (e.targetTouches.length === 0) {
+        //     this.prevPoints.clear();
+        // }
 
-        if (this.prevPoints.size === 0 && e.targetTouches.length === 0) {
+        if (this.prevPoints.size === 0) {
             this.cleanUpInteractions();
         }
     }
