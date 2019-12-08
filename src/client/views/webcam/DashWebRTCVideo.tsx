@@ -25,6 +25,7 @@ const offerOptions = {
     offerToReceiveVideo: 1,
 };
 
+
 /**
  * This models the component that will be rendered, that can be used as a doc that will reflect the video cams.
  */
@@ -56,6 +57,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     componentWillUnmount() {
         // DocumentDecorations.Instance.removeCloseCall(this.closeConnection);
     }
+
 
     // componentDidMount() {
     //     // DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);

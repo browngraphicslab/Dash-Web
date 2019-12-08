@@ -116,13 +116,6 @@ export namespace DashWebRTC {
     }
 
 
-
-
-    //let socket = io.connect();
-
-
-
-
     function sendMessage(message: any) {
         console.log('Client sending message: ', message);
         Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: curRoom });
@@ -289,8 +282,10 @@ export namespace DashWebRTC {
             stop();
             sendMessage('bye');
         }
-        //stop local tracks on hang-up
-        //localVideo.srcObject!.getTracks().forEach(track => track.stop());
+
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
 
     }
 
