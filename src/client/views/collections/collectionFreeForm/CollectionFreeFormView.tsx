@@ -13,7 +13,7 @@ import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fiel
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -42,6 +42,7 @@ import React = require("react");
 import { computedFn, keepAlive } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
+import { LinkManager } from "../../../util/LinkManager";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -340,7 +341,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
             let result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
-            if (result && result.Score > 0.75) {
+            let actionPerformed = false;
+            if (result && result.Score > 0.7) {
                 switch (result.Name) {
                     case GestureUtils.Gestures.Box:
                         let bounds = { x: Math.min(...this._points.map(p => p.X)), r: Math.max(...this._points.map(p => p.X)), y: Math.min(...this._points.map(p => p.y)), b: Math.max(...this._points.map(p => p.Y)) };
@@ -355,11 +357,39 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         });
                         this.addDocument(Docs.Create.FreeformDocument(sel, { x: B.left, y: B.top, width: B.width, height: B.height, panX: 0, panY: 0 }));
                         sel.forEach(d => this.props.removeDocument(d));
+                        actionPerformed = true;
+                        break;
+                    case GestureUtils.Gestures.Line:
+                        let ep1 = this._points[0];
+                        let ep2 = this._points[this._points.length - 1];
+                        let d1: Doc | undefined;
+                        let d2: Doc | undefined;
+                        this.getActiveDocuments().map(doc => {
+                            let l = NumCast(doc.x);
+                            let r = l + doc[WidthSym]();
+                            let t = NumCast(doc.y);
+                            let b = t + doc[HeightSym]();
+                            if (!d1 && l < ep1.X && r > ep1.X && t < ep1.Y && b > ep1.Y) {
+                                d1 = doc;
+                            }
+                            else if (!d2 && l < ep2.X && r > ep2.X && t < ep2.Y && b > ep2.Y) {
+                                d2 = doc;
+                            }
+                        });
+                        if (d1 && d2) {
+                            if (!LinkManager.Instance.doesLinkExist(d1, d2)) {
+                                DocUtils.MakeLink({ doc: d1 }, { doc: d2 });
+                                actionPerformed = true;
+                            }
+                        }
                         break;
                 }
-                this._points = [];
+                if (actionPerformed) {
+                    this._points = [];
+                }
             }
-            else {
+
+            if (!actionPerformed) {
                 let inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
                 this.addDocument(inkDoc);
                 this._points = [];
@@ -880,7 +910,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let B = this.svgBounds;
 
         return (
-            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, position: "relative", zIndex: 30000 }}>
+            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, position: "absolute", zIndex: 30000 }}>
                 {CreatePolyline(this._points, B.left, B.top)}
             </svg>
         );

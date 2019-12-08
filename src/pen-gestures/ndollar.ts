@@ -142,7 +142,7 @@ export class Result {
 //
 // NDollarRecognizer constants
 //
-const NumMultistrokes = 1;
+const NumMultistrokes = 2;
 const NumPoints = 96;
 const SquareSize = 250.0;
 const OneDThreshold = 0.25; // customize to desired gesture set (usually 0.20 - 0.35)
@@ -169,6 +169,9 @@ export class NDollarRecognizer {
         this.Multistrokes = new Array(NumMultistrokes);
         this.Multistrokes[0] = new Multistroke(GestureUtils.Gestures.Box, useBoundedRotationInvariance, new Array(
             new Array(new Point(30, 146), new Point(30, 222), new Point(106, 225), new Point(106, 146), new Point(30, 146))
+        ));
+        this.Multistrokes[1] = new Multistroke(GestureUtils.Gestures.Line, useBoundedRotationInvariance, new Array(
+            new Array(new Point(12, 347), new Point(119, 347))
         ));
 
         //
@@ -209,9 +212,6 @@ export class NDollarRecognizer {
         // this.Multistrokes[7] = new Multistroke("exclamation", useBoundedRotationInvariance, new Array(
         //     new Array(new Point(526, 142), new Point(526, 204)),
         //     new Array(new Point(526, 221))
-        // ));
-        // this.Multistrokes[8] = new Multistroke("line", useBoundedRotationInvariance, new Array(
-        //     new Array(new Point(12, 347), new Point(119, 347))
         // ));
         // this.Multistrokes[9] = new Multistroke("five-point star", useBoundedRotationInvariance, new Array(
         //     new Array(new Point(177, 396), new Point(223, 299), new Point(262, 396), new Point(168, 332), new Point(278, 332), new Point(184, 397))
