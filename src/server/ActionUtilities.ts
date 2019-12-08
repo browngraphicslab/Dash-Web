@@ -73,7 +73,3 @@ export async function Prune(rootDirectory: string): Promise<boolean> {
 }
 
 export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
-
-export function addBeforeExitHandler(handler: NodeJS.BeforeExitListener) {
-    // process.on("beforeExit", handler);
-}

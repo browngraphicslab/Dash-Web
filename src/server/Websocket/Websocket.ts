@@ -7,15 +7,16 @@ import { Search } from "../Search";
 import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { logPort, addBeforeExitHandler } from "../ActionUtilities";
+import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { ExitHandlers } from "..";
+import { SolrManager } from "../ApiManagers/SearchManager";
 
 export namespace WebSocket {
 
     const clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
+    export let disconnect: Function;
 
     export async function start(serverPort: number, isRelease: boolean) {
         await preliminaryFunctions();
@@ -54,8 +55,12 @@ export namespace WebSocket {
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 
-            ExitHandlers.push(() => socket.broadcast.emit("connection_terminated", Date.now()));
+            disconnect = () => {
+                socket.broadcast.emit("connection_terminated", Date.now());
+                socket.disconnect(true);
+            };
         });
+
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }
