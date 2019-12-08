@@ -173,7 +173,7 @@ export namespace WebSocket {
     function UpdateField(socket: Socket, diff: Diff) {
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
-        const docfield = diff.diff.$set;
+        const docfield = diff.diff.$set || diff.diff.$unset;
         if (!docfield) {
             return;
         }
