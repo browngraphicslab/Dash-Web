@@ -57,6 +57,7 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
+    @computed public get sidebarButtonsDoc() { return Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc; }
 
     public isPointerDown = false;
 
@@ -206,7 +207,7 @@ export class MainView extends React.Component {
     }
 
     @action
-    openWorkspace = async (doc: Doc, fromHistory = false) => {
+    openWorkspace = (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
 
         if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
@@ -316,6 +317,7 @@ export class MainView extends React.Component {
     pointerOverDragger = () => {
         if (this.flyoutWidth === 0) {
             this.flyoutWidth = 250;
+            this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
             this._flyoutTranslate = false;
         }
     }
@@ -331,26 +333,22 @@ export class MainView extends React.Component {
     @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
+        this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
     }
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4) {
             this.flyoutWidth = this.flyoutWidth < 5 ? 250 : 0;
+            this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]) => {
-        if (where === "close") {
-            return CollectionDockingView.CloseRightSplit(doc);
-        }
-        if (doc.dockingConfig) {
-            this.openWorkspace(doc);
-            return true;
-        } else {
-            return CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
-        }
+    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]): boolean => {
+        return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
+            doc.dockingConfig ? this.openWorkspace(doc) :
+                CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
@@ -360,7 +358,6 @@ export class MainView extends React.Component {
             return (null);
         }
         const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
-        sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
         return <div className="mainView-flyoutContainer" >
             <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
                 <DocumentView
@@ -454,6 +451,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
+        MainView.Instance.sidebarButtonsDoc.columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
     });
 
     @computed get expandButton() {
