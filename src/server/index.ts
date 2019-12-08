@@ -93,7 +93,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
             WebSocket.disconnect();
             await disconnect();
             await Database.disconnect();
-            await SolrManager.SetRunning(false);
+            SolrManager.SetRunning(false);
             res.send("Server successfully shut down.");
             process.exit(0);
         }
