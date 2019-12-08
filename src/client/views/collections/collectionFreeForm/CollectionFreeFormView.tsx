@@ -351,9 +351,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             let r = l + doc[WidthSym]();
                             let t = NumCast(doc.y);
                             let b = t + doc[HeightSym]();
-                            doc.x = l - B.left - B.width / 2;
-                            doc.y = t - B.top - B.height / 2;
-                            return !(bounds.x > r || bounds.r < l || bounds.y > b || bounds.b < t);
+                            let pass = !(bounds.x > r || bounds.r < l || bounds.y > b || bounds.b < t);
+                            if (pass) {
+                                doc.x = l - B.left - B.width / 2;
+                                doc.y = t - B.top - B.height / 2;
+                            }
+                            return pass;
                         });
                         this.addDocument(Docs.Create.FreeformDocument(sel, { x: B.left, y: B.top, width: B.width, height: B.height, panX: 0, panY: 0 }));
                         sel.forEach(d => this.props.removeDocument(d));
