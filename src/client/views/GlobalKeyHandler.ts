@@ -108,7 +108,7 @@ export default class KeyManager {
         let preventDefault = false;
 
         switch (keyname) {
-            case " ":
+            case "~":
                 DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
