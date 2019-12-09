@@ -552,18 +552,6 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 
-    pFontColor: {
-        attrs: {
-            color: { default: "yellow" }
-        },
-        parseDOM: [{ style: 'background: #d9dbdd' }],
-        toDOM: (node) => {
-            return ['span', {
-                style: `color: ${node.attrs.color}`
-            }];
-        }
-    },
-
     /** FONT SIZES */
     pFontSize: {
         attrs: {
