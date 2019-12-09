@@ -351,7 +351,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "disagree", { "text-decoration": "line-through" });
         }
         if (FormattedTextBox._highlights.indexOf("Ignore Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "ignore", { "font-size": "0" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "ignore", { "font-size": "1" });
         }
         if (FormattedTextBox._highlights.indexOf("By Recent Minute") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
@@ -1040,7 +1040,18 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         this.doLinkOnDeselect();
     }
+
     onKeyPress = (e: React.KeyboardEvent) => {
+        if (!this._editorView!.state.selection.empty && e.key === "%") {
+            (this._editorView!.state as any).EnteringStyle = true;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        if (this._editorView!.state.selection.empty || !(this._editorView!.state as any).EnteringStyle) {
+            (this._editorView!.state as any).EnteringStyle = false;
+        }
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
         }

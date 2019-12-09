@@ -514,6 +514,7 @@ export const marks: { [index: string]: MarkSpec } = {
             tag: { default: "" }
         },
         group: "inline",
+        inclusive: false,
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
             return node.attrs.opened ?
