@@ -962,37 +962,42 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         //     }
         // }
 
-        this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey);
+        this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false)
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
-    hitBulletTargets(x: number, y: number, offsetX: number, select: boolean, highlightOnly = false) {
+    hitBulletTargets(x: number, y: number, select: boolean, highlightOnly: boolean) {
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
-        if (this.props.isSelected(true) && offsetX < 40) {
-            const pos = this._editorView!.posAtCoords({ left: x, top: y });
-            if (pos && pos.pos > 0) {
-                const node = this._editorView!.state.doc.nodeAt(pos.pos);
-                const node2 = node?.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
-                if ((node === this._nodeClicked || highlightOnly) && (node2?.type === schema.nodes.ordered_list || node2?.type === schema.nodes.list_item)) {
-                    const hit = this._editorView!.domAtPos(pos.pos).node as any;   // let beforeEle = document.querySelector("." + hit.className) as Element;
-                    const before = hit ? window.getComputedStyle(hit, ':before') : undefined;
-                    const beforeWidth = before ? Number(before.getPropertyValue('width').replace("px", "")) : undefined;
-                    if (beforeWidth && offsetX < beforeWidth * .9) {
-                        const ol = this._editorView!.state.doc.nodeAt(pos.pos - 2) ? this._editorView!.state.doc.nodeAt(pos.pos - 2) : undefined;
-                        if (ol?.type === schema.nodes.ordered_list && select) {
-                            if (!highlightOnly) {
-                                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection(this._editorView!.state.doc.resolve(pos.pos - 2))));
-                            }
-                            addStyleSheetRule(FormattedTextBox._bulletStyleSheet, hit.className + ":before", { background: "lightgray" });
-                        } else {
-                            if (highlightOnly) {
-                                addStyleSheetRule(FormattedTextBox._bulletStyleSheet, hit.className + ":before", { background: "lightgray" });
-                            } else {
-                                this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
-                            }
-                        }
+        const pos = this._editorView!.posAtCoords({ left: x, top: y });
+        if (pos && this.props.isSelected(true)) {
+            // let beforeEle = document.querySelector("." + hit.className) as Element; // const before = hit ? window.getComputedStyle(hit, ':before') : undefined;
+            //const node = this._editorView!.state.doc.nodeAt(pos.pos);
+            let $pos = this._editorView!.state.doc.resolve(pos.pos);
+            let list_node = $pos.node().type === schema.nodes.list_item ? $pos.node() : undefined;
+            if ($pos.node().type === schema.nodes.ordered_list) {
+                for (let off = 1; off < 100; off++) {
+                    const pos = this._editorView!.posAtCoords({ left: x + off, top: y });
+                    const node = pos && this._editorView!.state.doc.nodeAt(pos.pos);
+                    if (node?.type === schema.nodes.list_item) {
+                        list_node = node;
+                        break;
                     }
+                }
+            }
+            if (list_node && this._editorView!.state.doc.nodeAt(pos.inside)!.attrs.bulletStyle === list_node.attrs.bulletStyle) {
+                if (select) {
+                    let $olist_pos = this._editorView!.state.doc.resolve($pos.pos - $pos.parentOffset - 1);
+                    if (!highlightOnly) {
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olist_pos)));
+                    }
+                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
+                } else if (Math.abs(pos.pos - pos.inside) < 2) {
+                    if (!highlightOnly) {
+                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside)));
+                    }
+                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
             }
         }
@@ -1113,7 +1118,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
-                onPointerMove={e => this.hitBulletTargets(e.clientX, e.clientY, e.nativeEvent.offsetX, e.shiftKey, true)}
+                onPointerMove={e => this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, true)}
                 onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}

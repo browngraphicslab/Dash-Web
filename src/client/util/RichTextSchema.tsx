@@ -249,16 +249,13 @@ export const nodes: { [index: string]: NodeSpec } = {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
             setFontSize: { default: undefined },
-            setFontFamily: { default: undefined },
+            setFontFamily: { default: "inherit" },
             inheritedFontSize: { default: undefined },
             visibility: { default: true }
         },
         toDOM(node: Node<any>) {
-            const bs = node.attrs.bulletStyle;
             if (node.attrs.mapStyle === "bullet") return ['ul', 0];
-            const decMap = bs ? "decimal" + bs : "";
-            const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
-            const map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
             const fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
             const ffam = node.attrs.setFontFamily;
             return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }, 0] :
@@ -285,10 +282,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         ...listItem,
         content: 'paragraph block*',
         toDOM(node: any) {
-            const bs = node.attrs.bulletStyle;
-            const decMap = bs ? "decimal" + bs : "";
-            const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
-            const map = node.attrs.mapStyle === "decimal" ? decMap : node.attrs.mapStyle === "multi" ? multiMap : "";
+            const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
             return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
             //return ["li", { class: `${map}` }, 0];
         }
