@@ -315,11 +315,11 @@ export class MainView extends React.Component {
 
     @action
     pointerOverDragger = () => {
-        if (this.flyoutWidth === 0) {
-            this.flyoutWidth = 250;
-            this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
-            this._flyoutTranslate = false;
-        }
+        // if (this.flyoutWidth === 0) {
+        //     this.flyoutWidth = 250;
+        //     this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
+        //     this._flyoutTranslate = false;
+        // }
     }
 
     @action
@@ -338,7 +338,7 @@ export class MainView extends React.Component {
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4) {
-            this.flyoutWidth = this.flyoutWidth < 5 ? 250 : 0;
+            this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
             this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
         }
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -429,7 +429,7 @@ export class MainView extends React.Component {
                         style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }} >
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
-                            height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
+                            //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
                             position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
                             top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />

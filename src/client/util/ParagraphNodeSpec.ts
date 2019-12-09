@@ -115,7 +115,7 @@ function toDOM(node: Node): DOMOutputSpec {
         attrs.id = id;
     }
 
-    return ['p', attrs, 0];
+    return ['p', { ...attrs, ...{ style: `text-indent: ${indent}; padding-left: ${indent < 0 ? -indent : undefined};` } }, 0];
 }
 
 export const toParagraphDOM = toDOM;

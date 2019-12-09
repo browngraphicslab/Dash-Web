@@ -73,18 +73,23 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
         new InputRule(
-            new RegExp(/%[a-z]*\s$/),
+            new RegExp(/%[a-z]+$/),
             (state, match, start, end) => {
-                const color = match[0].substring(1, match[0].length - 1);
+                const color = match[0].substring(1, match[0].length);
                 let marks = TooltipTextMenuManager.Instance._brushMap.get(color);
                 if (marks) {
                     let tr = state.tr.deleteRange(start, end);
                     return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;
                 }
-                if (color) {
+                let isValidColor = (strColor: string) => {
+                    var s = new Option().style;
+                    s.color = strColor;
+                    return s.color == strColor.toLowerCase(); // 'false' if color wasn't assigned
+                }
+                if (isValidColor(color)) {
                     return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontColor.create({ color: color }));
                 }
-                return state.tr.deleteRange(start, end);
+                return null;
             }),
         new InputRule(
             new RegExp(/%%$/),
@@ -96,29 +101,61 @@ export const inpRules = {
         new InputRule(
             new RegExp(/t$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
+                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "todo", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
         new InputRule(
             new RegExp(/i$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
+                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "ignore", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+            }),
+        new InputRule(
+            new RegExp(/d$/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+                const pos = (state.doc.resolve(start) as any);
+                let depth = pos.path.length / 3 - 1;
+                for (; depth >= 0; depth--) {
+                    if (pos.node(depth).type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, indent: 25 });
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
+                }
+                return null;
+            }),
+        new InputRule(
+            new RegExp(/h$/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+                const pos = (state.doc.resolve(start) as any);
+                let depth = pos.path.length / 3 - 1;
+                for (; depth >= 0; depth--) {
+                    if (pos.node(depth).type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, indent: -25 });
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
+                }
+                return null;
             }),
         new InputRule(
             new RegExp(/!$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
+                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "important", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
         new InputRule(
             new RegExp(/x$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
                 const node = (state.doc.resolve(start) as any).nodeAfter;
+                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "disagree", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
         new InputRule(
