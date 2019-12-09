@@ -22,6 +22,7 @@ import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { yellow } from "colors";
+import { disconnect } from "../server/Initialization";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -34,35 +35,6 @@ export const ExitHandlers = new Array<() => void>();
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
-    process.on('SIGINT', () => {
-        const { stdin, stdout, stderr } = process;
-        stdin.resume();
-        stdout.resume();
-        stderr.resume();
-        ExitHandlers.forEach(handler => handler());
-        console.log("Okay, now we're done...");
-        // process.exit(0);
-    });
-
-    (process as any).on('cleanup', () => {
-        console.log("CLEANING UP!");
-    });
-
-    process.on('exit', function () {
-        (process.emit as Function)('cleanup');
-    });
-
-    //catch uncaught exceptions, trace, then exit normally
-    process.on('uncaughtException', function (e) {
-        console.log('Uncaught Exception...');
-        process.exit(99);
-    });
-    process.on('unhandledRejection', function (e) {
-        console.log('Unhandled Rejection...');
-        process.exit(99);
-    });
-
-    await SolrManager.initializeSolr();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
@@ -112,6 +84,19 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: "/serverHeartbeat",
         onValidation: ({ res }) => res.send(true)
+    });
+
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/shutdown",
+        onValidation: async ({ res }) => {
+            WebSocket.disconnect();
+            await disconnect();
+            await Database.disconnect();
+            SolrManager.SetRunning(false);
+            res.send("Server successfully shut down.");
+            process.exit(0);
+        }
     });
 
     const serve: OnUnauthenticated = ({ req, res }) => {

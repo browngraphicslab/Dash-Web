@@ -6,10 +6,10 @@ import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 import * as mongoose from 'mongoose';
-import { addBeforeExitHandler } from './ActionUtilities';
 
 export namespace Database {
 
+    export let disconnect: Function;
     const schema = 'Dash';
     const port = 27017;
     export const url = `mongodb://localhost:${port}/${schema}`;
@@ -25,7 +25,7 @@ export namespace Database {
     export async function tryInitializeConnection() {
         try {
             const { connection } = mongoose;
-            addBeforeExitHandler(async () => { await new Promise<any>(resolve => connection.close(resolve)); });
+            disconnect = async () => new Promise<any>(resolve => connection.close(resolve));
             if (connection.readyState === ConnectionStates.disconnected) {
                 await new Promise<void>((resolve, reject) => {
                     connection.on('error', reject);
