@@ -7,14 +7,16 @@ import { Search } from "../Search";
 import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { logPort, addBeforeExitHandler } from "../ActionUtilities";
+import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
+import { SolrManager } from "../ApiManagers/SearchManager";
 
 export namespace WebSocket {
 
     const clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
+    export let disconnect: Function;
 
     export async function start(serverPort: number, isRelease: boolean) {
         await preliminaryFunctions();
@@ -52,8 +54,13 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+
+            disconnect = () => {
+                socket.broadcast.emit("connection_terminated", Date.now());
+                socket.disconnect(true);
+            };
         });
-        addBeforeExitHandler(async () => { await new Promise<void>(resolve => endpoint.close(resolve)); });
+
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }
@@ -171,7 +178,7 @@ export namespace WebSocket {
     function UpdateField(socket: Socket, diff: Diff) {
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
-        const docfield = diff.diff.$set;
+        const docfield = diff.diff.$set || diff.diff.$unset;
         if (!docfield) {
             return;
         }

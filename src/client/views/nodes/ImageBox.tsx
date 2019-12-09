@@ -215,6 +215,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
     _curSuffix = "_m";
 
+    _resized = false;
     resize = (srcpath: string) => {
         requestImageSize(srcpath)
             .then((size: any) => {
@@ -223,11 +224,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 const aspect = realsize.height / realsize.width;
                 if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
                     setTimeout(action(() => {
+                        this._resized = true;
                         this.Document.height = this.Document[WidthSym]() * aspect;
                         this.Document.nativeHeight = realsize.height;
                         this.Document.nativeWidth = realsize.width;
                     }), 0);
-                }
+                } else this._resized = true;
             })
             .catch((err: any) => console.log(err));
     }
@@ -315,7 +317,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const srcaspect = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][1] as number;
         const fadepath = paths[Math.min(paths.length - 1, 1)][0] as string;
 
-        !this.Document.ignoreAspect && this.resize(srcpath);
+        !this.Document.ignoreAspect && !this._resized && this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
             <div className="imageBox-fader" >

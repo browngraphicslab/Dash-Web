@@ -9,21 +9,21 @@ export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
         const options: ExecOptions = {};
         if (fromDirectory) {
-            options.cwd = path.join(__dirname, fromDirectory);
+            options.cwd = path.resolve(__dirname, fromDirectory);
         }
         exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
     });
 };
 
 export const read_text_file = (relativePath: string) => {
-    const target = path.join(__dirname, relativePath);
+    const target = path.resolve(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
         fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
     });
 };
 
 export const write_text_file = (relativePath: string, contents: any) => {
-    const target = path.join(__dirname, relativePath);
+    const target = path.resolve(__dirname, relativePath);
     return new Promise<void>((resolve, reject) => {
         fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
@@ -73,7 +73,3 @@ export async function Prune(rootDirectory: string): Promise<boolean> {
 }
 
 export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
-
-export function addBeforeExitHandler(handler: NodeJS.BeforeExitListener) {
-    process.on("beforeExit", handler);
-}

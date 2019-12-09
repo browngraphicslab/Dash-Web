@@ -711,7 +711,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             case "pivot": computedElementData = this.doPivotLayout(this._layoutPoolData); break;
             default: computedElementData = this.doFreeformLayout(this._layoutPoolData); break;
         }
-        this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
+        this.childLayoutPairs.filter((pair, i) => this.isCurrent(pair.layout)).forEach(pair =>
             computedElementData.elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]} dataProvider={this.childDataProvider}
                     ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}

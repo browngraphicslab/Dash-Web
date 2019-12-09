@@ -3,6 +3,7 @@ import { Method } from "../RouteManager";
 import { exec } from 'child_process';
 import { command_line } from "../ActionUtilities";
 import RouteSubscriber from "../RouteSubscriber";
+import { red } from "colors";
 
 export default class UtilManager extends ApiManager {
 
@@ -11,7 +12,14 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("environment").add("key"),
-            onValidation: ({ req, res }) => res.send(process.env[req.params.key])
+            onValidation: ({ req, res }) => {
+                const { key } = req.params;
+                const value = process.env[key];
+                if (!value) {
+                    console.log(red(`process.env.${key} is not defined.`));
+                }
+                return res.send(value);
+            }
         });
 
         register({

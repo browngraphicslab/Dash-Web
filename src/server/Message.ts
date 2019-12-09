@@ -50,6 +50,7 @@ export namespace MessageStore {
     export const GetFields = new Message<string[]>("Get Fields"); // send string[] of 'id' get Transferable[] back
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
+    export const ConnectionTerminated = new Message<string>("Connection Terminated");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");

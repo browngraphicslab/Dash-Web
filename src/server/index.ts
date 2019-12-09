@@ -10,7 +10,7 @@ import initializeServer from './Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import SearchManager from './ApiManagers/SearchManager';
+import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -21,11 +21,13 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import DiagnosticManager from "./ApiManagers/DiagnosticManager";
 import { yellow } from "colors";
+import { disconnect } from "../server/Initialization";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
+
+export const ExitHandlers = new Array<() => void>();
 
 /**
  * These are the functions run before the server starts
@@ -57,7 +59,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
-        new DiagnosticManager(),
         new SearchManager(),
         new PDFManager(),
         new DeleteManager(),
@@ -77,6 +78,25 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: "/",
         onValidation: ({ res }) => res.redirect("/home")
+    });
+
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/serverHeartbeat",
+        onValidation: ({ res }) => res.send(true)
+    });
+
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/shutdown",
+        onValidation: async ({ res }) => {
+            WebSocket.disconnect();
+            await disconnect();
+            await Database.disconnect();
+            SolrManager.SetRunning(false);
+            res.send("Server successfully shut down.");
+            process.exit(0);
+        }
     });
 
     const serve: OnUnauthenticated = ({ req, res }) => {

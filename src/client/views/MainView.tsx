@@ -15,7 +15,7 @@ import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils, emptyPath } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -39,6 +39,7 @@ import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsM
 import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
+import { TraceMobx } from '../../new_fields/util';
 
 @observer
 export class MainView extends React.Component {
@@ -56,6 +57,7 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
+    @computed public get sidebarButtonsDoc() { return Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc; }
 
     public isPointerDown = false;
 
@@ -205,7 +207,7 @@ export class MainView extends React.Component {
     }
 
     @action
-    openWorkspace = async (doc: Doc, fromHistory = false) => {
+    openWorkspace = (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
 
         if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
@@ -260,38 +262,40 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
+    @computed get mainDocView() {
+        return <DocumentView Document={this.mainContainer!}
+            DataDoc={undefined}
+            LibraryPath={emptyPath}
+            addDocument={undefined}
+            addDocTab={this.addDocTabFunc}
+            pinToPres={emptyFunction}
+            onClick={undefined}
+            ruleProvider={undefined}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            PanelWidth={this.getPWidth}
+            PanelHeight={this.getPHeight}
+            renderDepth={0}
+            backgroundColor={returnEmptyString}
+            focus={emptyFunction}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            bringToFront={emptyFunction}
+            ContainingCollectionView={undefined}
+            ContainingCollectionDoc={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne}
+        />
+    }
     @computed get dockingContent() {
+        TraceMobx();
         const mainContainer = this.mainContainer;
-        const flyoutWidth = this.flyoutWidth; // bcz: need to be here because Measure messes with observables.
-        const flyoutTranslate = this._flyoutTranslate;
+        const width = this.flyoutWidth;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutTranslate ? flyoutWidth : 0}px`, transform: `translate(${flyoutTranslate ? flyoutWidth : 0}px, 0px)` }} onDrop={this.onDrop}>
-                    {!mainContainer ? (null) :
-                        <DocumentView Document={mainContainer}
-                            DataDoc={undefined}
-                            LibraryPath={[]}
-                            addDocument={undefined}
-                            addDocTab={this.addDocTabFunc}
-                            pinToPres={emptyFunction}
-                            onClick={undefined}
-                            ruleProvider={undefined}
-                            removeDocument={undefined}
-                            ScreenToLocalTransform={Transform.Identity}
-                            ContentScaling={returnOne}
-                            PanelWidth={this.getPWidth}
-                            PanelHeight={this.getPHeight}
-                            renderDepth={0}
-                            backgroundColor={returnEmptyString}
-                            focus={emptyFunction}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
-                            bringToFront={emptyFunction}
-                            ContainingCollectionView={undefined}
-                            ContainingCollectionDoc={undefined}
-                            zoomToScale={emptyFunction}
-                            getScale={returnOne}
-                        />}
+                <div ref={measureRef} className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
+                    {!mainContainer ? (null) : this.mainDocView}
                 </div>
             }
         </Measure>;
@@ -313,6 +317,7 @@ export class MainView extends React.Component {
     pointerOverDragger = () => {
         if (this.flyoutWidth === 0) {
             this.flyoutWidth = 250;
+            this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
             this._flyoutTranslate = false;
         }
     }
@@ -328,26 +333,22 @@ export class MainView extends React.Component {
     @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
+        this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
     }
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4) {
             this.flyoutWidth = this.flyoutWidth < 5 ? 250 : 0;
+            this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]) => {
-        if (where === "close") {
-            return CollectionDockingView.CloseRightSplit(doc);
-        }
-        if (doc.dockingConfig) {
-            this.openWorkspace(doc);
-            return true;
-        } else {
-            return CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
-        }
+    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]): boolean => {
+        return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
+            doc.dockingConfig ? this.openWorkspace(doc) :
+                CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
@@ -357,13 +358,12 @@ export class MainView extends React.Component {
             return (null);
         }
         const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
-        sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
         return <div className="mainView-flyoutContainer" >
             <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -390,7 +390,7 @@ export class MainView extends React.Component {
                 <DocumentView
                     Document={sidebarContent}
                     DataDoc={undefined}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
@@ -416,6 +416,7 @@ export class MainView extends React.Component {
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
             </div>
+            {this.docButtons}
         </div>;
     }
 
@@ -423,10 +424,9 @@ export class MainView extends React.Component {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" >
-                <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger}>
-                    <div className="mainView-libraryHandle"
-                        style={{ cursor: "ew-resize", left: `${(this.flyoutWidth * (this._flyoutTranslate ? 1 : 0)) - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
-                        onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}>
+                <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
+                    <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
+                        style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }} >
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -435,11 +435,9 @@ export class MainView extends React.Component {
                         }} />
                     </div>
                     <div className="mainView-libraryFlyout" style={{
-                        width: `${this.flyoutWidth}px`,
-                        zIndex: 1,
-                        transformOrigin: this._flyoutTranslate ? "" : "left center",
+                        //transformOrigin: this._flyoutTranslate ? "" : "left center",
                         transition: this._flyoutTranslate ? "" : "width .5s",
-                        transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
+                        //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
                         boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
                     }}>
                         {this.flyout}
@@ -453,6 +451,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
+        MainView.Instance.sidebarButtonsDoc.columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
     });
 
     @computed get expandButton() {
@@ -471,12 +470,12 @@ export class MainView extends React.Component {
     @computed get docButtons() {
         if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
-                style={{ left: (this._flyoutTranslate ? this.flyoutWidth : 0) + 20, height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
+                style={{ height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
                 <CollectionLinearView
                     Document={CurrentUserUtils.UserDocument.expandingButtons}
                     DataDoc={undefined}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     fieldKey={"data"}
                     annotationsKey={""}
                     select={emptyFunction}
@@ -515,7 +514,6 @@ export class MainView extends React.Component {
             {this.mainContent}
             <PreviewCursor />
             <ContextMenu />
-            {this.docButtons}
             <PDFMenu />
             <MarqueeOptionsMenu />
             <OverlayView />

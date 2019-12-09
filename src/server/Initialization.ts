@@ -18,8 +18,8 @@ import * as whm from 'webpack-hot-middleware';
 import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
-import { publicDirectory } from '.';
-import { logPort, addBeforeExitHandler } from './ActionUtilities';
+import { publicDirectory, ExitHandlers } from '.';
+import { logPort, } from './ActionUtilities';
 import { timeMap } from './ApiManagers/UserManager';
 import { blue, yellow } from 'colors';
 
@@ -30,6 +30,8 @@ export interface InitializationOptions {
     serverPort: number;
     routeSetter: RouteSetter;
 }
+
+export let disconnect: Function;
 
 export default async function InitializeServer(options: InitializationOptions) {
     const { serverPort, routeSetter } = options;
@@ -65,7 +67,7 @@ export default async function InitializeServer(options: InitializationOptions) {
         logPort("server", serverPort);
         console.log();
     });
-    addBeforeExitHandler(async () => { await new Promise<Error>(resolve => server.close(resolve)); });
+    disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
 
     return isRelease;
 }

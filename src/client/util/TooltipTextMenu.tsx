@@ -1030,7 +1030,7 @@ export class TooltipTextMenu {
                         TooltipTextMenuManager.Instance._brushMarks && TooltipTextMenuManager.Instance._brushMap.set(input.value, TooltipTextMenuManager.Instance._brushMarks);
                         input.style.background = "lightGray";
                     }
-                }
+                };
 
                 const wrapper = document.createElement("div");
                 wrapper.appendChild(input);

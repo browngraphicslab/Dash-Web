@@ -362,6 +362,8 @@ export function returnZero() { return 0; }
 
 export function returnEmptyString() { return ""; }
 
+export let emptyPath = [];
+
 export function emptyFunction() { }
 
 export function unimplementedFunction() { throw new Error("This function is not implemented, but should be."); }

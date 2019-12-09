@@ -17,6 +17,7 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
+import { TraceMobx } from "../../../new_fields/util";
 
 library.add(faPalette);
 
@@ -252,13 +253,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @observable private collapsed: boolean = false;
 
-    private toggleVisibility = action(() => {
-        this.collapsed = !this.collapsed;
-    });
+    private toggleVisibility = action(() => this.collapsed = !this.collapsed);
 
     @observable _headingsHack: number = 1;
 
     render() {
+        TraceMobx();
         const cols = this.props.cols();
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
         let templatecols = "";

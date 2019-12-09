@@ -32,6 +32,7 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
+import { TraceMobx } from "../../../new_fields/util";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -57,6 +58,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
+        TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
         const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
@@ -92,6 +94,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        TraceMobx();
         return (this.props.renderDepth > 7 || !this.layout) ? (null) :
             <ObserverJsxParser
                 blacklistedAttrs={[]}

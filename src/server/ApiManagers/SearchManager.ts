@@ -4,10 +4,28 @@ import { Search } from "../Search";
 const findInFiles = require('find-in-files');
 import * as path from 'path';
 import { pathToDirectory, Directory } from "./UploadManager";
+import { command_line } from "../ActionUtilities";
+import request = require('request-promise');
+import { red } from "colors";
+import RouteSubscriber from "../RouteSubscriber";
 
-export default class SearchManager extends ApiManager {
+export class SearchManager extends ApiManager {
 
     protected initialize(register: Registration): void {
+
+        register({
+            method: Method.GET,
+            subscription: new RouteSubscriber("solr").add("action"),
+            onValidation: async ({ req, res }) => {
+                const { action } = req.params;
+                if (["start", "stop"].includes(action)) {
+                    const status = req.params.action === "start";
+                    const success = await SolrManager.SetRunning(status);
+                    console.log(success ? `Successfully ${status ? "started" : "stopped"} Solr!` : `Uh oh! Check the console for the error that occurred while ${status ? "starting" : "stopping"} Solr`);
+                }
+                res.redirect("/home");
+            }
+        });
 
         register({
             method: Method.GET,
@@ -44,6 +62,22 @@ export default class SearchManager extends ApiManager {
             }
         });
 
+    }
+
+}
+
+export namespace SolrManager {
+
+    export async function SetRunning(status: boolean): Promise<boolean> {
+        const args = status ? "start" : "stop -p 8983";
+        try {
+            console.log(`Solr management: trying to ${args}`);
+            console.log(await command_line(`solr.cmd ${args}`, "../../solr-8.1.1/bin"));
+            return true;
+        } catch (e) {
+            console.log(red(`Solr management error: unable to ${args}`));
+            return false;
+        }
     }
 
 }
