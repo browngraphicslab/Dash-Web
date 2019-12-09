@@ -18,9 +18,8 @@ import { Transform } from "./Transform";
 import React = require("react");
 import { BoolCast, NumCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { any } from "bluebird";
 
-const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
+const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
 
 // :: Object
@@ -30,7 +29,6 @@ export const nodes: { [index: string]: NodeSpec } = {
     doc: {
         content: "block+"
     },
-
 
     footnote: {
         group: "inline",
@@ -45,15 +43,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM: () => ["footnote", 0],
         parseDOM: [{ tag: "footnote" }]
     },
-
-    // // :: NodeSpec A plain paragraph textblock. Represented in the DOM
-    // // as a `<p>` element.
-    // paragraph: {
-    //     content: "inline*",
-    //     group: "block",
-    //     parseDOM: [{ tag: "p" }],
-    //     toDOM() { return pDOM; }
-    // },
 
     paragraph: ParagraphNodeSpec,
 
