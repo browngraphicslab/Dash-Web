@@ -9,7 +9,7 @@ import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
-import { emptyFunction, Utils, returnFalse } from '../../../Utils';
+import { emptyFunction, Utils, returnFalse, emptyPath } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -344,8 +344,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
-                    LibraryPath={[]}
-                    renderDepth={this.props.renderDepth}
+                    LibraryPath={emptyPath}
+                    renderDepth={this.props.renderDepth + 1}
                     showOverlays={this.noOverlays}
                     ruleProvider={this.props.document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.document : this.props.ruleProvider}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
@@ -626,8 +626,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
         const moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
-            <div id="body" className="collectionTreeView-dropTarget"
-                style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "lightgray"), paddingTop: `${NumCast(this.props.Document.yMargin, 20)}px` }}
+            <div className="collectionTreeView-dropTarget" id="body"
+                style={{ background: StrCast(this.props.Document.backgroundColor, "lightgray"), paddingTop: `${NumCast(this.props.Document.yMargin, 20)}px` }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}

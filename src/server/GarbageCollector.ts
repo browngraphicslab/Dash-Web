@@ -100,7 +100,7 @@ async function GarbageCollect(full: boolean = true) {
     if (!full) {
         await Database.Instance.updateMany({ _id: { $nin: notToDelete } }, { $set: { "deleted": true } });
         await Database.Instance.updateMany({ _id: { $in: notToDelete } }, { $unset: { "deleted": true } });
-        console.log(await Search.Instance.updateDocuments(
+        console.log(await Search.updateDocuments(
             notToDelete.map<any>(id => ({
                 id, deleted: { set: null }
             }))
@@ -122,7 +122,7 @@ async function GarbageCollect(full: boolean = true) {
         // const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
         console.log(`${deleted} documents deleted`);
 
-        await Search.Instance.deleteDocuments(toDelete);
+        await Search.deleteDocuments(toDelete);
         console.log("Cleared search documents");
 
         const folder = "./src/server/public/files/";

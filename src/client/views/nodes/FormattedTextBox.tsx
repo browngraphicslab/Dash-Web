@@ -80,7 +80,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
-    private _nodeClicked: any;
     private _searchIndex = 0;
     private _sidebarMovement = 0;
     private _lastX = 0;
@@ -101,6 +100,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     @observable private _ruleFontFamily = "Arial";
     @observable private _fontAlign = "";
     @observable private _entered = false;
+
+    public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
@@ -828,7 +829,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            if (startup) {
+            if (startup && this._editorView) {
                 Doc.GetProto(doc).documentText = undefined;
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
             }
@@ -869,10 +870,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this._buttonBarReactionDisposer && this._buttonBarReactionDisposer();
         this._editorView && this._editorView.destroy();
     }
+
+    static _downEvent: any;
     onPointerDown = (e: React.PointerEvent): void => {
+        FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
-        const pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-        pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
@@ -885,6 +887,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
+        if (!FormattedTextBox._downEvent) return;
+        FormattedTextBox._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
             FormattedTextBoxComment.textBox = this;
             FormattedTextBoxComment.update(this._editorView!);
@@ -896,11 +900,17 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
-    static InputBoxOverlay: FormattedTextBox | undefined;
     @action
     onFocused = (e: React.FocusEvent): void => {
-        FormattedTextBox.InputBoxOverlay = this;
+        FormattedTextBox.FocusedBox = this;
         this.tryUpdateHeight();
+
+        // see if we need to preserve the insertion point
+        let prosediv = this._proseRef?.children?.[0] as any;
+        let keeplocation = prosediv?.keeplocation;
+        prosediv && (prosediv.keeplocation = undefined);
+        let pos = this._editorView?.state.selection.$from.pos || 1;
+        keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
@@ -1043,10 +1053,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
-        this.doLinkOnDeselect();
+        this.doLinkOnDeselect(); 6
     }
 
     onKeyPress = (e: React.KeyboardEvent) => {
+        if (e.altKey) {
+            e.preventDefault();
+            return;
+        }
         if (!this._editorView!.state.selection.empty && e.key === "%") {
             (this._editorView!.state as any).EnteringStyle = true;
             e.preventDefault();

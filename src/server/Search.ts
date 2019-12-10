@@ -1,14 +1,12 @@
 import * as rp from 'request-promise';
-import { Database } from './database';
-import { thisExpression } from 'babel-types';
 
-export class Search {
-    public static Instance = new Search();
-    private url = 'http://localhost:8983/solr/';
+const pathTo = (relative: string) => `http://localhost:8983/solr/dash/${relative}`;
 
-    public async updateDocument(document: any) {
+export namespace Search {
+
+    export async function updateDocument(document: any) {
         try {
-            const res = await rp.post(this.url + "dash/update", {
+            const res = await rp.post(pathTo("update"), {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify([document])
             });
@@ -18,9 +16,9 @@ export class Search {
         }
     }
 
-    public async updateDocuments(documents: any[]) {
+    export async function updateDocuments(documents: any[]) {
         try {
-            const res = await rp.post(this.url + "dash/update", {
+            const res = await rp.post(pathTo("update"), {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(documents)
             });
@@ -30,9 +28,9 @@ export class Search {
         }
     }
 
-    public async search(query: any) {
+    export async function search(query: any) {
         try {
-            const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
+            const searchResults = JSON.parse(await rp.get(pathTo("select"), {
                 qs: query
             }));
             const { docs, numFound } = searchResults.response;
@@ -43,9 +41,9 @@ export class Search {
         }
     }
 
-    public async clear() {
+    export async function clear() {
         try {
-            return await rp.post(this.url + "dash/update", {
+            return rp.post(pathTo("update"), {
                 body: {
                     delete: {
                         query: "*:*"
@@ -56,7 +54,7 @@ export class Search {
         } catch { }
     }
 
-    public deleteDocuments(docs: string[]) {
+    export async function deleteDocuments(docs: string[]) {
         const promises: rp.RequestPromise[] = [];
         const nToDelete = 1000;
         let index = 0;
@@ -64,7 +62,7 @@ export class Search {
             const count = Math.min(docs.length - index, nToDelete);
             const deleteIds = docs.slice(index, index + count);
             index += count;
-            promises.push(rp.post(this.url + "dash/update", {
+            promises.push(rp.post(pathTo("update"), {
                 body: {
                     delete: {
                         query: deleteIds.map(id => `id:"${id}"`).join(" ")

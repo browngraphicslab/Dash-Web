@@ -4,7 +4,7 @@ import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import { Doc } from "../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils } from "../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from "../../util/DocumentManager";
 import { schema } from "../../util/RichTextSchema";
@@ -94,6 +94,7 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark,
                     FormattedTextBoxComment.opened, keep);
                 e.stopPropagation();
+                e.preventDefault();
             };
             root && root.appendChild(FormattedTextBoxComment.tooltip);
         }
@@ -178,7 +179,7 @@ export class FormattedTextBoxComment {
                             if (target) {
                                 ReactDOM.render(<ContentFittingDocumentView
                                     Document={target}
-                                    LibraryPath={[]}
+                                    LibraryPath={emptyPath}
                                     fitToBox={true}
                                     moveDocument={returnFalse}
                                     getTransform={Transform.Identity}

@@ -3,7 +3,7 @@ import { ExecOptions } from 'shelljs';
 import { exec } from 'child_process';
 import * as path from 'path';
 import * as rimraf from "rimraf";
-import { yellow } from 'colors';
+import { yellow, Color } from 'colors';
 
 export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
@@ -29,18 +29,29 @@ export const write_text_file = (relativePath: string, contents: any) => {
     });
 };
 
-export interface LogData {
+export interface LogData<T> {
     startMessage: string;
     endMessage: string;
-    action: () => void | Promise<void>;
+    action: () => T | Promise<T>;
+    color?: Color;
 }
 
 let current = Math.ceil(Math.random() * 20);
-export async function log_execution({ startMessage, endMessage, action }: LogData) {
-    const color = `\x1b[${31 + current++ % 6}m%s\x1b[0m`;
-    console.log(color, `${startMessage}...`);
-    await action();
-    console.log(color, endMessage);
+export async function log_execution<T>({ startMessage, endMessage, action, color }: LogData<T>): Promise<T> {
+    let result: T;
+    const formattedStart = `${startMessage}...`;
+    const formattedEnd = `${endMessage}.`;
+    if (color) {
+        console.log(color(formattedStart));
+        result = await action();
+        console.log(color(formattedEnd));
+    } else {
+        const color = `\x1b[${31 + current++ % 6}m%s\x1b[0m`;
+        console.log(color, formattedStart);
+        result = await action();
+        console.log(color, formattedEnd);
+    }
+    return result;
 }
 
 export function logPort(listener: string, port: number) {

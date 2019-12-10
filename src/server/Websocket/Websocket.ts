@@ -10,7 +10,6 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { SolrManager } from "../ApiManagers/SearchManager";
 
 export namespace WebSocket {
 
@@ -80,7 +79,7 @@ export namespace WebSocket {
 
     export async function deleteFields() {
         await Database.Instance.deleteAll();
-        await Search.Instance.clear();
+        await Search.clear();
         await Database.Instance.deleteAll('newDocuments');
     }
 
@@ -89,7 +88,7 @@ export namespace WebSocket {
         await Database.Instance.deleteAll('newDocuments');
         await Database.Instance.deleteAll('sessions');
         await Database.Instance.deleteAll('users');
-        await Search.Instance.clear();
+        await Search.clear();
     }
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
@@ -111,7 +110,7 @@ export namespace WebSocket {
         Database.Instance.update(newValue.id, newValue, () =>
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {
-            Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+            Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
             console.log("set field");
             console.log("checking in");
         }
@@ -197,7 +196,7 @@ export namespace WebSocket {
             }
         }
         if (dynfield) {
-            Search.Instance.updateDocument(update);
+            Search.updateDocument(update);
         }
     }
 
@@ -206,16 +205,14 @@ export namespace WebSocket {
             socket.broadcast.emit(MessageStore.DeleteField.Message, id);
         });
 
-        Search.Instance.deleteDocuments([id]);
+        Search.deleteDocuments([id]);
     }
 
     function DeleteFields(socket: Socket, ids: string[]) {
         Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
             socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
         });
-
-        Search.Instance.deleteDocuments(ids);
-
+        Search.deleteDocuments(ids);
     }
 
     function CreateField(newValue: any) {
