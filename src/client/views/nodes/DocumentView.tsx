@@ -92,6 +92,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _titleRef = React.createRef<EditableView>();
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
@@ -135,6 +136,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 },
                 hideSource: !dropAction && !this.Document.onDragStart
             });
+        }
+    }
+
+    onKeyDown = (e: React.KeyboardEvent) => {
+        if (e.altKey && e.key === "t" && !(e.nativeEvent as any).StopPropagationForReal) {
+            (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
+            e.stopPropagation();
+            if (!StrCast(this.Document.showTitle)) this.Document.showTitle = "title";
+            if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
+            else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
+                {
+                    this._titleRef.current?.setIsFocused(false);
+                    let any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                    any.keeplocation = true;
+                    any?.focus();
+                }
+            }
         }
     }
 
@@ -622,7 +640,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
             }}>
-                <EditableView
+                <EditableView ref={this._titleRef}
                     contents={this.Document[showTitle]}
                     display={"block"} height={72} fontSize={12}
                     GetValue={() => StrCast(this.Document[showTitle])}
@@ -694,7 +712,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         const highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
+        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{

@@ -9,7 +9,7 @@ import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnFalse } from "../../../Utils";
+import { emptyFunction, returnFalse, emptyPath } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
@@ -171,7 +171,7 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
             }}>
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
