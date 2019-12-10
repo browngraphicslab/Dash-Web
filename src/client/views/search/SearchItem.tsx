@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, emptyPath } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
@@ -160,7 +160,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
                     Document={this.props.doc}
-                    LibraryPath={[]}
+                    LibraryPath={emptyPath}
                     fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
