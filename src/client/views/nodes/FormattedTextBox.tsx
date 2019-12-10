@@ -985,7 +985,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     }
                 }
             }
-            if (list_node && this._editorView!.state.doc.nodeAt(pos.inside)!.attrs.bulletStyle === list_node.attrs.bulletStyle) {
+            if (list_node && pos.inside >= 0 && this._editorView!.state.doc.nodeAt(pos.inside)!.attrs.bulletStyle === list_node.attrs.bulletStyle) {
                 if (select) {
                     let $olist_pos = this._editorView!.state.doc.resolve($pos.pos - $pos.parentOffset - 1);
                     if (!highlightOnly) {

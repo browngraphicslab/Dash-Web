@@ -190,7 +190,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
+                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                     }
                 } else if (text) {
                     this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
@@ -290,14 +290,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }));
                 }
             }
-            if (text && !text.includes("https://")) {
-                this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
-                return;
-            }
 
             if (promises.length) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
+                if (text && !text.includes("https://")) {
+                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                }
                 batch.end();
             }
         }

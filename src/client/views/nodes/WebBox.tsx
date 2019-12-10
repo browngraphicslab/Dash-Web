@@ -194,7 +194,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             </>);
     }
     render() {
-        return (<div className={"imageBox-container"} >
+        return (<div className={"webBox-container"} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}

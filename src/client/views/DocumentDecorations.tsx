@@ -25,6 +25,7 @@ import { FieldView } from "./nodes/FieldView";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
 import { DocumentType } from '../documents/DocumentTypes';
+import { ScriptField } from '../../new_fields/ScriptField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -54,11 +55,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _iconDoc?: Doc = undefined;
     private _resizeUndo?: UndoManager.Batch;
     private _radiusDown = [0, 0];
+    @observable private _accumulatedTitle = "";
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
-    @observable private _title: string = "";
+    @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
-    @observable private _fieldKey = "title";
     @observable private _hidden = false;
     @observable private _opacity = 1;
     @observable private _removeIcon = false;
@@ -73,20 +74,32 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         super(props);
         DocumentDecorations.Instance = this;
         this._keyinput = React.createRef();
-        reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this._edtingTitle = false);
+        reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
     }
 
-    @action titleChanged = (event: any) => { this._title = event.target.value; };
-    @action titleBlur = () => { this._edtingTitle = false; };
+    @action titleChanged = (event: any) => this._accumulatedTitle = event.target.value;
+
+    titleBlur = undoBatch(action((commit: boolean) => {
+        this._edtingTitle = false;
+        if (commit) {
+            if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
+                this._titleControlString = this._accumulatedTitle;
+            } else if (this._titleControlString.startsWith("#")) {
+                let selectionTitleFieldKey = this._titleControlString.substring(1);
+                selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._accumulatedTitle.startsWith("-"));
+                selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d =>
+                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle, true)
+                );
+            }
+        }
+    }))
+
     @action titleEntered = (e: any) => {
         const key = e.keyCode || e.which;
         // enter pressed
         if (key === 13) {
             const text = e.target.value;
-            if (text[0] === '#') {
-                this._fieldKey = text.slice(1, text.length);
-                this._title = this.selectionTitle;
-            } else if (text.startsWith("::")) {
+            if (text.startsWith("::")) {
                 const targetID = text.slice(2, text.length);
                 const promoteDoc = SelectionManager.SelectedDocuments()[0];
                 DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
@@ -106,23 +119,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
                     if (text.startsWith(">>")) {
                         Doc.GetProto(docTemplate).layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                    }
-                }
-            }
-            else {
-                if (SelectionManager.SelectedDocuments().length > 0) {
-                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._title.startsWith("-");
-                    const field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
-                    if (typeof field === "number") {
-                        SelectionManager.SelectedDocuments().forEach(d => {
-                            const doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
-                            doc[this._fieldKey] = +this._title;
-                        });
-                    } else {
-                        SelectionManager.SelectedDocuments().forEach(d => {
-                            const doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
-                            doc[this._fieldKey] = this._title;
-                        });
                     }
                 }
             }
@@ -147,8 +143,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @action onTitleUp = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - this._downX) < 4 || Math.abs(e.clientY - this._downY) < 4) {
-            this._title = this.selectionTitle;
+            !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
             this._edtingTitle = true;
+            setTimeout(() => this._keyinput.current!.focus(), 0);
         }
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
@@ -527,13 +524,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get selectionTitle(): string {
         if (SelectionManager.SelectedDocuments().length === 1) {
             const selected = SelectionManager.SelectedDocuments()[0];
-            const field = selected.props.Document[this._fieldKey];
-            if (typeof field === "string") {
-                return field;
+            if (this._titleControlString.startsWith("=")) {
+                return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ this: selected.props.Document }, console.log).result?.toString() || "";
             }
-            else if (typeof field === "number") {
-                return field.toString();
+            if (this._titleControlString.startsWith("#")) {
+                return selected.props.Document[this._titleControlString.substring(1)]?.toString() || "-unset-";
             }
+            return this._accumulatedTitle;
         } else if (SelectionManager.SelectedDocuments().length > 1) {
             return "-multiple-";
         }
@@ -594,7 +591,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {minimizeIcon}
 
                 {this._edtingTitle ?
-                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
+                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._accumulatedTitle} onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
