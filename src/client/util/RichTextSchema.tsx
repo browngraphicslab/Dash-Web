@@ -762,7 +762,7 @@ export class DashDocView {
             }
         });
         const self = this;
-        this._dashSpan.onkeydown = function (e: any) { e.stopPropagation(); };
+        this._dashSpan.onkeydown = function (e: any) { };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onwheel = function (e: any) { e.preventDefault(); };
         this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };
