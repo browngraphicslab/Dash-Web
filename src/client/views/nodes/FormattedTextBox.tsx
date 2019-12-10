@@ -828,7 +828,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            if (startup) {
+            if (startup && this._editorView) {
                 Doc.GetProto(doc).documentText = undefined;
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
             }
@@ -869,7 +869,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this._buttonBarReactionDisposer && this._buttonBarReactionDisposer();
         this._editorView && this._editorView.destroy();
     }
+
+    static _downEvent: any;
     onPointerDown = (e: React.PointerEvent): void => {
+        FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         const pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
         pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
@@ -885,6 +888,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
+        if (!FormattedTextBox._downEvent) return;
+        FormattedTextBox._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
             FormattedTextBoxComment.textBox = this;
             FormattedTextBoxComment.update(this._editorView!);

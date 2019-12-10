@@ -177,18 +177,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             docid: { default: "" },
         },
         group: "inline",
-        draggable: true,
-        // parseDOM: [{
-        //     tag: "img[src]", getAttrs(dom: any) {
-        //         return {
-        //             src: dom.getAttribute("src"),
-        //             title: dom.getAttribute("title"),
-        //             alt: dom.getAttribute("alt"),
-        //             width: Math.min(100, Number(dom.getAttribute("width"))),
-        //         };
-        //     }
-        // }],
-        // TODO if we don't define toDom, dragging the image crashes. Why?
+        draggable: false,
         toDOM(node) {
             const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
             return ["div", { ...node.attrs, ...attrs }];
@@ -704,6 +693,7 @@ export class DashDocView {
         this._dashSpan = document.createElement("div");
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
+        this._outer.style.textIndent = "0";
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";

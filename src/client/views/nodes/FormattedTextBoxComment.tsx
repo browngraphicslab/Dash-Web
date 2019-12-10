@@ -94,6 +94,7 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark,
                     FormattedTextBoxComment.opened, keep);
                 e.stopPropagation();
+                e.preventDefault();
             };
             root && root.appendChild(FormattedTextBoxComment.tooltip);
         }
