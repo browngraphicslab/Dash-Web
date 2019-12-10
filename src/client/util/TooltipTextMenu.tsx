@@ -839,9 +839,11 @@ export class TooltipTextMenu {
     }
 
     public static insertColor(color: String, state: EditorState<any>, dispatch: any) {
-        if (state.selection.empty) return false;
-
         const colorMark = state.schema.mark(state.schema.marks.pFontColor, { color: color });
+        if (state.selection.empty) {
+            dispatch(state.tr.addStoredMark(colorMark));
+            return false;
+        }
         dispatch(state.tr.addMark(state.selection.from, state.selection.to, colorMark));
     }
 

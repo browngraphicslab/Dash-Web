@@ -313,7 +313,7 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             color: { default: "#000" }
         },
-        inclusive: false,
+        inclusive: true,
         parseDOM: [{
             tag: "span", getAttrs(dom: any) {
                 return { color: dom.getAttribute("color") };
