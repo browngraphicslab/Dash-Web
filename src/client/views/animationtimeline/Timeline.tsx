@@ -3,7 +3,7 @@ import "./Timeline.scss";
 import { listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
-import { observable, reaction, action, IReactionDisposer, computed, runInAction, observe, toJS } from "mobx";
+import { observable, action, computed, runInAction } from "mobx";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
@@ -17,14 +17,18 @@ import { Utils } from "../../../Utils";
 
 @observer
 export class Timeline extends React.Component<FieldViewProps> {
-
-    private DEFAULT_CONTAINER_HEIGHT: number = 330;
+    
+    //readonly constants
     private readonly DEFAULT_TICK_SPACING: number = 50;
     private readonly MAX_TITLE_HEIGHT = 75; 
-    private MIN_CONTAINER_HEIGHT: number = 205;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
     private readonly DEFAULT_TICK_INCREMENT: number = 1000;
 
+    //height variables
+    private DEFAULT_CONTAINER_HEIGHT: number = 330;
+    private MIN_CONTAINER_HEIGHT: number = 205;
+    
+    //react refs
     @observable private _trackbox = React.createRef<HTMLDivElement>();
     @observable private _titleContainer = React.createRef<HTMLDivElement>();
     @observable private _timelineContainer = React.createRef<HTMLDivElement>();
@@ -33,6 +37,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _roundToggleContainerRef = React.createRef<HTMLDivElement>();
     @observable private _timeInputRef = React.createRef<HTMLInputElement>();
 
+    //boolean vars and instance vars 
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
     @observable private _isPlaying: boolean = false; //scrubber playing
@@ -47,7 +52,11 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _timelineVisible = false;
     @observable private _mouseToggled = false;
     @observable private _doubleClickEnabled = false;
-    private _titleHeight = 0;
+    @observable private _titleHeight = 0;
+
+    /**
+     * collection get method. Basically defines what defines collection's children. These will be tracked in the timeline. Do not edit. 
+     */
     @computed
     private get children(): List<Doc> {
         let extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
@@ -60,6 +69,10 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
     }
+
+    /**
+     * 
+     */
     componentWillMount() {
         let relativeHeight = window.innerHeight / 14; 
         this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; 
@@ -140,16 +153,21 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
-
+    /**
+     * fast forward the timeline scrubbing
+     */
     @action
     windForward = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (this._windSpeed < 64) { //max speed is 32
+        if (this._windSpeed < 64) { //max speed is 32 
             this._windSpeed = this._windSpeed * 2;
         }
     }
 
+    /**
+     * rewind the timeline scrubbing 
+     */
     @action
     windBackward = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -159,7 +177,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
-    //for scrubber action 
+    
     @action
     onScrubberDown = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -392,6 +410,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
+
     @action
     private checkCallBack = (visible: boolean) => {
         this._checkVisible = visible;
@@ -400,10 +419,18 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
 
     }
+
+
+
+
+
+
+
+
     render() {
         return (
             <div>
-                <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
+                <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}> 
                     <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
                         <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
                             <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>

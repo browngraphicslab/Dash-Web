@@ -669,10 +669,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => {
-                console.log("Brush" + this.props.Document.title);
+                //console.log("Brush" + this.props.Document.title);
                 Doc.BrushDoc(this.props.Document);
             }} onPointerLeave={e => {
-                console.log("UnBrush" + this.props.Document.title);
+                //console.log("UnBrush" + this.props.Document.title);
                 Doc.UnBrushDoc(this.props.Document);
 
             }}

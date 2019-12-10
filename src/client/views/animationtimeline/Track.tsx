@@ -65,9 +65,8 @@ export class Track extends React.Component<IProps> {
     componentWillMount() {
         runInAction(() => {
             if (!this.props.node.regions) this.props.node.regions = new List<Doc>();
-            let relativeHeight = window.innerHeight / 14; 
+            let relativeHeight = window.innerHeight / 14;
             this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //for responsiveness
-
         });
     }
 
@@ -145,12 +144,32 @@ export class Track extends React.Component<IProps> {
     @action
     timelineVisibleReaction = () => {
         return reaction(() => {
-            return this.props.timelineVisible;
+            return this.props.timelineVisible; 
         }, isVisible => {
             this.revertState();
+            if (isVisible){
+                DocListCast(this.regions).forEach(region => {
+                    if (!BoolCast((Cast(region, Doc) as Doc).hasData)){
+                        for (let i = 0; i < 4; i++){
+                            DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = Doc.MakeCopy(this.props.node, true); 
+                            if (i === 0 || i === 3){
+                                DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key.opacity = 0.1;
+                            }
+                        }
+                        console.log("saving keyframes"); 
+                    }
+                }); 
+            }
         });
     }
 
+    @action 
+    /**
+     * Simple loop through all the regions to update the keyframes. Only applies to timelineVisibleReaction
+     */
+    updateAllRegions = () => {
+        
+    }
     @action
     timeChange = async (time: number) => {
         if (this._isOnKeyframe && this._onKeyframe && this._onRegionData) {

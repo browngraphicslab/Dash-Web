@@ -88,6 +88,7 @@ export namespace KeyframeFunc {
         regiondata.fadeIn = 1000;
         regiondata.fadeOut = 1000;
         regiondata.functions = new List<Doc>();
+        regiondata.hasData = false; 
         return regiondata;
     };
 
@@ -114,7 +115,8 @@ export const RegionDataSchema = createSchema({
     keyframes: listSpec(Doc),
     fadeIn: defaultSpec("number", 0),
     fadeOut: defaultSpec("number", 0),
-    functions: listSpec(Doc)
+    functions: listSpec(Doc), 
+    hasData: defaultSpec("boolean", false)
 });
 export type RegionData = makeInterface<[typeof RegionDataSchema]>;
 export const RegionData = makeInterface(RegionDataSchema);
@@ -340,6 +342,7 @@ export class Keyframe extends React.Component<IProps> {
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = this.regiondata.position;
             await this.makeKeyData(Math.round(position + offset));
+            this.regiondata.hasData = true; 
             this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         }
     }
