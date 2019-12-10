@@ -57,7 +57,7 @@ export class SearchManager extends ApiManager {
                     res.send([]);
                     return;
                 }
-                const results = await Search.Instance.search(solrQuery);
+                const results = await Search.search(solrQuery);
                 res.send(results);
             }
         });

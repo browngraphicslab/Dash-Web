@@ -54,7 +54,7 @@ async function update() {
     }));
     console.log("Done");
     // await Promise.all(updates.map(update => {
-    //     return limit(() => Search.Instance.updateDocument(update));
+    //     return limit(() => Search.updateDocument(update));
     // }));
     cursor.close();
 }
