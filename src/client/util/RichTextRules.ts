@@ -64,10 +64,10 @@ export const inpRules = {
             new RegExp(/^#([0-9]+)\s$/),
             (state, match, start, end) => {
                 const size = Number(match[1]);
-                const ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
+                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
                 if (ruleProvider && heading) {
-                    (Cast(FormattedTextBox.InputBoxOverlay!.props.Document, Doc) as Doc).heading = size;
+                    (Cast(FormattedTextBox.FocusedBox!.props.Document, Doc) as Doc).heading = size;
                     return state.tr.deleteRange(start, end);
                 }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
@@ -163,8 +163,8 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
+                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "center";
                     return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
@@ -178,8 +178,8 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
+                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "left";
                     return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
@@ -193,8 +193,8 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.InputBoxOverlay!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.InputBoxOverlay!.props.Document.heading);
+                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
+                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
                 if (ruleProvider && heading) {
                     ruleProvider["ruleAlign_" + heading] = "right";
                     return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;

@@ -73,8 +73,8 @@ userSchema.pre("save", function save(next) {
 });
 
 const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
-    return cb(undefined, true);
     bcrypt.compare(candidatePassword, this.password, cb);
+    // return cb(undefined, true);  // use this to bypass passwords
 };
 
 userSchema.methods.comparePassword = comparePassword;
