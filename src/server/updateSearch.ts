@@ -52,13 +52,13 @@ function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
 async function update() {
     console.log(green("Beginning update..."));
     await log_execution<void>({
-        startMessage: "Clearing existing Solr information",
+        startMessage: "Clearing existing Solr information...",
         endMessage: "Solr information successfully cleared",
         action: Search.clear,
         color: cyan
     });
     const cursor = await log_execution({
-        startMessage: "Connecting to and querying for all documents from database",
+        startMessage: "Connecting to and querying for all documents from database...",
         endMessage: "Connection successful and query complete",
         action: () => Database.Instance.query({}),
         color: yellow
