@@ -1,22 +1,41 @@
 import * as request from "request-promise";
-import { log_execution, spawn_detached_process } from "../ActionUtilities";
-import { red, yellow, cyan, green } from "colors";
+import { log_execution, pathFromRoot } from "../ActionUtilities";
+import { red, yellow, cyan, green, Color } from "colors";
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
-import { writeFileSync } from "fs";
+import { writeFileSync, appendFileSync, createWriteStream, existsSync } from "fs";
 import { resolve } from 'path';
+import { ChildProcess } from "child_process";
+import { ProcessManager } from "../ProcessManager";
+
+console.log(yellow("Initializing daemon..."));
+
+process.on('SIGINT', () => current_backup?.kill("SIGTERM"));
+
+const crashLogPath = resolve(__dirname, `./session_crashes_${timestamp()}.log`);
+function addLogEntry(message: string, color: Color) {
+    const formatted = color(`${message} ${timestamp()}.`);
+    console.log(formatted);
+    appendFileSync(crashLogPath, `${formatted}\n`);
+}
 
 const LOCATION = "http://localhost";
 const recipient = "samuel_wilkins@brown.edu";
 let restarting = false;
 
-writeFileSync(resolve(__dirname, "./current_pid.txt"), process.pid);
+const frequency = 10;
+const { pid } = process;
+writeFileSync(resolve(__dirname, "./current_daemon_pid.txt"), pid);
+console.log(cyan(`${pid} written to ./current_daemon_pid.txt`));
 
 function timestamp() {
     return `@ ${new Date().toISOString()}`;
 }
 
+let current_backup: ChildProcess | undefined = undefined;
+
 async function listen() {
+    console.log(yellow(`Beginning to poll server heartbeat every ${frequency} seconds...\n`));
     if (!LOCATION) {
         console.log(red("No location specified for persistence daemon. Please include as a command line environment variable or in a .env file."));
         process.exit(0);
@@ -28,34 +47,40 @@ async function listen() {
         let error: any;
         try {
             await request.get(heartbeat);
+            if (restarting) {
+                addLogEntry("Backup server successfully restarted", green);
+            }
+            restarting = false;
         } catch (e) {
             error = e;
         } finally {
             if (error) {
                 if (!restarting) {
                     restarting = true;
-                    console.log(yellow("Detected a server crash!"));
+                    addLogEntry("Detected a server crash", red);
+                    current_backup?.kill();
                     await log_execution({
                         startMessage: "Sending crash notification email",
                         endMessage: ({ error, result }) => {
                             const success = error === null && result === true;
-                            return (success ? `Notification successfully sent to ` : `Failed to notify `) + recipient;
+                            return `${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
                         },
                         action: async () => notify(error || "Hmm, no error to report..."),
                         color: cyan
                     });
-                    console.log(await log_execution({
+                    current_backup = await log_execution({
                         startMessage: "Initiating server restart",
-                        endMessage: "Server successfully restarted",
-                        action: () => spawn_detached_process(`npm run start-spawn`),
+                        endMessage: ({ result, error }) => {
+                            const success = error === null && result !== undefined;
+                            return success ? "Child process spawned.." : `An error occurred while attempting to restart the server:\n${error}`;
+                        },
+                        action: () => ProcessManager.spawn_detached('npm', ['run', 'start-spawn']),
                         color: green
-                    }));
-                    restarting = false;
+                    });
+                    writeFileSync(pathFromRoot("./logs/current_server_pid.txt"), `${current_backup?.pid ?? -1} created ${timestamp()}\n`);
                 } else {
                     console.log(yellow(`Callback ignored because restarting already initiated ${timestamp()}`));
                 }
-            } else {
-                console.log(green(`No issues detected ${timestamp()}`));
             }
         }
     }, 1000 * 10);
@@ -85,7 +110,7 @@ async function notify(error: any) {
         text: emailText(error)
     } as MailOptions;
     return new Promise<boolean>(resolve => {
-        smtpTransport.sendMail(mailOptions, (dispatchError: Error | null) => { console.log(dispatchError); resolve(dispatchError === null); });
+        smtpTransport.sendMail(mailOptions, (dispatchError: Error | null) => resolve(dispatchError === null));
     });
 }
 

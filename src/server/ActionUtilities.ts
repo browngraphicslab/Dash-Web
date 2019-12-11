@@ -1,12 +1,11 @@
-import * as fs from 'fs';
+import { readFile, writeFile, exists, mkdir, unlink } from 'fs';
 import { ExecOptions } from 'shelljs';
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import * as path from 'path';
 import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
 
 const projectRoot = path.resolve(__dirname, "../../");
-
 export function pathFromRoot(relative: string) {
     return path.resolve(projectRoot, relative);
 }
@@ -21,24 +20,17 @@ export const command_line = (command: string, fromDirectory?: string) => {
     });
 };
 
-export async function spawn_detached_process(command: string, args?: readonly string[]) {
-    const out = path.resolve(projectRoot, `./logs/${command}-${process.pid}-${new Date().toUTCString()}`);
-    const child_out = fs.openSync(out, 'a');
-    const child_error = fs.openSync(out, 'a');
-    spawn(command, args, { detached: true, stdio: ["ignore", child_out, child_error] }).unref();
-}
-
 export const read_text_file = (relativePath: string) => {
     const target = path.resolve(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
-        fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+        readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
     });
 };
 
 export const write_text_file = (relativePath: string, contents: any) => {
     const target = path.resolve(__dirname, relativePath);
     return new Promise<void>((resolve, reject) => {
-        fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
+        writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
 
@@ -93,10 +85,10 @@ export function msToTime(duration: number) {
 }
 
 export const createIfNotExists = async (path: string) => {
-    if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
+    if (await new Promise<boolean>(resolve => exists(path, resolve))) {
         return true;
     }
-    return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
+    return new Promise<boolean>(resolve => mkdir(path, error => resolve(error === null)));
 };
 
 export async function Prune(rootDirectory: string): Promise<boolean> {
@@ -104,4 +96,4 @@ export async function Prune(rootDirectory: string): Promise<boolean> {
     return error === null;
 }
 
-export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
+export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => unlink(mediaPath, error => resolve(error === null)));
