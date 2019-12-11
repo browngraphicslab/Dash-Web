@@ -140,7 +140,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.altKey && e.key === "t" && !(e.nativeEvent as any).StopPropagationForReal) {
+        if (e.altKey && (e.key === "†" || e.key === "t") && !(e.nativeEvent as any).StopPropagationForReal) {
             (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
             e.stopPropagation();
             if (!StrCast(this.Document.showTitle)) this.Document.showTitle = "title";

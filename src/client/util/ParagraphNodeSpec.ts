@@ -34,6 +34,7 @@ const ParagraphNodeSpec: NodeSpec = {
         color: { default: null },
         id: { default: null },
         indent: { default: null },
+        inset: { default: null },
         lineSpacing: { default: null },
         // TODO: Add UI to let user edit / clear padding.
         paddingBottom: { default: null },
@@ -76,6 +77,7 @@ function toDOM(node: Node): DOMOutputSpec {
     const {
         align,
         indent,
+        inset,
         lineSpacing,
         paddingTop,
         paddingBottom,
@@ -107,6 +109,10 @@ function toDOM(node: Node): DOMOutputSpec {
 
     if (indent) {
         style += `text-indent: ${indent}; padding-left: ${indent < 0 ? -indent : undefined};`;
+    }
+
+    if (inset) {
+        style += `margin-left: ${inset}; margin-right: ${inset};`;
     }
 
     style && (attrs.style = style);
