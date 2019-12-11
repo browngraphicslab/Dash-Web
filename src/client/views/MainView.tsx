@@ -286,7 +286,7 @@ export class MainView extends React.Component {
             ContainingCollectionDoc={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne}
-        />
+        />;
     }
     @computed get dockingContent() {
         TraceMobx();

@@ -148,7 +148,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
                 {
                     this._titleRef.current?.setIsFocused(false);
-                    let any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                    const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
                     any.keeplocation = true;
                     any?.focus();
                 }

@@ -240,9 +240,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
         const mainPath = path.extname(images[this._curLightboxImg]);
         const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length]);
         const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length]);
-        let main = images[this._curLightboxImg].replace(mainPath, "_o" + mainPath);
-        let next = images[(this._curLightboxImg + 1) % images.length].replace(nextPath, "_o" + nextPath);
-        let prev = images[(this._curLightboxImg + images.length - 1) % images.length].replace(prevPath, "_o" + prevPath);
+        const main = images[this._curLightboxImg].replace(mainPath, "_o" + mainPath);
+        const next = images[(this._curLightboxImg + 1) % images.length].replace(nextPath, "_o" + nextPath);
+        const prev = images[(this._curLightboxImg + images.length - 1) % images.length].replace(prevPath, "_o" + prevPath);
         return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
             mainSrc={main}
             nextSrc={next}
