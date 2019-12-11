@@ -1,13 +1,20 @@
 import * as request from "request-promise";
-import { command_line, log_execution } from "./ActionUtilities";
+import { log_execution, spawn_detached_process } from "../ActionUtilities";
 import { red, yellow, cyan, green } from "colors";
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
-import { Database } from "./database";
+import { writeFileSync } from "fs";
+import { resolve } from 'path';
 
 const LOCATION = "http://localhost";
 const recipient = "samuel_wilkins@brown.edu";
 let restarting = false;
+
+writeFileSync(resolve(__dirname, "./current_pid.txt"), process.pid);
+
+function timestamp() {
+    return `@ ${new Date().toISOString()}`;
+}
 
 async function listen() {
     if (!LOCATION) {
@@ -16,36 +23,39 @@ async function listen() {
     }
     const heartbeat = `${LOCATION}:1050/serverHeartbeat`;
     // if this is on our remote server, the server must be run in release mode
-    const suffix = LOCATION.includes("localhost") ? "" : "-release";
+    // const suffix = LOCATION.includes("localhost") ? "" : "-release";
     setInterval(async () => {
-        let response: any;
         let error: any;
         try {
-            response = await request.get(heartbeat);
+            await request.get(heartbeat);
         } catch (e) {
             error = e;
         } finally {
-            if (!response && !restarting) {
-                restarting = true;
-                console.log(yellow("Detected a server crash!"));
-                await log_execution({
-                    startMessage: "Sending crash notification email",
-                    endMessage: ({ error, result }) => {
-                        const success = error === null && result === true;
-                        return (success ? `Notification successfully sent to ` : `Failed to notify `) + recipient;
-                    },
-                    action: async () => notify(error || "Hmm, no error to report..."),
-                    color: cyan
-                });
-                console.log(await log_execution({
-                    startMessage: "Initiating server restart",
-                    endMessage: "Server successfully restarted",
-                    action: () => command_line(`npm run start${suffix}`),
-                    color: green
-                }));
-                restarting = false;
+            if (error) {
+                if (!restarting) {
+                    restarting = true;
+                    console.log(yellow("Detected a server crash!"));
+                    await log_execution({
+                        startMessage: "Sending crash notification email",
+                        endMessage: ({ error, result }) => {
+                            const success = error === null && result === true;
+                            return (success ? `Notification successfully sent to ` : `Failed to notify `) + recipient;
+                        },
+                        action: async () => notify(error || "Hmm, no error to report..."),
+                        color: cyan
+                    });
+                    console.log(await log_execution({
+                        startMessage: "Initiating server restart",
+                        endMessage: "Server successfully restarted",
+                        action: () => spawn_detached_process(`npm run start-spawn`),
+                        color: green
+                    }));
+                    restarting = false;
+                } else {
+                    console.log(yellow(`Callback ignored because restarting already initiated ${timestamp()}`));
+                }
             } else {
-                console.log(green(`No issues detected as of ${new Date().toISOString()}`));
+                console.log(green(`No issues detected ${timestamp()}`));
             }
         }
     }, 1000 * 10);

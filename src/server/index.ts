@@ -18,11 +18,12 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
-import { log_execution, command_line } from "./ActionUtilities";
+import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { yellow, red } from "colors";
 import { disconnect } from "../server/Initialization";
+import { ProcessManager } from "./ProcessManager";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -35,6 +36,7 @@ export const ExitHandlers = new Array<() => void>();
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
+    await ProcessManager.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
@@ -116,6 +118,15 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
             if (sharing && docAccess) {
                 serve({ req, ...remaining });
             }
+        }
+    });
+
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/persist",
+        onValidation: ({ res }) => {
+            ProcessManager.trySpawnDaemon();
+            res.redirect("/home");
         }
     });
 

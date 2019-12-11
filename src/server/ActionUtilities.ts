@@ -1,11 +1,15 @@
 import * as fs from 'fs';
 import { ExecOptions } from 'shelljs';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import * as path from 'path';
 import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
 
 const projectRoot = path.resolve(__dirname, "../../");
+
+export function pathFromRoot(relative: string) {
+    return path.resolve(projectRoot, relative);
+}
 
 export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
@@ -16,6 +20,13 @@ export const command_line = (command: string, fromDirectory?: string) => {
         exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
     });
 };
+
+export async function spawn_detached_process(command: string, args?: readonly string[]) {
+    const out = path.resolve(projectRoot, `./logs/${command}-${process.pid}-${new Date().toUTCString()}`);
+    const child_out = fs.openSync(out, 'a');
+    const child_error = fs.openSync(out, 'a');
+    spawn(command, args, { detached: true, stdio: ["ignore", child_out, child_error] }).unref();
+}
 
 export const read_text_file = (relativePath: string) => {
     const target = path.resolve(__dirname, relativePath);
