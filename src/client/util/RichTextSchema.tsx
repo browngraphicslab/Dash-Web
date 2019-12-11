@@ -229,14 +229,15 @@ export const nodes: { [index: string]: NodeSpec } = {
             setFontSize: { default: undefined },
             setFontFamily: { default: "inherit" },
             inheritedFontSize: { default: undefined },
-            visibility: { default: true }
+            visibility: { default: true },
+            indent: { default: undefined }
         },
         toDOM(node: Node<any>) {
             if (node.attrs.mapStyle === "bullet") return ['ul', 0];
             const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
             const fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
             const ffam = node.attrs.setFontFamily;
-            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }, 0] :
+            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}; margin-left: ${node.attrs.indent}` }, 0] :
                 ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }];
         }
     },

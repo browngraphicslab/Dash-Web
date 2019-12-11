@@ -149,6 +149,10 @@ export const inpRules = {
             (state, match, start, end) => {
                 if (state.selection.to === state.selection.from) return null;
                 const pos = (state.doc.resolve(start) as any);
+                if (state.selection instanceof NodeSelection && (state.selection as NodeSelection).node.type === schema.nodes.ordered_list) {
+                    let node = (state.selection as NodeSelection).node;
+                    return state.tr.setNodeMarkup(pos.pos, node.type, { ...node.attrs, indent: 30 });
+                }
                 let depth = pos.path.length / 3 - 1;
                 for (; depth >= 0; depth--) {
                     if (pos.node(depth).type === schema.nodes.paragraph) {
