@@ -62,15 +62,6 @@ export class FilterBox extends React.Component {
         super(props);
         FilterBox.Instance = this;
     }
-
-    componentDidMount = () => {
-        document.addEventListener("pointerdown", (e) => {
-            if (!e.defaultPrevented && e.timeStamp !== this._pointerTime) {
-                SearchBox.Instance.closeSearch();
-            }
-        });
-    }
-
     setupAccordion() {
         $('document').ready(function () {
             const acc = document.getElementsByClassName('filter-header');
