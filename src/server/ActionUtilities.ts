@@ -1,4 +1,4 @@
-import { readFile, writeFile, exists, mkdir, unlink } from 'fs';
+import { readFile, writeFile, exists, mkdir, unlink, createWriteStream } from 'fs';
 import { ExecOptions } from 'shelljs';
 import { exec } from 'child_process';
 import * as path from 'path';
@@ -8,6 +8,11 @@ import { yellow, Color } from 'colors';
 const projectRoot = path.resolve(__dirname, "../../");
 export function pathFromRoot(relative: string) {
     return path.resolve(projectRoot, relative);
+}
+
+export async function fileDescriptorFromStream(path: string) {
+    const logStream = createWriteStream(path);
+    return new Promise<number>(resolve => logStream.on("open", resolve));
 }
 
 export const command_line = (command: string, fromDirectory?: string) => {
@@ -54,7 +59,7 @@ export async function log_execution<T>({ startMessage, endMessage, action, color
     } catch (e) {
         error = e;
     } finally {
-        log_helper(`${typeof endMessage === "string" ? endMessage : endMessage({ result, error })}.`, resolvedColor);
+        log_helper(typeof endMessage === "string" ? endMessage : endMessage({ result, error }), resolvedColor);
     }
     return result;
 }
