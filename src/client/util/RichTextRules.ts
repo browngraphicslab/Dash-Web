@@ -143,6 +143,20 @@ export const inpRules = {
                 return null;
             }),
         new InputRule(
+            new RegExp(/q$/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+                const pos = (state.doc.resolve(start) as any);
+                let depth = pos.path.length / 3 - 1;
+                for (; depth >= 0; depth--) {
+                    if (pos.node(depth).type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, inset: 30 });
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
+                }
+                return null;
+            }),
+        new InputRule(
             new RegExp(/!$/),
             (state, match, start, end) => {
                 if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
