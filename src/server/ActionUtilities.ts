@@ -5,11 +5,13 @@ import * as path from 'path';
 import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
 
+const projectRoot = path.resolve(__dirname, "../../");
+
 export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
         const options: ExecOptions = {};
         if (fromDirectory) {
-            options.cwd = path.resolve(__dirname, fromDirectory);
+            options.cwd = fromDirectory ? path.resolve(projectRoot, fromDirectory) : projectRoot;
         }
         exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
     });
@@ -29,29 +31,41 @@ export const write_text_file = (relativePath: string, contents: any) => {
     });
 };
 
+export type Messager<T> = (outcome: { result: T | undefined, error: Error | null }) => string;
+
 export interface LogData<T> {
     startMessage: string;
-    endMessage: string;
+    // if you care about the execution informing your log, you can pass in a function that takes in the result and a potential error and decides what to write
+    endMessage: string | Messager<T>;
     action: () => T | Promise<T>;
     color?: Color;
 }
 
 let current = Math.ceil(Math.random() * 20);
-export async function log_execution<T>({ startMessage, endMessage, action, color }: LogData<T>): Promise<T> {
-    let result: T;
-    const formattedStart = `${startMessage}...`;
-    const formattedEnd = `${endMessage}.`;
-    if (color) {
-        console.log(color(formattedStart));
+export async function log_execution<T>({ startMessage, endMessage, action, color }: LogData<T>): Promise<T | undefined> {
+    let result: T | undefined = undefined, error: Error | null = null;
+    const resolvedColor = color || `\x1b[${31 + ++current % 6}m%s\x1b[0m`;
+    log_helper(`${startMessage}...`, resolvedColor);
+    try {
         result = await action();
-        console.log(color(formattedEnd));
-    } else {
-        const color = `\x1b[${31 + current++ % 6}m%s\x1b[0m`;
-        console.log(color, formattedStart);
-        result = await action();
-        console.log(color, formattedEnd);
+    } catch (e) {
+        error = e;
+    } finally {
+        if (typeof endMessage === "string") {
+            log_helper(`${endMessage}.`, resolvedColor);
+        } else {
+            log_helper(`${endMessage({ result, error })}.`, resolvedColor);
+        }
     }
     return result;
+}
+
+function log_helper(content: string, color: Color | string) {
+    if (typeof color === "string") {
+        console.log(color, content);
+    } else {
+        console.log(color(content));
+    }
 }
 
 export function logPort(listener: string, port: number) {

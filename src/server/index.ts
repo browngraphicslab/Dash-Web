@@ -18,10 +18,10 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
-import { log_execution } from "./ActionUtilities";
+import { log_execution, command_line } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import { yellow } from "colors";
+import { yellow, red } from "colors";
 import { disconnect } from "../server/Initialization";
 
 export const publicDirectory = path.resolve(__dirname, "public");
@@ -116,6 +116,32 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
             if (sharing && docAccess) {
                 serve({ req, ...remaining });
             }
+        }
+    });
+
+    let daemonInitialized = false;
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/persist",
+        onValidation: async ({ res }) => {
+            if (!daemonInitialized) {
+                daemonInitialized = true;
+                log_execution({
+                    startMessage: "\ninitializing persistence daemon",
+                    endMessage: ({ result, error }) => {
+                        console.log(result, error);
+                        const success = error === null && result !== undefined;
+                        if (!success) {
+                            console.log(red("failed to initialize the persistance daemon"));
+                            process.exit(0);
+                        }
+                        return "persistence daemon process closed";
+                    },
+                    action: async () => command_line("npx ts-node ./persistence_daemon.ts", "./src/server"),
+                    color: yellow
+                });
+            }
+            res.redirect("/home");
         }
     });
 
