@@ -123,8 +123,9 @@ export const inpRules = {
                 const pos = (state.doc.resolve(start) as any);
                 let depth = pos.path.length / 3 - 1;
                 for (; depth >= 0; depth--) {
-                    if (pos.node(depth).type === schema.nodes.paragraph) {
-                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, indent: 25 });
+                    let node = pos.node(depth);
+                    if (node.type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, node.type, { ...node.attrs, indent: node.attrs.indent === 25 ? undefined : 25 });
                         return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
                     }
                 }
@@ -137,8 +138,9 @@ export const inpRules = {
                 const pos = (state.doc.resolve(start) as any);
                 let depth = pos.path.length / 3 - 1;
                 for (; depth >= 0; depth--) {
-                    if (pos.node(depth).type === schema.nodes.paragraph) {
-                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, indent: -25 });
+                    let node = pos.node(depth);
+                    if (node.type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, node.type, { ...node.attrs, indent: node.attrs.indent === -25 ? undefined : -25 });
                         return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
                     }
                 }
@@ -151,12 +153,13 @@ export const inpRules = {
                 const pos = (state.doc.resolve(start) as any);
                 if (state.selection instanceof NodeSelection && (state.selection as NodeSelection).node.type === schema.nodes.ordered_list) {
                     let node = (state.selection as NodeSelection).node;
-                    return state.tr.setNodeMarkup(pos.pos, node.type, { ...node.attrs, indent: 30 });
+                    return state.tr.setNodeMarkup(pos.pos, node.type, { ...node.attrs, indent: node.attrs.indent === 30 ? undefined : 30 });
                 }
                 let depth = pos.path.length / 3 - 1;
                 for (; depth >= 0; depth--) {
-                    if (pos.node(depth).type === schema.nodes.paragraph) {
-                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, inset: 30 });
+                    let node = pos.node(depth);
+                    if (node.type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, node.type, { ...node.attrs, inset: node.attrs.inset === 30 ? undefined : 30 });
                         return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
                     }
                 }
