@@ -1,32 +1,52 @@
 import * as request from "request-promise";
-import { log_execution, pathFromRoot } from "../ActionUtilities";
+import { log_execution } from "../../ActionUtilities";
 import { red, yellow, cyan, green, Color } from "colors";
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
-import { writeFileSync, appendFileSync, createWriteStream, existsSync } from "fs";
+import { writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
 import { ChildProcess } from "child_process";
-import { ProcessManager } from "../ProcessManager";
+import { ProcessFactory } from "../ProcessFactory";
 
-console.log(yellow("Initializing daemon..."));
+const identifier = yellow("__daemon__:");
 
 process.on('SIGINT', () => current_backup?.kill("SIGTERM"));
 
-const crashLogPath = resolve(__dirname, `./session_crashes_${timestamp()}.log`);
+const logPath = resolve(__dirname, "./logs");
+const crashPath = resolve(logPath, "./crashes");
+if (!existsSync(logPath)) {
+    mkdirSync(logPath);
+}
+if (!existsSync(crashPath)) {
+    mkdirSync(crashPath);
+}
+
+const crashLogPath = resolve(crashPath, `./session_crashes_${timestamp()}.log`);
 function addLogEntry(message: string, color: Color) {
     const formatted = color(`${message} ${timestamp()}.`);
-    console.log(formatted);
+    identifiedLog(formatted);
     appendFileSync(crashLogPath, `${formatted}\n`);
+}
+
+function identifiedLog(message?: any, ...optionalParams: any[]) {
+    console.log(identifier, message, ...optionalParams);
 }
 
 const LOCATION = "http://localhost";
 const recipient = "samuel_wilkins@brown.edu";
-let restarting = false;
-
 const frequency = 10;
 const { pid } = process;
-writeFileSync(resolve(__dirname, "./current_daemon_pid.txt"), pid);
-console.log(cyan(`${pid} written to ./current_daemon_pid.txt`));
+let restarting = false;
+
+identifiedLog("Initializing daemon...");
+
+writeLocalPidLog("daemon", pid);
+
+function writeLocalPidLog(filename: string, contents: any) {
+    const path = `./logs/current_${filename}_pid.log`;
+    identifiedLog(cyan(`${contents} written to ${path}`));
+    writeFileSync(resolve(__dirname, path), `${contents}\n`);
+}
 
 function timestamp() {
     return `@ ${new Date().toISOString()}`;
@@ -35,9 +55,9 @@ function timestamp() {
 let current_backup: ChildProcess | undefined = undefined;
 
 async function listen() {
-    console.log(yellow(`Beginning to poll server heartbeat every ${frequency} seconds...\n`));
+    identifiedLog(yellow(`Beginning to poll server heartbeat every ${frequency} seconds...\n`));
     if (!LOCATION) {
-        console.log(red("No location specified for persistence daemon. Please include as a command line environment variable or in a .env file."));
+        identifiedLog(red("No location specified for persistence daemon. Please include as a command line environment variable or in a .env file."));
         process.exit(0);
     }
     const heartbeat = `${LOCATION}:1050/serverHeartbeat`;
@@ -60,26 +80,26 @@ async function listen() {
                     addLogEntry("Detected a server crash", red);
                     current_backup?.kill();
                     await log_execution({
-                        startMessage: "Sending crash notification email",
+                        startMessage: identifier + " Sending crash notification email",
                         endMessage: ({ error, result }) => {
                             const success = error === null && result === true;
-                            return `${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
+                            return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
                         },
                         action: async () => notify(error || "Hmm, no error to report..."),
                         color: cyan
                     });
                     current_backup = await log_execution({
-                        startMessage: "Initiating server restart",
+                        startMessage: identifier + " Initiating server restart",
                         endMessage: ({ result, error }) => {
                             const success = error === null && result !== undefined;
-                            return success ? "Child process spawned.." : `An error occurred while attempting to restart the server:\n${error}`;
+                            return identifier + success ? " Child process spawned..." : ` An error occurred while attempting to restart the server:\n${error}`;
                         },
-                        action: () => ProcessManager.spawn_detached('npm', ['run', 'start-spawn']),
+                        action: () => ProcessFactory.createWorker('npm', ['run', 'start-spawn'], "inherit"),
                         color: green
                     });
-                    writeFileSync(pathFromRoot("./logs/current_server_pid.txt"), `${current_backup?.pid ?? -1} created ${timestamp()}\n`);
+                    writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
                 } else {
-                    console.log(yellow(`Callback ignored because restarting already initiated ${timestamp()}`));
+                    identifiedLog(yellow(`Callback ignored because restarting already initiated ${timestamp()}`));
                 }
             }
         }

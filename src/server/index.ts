@@ -23,7 +23,7 @@ import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { yellow, red } from "colors";
 import { disconnect } from "../server/Initialization";
-import { ProcessManager } from "./ProcessManager";
+import { ProcessFactory, Logger } from "./ChildProcessUtilities/ProcessFactory";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -36,7 +36,7 @@ export const ExitHandlers = new Array<() => void>();
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
-    await ProcessManager.initialize();
+    await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
@@ -121,11 +121,16 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         }
     });
 
+    let daemonInitialized = false;
+    const { SPAWNED, RELEASE } = process.env;
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/persist",
         onValidation: ({ res }) => {
-            ProcessManager.trySpawnDaemon();
+            if (RELEASE && !SPAWNED && !daemonInitialized) {
+                daemonInitialized = true;
+                ProcessFactory.NamedAgents.persistenceDaemon();
+            }
             res.redirect("/home");
         }
     });
