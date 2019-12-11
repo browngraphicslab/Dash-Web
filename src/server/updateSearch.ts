@@ -59,7 +59,14 @@ async function update() {
     });
     const cursor = await log_execution({
         startMessage: "Connecting to and querying for all documents from database...",
-        endMessage: "Connection successful and query complete",
+        endMessage: ({ result, error }) => {
+            const success = error === null && result !== undefined;
+            if (!success) {
+                console.log(red("Unable to connect to the database."));
+                process.exit(0);
+            }
+            return "Connection successful and query complete";
+        },
         action: () => Database.Instance.query({}),
         color: yellow
     });
@@ -92,7 +99,7 @@ async function update() {
             updates.push(update);
         }
     }
-    await cursor.forEach(updateDoc);
+    await cursor?.forEach(updateDoc);
     const result = await log_execution({
         startMessage: `Dispatching updates for ${updates.length} documents`,
         endMessage: "Dispatched updates complete",
@@ -107,7 +114,7 @@ async function update() {
         console.log(result);
         console.log("\n");
     }
-    await cursor.close();
+    await cursor?.close();
     process.exit(0);
 }
 

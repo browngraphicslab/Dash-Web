@@ -51,11 +51,7 @@ export async function log_execution<T>({ startMessage, endMessage, action, color
     } catch (e) {
         error = e;
     } finally {
-        if (typeof endMessage === "string") {
-            log_helper(`${endMessage}.`, resolvedColor);
-        } else {
-            log_helper(`${endMessage({ result, error })}.`, resolvedColor);
-        }
+        log_helper(`${typeof endMessage === "string" ? endMessage : endMessage({ result, error })}.`, resolvedColor);
     }
     return result;
 }

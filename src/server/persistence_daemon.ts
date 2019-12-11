@@ -3,8 +3,9 @@ import { command_line, log_execution } from "./ActionUtilities";
 import { red, yellow, cyan, green } from "colors";
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
+import { Database } from "./database";
 
-const { LOCATION } = process.env;
+const LOCATION = "http://localhost";
 const recipient = "samuel_wilkins@brown.edu";
 let restarting = false;
 
@@ -39,13 +40,15 @@ async function listen() {
                 console.log(await log_execution({
                     startMessage: "Initiating server restart",
                     endMessage: "Server successfully restarted",
-                    action: async () => command_line(`npm run start${suffix}`, "../../"),
+                    action: () => command_line(`npm run start${suffix}`),
                     color: green
                 }));
                 restarting = false;
+            } else {
+                console.log(green(`No issues detected as of ${new Date().toISOString()}`));
             }
         }
-    }, 1000 * 90);
+    }, 1000 * 10);
 }
 
 function emailText(error: any) {
@@ -72,7 +75,7 @@ async function notify(error: any) {
         text: emailText(error)
     } as MailOptions;
     return new Promise<boolean>(resolve => {
-        smtpTransport.sendMail(mailOptions, (dispatchError: Error | null) => resolve(dispatchError === null));
+        smtpTransport.sendMail(mailOptions, (dispatchError: Error | null) => { console.log(dispatchError); resolve(dispatchError === null); });
     });
 }
 

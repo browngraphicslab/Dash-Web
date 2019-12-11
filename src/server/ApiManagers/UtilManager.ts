@@ -43,7 +43,7 @@ export default class UtilManager extends ApiManager {
             method: Method.GET,
             subscription: "/buxton",
             onValidation: async ({ res }) => {
-                const cwd = '../scraping/buxton';
+                const cwd = './src/scraping/buxton';
 
                 const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
                 const onRejected = (err: any) => { console.error(err.message); res.send(err); };

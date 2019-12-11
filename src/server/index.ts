@@ -119,31 +119,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         }
     });
 
-    let daemonInitialized = false;
-    addSupervisedRoute({
-        method: Method.GET,
-        subscription: "/persist",
-        onValidation: async ({ res }) => {
-            if (!daemonInitialized) {
-                daemonInitialized = true;
-                log_execution({
-                    startMessage: "\ninitializing persistence daemon",
-                    endMessage: ({ result, error }) => {
-                        const success = error === null && result !== undefined;
-                        if (!success) {
-                            console.log(red("failed to initialize the persistance daemon"));
-                            process.exit(0);
-                        }
-                        return "persistence daemon process closed";
-                    },
-                    action: async () => command_line("npx ts-node ./persistence_daemon.ts", "./src/server"),
-                    color: yellow
-                });
-            }
-            res.redirect("/home");
-        }
-    });
-
     logRegistrationOutcome();
 
     // initialize the web socket (bidirectional communication: if a user changes
