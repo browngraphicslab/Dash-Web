@@ -194,6 +194,8 @@ export class DocumentManager {
             const target = linkFollowDocs[reverse ? 1 : 0];
             target.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
             DocumentManager.Instance.jumpToDocument(linkFollowDocs[reverse ? 1 : 0], zoom, (doc: Doc) => focus(doc, maxLocation), targetContext, linkDoc[Id]);
+        } else if (link) {
+            DocumentManager.Instance.jumpToDocument(link, zoom, (doc: Doc) => focus(doc, "onRight"), undefined, undefined);
         }
     }
 

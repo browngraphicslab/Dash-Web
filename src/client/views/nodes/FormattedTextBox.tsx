@@ -184,7 +184,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     this.linkOnDeselect.set(key, value);
 
                     const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const link = this._editorView.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
+                    const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + id), location: "onRight", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
@@ -238,9 +238,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
         }
     }
-    setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
+    adoptAnnotation = (start: number, end: number, mark: Mark) => {
         const view = this._editorView!;
-        const nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
+        const nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: Doc.CurrentUserEmail });
         view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark));
     }
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -873,6 +873,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     static _downEvent: any;
     onPointerDown = (e: React.PointerEvent): void => {
+        this.doLinkOnDeselect();
         FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (this.props.onClick && e.button === 0) {
@@ -1053,9 +1054,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
-        this.doLinkOnDeselect(); 6
+        this.doLinkOnDeselect();
     }
 
+    _lastTimedMark: Mark | undefined = undefined;
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.altKey) {
             e.preventDefault();
@@ -1078,7 +1080,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) });
+        const mark = e.key !== " " && this._lastTimedMark ? this._lastTimedMark! : schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) });
+        this._lastTimedMark = mark;
         this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
 
         if (!this._undoTyping) {

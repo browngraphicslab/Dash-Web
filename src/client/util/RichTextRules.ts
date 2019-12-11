@@ -6,8 +6,10 @@ import { NumCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { TooltipTextMenuManager } from "../util/TooltipTextMenu";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
+import { DocServer } from "../DocServer";
+import { returnFalse, Utils } from "../../Utils";
 
 export const inpRules = {
     rules: [
@@ -171,6 +173,22 @@ export const inpRules = {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
                 return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "disagree", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+            }),
+        new InputRule(
+            new RegExp(/@$/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from) return null;
+
+                const value = state.doc.textBetween(start, end);
+                if (value) {
+                    DocServer.GetRefField(value).then(docx => {
+                        let doc = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                        DocUtils.Publish(doc, value, returnFalse, returnFalse);
+                    });
+                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + value), location: "onRight", title: value });
+                    return state.tr.addMark(start, end, link);
+                }
+                return state.tr;
             }),
         new InputRule(
             new RegExp(/^\^\^\s$/),

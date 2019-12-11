@@ -462,7 +462,6 @@ export const marks: { [index: string]: MarkSpec } = {
     user_mark: {
         attrs: {
             userid: { default: "" },
-            opened: { default: true },
             modified: { default: "when?" }, // 5 second intervals since 1970
         },
         group: "inline",
@@ -472,16 +471,13 @@ export const marks: { [index: string]: MarkSpec } = {
             const hr = Math.round(min / 60);
             const day = Math.round(hr / 60 / 24);
             const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
-            return node.attrs.opened ?
-                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
-                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
+            return ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0];
         }
     },
     // the id of the user who entered the text
     user_tag: {
         attrs: {
             userid: { default: "" },
-            opened: { default: true },
             modified: { default: "when?" }, // 5 second intervals since 1970
             tag: { default: "" }
         },
@@ -489,9 +485,7 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
-            return node.attrs.opened ?
-                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0] :
-                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, ['span', 0]];
+            return ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0];
         }
     },
 

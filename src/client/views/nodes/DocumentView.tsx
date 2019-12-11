@@ -644,7 +644,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     contents={this.Document[showTitle]}
                     display={"block"} height={72} fontSize={12}
                     GetValue={() => StrCast(this.Document[showTitle])}
-                    SetValue={(value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true}
+                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true)}
                 />
             </div>);
         return <>
