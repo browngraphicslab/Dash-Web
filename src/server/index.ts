@@ -129,7 +129,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
                 log_execution({
                     startMessage: "\ninitializing persistence daemon",
                     endMessage: ({ result, error }) => {
-                        console.log(result, error);
                         const success = error === null && result !== undefined;
                         if (!success) {
                             console.log(red("failed to initialize the persistance daemon"));
