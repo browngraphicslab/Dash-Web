@@ -121,20 +121,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         }
     });
 
-    let daemonInitialized = false;
-    const { SPAWNED, RELEASE } = process.env;
-    addSupervisedRoute({
-        method: Method.GET,
-        subscription: "/persist",
-        onValidation: ({ res }) => {
-            if (RELEASE && !SPAWNED && !daemonInitialized) {
-                daemonInitialized = true;
-                ProcessFactory.NamedAgents.persistenceDaemon();
-            }
-            res.redirect("/home");
-        }
-    });
-
     logRegistrationOutcome();
 
     // initialize the web socket (bidirectional communication: if a user changes
