@@ -94,7 +94,7 @@ async function listen() {
                             const success = error === null && result !== undefined;
                             return identifier + success ? " Child process spawned..." : ` An error occurred while attempting to restart the server:\n${error}`;
                         },
-                        action: () => ProcessFactory.createWorker('npm', ['run', 'start-spawn'], "inherit"),
+                        action: () => ProcessFactory.createWorker('npm', ['run', 'start'], "inherit"),
                         color: green
                     });
                     writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
