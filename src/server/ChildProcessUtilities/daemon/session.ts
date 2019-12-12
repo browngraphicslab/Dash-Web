@@ -24,8 +24,8 @@ createInterface(process.stdin, process.stdout).on('line', async line => {
         case "exit":
             identifiedLog(cyan("Initializing session end"));
             await endPrevious();
-            identifiedLog("Cleanup complete. Exiting session...");
-            execSync("killall -9 node");
+            identifiedLog("Cleanup complete. Exiting session...\n");
+            execSync(killAllCommand());
             break;
         default:
             identifiedLog(red("commands: { exit, restart }"));
@@ -73,6 +73,13 @@ function startServerCommand() {
         return '"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"';
     }
     return `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && npm run start-release"\nend tell'`;
+}
+
+function killAllCommand() {
+    if (onWindows) {
+        return "taskkill /f /im node.exe";
+    }
+    return "killall -9 node";
 }
 
 identifiedLog("Initializing session...");
