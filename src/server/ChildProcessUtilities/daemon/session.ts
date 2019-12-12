@@ -1,14 +1,14 @@
 import * as request from "request-promise";
-import { log_execution } from "../../ActionUtilities";
+import { log_execution, pathFromRoot } from "../../ActionUtilities";
 import { red, yellow, cyan, green, Color } from "colors";
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
-import { writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
+import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
 import { ChildProcess, exec } from "child_process";
 const killport = require("kill-port");
 
-const identifier = yellow("__daemon__:");
+const identifier = yellow("__session_manager__:");
 
 process.on('SIGINT', () => current_backup?.kill("SIGTERM"));
 
@@ -32,16 +32,30 @@ function identifiedLog(message?: any, ...optionalParams: any[]) {
     console.log(identifier, message, ...optionalParams);
 }
 
+if (!["win32", "darwin"].includes(process.platform)) {
+    identifiedLog(red("Invalid operating system: this script is supported only on Mac and Windows."));
+    process.exit(1);
+}
+
+const onWindows = process.platform === "win32";
 const LOCATION = "http://localhost";
+const heartbeat = `${LOCATION}:1050/serverHeartbeat`;
 const recipient = "samuel_wilkins@brown.edu";
 const frequency = 10;
 const { pid } = process;
 let restarting = false;
 let count = 0;
 
-identifiedLog("Initializing daemon...");
+function startServerCommand() {
+    if (onWindows) {
+        return '"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"';
+    }
+    return `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && npm run start-release"\nend tell'`;
+}
 
-writeLocalPidLog("daemon", pid);
+identifiedLog("Initializing session...");
+
+writeLocalPidLog("session_manager", pid);
 
 function writeLocalPidLog(filename: string, contents: any) {
     const path = `./logs/current_${filename}_pid.log`;
@@ -53,56 +67,66 @@ function timestamp() {
     return `@ ${new Date().toISOString()}`;
 }
 
+async function clear_ports(...targets: number[]) {
+    return Promise.all(targets.map(port => {
+        const task = killport(port, 'tcp');
+        return task.catch((error: any) => identifiedLog(red(error)));
+    }));
+}
+
 let current_backup: ChildProcess | undefined = undefined;
 
-async function listen() {
-    identifiedLog(yellow(`Beginning to poll server heartbeat every ${frequency} seconds...\n`));
-    if (!LOCATION) {
-        identifiedLog(red("No location specified for persistence daemon. Please include as a command line environment variable or in a .env file."));
-        process.exit(0);
-    }
-    const heartbeat = `${LOCATION}:1050/serverHeartbeat`;
-    // if this is on our remote server, the server must be run in release mode
-    // const suffix = LOCATION.includes("localhost") ? "" : "-release";
-    setInterval(async () => {
-        let error: any;
-        try {
-            await request.get(heartbeat);
-            if (restarting) {
-                addLogEntry("Backup server successfully " + count ? "restarted" : "started", green);
-                count++;
-            }
-            restarting = false;
-        } catch (e) {
-            error = e;
-        } finally {
-            if (error) {
-                if (!restarting) {
-                    restarting = true;
-                    if (count) {
-                        addLogEntry("Detected a server crash", red);
-                        current_backup?.kill("SIGTERM");
-                        identifiedLog(yellow("Cleaning up previous connections..."));
-                        await killport(1050, 'tcp').catch((error: any) => identifiedLog(red(error)));
-                        await killport(4321, 'tcp').catch((error: any) => identifiedLog(red(error)));
-                        identifiedLog(yellow("Connections cleared."));
-                        await log_execution({
-                            startMessage: identifier + " Sending crash notification email",
-                            endMessage: ({ error, result }) => {
-                                const success = error === null && result === true;
-                                return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
-                            },
-                            action: async () => notify(error || "Hmm, no error to report..."),
-                            color: cyan
-                        });
-                        identifiedLog(green("Initiating server restart..."));
-                    }
-                    current_backup = exec('"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"', err => identifiedLog(err?.message || "Previous server process exited."));
-                    writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
+async function checkHeartbeat() {
+    let error: any;
+    try {
+        await request.get(heartbeat);
+        if (restarting) {
+            addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
+        }
+        restarting = false;
+    } catch (e) {
+        error = e;
+    } finally {
+        if (error) {
+            if (!restarting) {
+                restarting = true;
+                if (count) {
+                    console.log();
+                    addLogEntry("Detected a server crash", red);
+                    current_backup?.kill("SIGTERM");
+
+                    identifiedLog(yellow("Cleaning up previous connections..."));
+                    await clear_ports(1050, 4321);
+                    identifiedLog(yellow("Finished attempting to clear all ports."));
+                    identifiedLog(yellow("Any failures will be printed in red immediately above."));
+
+                    await log_execution({
+                        startMessage: identifier + " Sending crash notification email",
+                        endMessage: ({ error, result }) => {
+                            const success = error === null && result === true;
+                            return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
+                        },
+                        action: async () => notify(error || "Hmm, no error to report..."),
+                        color: cyan
+                    });
+
+                    identifiedLog(green("Initiating server restart..."));
                 }
+                current_backup = exec(startServerCommand(), err => identifiedLog(err?.message || count ? "Previous server process exited." : "Spawned initial server."));
+                writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
             }
         }
-    }, 1000 * 10);
+    }
+}
+
+async function startListening() {
+    identifiedLog(yellow(`After initialization, will poll server heartbeat every ${frequency} seconds...\n`));
+    if (!LOCATION) {
+        identifiedLog(red("No location specified for session manager. Please include as a command line environment variable or in a .env file."));
+        process.exit(0);
+    }
+    await checkHeartbeat();
+    setInterval(checkHeartbeat, 1000 * frequency);
 }
 
 function emailText(error: any) {
@@ -133,4 +157,4 @@ async function notify(error: any) {
     });
 }
 
-listen();
+startListening();

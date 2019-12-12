@@ -6,7 +6,10 @@ import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
 
 const projectRoot = path.resolve(__dirname, "../../");
-export function pathFromRoot(relative: string) {
+export function pathFromRoot(relative?: string) {
+    if (!relative) {
+        return projectRoot;
+    }
     return path.resolve(projectRoot, relative);
 }
 
