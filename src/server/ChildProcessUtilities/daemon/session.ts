@@ -81,8 +81,7 @@ async function checkHeartbeat() {
     try {
         await request.get(heartbeat);
         if (restarting) {
-            addLogEntry(`Backup server successfully ${count ? "restarted" : "started"}`, green);
-            count++;
+            addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
         }
         restarting = false;
     } catch (e) {
@@ -98,7 +97,8 @@ async function checkHeartbeat() {
 
                     identifiedLog(yellow("Cleaning up previous connections..."));
                     await clear_ports(1050, 4321);
-                    identifiedLog(yellow("Finished attempting to clear all ports. Any failures will be printed in red immediately above."));
+                    identifiedLog(yellow("Finished attempting to clear all ports."));
+                    identifiedLog(yellow("Any failures will be printed in red immediately above."));
 
                     await log_execution({
                         startMessage: identifier + " Sending crash notification email",
