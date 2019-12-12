@@ -5,7 +5,7 @@ import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
 import { writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
-import { ChildProcess } from "child_process";
+import { ChildProcess, exec } from "child_process";
 import { ProcessFactory } from "../ProcessFactory";
 
 const identifier = yellow("__daemon__:");
@@ -21,11 +21,11 @@ if (!existsSync(crashPath)) {
     mkdirSync(crashPath);
 }
 
-const crashLogPath = resolve(crashPath, `./session_crashes_${timestamp()}.log`);
+const crashLogPath = resolve(crashPath, `./session_crashes_${new Date().toISOString()}.log`);
 function addLogEntry(message: string, color: Color) {
     const formatted = color(`${message} ${timestamp()}.`);
     identifiedLog(formatted);
-    appendFileSync(crashLogPath, `${formatted}\n`);
+    // appendFileSync(crashLogPath, `${formatted}\n`);
 }
 
 function identifiedLog(message?: any, ...optionalParams: any[]) {
@@ -88,13 +88,24 @@ async function listen() {
                         action: async () => notify(error || "Hmm, no error to report..."),
                         color: cyan
                     });
-                    current_backup = await log_execution({
+                    await log_execution({
                         startMessage: identifier + " Initiating server restart",
                         endMessage: ({ result, error }) => {
                             const success = error === null && result !== undefined;
                             return identifier + success ? " Child process spawned..." : ` An error occurred while attempting to restart the server:\n${error}`;
                         },
-                        action: () => ProcessFactory.createWorker('npm', ['run', 'start'], "inherit"),
+                        action: async () => {
+                            return new Promise<void>(resolve => {
+                                exec('"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"', err => {
+                                    if (err) {
+                                        identifiedLog(err.message);
+                                        return;
+                                    }
+                                    resolve();
+                                });
+
+                            });
+                        },
                         color: green
                     });
                     writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
