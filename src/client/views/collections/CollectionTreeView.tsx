@@ -401,7 +401,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 style={{
                     color: this.props.document.isMinimized ? "red" : "black",
                     background: Doc.IsHighlighted(this.props.document) ? "orange" : Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
-                    fontWeight: this.props.document.search_string ? "bold" : undefined,
+                    fontWeight: this.props.document.searchMatch ? "bold" : undefined,
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
                 }} >

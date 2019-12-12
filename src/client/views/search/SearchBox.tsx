@@ -85,7 +85,11 @@ export class SearchBox extends React.Component {
         this._maxSearchIndex = 0;
     }
 
-    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } };
+    enter = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            this.submitSearch();
+        }
+    }
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
@@ -307,7 +311,7 @@ export class SearchBox extends React.Component {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
@@ -315,7 +319,7 @@ export class SearchBox extends React.Component {
                     else {
                         result = this._results[i];
                         if (result) {
-                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }

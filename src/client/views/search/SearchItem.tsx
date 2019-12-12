@@ -135,12 +135,11 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _displayDim = 50;
 
     componentDidMount() {
-        this.props.doc.search_string = this.props.query;
-        this.props.doc.search_fields = this.props.highlighting.join(", ");
+        Doc.SetSearchQuery(this.props.query);
+        this.props.doc.searchMatch = true;
     }
     componentWillUnmount() {
-        this.props.doc.search_string = undefined;
-        this.props.doc.search_fields = undefined;
+        this.props.doc.searchMatch = undefined;
     }
 
     //@computed
@@ -218,10 +217,10 @@ export class SearchItem extends React.Component<SearchItemProps> {
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     nextHighlight = (e: React.PointerEvent) => {
-        e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e);
-        const sstring = StrCast(this.props.doc.search_string);
-        this.props.doc.search_string = "";
-        setTimeout(() => this.props.doc.search_string = sstring, 0);
+        e.preventDefault();
+        e.button === 0 && SearchBox.Instance.openSearch(e);
+        this.props.doc.searchMatch = false;
+        setTimeout(() => this.props.doc.searchMatch = true, 0);
     }
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocumentType.LINK) {

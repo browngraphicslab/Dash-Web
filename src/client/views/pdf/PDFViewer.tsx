@@ -39,7 +39,7 @@ export const pageSchema = createSchema({
     rotation: "number",
     scrollY: "number",
     scrollHeight: "number",
-    search_string: "string"
+    serachMatch: "boolean"
 });
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
@@ -129,10 +129,10 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this._coverPath = JSON.parse(await rp.get(path));
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
-        this._searchReactionDisposer = reaction(() => this.Document.search_string, searchString => {
-            if (searchString) {
-                this.search(searchString, true);
-                this._lastSearch = searchString;
+        this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
+            if (search) {
+                this.search(Doc.SearchQuery(), true);
+                this._lastSearch = Doc.SearchQuery();
             }
             else {
                 setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
