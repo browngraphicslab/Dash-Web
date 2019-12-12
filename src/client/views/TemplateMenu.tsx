@@ -63,31 +63,24 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         SelectionManager.DeselectAll();
         const topDocView = this.props.docs[0];
         const topDoc = topDocView.props.Document;
-        const xf = topDocView.props.ScreenToLocalTransform();
-        const ex = e.target.clientLeft;
-        const ey = e.target.clientTop;
+        const ex = e.target.getBoundingClientRect().left;
+        const ey = e.target.getBoundingClientRect().top;
+        const de = new DragManager.DocumentDragData([topDoc]);
+        de.dragDivName =  topDocView.props.dragDivName;
+        de.moveDocument = topDocView.props.moveDocument;
         undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
-        if (e.target.checked) {
-            setTimeout(() => {
-                const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
-                if (newDocView) {
-                    const de = new DragManager.DocumentDragData([topDoc]);
-                    de.moveDocument = topDocView.props.moveDocument;
-                    const xf = newDocView.ContentDiv!.getBoundingClientRect();
-                    DragManager.StartDocumentDrag([newDocView.ContentDiv!], de, ex, ey, {
-                        offsetX: (ex - xf.left), offsetY: (ey - xf.top),
-                        handlers: { dragComplete: () => { }, },
-                        hideSource: false
-                    });
-                }
-            }, 10);
-        } else if (topDocView.props.ContainingCollectionView) {
-            const collView = topDocView.props.ContainingCollectionView;
-            const [sx, sy] = xf.inverse().transformPoint(0, 0);
-            const [x, y] = collView.props.ScreenToLocalTransform().transformPoint(sx, sy);
-            topDoc.x = x;
-            topDoc.y = y;
-        }
+        setTimeout(() => {
+            const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
+            if (newDocView) {
+                const contentDiv = newDocView.ContentDiv!;
+                const xf = contentDiv.getBoundingClientRect();
+                DragManager.StartDocumentDrag([contentDiv], de, ex, ey, {
+                    offsetX: ex - xf.left, offsetY: ey - xf.top,
+                    handlers: { dragComplete: () => { }, },
+                    hideSource: true
+                });
+            }
+        }, 0);
     }
 
     @undoBatch

@@ -209,6 +209,7 @@ export namespace DragManager {
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
+        dragDivName?: string;
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
@@ -366,7 +367,7 @@ export namespace DragManager {
             dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
-            dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
+            dragElement.style.transform = `translate(${x + (options?.offsetX || 0)}px, ${y + (options?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
@@ -408,7 +409,7 @@ export namespace DragManager {
             }
         }
 
-        eles.map(ele => ele.hidden = hideSource);
+        eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = hideSource) : (ele.hidden = hideSource));
 
         let lastX = downX;
         let lastY = downY;
@@ -433,13 +434,13 @@ export namespace DragManager {
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX) + (options ? (options.offsetX || 0) : 0)}px, ${(ys[i] += moveY) + (options ? (options.offsetY || 0) : 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
         const hideDragShowOriginalElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => ele.hidden = false);
+            eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
         };
         const endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);

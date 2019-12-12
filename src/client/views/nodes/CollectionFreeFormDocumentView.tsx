@@ -104,6 +104,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.Document.zIndex || 0,
             }} >
             <DocumentView {...this.props}
+                dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
                 backgroundColor={this.clusterColorFunc}
