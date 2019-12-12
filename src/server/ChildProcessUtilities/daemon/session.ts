@@ -5,12 +5,33 @@ import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
-import { ChildProcess, exec } from "child_process";
+import { ChildProcess, exec, execSync } from "child_process";
+import { createInterface } from "readline";
 const killport = require("kill-port");
 
+process.on('SIGINT', endPrevious);
 const identifier = yellow("__session_manager__:");
 
-process.on('SIGINT', () => current_backup?.kill("SIGTERM"));
+let manualRestartActive = false;
+createInterface(process.stdin, process.stdout).on('line', async line => {
+    const prompt = line.trim().toLowerCase();
+    switch (prompt) {
+        case "restart":
+            manualRestartActive = true;
+            identifiedLog(cyan("Initializing manual restart..."));
+            endPrevious();
+            break;
+        case "exit":
+            identifiedLog(cyan("Initializing session end"));
+            await endPrevious();
+            identifiedLog("Cleanup complete. Exiting session...");
+            execSync("killall -9 node");
+            break;
+        default:
+            identifiedLog(red("commands: { exit, restart }"));
+            return;
+    }
+});
 
 const logPath = resolve(__dirname, "./logs");
 const crashPath = resolve(logPath, "./crashes");
@@ -37,6 +58,7 @@ if (!["win32", "darwin"].includes(process.platform)) {
     process.exit(1);
 }
 
+const ports = [1050, 4321];
 const onWindows = process.platform === "win32";
 const LOCATION = "http://localhost";
 const heartbeat = `${LOCATION}:1050/serverHeartbeat`;
@@ -67,11 +89,14 @@ function timestamp() {
     return `@ ${new Date().toISOString()}`;
 }
 
-async function clear_ports(...targets: number[]) {
-    return Promise.all(targets.map(port => {
+async function endPrevious() {
+    identifiedLog(yellow("Cleaning up previous connections..."));
+    current_backup?.kill("SIGTERM");
+    await Promise.all(ports.map(port => {
         const task = killport(port, 'tcp');
         return task.catch((error: any) => identifiedLog(red(error)));
     }));
+    identifiedLog(yellow("Done. Any failures will be printed in red immediately above."));
 }
 
 let current_backup: ChildProcess | undefined = undefined;
@@ -80,26 +105,20 @@ async function checkHeartbeat() {
     let error: any;
     try {
         await request.get(heartbeat);
-        if (restarting) {
+        if (restarting || manualRestartActive) {
             addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
+            restarting = false;
         }
-        restarting = false;
     } catch (e) {
         error = e;
     } finally {
         if (error) {
-            if (!restarting) {
+            if (!restarting || manualRestartActive) {
                 restarting = true;
-                if (count) {
+                if (count && !manualRestartActive) {
                     console.log();
                     addLogEntry("Detected a server crash", red);
-                    current_backup?.kill("SIGTERM");
-
-                    identifiedLog(yellow("Cleaning up previous connections..."));
-                    await clear_ports(1050, 4321);
-                    identifiedLog(yellow("Finished attempting to clear all ports."));
-                    identifiedLog(yellow("Any failures will be printed in red immediately above."));
-
+                    await endPrevious();
                     await log_execution({
                         startMessage: identifier + " Sending crash notification email",
                         endMessage: ({ error, result }) => {
@@ -109,9 +128,9 @@ async function checkHeartbeat() {
                         action: async () => notify(error || "Hmm, no error to report..."),
                         color: cyan
                     });
-
                     identifiedLog(green("Initiating server restart..."));
                 }
+                manualRestartActive = false;
                 current_backup = exec(startServerCommand(), err => identifiedLog(err?.message || count ? "Previous server process exited." : "Spawned initial server."));
                 writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
             }
