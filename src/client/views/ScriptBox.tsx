@@ -113,7 +113,15 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 return;
             }
 
-            params.length && DragManager.StartButtonDrag([], text, "a script", {}, params, (button: Doc) => { }, clientX, clientY);
+            var div = document.createElement("div");
+            div.style.width = "90";
+            div.style.height = "20";
+            div.style.background = "gray";
+            div.style.position = "absolute";
+            div.style.display = "inline-block";
+            div.style.transform = `translate(${clientX}px, ${clientY}px)`;
+            div.innerHTML = "button";
+            params.length && DragManager.StartButtonDrag([div], text, doc.title + "-instance", {}, params, (button: Doc) => { }, clientX, clientY);
 
             doc[fieldKey] = new ScriptField(script);
             overlayDisposer();
