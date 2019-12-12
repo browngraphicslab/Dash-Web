@@ -21,6 +21,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -148,37 +149,31 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (!this._useIcons) {
             const returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             const returnYDimension = () => this._displayDim;
-            const scale = () => returnXDimension() / NumCast(Doc.Layout(this.props.doc).nativeWidth, returnXDimension());
             const docview = <div
                 onPointerDown={action(() => {
                     this._useIcons = !this._useIcons;
                     this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
                 })}
-                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
-                onPointerLeave={action(() => this._displayDim = 50)} >
-                <DocumentView
+                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))} >
+                <ContentFittingDocumentView
                     Document={this.props.doc}
                     LibraryPath={emptyPath}
                     fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
+                    getTransform={Transform.Identity}
                     renderDepth={1}
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
-                    parentActive={returnFalse}
+                    moveDocument={returnFalse}
+                    active={returnFalse}
                     whenActiveChanged={returnFalse}
-                    bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    ContentScaling={scale}
+                    setPreviewScript={emptyFunction}
+                    previewScript={undefined}
                 />
             </div>;
             return docview;
@@ -287,7 +282,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                             <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
                             {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="search-highlighting">`${l}`</div>)}
                         </div>
-                        <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
+                        <div className="search-info" style={{ width: this._useIcons ? "15%" : "100%" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" title="Click to Preview">{this.DocumentIcon()}</div>
                                 <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>

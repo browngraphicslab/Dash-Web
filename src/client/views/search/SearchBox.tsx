@@ -339,7 +339,7 @@ export class SearchBox extends React.Component {
 
     render() {
         return (
-            <div className="searchBox-container">
+            <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
                 <div className="searchBox-bar">
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
@@ -349,10 +349,9 @@ export class SearchBox extends React.Component {
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
-                {(this._numTotalResults > 0 || !this._searchbarOpen) ? (null) :
-                    (<div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
-                        <div className="filter-panel"><IconBar /></div>
-                    </div>)}
+                <div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
+                    <div className="filter-panel"><IconBar /></div>
+                </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "auto" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
