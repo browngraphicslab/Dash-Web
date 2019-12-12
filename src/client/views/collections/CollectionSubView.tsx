@@ -27,7 +27,7 @@ import { Networking } from "../../Network";
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
@@ -51,7 +51,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
-                this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -132,32 +132,33 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
+            const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
-                this.props.Document.dropConverter.script.run({ dragData: de.data });
-            if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
-                if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
+                this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
+            if (docDragData && !docDragData.applyAsTemplate) {
+                if (de.altKey && docDragData.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, "layoutFromParent"));
+                        Doc.ApplyTemplateTo(docDragData.draggedDocuments[0], doc, "layoutFromParent"));
                     e.stopPropagation();
                     return true;
                 }
                 let added = false;
-                if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
-                } else if (de.data.moveDocument) {
-                    const movedDocs = de.data.draggedDocuments;
+                if (docDragData.dropAction || docDragData.userDropAction) {
+                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                } else if (docDragData.moveDocument) {
+                    const movedDocs = docDragData.draggedDocuments;
                     added = movedDocs.reduce((added: boolean, d, i) =>
-                        de.data.droppedDocuments[i] !== d ? this.props.addDocument(de.data.droppedDocuments[i]) :
-                            de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
+                        docDragData.droppedDocuments[i] !== d ? this.props.addDocument(docDragData.droppedDocuments[i]) :
+                            docDragData.moveDocument?.(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
             }
-            else if (de.data instanceof DragManager.AnnotationDragData) {
+            else if (de.complete.annoDragData) {
                 e.stopPropagation();
-                return this.props.addDocument(de.data.dropDocument);
+                return this.props.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
         }

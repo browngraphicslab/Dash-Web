@@ -19,7 +19,6 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { LinkManager } from '../../util/LinkManager';
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
@@ -60,7 +59,7 @@ export interface DocumentViewProps {
     dragDivName?: string;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
-    moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
@@ -105,7 +104,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     componentDidMount() {
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } }));
+        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
 
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
@@ -113,7 +112,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentDidUpdate() {
         this._dropDisposer && this._dropDisposer();
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } }));
+        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
     }
 
     @action
@@ -132,12 +131,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.moveDocument = this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.applyAsTemplate = applyAsTemplate;
             dragData.dragDivName = this.props.dragDivName;
-            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
-                handlers: {
-                    dragComplete: action((emptyFunction))
-                },
-                hideSource: !dropAction && !this.Document.onDragStart
-            });
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
 
@@ -190,7 +184,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         const maximizedDocs = await DocListCastAsync(this.Document.maximizedDocs);
         const summarizedDocs = await DocListCastAsync(this.Document.summarizedDocs);
-        const linkDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
+        const linkDocs = DocListCast(this.props.Document.links);
         let expandedDocs: Doc[] = [];
         expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
         expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
@@ -324,23 +318,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.AnnotationDragData) {
+        if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            (de.data as any).linkedToDoc = true;
+            de.complete.annoDragData.linkedToDoc = true;
 
-            DocUtils.MakeLink({ doc: de.data.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `Link from ${StrCast(de.data.annotationDocument.title)}`);
+            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc },
+                `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
         }
-        if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document, "layoutCustom");
+        if (de.complete.docDragData && de.complete.docDragData.applyAsTemplate) {
+            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layoutCustom");
             e.stopPropagation();
         }
-        if (de.data instanceof DragManager.LinkDragData) {
+        if (de.complete.linkDragData) {
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-            de.data.linkSourceDocument !== this.props.Document &&
-                (de.data.linkDocument = DocUtils.MakeLink({ doc: de.data.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
+            de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
+                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
         }
     }
 

@@ -409,6 +409,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if ((this.Document.scale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
+            e.stopPropagation();
         }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active(true)) {
@@ -559,14 +560,9 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         const targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "Note linked to " + this.props.Document.title });
         const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
-            const dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
-            DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
-                handlers: {
-                    dragComplete: () => !(dragData as any).linkedToDoc &&
-                        DocUtils.MakeLink({ doc: annotationDoc }, { doc: dragData.dropDocument, ctx: dragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF")
-
-                },
-                hideSource: false
+            DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
+                dragComplete: e => !e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc &&
+                    DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF")
             });
         }
     }

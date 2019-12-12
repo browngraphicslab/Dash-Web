@@ -51,21 +51,21 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         this._dropRef = ele;
         this.dropDisposer && this.dropDisposer();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.columnDrop.bind(this) } });
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.columnDrop.bind(this));
         }
     }
 
     @undoBatch
     columnDrop = action((e: Event, de: DragManager.DropEvent) => {
         this._createAliasSelected = false;
-        if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.complete.docDragData) {
             const key = StrCast(this.props.parent.props.Document.sectionFilter);
             const castedValue = this.getValue(this._heading);
             if (castedValue) {
-                de.data.droppedDocuments.forEach(d => d[key] = castedValue);
+                de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
             }
             else {
-                de.data.droppedDocuments.forEach(d => d[key] = undefined);
+                de.complete.docDragData.droppedDocuments.forEach(d => d[key] = undefined);
             }
             this.props.parent.drop(e, de);
             e.stopPropagation();

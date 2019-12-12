@@ -12,13 +12,11 @@ import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
-import { MainView } from '../MainView';
 import { FilterBox } from './FilterBox';
 import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
-import { string } from 'prop-types';
 
 library.add(faTimes);
 

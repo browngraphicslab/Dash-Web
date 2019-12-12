@@ -68,7 +68,7 @@ export namespace CollectionViewType {
 export interface CollectionRenderProps {
     addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
 }
@@ -150,7 +150,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+    moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }

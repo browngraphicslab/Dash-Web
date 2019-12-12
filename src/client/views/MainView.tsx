@@ -460,7 +460,7 @@ export class MainView extends React.Component {
 
     addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
     remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
-    moveButtonDoc = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
+    moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
     buttonBarXf = () => {
         if (!this._docBtnRef.current) return Transform.Identity();
