@@ -20,7 +20,7 @@ import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, U
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
-import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
+import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from "../../util/UndoManager";
@@ -346,7 +346,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             const docid = (e.target as any).DashDocId;
             const tab = (e.target as any).parentElement as HTMLElement;
             DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
-                (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
+                (sourceDoc instanceof Doc) && DragManager.StartLinkTargetsDrag(tab, x, y, sourceDoc)));
         }
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
@@ -419,15 +419,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 };
                 ReactDOM.render(<span title="Drag as document"
                     className="collectionDockingView-dragAsDocument"
-                    onPointerDown={
-                        e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
-                                handlers: { dragComplete: emptyFunction },
-                                hideSource: false
-                            });
-                        }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                    onPointerDown={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
+                    }}>
+                    <FontAwesomeIcon icon="file" size="lg" />
+                </span>, dragSpan);
                 ReactDOM.render(<ButtonSelector Document={doc} Stack={stack} />, gearSpan);
                 tab.reactComponents = [dragSpan, gearSpan, upDiv];
                 tab.element.append(dragSpan);

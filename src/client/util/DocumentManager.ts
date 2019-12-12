@@ -108,7 +108,7 @@ export class DocumentManager {
                 return init && rest;
             })
         ).reduce((pairs, dv) => {
-            const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
+            const linksList = DocListCast(dv.props.Document.links);
             pairs.push(...linksList.reduce((pairs, link) => {
                 const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
                 linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
@@ -176,7 +176,7 @@ export class DocumentManager {
     }
 
     public async FollowLink(link: Doc | undefined, doc: Doc, focus: (doc: Doc, maxLocation: string) => void, zoom: boolean = false, reverse: boolean = false, currentContext?: Doc) {
-        const linkDocs = link ? [link] : LinkManager.Instance.getAllRelatedLinks(doc);
+        const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc));
         const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc));

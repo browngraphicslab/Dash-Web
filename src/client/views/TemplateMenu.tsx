@@ -66,7 +66,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const ex = e.target.getBoundingClientRect().left;
         const ey = e.target.getBoundingClientRect().top;
         const de = new DragManager.DocumentDragData([topDoc]);
-        de.dragDivName =  topDocView.props.dragDivName;
+        de.dragDivName = topDocView.props.dragDivName;
         de.moveDocument = topDocView.props.moveDocument;
         undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
         setTimeout(() => {
@@ -74,11 +74,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             if (newDocView) {
                 const contentDiv = newDocView.ContentDiv!;
                 const xf = contentDiv.getBoundingClientRect();
-                DragManager.StartDocumentDrag([contentDiv], de, ex, ey, {
-                    offsetX: ex - xf.left, offsetY: ey - xf.top,
-                    handlers: { dragComplete: () => { }, },
-                    hideSource: true
-                });
+                DragManager.StartDocumentDrag([contentDiv], de, ex, ey, { offsetX: ex - xf.left, offsetY: ey - xf.top, hideSource: true });
             }
         }, 0);
     }
@@ -148,9 +144,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
                 offsetX: dragData.offset[0],
                 offsetY: dragData.offset[1],
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
                 hideSource: false
             });
         }

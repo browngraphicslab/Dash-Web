@@ -67,18 +67,18 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
-        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } }));
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
     }
 
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            if (de.mods === "AltKey" && de.data.draggedDocuments.length && de.data.draggedDocuments[0].data instanceof ImageField) {
-                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(de.data.draggedDocuments[0].data.url);
+        if (de.complete.docDragData) {
+            if (de.altKey && de.complete.docDragData.draggedDocuments.length && de.complete.docDragData.draggedDocuments[0].data instanceof ImageField) {
+                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(de.complete.docDragData.draggedDocuments[0].data.url);
                 e.stopPropagation();
             }
-            de.mods === "MetaKey" && de.data.droppedDocuments.forEach(action((drop: Doc) => {
+            de.metaKey && de.complete.docDragData.droppedDocuments.forEach(action((drop: Doc) => {
                 this.extensionDoc && Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
                 e.stopPropagation();
             }));

@@ -139,15 +139,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const [xp, yp] = xf.transformPoint(de.x, de.y);
         const [xpo, ypo] = xfo.transformPoint(de.x, de.y);
         if (super.drop(e, de)) {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.droppedDocuments.length) {
-                    const firstDoc = de.data.droppedDocuments[0];
+            if (de.complete.docDragData) {
+                if (de.complete.docDragData.droppedDocuments.length) {
+                    const firstDoc = de.complete.docDragData.droppedDocuments[0];
                     const z = NumCast(firstDoc.z);
-                    const x = (z ? xpo : xp) - de.data.offset[0];
-                    const y = (z ? ypo : yp) - de.data.offset[1];
+                    const x = (z ? xpo : xp) - de.complete.docDragData.offset[0];
+                    const y = (z ? ypo : yp) - de.complete.docDragData.offset[1];
                     const dropX = NumCast(firstDoc.x);
                     const dropY = NumCast(firstDoc.y);
-                    de.data.droppedDocuments.forEach(action((d: Doc) => {
+                    de.complete.docDragData.droppedDocuments.forEach(action((d: Doc) => {
                         const layoutDoc = Doc.Layout(d);
                         d.x = x + NumCast(d.x) - dropX;
                         d.y = y + NumCast(d.y) - dropY;
@@ -162,19 +162,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     }));
 
-                    de.data.droppedDocuments.length === 1 && this.updateCluster(de.data.droppedDocuments[0]);
+                    de.complete.docDragData.droppedDocuments.length === 1 && this.updateCluster(de.complete.docDragData.droppedDocuments[0]);
                 }
             }
-            else if (de.data instanceof DragManager.AnnotationDragData) {
-                if (de.data.dropDocument) {
-                    const dragDoc = de.data.dropDocument;
-                    const x = xp - de.data.offset[0];
-                    const y = yp - de.data.offset[1];
+            else if (de.complete.annoDragData) {
+                if (de.complete.annoDragData.dropDocument) {
+                    const dragDoc = de.complete.annoDragData.dropDocument;
+                    const x = xp - de.complete.annoDragData.offset[0];
+                    const y = yp - de.complete.annoDragData.offset[1];
                     const dropX = NumCast(dragDoc.x);
                     const dropY = NumCast(dragDoc.y);
                     dragDoc.x = x + NumCast(dragDoc.x) - dropX;
                     dragDoc.y = y + NumCast(dragDoc.y) - dropY;
-                    de.data.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
+                    de.complete.annoDragData.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
                     this.bringToFront(dragDoc);
                 }
             }
@@ -205,10 +205,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
                 de.offset = this.getTransform().transformDirection(ptsParent.clientX - left, ptsParent.clientY - top);
                 de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
-                DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, ptsParent.clientX, ptsParent.clientY, {
-                    handlers: { dragComplete: action(emptyFunction) },
-                    hideSource: !de.dropAction
-                });
+                DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, ptsParent.clientX, ptsParent.clientY, { hideSource: !de.dropAction });
                 return true;
             }
         }
@@ -896,7 +893,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         return !this.extensionDoc ? (null) :
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
-                style={{ height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
+                style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>
                 <MarqueeView {...this.props} extensionDoc={this.extensionDoc} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
                     addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>

@@ -1,0 +1,87 @@
+@import "../globalCssVariables";
+
+.linkMenu-item {
+    // border-top: 0.5px solid $main-accent; 
+    position: relative;
+    display: flex;
+    font-size: 12px;
+    
+
+    .linkMenu-name {
+        position: relative;
+
+        p {
+            padding: 4px 6px;
+            line-height: 12px;
+            border-radius: 5px;
+            overflow-wrap: break-word;
+            user-select: none;
+        }
+    }
+
+    .linkMenu-item-content {
+        width: 100%;
+    }
+    
+    .link-metadata {
+        padding: 0 10px 0 16px;
+        margin-bottom: 4px;
+        color: $main-accent;
+        font-style: italic;
+        font-size: 10.5px;
+    }
+
+    &:hover {
+        .linkMenu-item-buttons {
+            display: flex;
+        }
+        .linkMenu-item-content {
+            &.expand-two p {
+                width: calc(100% - 52px);
+                background-color: lightgray;
+            }
+            &.expand-three p {
+                width: calc(100% - 84px);
+                background-color: lightgray;
+            }
+        }
+    }
+}
+
+.linkMenu-item-buttons {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+
+    .button {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        margin-right: 6px;
+        border-radius: 50%;
+        cursor: pointer;
+        pointer-events: auto;
+        background-color: $dark-color;
+        color: $light-color;
+        font-size: 65%;
+        transition: transform 0.2s;
+        text-align: center;
+        position: relative;
+
+        .fa-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        &:last-child {
+            margin-right: 0;
+        }
+        &:hover {
+            background: $main-accent;
+        }
+    }
+}

@@ -199,7 +199,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
-            handlers: { dragComplete: action(() => this._hidden = this.Interacting = false) },
+            dragComplete: action(e => this._hidden = this.Interacting = false),
             hideSource: true
         });
         e.stopPropagation();

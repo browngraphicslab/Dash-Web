@@ -56,7 +56,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     createRowDropRef = (ele: HTMLDivElement | null) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.rowDrop.bind(this));
         }
     }
 
@@ -74,12 +74,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @undoBatch
     rowDrop = action((e: Event, de: DragManager.DropEvent) => {
         this._createAliasSelected = false;
-        if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.complete.docDragData) {
             (this.props.parent.Document.dropConverter instanceof ScriptField) &&
-                this.props.parent.Document.dropConverter.script.run({ dragData: de.data });
+                this.props.parent.Document.dropConverter.script.run({ dragData: de.complete.docDragData });
             const key = StrCast(this.props.parent.props.Document.sectionFilter);
             const castedValue = this.getValue(this._heading);
-            de.data.droppedDocuments.forEach(d => d[key] = castedValue);
+            de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
             this.props.parent.drop(e, de);
             e.stopPropagation();
         }
@@ -171,10 +171,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             const script = `return doc.${key} === ${value}`;
             const compiled = CompileScript(script, { params: { doc: Doc.name } });
             if (compiled.compiled) {
-                const scriptField = new ScriptField(compiled);
-                alias.viewSpecScript = scriptField;
-                const dragData = new DragManager.DocumentDragData([alias]);
-                DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
+                alias.viewSpecScript = new ScriptField(compiled);
+                DragManager.StartDocumentDrag([this._headerRef.current!], new DragManager.DocumentDragData([alias]), e.clientX, e.clientY);
             }
 
             e.stopPropagation();

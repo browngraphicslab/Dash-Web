@@ -4,14 +4,13 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, emptyPath } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
-import { LinkManager } from "../../util/LinkManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
@@ -211,7 +210,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @computed
-    get linkCount() { return LinkManager.Instance.getAllRelatedLinks(this.props.doc).length; }
+    get linkCount() { return DocListCast(this.props.doc.links).length; }
 
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
@@ -267,10 +266,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
-        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
-            handlers: { dragComplete: emptyFunction },
-            hideSource: false,
-        });
+        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
     }
 
     render() {
