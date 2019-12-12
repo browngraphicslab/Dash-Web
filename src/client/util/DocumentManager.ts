@@ -108,7 +108,7 @@ export class DocumentManager {
                 return init && rest;
             })
         ).reduce((pairs, dv) => {
-            const linksList = DocListCast(dv.props.Document.links);
+            const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
                 linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
