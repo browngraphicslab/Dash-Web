@@ -5,8 +5,8 @@ import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
 import { writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
-import { ChildProcess } from "child_process";
-import { ProcessFactory } from "../ProcessFactory";
+import { ChildProcess, exec } from "child_process";
+const killport = require("kill-port");
 
 const identifier = yellow("__daemon__:");
 
@@ -21,11 +21,11 @@ if (!existsSync(crashPath)) {
     mkdirSync(crashPath);
 }
 
-const crashLogPath = resolve(crashPath, `./session_crashes_${timestamp()}.log`);
+const crashLogPath = resolve(crashPath, `./session_crashes_${new Date().toISOString()}.log`);
 function addLogEntry(message: string, color: Color) {
     const formatted = color(`${message} ${timestamp()}.`);
     identifiedLog(formatted);
-    appendFileSync(crashLogPath, `${formatted}\n`);
+    // appendFileSync(crashLogPath, `${formatted}\n`);
 }
 
 function identifiedLog(message?: any, ...optionalParams: any[]) {
@@ -37,6 +37,7 @@ const recipient = "samuel_wilkins@brown.edu";
 const frequency = 10;
 const { pid } = process;
 let restarting = false;
+let count = 0;
 
 identifiedLog("Initializing daemon...");
 
@@ -68,7 +69,8 @@ async function listen() {
         try {
             await request.get(heartbeat);
             if (restarting) {
-                addLogEntry("Backup server successfully restarted", green);
+                addLogEntry("Backup server successfully " + count ? "restarted" : "started", green);
+                count++;
             }
             restarting = false;
         } catch (e) {
@@ -77,29 +79,26 @@ async function listen() {
             if (error) {
                 if (!restarting) {
                     restarting = true;
-                    addLogEntry("Detected a server crash", red);
-                    current_backup?.kill();
-                    await log_execution({
-                        startMessage: identifier + " Sending crash notification email",
-                        endMessage: ({ error, result }) => {
-                            const success = error === null && result === true;
-                            return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
-                        },
-                        action: async () => notify(error || "Hmm, no error to report..."),
-                        color: cyan
-                    });
-                    current_backup = await log_execution({
-                        startMessage: identifier + " Initiating server restart",
-                        endMessage: ({ result, error }) => {
-                            const success = error === null && result !== undefined;
-                            return identifier + success ? " Child process spawned..." : ` An error occurred while attempting to restart the server:\n${error}`;
-                        },
-                        action: () => ProcessFactory.createWorker('npm', ['run', 'start'], "inherit"),
-                        color: green
-                    });
+                    if (count) {
+                        addLogEntry("Detected a server crash", red);
+                        current_backup?.kill("SIGTERM");
+                        identifiedLog(yellow("Cleaning up previous connections..."));
+                        await killport(1050, 'tcp').catch((error: any) => identifiedLog(red(error)));
+                        await killport(4321, 'tcp').catch((error: any) => identifiedLog(red(error)));
+                        identifiedLog(yellow("Connections cleared."));
+                        await log_execution({
+                            startMessage: identifier + " Sending crash notification email",
+                            endMessage: ({ error, result }) => {
+                                const success = error === null && result === true;
+                                return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
+                            },
+                            action: async () => notify(error || "Hmm, no error to report..."),
+                            color: cyan
+                        });
+                        identifiedLog(green("Initiating server restart..."));
+                    }
+                    current_backup = exec('"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"', err => identifiedLog(err?.message || "Previous server process exited."));
                     writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
-                } else {
-                    identifiedLog(yellow(`Callback ignored because restarting already initiated ${timestamp()}`));
                 }
             }
         }
