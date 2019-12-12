@@ -1,12 +1,12 @@
 import * as request from "request-promise";
-import { log_execution } from "../../ActionUtilities";
+import { log_execution, pathFromRoot } from "../../ActionUtilities";
 import { red, yellow, cyan, green, Color } from "colors";
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
-import { writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
+import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
 import { ChildProcess, exec } from "child_process";
-import * as killport from "kill-port";
+// import * as killport from "kill-port";
 
 const identifier = yellow("__daemon__:");
 
@@ -32,11 +32,24 @@ function identifiedLog(message?: any, ...optionalParams: any[]) {
     console.log(identifier, message, ...optionalParams);
 }
 
+if (!["win32", "darwin"].includes(process.platform)) {
+    identifiedLog(red("Invalid operating system: this script is supported only on Mac and Windows."));
+    process.exit(1);
+}
+
+const onWindows = process.platform === "win32";
 const LOCATION = "http://localhost";
 const recipient = "samuel_wilkins@brown.edu";
 const frequency = 10;
 const { pid } = process;
 let restarting = false;
+
+function startCommand() {
+    if (onWindows) {
+        return '"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"';
+    }
+    return `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && npm run start-release"\nend tell'`;
+}
 
 identifiedLog("Initializing daemon...");
 
@@ -79,7 +92,7 @@ async function listen() {
                     restarting = true;
                     addLogEntry("Detected a server crash", red);
                     current_backup?.kill();
-                    await killport(1050, 'tcp');
+                    // await killport(1050, 'tcp');
                     await log_execution({
                         startMessage: identifier + " Sending crash notification email",
                         endMessage: ({ error, result }) => {
@@ -90,7 +103,7 @@ async function listen() {
                         color: cyan
                     });
                     identifiedLog(green("Initiating server restart..."));
-                    current_backup = exec('"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"', err => identifiedLog(err?.message || "Previous server process exited."));
+                    current_backup = exec(startCommand(), err => identifiedLog(err?.message || "Previous server process exited."));
                     writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
                 } else {
                     identifiedLog(yellow(`Callback ignored because restarting already initiated ${timestamp()}`));
