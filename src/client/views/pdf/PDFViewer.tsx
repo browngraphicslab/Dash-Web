@@ -126,15 +126,24 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
+        const backup = "oldPath";
         const { url, Document } = this.props;
         const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
         const matches = pathCorrectionTest.exec(url);
+        console.log("\nHere's the { url } being fed into the outer regex:");
+        console.log(url);
+        console.log("And here's the 'properPath' build from the captured filename:\n");
         if (matches !== null) {
             const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
+            console.log(properPath);
+            console.log(`The two (url and proper path) ${url === properPath ? "were" : "were not equal"}`);
             if (url !== properPath) {
-                Document[this.props.fieldKey] = new PdfField(properPath);
-                Document["oldPath"] = url;
+                const proto = Doc.GetProto(Document);
+                proto[this.props.fieldKey] = new PdfField(properPath);
+                proto[backup] = url;
             }
+        } else {
+            console.log("Outer matches was null!");
         }
         const path = Utils.prepend(`/files/pdf_thumbnails${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
         this._coverPath = JSON.parse(await rp.get(path));
