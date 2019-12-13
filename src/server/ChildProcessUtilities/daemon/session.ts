@@ -58,12 +58,12 @@ if (!["win32", "darwin"].includes(process.platform)) {
     process.exit(1);
 }
 
+const latency = 10;
 const ports = [1050, 4321];
 const onWindows = process.platform === "win32";
 const LOCATION = "http://localhost";
 const heartbeat = `${LOCATION}:1050/serverHeartbeat`;
 const recipient = "samuel_wilkins@brown.edu";
-const frequency = 10;
 const { pid } = process;
 let restarting = false;
 let count = 0;
@@ -111,15 +111,18 @@ let current_backup: ChildProcess | undefined = undefined;
 async function checkHeartbeat() {
     let error: any;
     try {
-        identifiedLog(green("request Heartbeat..."));
+        count && identifiedLog(green("Requesting heartbeat"));
         await request.get(heartbeat);
-        identifiedLog(green("got Heartbeat..."));
+        count && identifiedLog(green("Received heartbeat"));
         if (restarting || manualRestartActive) {
             addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
             restarting = false;
         }
     } catch (e) {
-        identifiedLog(red("failed Heartbeat..." + e));
+        if (count) {
+            identifiedLog(red("Heartbeat failed..."));
+            identifiedLog(red(e.message));
+        }
         error = e;
     } finally {
         if (error) {
@@ -145,13 +148,12 @@ async function checkHeartbeat() {
                 writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
             }
         }
-        identifiedLog(green("restarting heartbeater"));
-        setTimeout(checkHeartbeat, 1000 * frequency);
+        setTimeout(checkHeartbeat, 1000 * latency);
     }
 }
 
 async function startListening() {
-    identifiedLog(yellow(`After initialization, will poll server heartbeat every ${frequency} seconds...\n`));
+    identifiedLog(yellow(`After initialization, will poll server heartbeat repeatedly...\n`));
     if (!LOCATION) {
         identifiedLog(red("No location specified for session manager. Please include as a command line environment variable or in a .env file."));
         process.exit(0);
