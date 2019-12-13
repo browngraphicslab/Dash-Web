@@ -1,7 +1,7 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import RouteSubscriber from "../RouteSubscriber";
-import { exists, createReadStream, createWriteStream } from "fs";
+import { existsSync, createReadStream, createWriteStream } from "fs";
 import * as Pdfjs from 'pdfjs-dist';
 import { createCanvas } from "canvas";
 const imageSize = require("probe-image-size");
@@ -24,39 +24,30 @@ export default class PDFManager extends ApiManager {
 
 }
 
-function dispatchThumbnail(res: express.Response, { width, height }: Pdfjs.PDFPageViewport, thumbnailName: string) {
-    res.send({
-        path: clientPathToFile(Directory.pdf_thumbnails, thumbnailName),
-        width,
-        height
-    });
-}
-
-function getOrCreateThumbnail(thumbnailName: string, res: express.Response) {
+async function getOrCreateThumbnail(thumbnailName: string, res: express.Response): Promise<void> {
     const noExtension = thumbnailName.substring(0, thumbnailName.length - ".png".length);
     const pageString = noExtension.split('-')[1];
     const pageNumber = parseInt(pageString);
-    return new Promise<void>(resolve => {
+    return new Promise<void>(async resolve => {
         const path = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
-        exists(path, (exists: boolean) => {
-            if (exists) {
-                const existingThumbnail = createReadStream(path);
-                imageSize(existingThumbnail, (err: any, viewport: any) => {
-                    if (err) {
-                        console.log(red(`In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`));
-                        console.log(err);
-                        return;
-                    }
-                    dispatchThumbnail(res, viewport, thumbnailName);
-                });
-            } else {
-                const offset = thumbnailName.length - pageString.length - 5;
-                const name = thumbnailName.substring(0, offset) + ".pdf";
-                const path = serverPathToFile(Directory.pdfs, name);
-                CreateThumbnail(path, pageNumber, res);
+        if (existsSync(path)) {
+            const existingThumbnail = createReadStream(path);
+            const { err, viewport } = await new Promise<any>(resolve => {
+                imageSize(existingThumbnail, (err: any, viewport: any) => resolve({ err, viewport }));
+            });
+            if (err) {
+                console.log(red(`In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`));
+                console.log(err);
+                return;
             }
-            resolve();
-        });
+            dispatchThumbnail(res, viewport, thumbnailName);
+        } else {
+            const offset = thumbnailName.length - pageString.length - 5;
+            const name = thumbnailName.substring(0, offset) + ".pdf";
+            const path = serverPathToFile(Directory.pdfs, name);
+            await CreateThumbnail(path, pageNumber, res);
+        }
+        resolve();
     });
 }
 
@@ -88,6 +79,14 @@ async function CreateThumbnail(file: string, pageNumber: number, res: express.Re
             console.log(error);
             reject();
         });
+    });
+}
+
+function dispatchThumbnail(res: express.Response, { width, height }: Pdfjs.PDFPageViewport, thumbnailName: string) {
+    res.send({
+        path: clientPathToFile(Directory.pdf_thumbnails, thumbnailName),
+        width,
+        height
     });
 }
 
