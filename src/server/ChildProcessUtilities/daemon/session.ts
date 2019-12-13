@@ -111,9 +111,9 @@ let current_backup: ChildProcess | undefined = undefined;
 async function checkHeartbeat() {
     let error: any;
     try {
-        count && identifiedLog(green("Requesting heartbeat"));
+        count && !restarting && process.stdout.write(green(`${identifier} <`));
         await request.get(heartbeat);
-        count && identifiedLog(green("Received heartbeat"));
+        count && !restarting && console.log(green("3"));
         if (restarting || manualRestartActive) {
             addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
             restarting = false;
