@@ -111,19 +111,15 @@ let current_backup: ChildProcess | undefined = undefined;
 async function checkHeartbeat() {
     let error: any;
     try {
-        count && !restarting && process.stdout.write(green(`${identifier} <`));
+        count && !restarting && process.stdout.write(`${identifier} 👂 `);
         await request.get(heartbeat);
-        count && !restarting && console.log(green("3"));
+        count && !restarting && console.log('⇠ 💚');
         if (restarting || manualRestartActive) {
             addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
             restarting = false;
         }
     } catch (e) {
-        if (count) {
-            console.log();
-            identifiedLog(red("Heartbeat failed..."));
-            identifiedLog(red(e.message));
-        }
+        count && !restarting && console.log("⇠ 💔");
         error = e;
     } finally {
         if (error) {
@@ -132,6 +128,7 @@ async function checkHeartbeat() {
                 if (count && !manualRestartActive) {
                     console.log();
                     addLogEntry("Detected a server crash", red);
+                    identifiedLog(red(error.message));
                     await endPrevious();
                     await log_execution({
                         startMessage: identifier + " Sending crash notification email",
