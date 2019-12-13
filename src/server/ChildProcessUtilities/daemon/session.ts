@@ -120,6 +120,7 @@ async function checkHeartbeat() {
         }
     } catch (e) {
         if (count) {
+            console.log();
             identifiedLog(red("Heartbeat failed..."));
             identifiedLog(red(e.message));
         }
