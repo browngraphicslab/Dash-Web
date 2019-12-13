@@ -1,11 +1,10 @@
-import { action, observable, runInAction, trace } from 'mobx';
+import { action, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
-// import { Transform } from 'prosemirror-transform';
-import { Doc, HeightSym } from '../../new_fields/Doc';
+import { Doc } from '../../new_fields/Doc';
 import { Transform } from "../util/Transform";
 import { TraceMobx } from '../../new_fields/util';
 
@@ -24,56 +23,53 @@ export class PreviewCursor extends React.Component<{}> {
     }
 
     paste = (e: ClipboardEvent) => {
-        if (PreviewCursor.Visible) {
-            if (e.clipboardData) {
-                const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
-                runInAction(() => PreviewCursor.Visible = false);
+        if (PreviewCursor.Visible && e.clipboardData) {
+            const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+            PreviewCursor.Visible = false;
 
-                if (e.clipboardData.getData("text/plain") !== "") {
-
-                    // tests for youtube and makes video document
-                    if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
-                        const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
-                        return PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
-                            title: url, width: 400, height: 315,
-                            nativeWidth: 600, nativeHeight: 472.5,
-                            x: newPoint[0], y: newPoint[1]
-                        }));
-                    }
-
-                    // tests for URL and makes web document
-                    const re: any = /^https?:\/\//g;
-                    if (re.test(e.clipboardData.getData("text/plain"))) {
-                        const url = e.clipboardData.getData("text/plain");
-                        return PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                            title: url, width: 500, height: 300,
-                            // nativeWidth: 300, nativeHeight: 472.5,
-                            x: newPoint[0], y: newPoint[1]
-                        }));
-                    }
-
-                    // creates text document
-                    return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument({
-                        width: 500,
-                        autoHeight: true,
-                        x: newPoint[0],
-                        y: newPoint[1],
-                        limitHeight: 400,
-                        title: "-pasted text-"
+            if (e.clipboardData.getData("text/plain") !== "") {
+                // tests for youtube and makes video document
+                if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
+                    const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
+                    return PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
+                        title: url, width: 400, height: 315,
+                        nativeWidth: 600, nativeHeight: 472.5,
+                        x: newPoint[0], y: newPoint[1]
                     }));
                 }
-                //pasting in images
-                if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
-                    const re: any = /<img src="(.*?)"/g;
-                    const arr: any[] = re.exec(e.clipboardData.getData("text/html"));
 
-                    return PreviewCursor._addDocument(Docs.Create.ImageDocument(
-                        arr[1], {
-                        width: 300, title: arr[1],
-                        x: newPoint[0],
-                        y: newPoint[1],
+                // tests for URL and makes web document
+                const re: any = /^https?:\/\//g;
+                if (re.test(e.clipboardData.getData("text/plain"))) {
+                    const url = e.clipboardData.getData("text/plain");
+                    return PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
+                        title: url, width: 500, height: 300,
+                        // nativeWidth: 300, nativeHeight: 472.5,
+                        x: newPoint[0], y: newPoint[1]
                     }));
                 }
+
+                // creates text document
+                return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument({
+                    width: 500,
+                    limitHeight: 400,
+                    autoHeight: true,
+                    x: newPoint[0],
+                    y: newPoint[1],
+                    title: "-pasted text-"
+                }));
+            }
+            //pasting in images
+            if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
+                const re: any = /<img src="(.*?)"/g;
+                const arr: any[] = re.exec(e.clipboardData.getData("text/html"));
+
+                return PreviewCursor._addDocument(Docs.Create.ImageDocument(
+                    arr[1], {
+                    width: 300, title: arr[1],
+                    x: newPoint[0],
+                    y: newPoint[1],
+                }));
             }
         }
     }
