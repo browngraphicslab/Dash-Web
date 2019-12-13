@@ -121,11 +121,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
-    _lastSearch: string = "";
-    componentDidMount = async () => {
-        !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
-        // change the address to be the file address of the PNG version of each page
-        // file address of the pdf
+    constructor(props: any) {
+        super(props);
         const backup = "oldPath";
         const { url, Document } = this.props;
         const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
@@ -147,6 +144,13 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         } else {
             console.log("Outer matches was null!");
         }
+    }
+
+    _lastSearch: string = "";
+    componentDidMount = async () => {
+        !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
+        // change the address to be the file address of the PNG version of each page
+        // file address of the pdf
         const path = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
         this._coverPath = JSON.parse(await rp.get(path));
         runInAction(() => this._showWaiting = this._showCover = true);
