@@ -6,8 +6,8 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast } from "../../../new_fields/Types";
-import { PdfField } from "../../../new_fields/URLField";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { PdfField, URLField } from "../../../new_fields/URLField";
 import { Utils } from '../../../Utils';
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
@@ -49,6 +49,29 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     constructor(props: any) {
         super(props);
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
+
+        const backup = "oldPath";
+        const { Document } = this.props;
+        const { url: { href } } = Cast(Document[this.props.fieldKey], PdfField)!;
+        const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
+        const matches = pathCorrectionTest.exec(href);
+        console.log("\nHere's the { url } being fed into the outer regex:");
+        console.log(href);
+        console.log("And here's the 'properPath' build from the captured filename:\n");
+        if (matches !== null) {
+            const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
+            console.log(properPath);
+            if (!properPath.includes(href)) {
+                console.log(`The two (url and proper path) were not equal`);
+                const proto = Doc.GetProto(Document);
+                proto[this.props.fieldKey] = new PdfField(properPath);
+                proto[backup] = href;
+            } else {
+                console.log(`The two (url and proper path) were equal`);
+            }
+        } else {
+            console.log("Outer matches was null!");
+        }
     }
 
     componentWillUnmount() {

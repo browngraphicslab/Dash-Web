@@ -121,31 +121,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
 
-    constructor(props: any) {
-        super(props);
-        const backup = "oldPath";
-        const { url, Document } = this.props;
-        const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
-        const matches = pathCorrectionTest.exec(url);
-        console.log("\nHere's the { url } being fed into the outer regex:");
-        console.log(url);
-        console.log("And here's the 'properPath' build from the captured filename:\n");
-        if (matches !== null) {
-            const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
-            console.log(properPath);
-            if (!properPath.includes(url)) {
-                console.log(`The two (url and proper path) were not equal`);
-                const proto = Doc.GetProto(Document);
-                proto[this.props.fieldKey] = new PdfField(properPath);
-                proto[backup] = url;
-            } else {
-                console.log(`The two (url and proper path) were equal`);
-            }
-        } else {
-            console.log("Outer matches was null!");
-        }
-    }
-
     _lastSearch: string = "";
     componentDidMount = async () => {
         !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
