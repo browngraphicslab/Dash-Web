@@ -133,6 +133,7 @@ export namespace WebSocket {
         "pdf": ["_t", "url"],
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
+        "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
         "proxy": ["_i", "fieldId"],
         "list": ["_l", list => {

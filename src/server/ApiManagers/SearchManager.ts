@@ -72,7 +72,7 @@ export namespace SolrManager {
         const args = status ? "start" : "stop -p 8983";
         try {
             console.log(`Solr management: trying to ${args}`);
-            console.log(await command_line(`solr.cmd ${args}`, "../../solr-8.1.1/bin"));
+            console.log(await command_line(`solr.cmd ${args}`, "./solr-8.3.1/bin"));
             return true;
         } catch (e) {
             console.log(red(`Solr management error: unable to ${args}`));

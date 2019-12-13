@@ -5,6 +5,7 @@
     "main": "index.js",
     "scripts": {
         "start-release": "cross-env RELEASE=true NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
+        "session": "npx ts-node ./src/server/ChildProcessUtilities/daemon/session.ts",
         "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
         "debug": "cross-env NODE_OPTIONS=--max_old_space_size=8192 ts-node-dev --inspect -- src/server/index.ts",
         "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 webpack --env production",
@@ -160,6 +161,7 @@
         "js-datepicker": "^4.6.6",
         "jsonwebtoken": "^8.5.0",
         "jsx-to-string": "^1.4.0",
+        "kill-port": "^1.6.0",
         "lodash": "^4.17.15",
         "mobile-detect": "^1.4.3",
         "mobx": "^5.15.0",

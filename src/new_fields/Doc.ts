@@ -644,6 +644,7 @@ export namespace Doc {
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
+        @observable _searchQuery: string = "";
     }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
@@ -651,6 +652,8 @@ export namespace Doc {
     export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? doc[StrCast(doc.layoutKey, "layout")] as Doc : doc; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     const manager = new DocData();
+    export function SearchQuery(): string { return manager._searchQuery; }
+    export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {

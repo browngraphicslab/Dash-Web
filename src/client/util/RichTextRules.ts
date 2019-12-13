@@ -6,8 +6,10 @@ import { NumCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { TooltipTextMenuManager } from "../util/TooltipTextMenu";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
+import { DocServer } from "../DocServer";
+import { returnFalse, Utils } from "../../Utils";
 
 export const inpRules = {
     rules: [
@@ -60,8 +62,9 @@ export const inpRules = {
             }
         ),
 
+        // set the font size using #<font-size> 
         new InputRule(
-            new RegExp(/^#([0-9]+)\s$/),
+            new RegExp(/^%([0-9]+)\s$/),
             (state, match, start, end) => {
                 const size = Number(match[1]);
                 const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
@@ -72,108 +75,123 @@ export const inpRules = {
                 }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
+
+        // make current selection a hyperlink portal (assumes % was used to initiate an EnteringStyle mode)
+        new InputRule(
+            new RegExp(/@$/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from || !(schema as any).EnteringStyle) return null;
+
+                const value = state.doc.textBetween(start, end);
+                if (value) {
+                    DocServer.GetRefField(value).then(docx => {
+                        const doc = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                        DocUtils.Publish(doc, value, returnFalse, returnFalse);
+                    });
+                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + value), location: "onRight", title: value });
+                    return state.tr.addMark(start, end, link);
+                }
+                return state.tr;
+            }),
+
+        // activate a style by name using prefix '%'
         new InputRule(
             new RegExp(/%[a-z]+$/),
             (state, match, start, end) => {
                 const color = match[0].substring(1, match[0].length);
-                let marks = TooltipTextMenuManager.Instance._brushMap.get(color);
+                const marks = TooltipTextMenuManager.Instance._brushMap.get(color);
                 if (marks) {
-                    let tr = state.tr.deleteRange(start, end);
+                    const tr = state.tr.deleteRange(start, end);
                     return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;
                 }
-                let isValidColor = (strColor: string) => {
-                    var s = new Option().style;
+                const isValidColor = (strColor: string) => {
+                    const s = new Option().style;
                     s.color = strColor;
-                    return s.color == strColor.toLowerCase(); // 'false' if color wasn't assigned
-                }
+                    return s.color === strColor.toLowerCase(); // 'false' if color wasn't assigned
+                };
                 if (isValidColor(color)) {
                     return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontColor.create({ color: color }));
                 }
                 return null;
             }),
+        // stop using active style
         new InputRule(
             new RegExp(/%%$/),
             (state, match, start, end) => {
-                let tr = state.tr.deleteRange(start, end);
-                let marks = state.tr.selection.$anchor.nodeBefore?.marks;
+                const tr = state.tr.deleteRange(start, end);
+                const marks = state.tr.selection.$anchor.nodeBefore?.marks;
                 return marks ? Array.from(marks).filter(m => m !== state.schema.marks.user_mark).reduce((tr, m) => tr.removeStoredMark(m), tr) : tr;
             }),
+
+        // set the Todo user-tag on the current selection (assumes % was used to initiate an EnteringStyle mode)
         new InputRule(
-            new RegExp(/t$/),
+            new RegExp(/[ti!x]$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
+                if (state.selection.to === state.selection.from || !(schema as any).EnteringStyle) return null;
+                const tag = match[0] === "t" ? "todo" : match[0] === "i" ? "ignore" : match[0] === "x" ? "disagree" : match[0] === "!" ? "important" : "??";
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
-                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "todo", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: tag, modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
             }),
+
+        // set the First-line indent node type for the selection's paragraph (assumes % was used to initiate an EnteringStyle mode)
         new InputRule(
-            new RegExp(/i$/),
+            new RegExp(/(%d|d)$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
-                const node = (state.doc.resolve(start) as any).nodeAfter;
-                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
-                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "ignore", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
-            }),
-        new InputRule(
-            new RegExp(/d$/),
-            (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (!match[0].startsWith("%") && !(schema as any).EnteringStyle) return null;
                 const pos = (state.doc.resolve(start) as any);
-                let depth = pos.path.length / 3 - 1;
-                for (; depth >= 0; depth--) {
-                    if (pos.node(depth).type === schema.nodes.paragraph) {
-                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, indent: 25 });
-                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                for (let depth = pos.path.length / 3 - 1; depth >= 0; depth--) {
+                    const node = pos.node(depth);
+                    if (node.type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, node.type, { ...node.attrs, indent: node.attrs.indent === 25 ? undefined : 25 });
+                        const result = replaced.setSelection(new TextSelection(replaced.doc.resolve(start)));
+                        return match[0].startsWith("%") ? result.deleteRange(start, end) : result;
                     }
                 }
                 return null;
             }),
+
+        // set the Hanging indent node type for the current selection's paragraph (assumes % was used to initiate an EnteringStyle mode)
         new InputRule(
-            new RegExp(/h$/),
+            new RegExp(/(%h|h)$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (!match[0].startsWith("%") && !(schema as any).EnteringStyle) return null;
                 const pos = (state.doc.resolve(start) as any);
-                let depth = pos.path.length / 3 - 1;
-                for (; depth >= 0; depth--) {
-                    if (pos.node(depth).type === schema.nodes.paragraph) {
-                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, indent: -25 });
-                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                for (let depth = pos.path.length / 3 - 1; depth >= 0; depth--) {
+                    const node = pos.node(depth);
+                    if (node.type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, node.type, { ...node.attrs, indent: node.attrs.indent === -25 ? undefined : -25 });
+                        const result = replaced.setSelection(new TextSelection(replaced.doc.resolve(start)));
+                        return match[0].startsWith("%") ? result.deleteRange(start, end) : result;
                     }
                 }
                 return null;
             }),
+        // set the Quoted indent node type for the current selection's paragraph (assumes % was used to initiate an EnteringStyle mode)
         new InputRule(
-            new RegExp(/q$/),
+            new RegExp(/(%q|q)$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from) return null;
+                if (!match[0].startsWith("%") && !(schema as any).EnteringStyle) return null;
                 const pos = (state.doc.resolve(start) as any);
-                let depth = pos.path.length / 3 - 1;
-                for (; depth >= 0; depth--) {
-                    if (pos.node(depth).type === schema.nodes.paragraph) {
-                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, pos.node(depth).type, { ...pos.node(depth).attrs, inset: 30 });
-                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                if (state.selection instanceof NodeSelection && state.selection.node.type === schema.nodes.ordered_list) {
+                    const node = state.selection.node;
+                    return state.tr.setNodeMarkup(pos.pos, node.type, { ...node.attrs, indent: node.attrs.indent === 30 ? undefined : 30 });
+                }
+                for (let depth = pos.path.length / 3 - 1; depth >= 0; depth--) {
+                    const node = pos.node(depth);
+                    if (node.type === schema.nodes.paragraph) {
+                        const replaced = state.tr.setNodeMarkup(pos.pos - pos.parentOffset - 1, node.type, { ...node.attrs, inset: node.attrs.inset === 30 ? undefined : 30 });
+                        const result = replaced.setSelection(new TextSelection(replaced.doc.resolve(start)));
+                        return match[0].startsWith("%") ? result.deleteRange(start, end) : result;
                     }
                 }
                 return null;
             }),
+
+
+        // center justify text
         new InputRule(
-            new RegExp(/!$/),
-            (state, match, start, end) => {
-                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
-                const node = (state.doc.resolve(start) as any).nodeAfter;
-                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
-                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "important", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
-            }),
-        new InputRule(
-            new RegExp(/x$/),
-            (state, match, start, end) => {
-                if (state.selection.to === state.selection.from && !(state as any).EnteringStyle) return null;
-                const node = (state.doc.resolve(start) as any).nodeAfter;
-                if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
-                return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: "disagree", modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
-            }),
-        new InputRule(
-            new RegExp(/^\^\^\s$/),
+            new RegExp(/%\^$/),
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
@@ -187,8 +205,9 @@ export const inpRules = {
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
             }),
+        // left justify text
         new InputRule(
-            new RegExp(/^\[\[\s$/),
+            new RegExp(/%\[$/),
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
@@ -202,8 +221,9 @@ export const inpRules = {
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
             }),
+        // right justify text
         new InputRule(
-            new RegExp(/^\]\]\s$/),
+            new RegExp(/%\]$/),
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
@@ -218,7 +238,7 @@ export const inpRules = {
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
             }),
         new InputRule(
-            new RegExp(/##\s$/),
+            new RegExp(/%#$/),
             (state, match, start, end) => {
                 const target = Docs.Create.TextDocument({ width: 75, height: 35, backgroundColor: "yellow", autoHeight: true, fontSize: 9, title: "inline comment" });
                 const node = (state.doc.resolve(start) as any).nodeAfter;
@@ -230,26 +250,25 @@ export const inpRules = {
                 return replaced;//.setSelection(new NodeSelection(replaced.doc.resolve(end)));
             }),
         new InputRule(
-            new RegExp(/\(\(/),
+            new RegExp(/%\(/),
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const mark = state.schema.marks.highlight.create();
+                const mark = state.schema.marks.summarizeInclusive.create();
                 const selected = state.tr.setSelection(new TextSelection(state.doc.resolve(start), state.doc.resolve(end))).addMark(start, end, mark);
                 const content = selected.selection.content();
                 const replaced = node ? selected.replaceRangeWith(start, start,
-                    schema.nodes.star.create({ visibility: true, text: content, textslice: content.toJSON() })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    schema.nodes.summary.create({ visibility: true, text: content, textslice: content.toJSON() })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end + 1)));
             }),
         new InputRule(
-            new RegExp(/\)\)/),
+            new RegExp(/%\)/),
             (state, match, start, end) => {
-                const mark = state.schema.marks.highlight.create();
-                return state.tr.removeStoredMark(mark);
+                return state.tr.removeStoredMark(state.schema.marks.summarizeInclusive.create());
             }),
         new InputRule(
-            new RegExp(/\^f\s$/),
+            new RegExp(/%f\$/),
             (state, match, start, end) => {
                 const newNode = schema.nodes.footnote.create({});
                 const tr = state.tr;
@@ -258,9 +277,5 @@ export const inpRules = {
                     tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
                         tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize)));
             }),
-        // let newNode = schema.nodes.footnote.create({});
-        // if (dispatch && state.selection.from === state.selection.to) {
-        //     return true;
-        // }
     ]
 };

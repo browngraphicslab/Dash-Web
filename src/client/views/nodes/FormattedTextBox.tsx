@@ -27,7 +27,7 @@ import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummarizedView } from "../../util/RichTextSchema";
+import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -184,7 +184,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     this.linkOnDeselect.set(key, value);
 
                     const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const link = this._editorView.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
+                    const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + id), location: "onRight", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
@@ -219,7 +219,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this._editorView && (this._editorView as any).docView) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
-            const res = terms.map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
@@ -238,30 +238,30 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
         }
     }
-    setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
+    adoptAnnotation = (start: number, end: number, mark: Mark) => {
         const view = this._editorView!;
-        const nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
+        const nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: Doc.CurrentUserEmail });
         view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark));
     }
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._proseRef = ele;
         this.dropDisposer && this.dropDisposer();
-        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } }));
+        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
     }
 
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
+        if (de.complete.docDragData) {
+            const draggedDoc = de.complete.docDragData.draggedDocuments.length && de.complete.docDragData.draggedDocuments[0];
             // replace text contents whend dragging with Alt
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "AltKey") {
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.altKey) {
                 if (draggedDoc.data instanceof RichTextField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data, draggedDoc.data.Text);
                     e.stopPropagation();
                 }
                 // apply as template when dragging with Meta
-            } else if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.mods === "MetaKey") {
+            } else if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.metaKey) {
                 draggedDoc.isTemplateDoc = true;
                 let newLayout = Doc.Layout(draggedDoc);
                 if (typeof (draggedDoc.layout) === "string") {
@@ -272,8 +272,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.Document.layoutKey = "layoutCustom";
                 e.stopPropagation();
                 // embed document when dragging with a userDropAction or an embedDoc flag set
-            } else if (de.data.userDropAction || de.data.embedDoc) {
-                const target = de.data.droppedDocuments[0];
+            } else if (de.complete.docDragData.userDropAction || de.complete.docDragData.embedDoc) {
+                const target = de.complete.docDragData.droppedDocuments[0];
                 // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
                 // if (link) {
                 target.fitToBox = true;
@@ -550,16 +550,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
 
-        this._searchReactionDisposer = reaction(() => {
-            return StrCast(this.layoutDoc.search_string);
-        }, searchString => {
-            if (searchString) {
-                this.highlightSearchTerms([searchString]);
-            }
-            else {
-                this.unhighlightSearchTerms();
-            }
-        }, { fireImmediately: true });
+        this._searchReactionDisposer = reaction(() => this.layoutDoc.searchMatch,
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
+            { fireImmediately: true });
 
         this._rulesReactionDisposer = reaction(() => {
             const ruleProvider = this.props.ruleProvider;
@@ -637,7 +630,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             { fireImmediately: true }
         );
 
-        setTimeout(() => this.tryUpdateHeight(), 0);
+        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight, 0)));
     }
 
     pushToGoogleDoc = async () => {
@@ -822,7 +815,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
-                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
+                    summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
                 },
@@ -873,6 +866,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     static _downEvent: any;
     onPointerDown = (e: React.PointerEvent): void => {
+        this.doLinkOnDeselect();
         FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (this.props.onClick && e.button === 0) {
@@ -906,10 +900,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.tryUpdateHeight();
 
         // see if we need to preserve the insertion point
-        let prosediv = this._proseRef?.children?.[0] as any;
-        let keeplocation = prosediv?.keeplocation;
+        const prosediv = this._proseRef?.children?.[0] as any;
+        const keeplocation = prosediv?.keeplocation;
         prosediv && (prosediv.keeplocation = undefined);
-        let pos = this._editorView?.state.selection.$from.pos || 1;
+        const pos = this._editorView?.state.selection.$from.pos || 1;
         keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
     }
     onPointerWheel = (e: React.WheelEvent): void => {
@@ -924,14 +918,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     onClick = (e: React.MouseEvent): void => {
         if ((this._editorView!.root as any).getSelection().isCollapsed) { // this is a hack to allow the cursor to be placed at the end of a document when the document ends in an inline dash comment.  Apparently Chrome on Windows has a bug/feature which breaks this when clicking after the end of the text.
-            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            const pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+            const node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
             if (pcords && node?.type === this._editorView!.state.schema.nodes.dashComment) {
                 this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pcords.pos + 2)));
                 e.preventDefault();
             }
             if (!node && this._proseRef) {
-                let lastNode = this._proseRef.children[this._proseRef.children.length - 1].children[this._proseRef.children[this._proseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
+                const lastNode = this._proseRef.children[this._proseRef.children.length - 1].children[this._proseRef.children[this._proseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
                 if (e.clientY > lastNode.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
                     this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
                 }
@@ -972,7 +966,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         //     }
         // }
 
-        this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false)
+        this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
     }
 
@@ -983,7 +977,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (pos && this.props.isSelected(true)) {
             // let beforeEle = document.querySelector("." + hit.className) as Element; // const before = hit ? window.getComputedStyle(hit, ':before') : undefined;
             //const node = this._editorView!.state.doc.nodeAt(pos.pos);
-            let $pos = this._editorView!.state.doc.resolve(pos.pos);
+            const $pos = this._editorView!.state.doc.resolve(pos.pos);
             let list_node = $pos.node().type === schema.nodes.list_item ? $pos.node() : undefined;
             if ($pos.node().type === schema.nodes.ordered_list) {
                 for (let off = 1; off < 100; off++) {
@@ -997,7 +991,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             }
             if (list_node && pos.inside >= 0 && this._editorView!.state.doc.nodeAt(pos.inside)!.attrs.bulletStyle === list_node.attrs.bulletStyle) {
                 if (select) {
-                    let $olist_pos = this._editorView!.state.doc.resolve($pos.pos - $pos.parentOffset - 1);
+                    const $olist_pos = this._editorView!.state.doc.resolve($pos.pos - $pos.parentOffset - 1);
                     if (!highlightOnly) {
                         this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olist_pos)));
                     }
@@ -1053,23 +1047,24 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
-        this.doLinkOnDeselect(); 6
+        this.doLinkOnDeselect();
     }
 
+    _lastTimedMark: Mark | undefined = undefined;
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.altKey) {
             e.preventDefault();
             return;
         }
         if (!this._editorView!.state.selection.empty && e.key === "%") {
-            (this._editorView!.state as any).EnteringStyle = true;
+            this._editorView!.state.schema.EnteringStyle = true;
             e.preventDefault();
             e.stopPropagation();
             return;
         }
 
-        if (this._editorView!.state.selection.empty || !(this._editorView!.state as any).EnteringStyle) {
-            (this._editorView!.state as any).EnteringStyle = false;
+        if (this._editorView!.state.selection.empty || !this._editorView!.state.schema.EnteringStyle) {
+            this._editorView!.state.schema.EnteringStyle = false;
         }
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
@@ -1078,7 +1073,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) });
+        const mark = e.key !== " " && this._lastTimedMark ? this._lastTimedMark : schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) });
+        this._lastTimedMark = mark;
         this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
 
         if (!this._undoTyping) {
@@ -1091,13 +1087,18 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     @action
-    tryUpdateHeight() {
-        const scrollHeight = this._ref.current?.scrollHeight;
+    tryUpdateHeight(limitHeight?: number) {
+        let scrollHeight = this._ref.current?.scrollHeight;
         if (!this.layoutDoc.animateToPos && this.layoutDoc.autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+            if (limitHeight && scrollHeight > limitHeight) {
+                scrollHeight = limitHeight;
+                this.layoutDoc.limitHeight = undefined;
+                this.layoutDoc.autoHeight = false;
+            }
             const nh = this.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             const dh = NumCast(this.layoutDoc.height, 0);
-            let newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
+            const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
                 this.layoutDoc.height = newHeight;
                 this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;

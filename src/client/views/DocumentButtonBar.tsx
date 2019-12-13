@@ -3,13 +3,12 @@ import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadA
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable, runInAction, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCast } from "../../new_fields/Doc";
 import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast, StrCast } from "../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { DragManager } from "../util/DragManager";
-import { LinkManager } from '../util/LinkManager';
 import { UndoManager } from "../util/UndoManager";
 import './DocumentButtonBar.scss';
 import './collections/ParentDocumentSelector.scss';
@@ -107,27 +106,21 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
         if (this._linkButton.current !== null && (Math.abs(e.clientX - this._downX) > 3 || Math.abs(e.clientY - this._downY) > 3)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
-            const docView = this.props.views[0];
-            const container = docView.props.ContainingCollectionDoc?.proto;
-            const dragData = new DragManager.LinkDragData(docView.props.Document, container ? [container] : []);
             const linkDrag = UndoManager.StartBatch("Drag Link");
-            DragManager.StartLinkDrag(this._linkButton.current, dragData, e.pageX, e.pageY, {
-                handlers: {
-                    dragComplete: () => {
-                        const tooltipmenu = FormattedTextBox.ToolTipTextMenu;
-                        const linkDoc = dragData.linkDocument;
-                        if (linkDoc && tooltipmenu) {
-                            const proto = Doc.GetProto(linkDoc);
-                            if (proto && docView) {
-                                proto.sourceContext = docView.props.ContainingCollectionDoc;
-                            }
-                            const text = tooltipmenu.makeLink(linkDoc, StrCast(linkDoc.anchor2.title), e.ctrlKey ? "onRight" : "inTab");
-                            if (linkDoc instanceof Doc && linkDoc.anchor2 instanceof Doc) {
-                                proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODODO open to more descriptive descriptions of following in text link
-                            }
+            DragManager.StartLinkDrag(this._linkButton.current, this.props.views[0].props.Document, e.pageX, e.pageY, {
+                dragComplete: dropEv => {
+                    const linkDoc = dropEv.linkDragData?.linkDocument; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
+                    if (linkDoc && FormattedTextBox.ToolTipTextMenu) {
+                        const proto = Doc.GetProto(linkDoc);
+                        proto.sourceContext = this.props.views[0].props.ContainingCollectionDoc;
+
+                        const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
+                        const text = FormattedTextBox.ToolTipTextMenu.makeLink(linkDoc, anchor2Title, e.ctrlKey ? "onRight" : "inTab");
+                        if (linkDoc.anchor2 instanceof Doc) {
+                            proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
                         }
-                        linkDrag && linkDrag.end();
                     }
+                    linkDrag?.end();
                 },
                 hideSource: false
             });
@@ -200,7 +193,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
 
     @computed
     get linkButton() {
-        const linkCount = LinkManager.Instance.getAllRelatedLinks(this.props.views[0].props.Document).length;
+        const linkCount = DocListCast(this.props.views[0].props.Document.links).length;
         return <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
             <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={this.props.views[0]} addDocTab={this.props.views[0].props.addDocTab} changeFlyout={emptyFunction} />}>

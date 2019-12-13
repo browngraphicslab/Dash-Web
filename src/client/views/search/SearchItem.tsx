@@ -4,14 +4,13 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, emptyPath } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
-import { LinkManager } from "../../util/LinkManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
@@ -22,6 +21,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -135,12 +135,11 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _displayDim = 50;
 
     componentDidMount() {
-        this.props.doc.search_string = this.props.query;
-        this.props.doc.search_fields = this.props.highlighting.join(", ");
+        Doc.SetSearchQuery(this.props.query);
+        this.props.doc.searchMatch = true;
     }
     componentWillUnmount() {
-        this.props.doc.search_string = undefined;
-        this.props.doc.search_fields = undefined;
+        this.props.doc.searchMatch = undefined;
     }
 
     //@computed
@@ -150,37 +149,31 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (!this._useIcons) {
             const returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             const returnYDimension = () => this._displayDim;
-            const scale = () => returnXDimension() / NumCast(Doc.Layout(this.props.doc).nativeWidth, returnXDimension());
             const docview = <div
                 onPointerDown={action(() => {
                     this._useIcons = !this._useIcons;
                     this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
                 })}
-                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
-                onPointerLeave={action(() => this._displayDim = 50)} >
-                <DocumentView
+                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))} >
+                <ContentFittingDocumentView
                     Document={this.props.doc}
                     LibraryPath={emptyPath}
                     fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
+                    getTransform={Transform.Identity}
                     renderDepth={1}
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
-                    parentActive={returnFalse}
+                    moveDocument={returnFalse}
+                    active={returnFalse}
                     whenActiveChanged={returnFalse}
-                    bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    ContentScaling={scale}
+                    setPreviewScript={emptyFunction}
+                    previewScript={undefined}
                 />
             </div>;
             return docview;
@@ -212,16 +205,16 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @computed
-    get linkCount() { return LinkManager.Instance.getAllRelatedLinks(this.props.doc).length; }
+    get linkCount() { return DocListCast(this.props.doc.links).length; }
 
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     nextHighlight = (e: React.PointerEvent) => {
-        e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e);
-        const sstring = StrCast(this.props.doc.search_string);
-        this.props.doc.search_string = "";
-        setTimeout(() => this.props.doc.search_string = sstring, 0);
+        e.preventDefault();
+        e.button === 0 && SearchBox.Instance.openSearch(e);
+        this.props.doc.searchMatch = false;
+        setTimeout(() => this.props.doc.searchMatch = true, 0);
     }
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocumentType.LINK) {
@@ -268,10 +261,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
-        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
-            handlers: { dragComplete: emptyFunction },
-            hideSource: false,
-        });
+        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
     }
 
     render() {
@@ -292,7 +282,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                             <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
                             {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="search-highlighting">`${l}`</div>)}
                         </div>
-                        <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
+                        <div className="search-info" style={{ width: this._useIcons ? "15%" : "100%" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" title="Click to Preview">{this.DocumentIcon()}</div>
                                 <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>

@@ -203,6 +203,7 @@
 .searchBox-placeholder {
     min-height: 50px;
     margin-left: 150px;
+    width: calc(100% - 150px);
     text-transform: uppercase;
     text-align: left;
     font-weight: bold;

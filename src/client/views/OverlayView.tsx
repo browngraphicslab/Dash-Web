@@ -9,8 +9,6 @@ import { DocListCast, Doc } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
-import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
-import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { NumCast } from "../../new_fields/Types";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 

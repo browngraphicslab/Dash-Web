@@ -109,7 +109,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         },
     },
 
-    star: {
+    summary: {
         inline: true,
         attrs: {
             visibility: { default: false },
@@ -121,15 +121,6 @@ export const nodes: { [index: string]: NodeSpec } = {
             const attrs = { style: `width: 40px` };
             return ["span", { ...node.attrs, ...attrs }];
         },
-        // parseDOM: [{
-        //     tag: "star", getAttrs(dom: any) {
-        //         return {
-        //             visibility: dom.getAttribute("visibility"),
-        //             oldtext: dom.getAttribute("oldtext"),
-        //             oldtextlen: dom.getAttribute("oldtextlen"),
-        //         }
-        //     }
-        // }]
     },
 
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
@@ -228,16 +219,20 @@ export const nodes: { [index: string]: NodeSpec } = {
             mapStyle: { default: "decimal" },
             setFontSize: { default: undefined },
             setFontFamily: { default: "inherit" },
+            setFontColor: { default: "inherit" },
             inheritedFontSize: { default: undefined },
-            visibility: { default: true }
+            visibility: { default: true },
+            indent: { default: undefined }
         },
         toDOM(node: Node<any>) {
             if (node.attrs.mapStyle === "bullet") return ['ul', 0];
             const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
             const fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
             const ffam = node.attrs.setFontFamily;
-            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }, 0] :
-                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}` }];
+            const color = node.attrs.setFontColor;
+            return node.attrs.visibility ?
+                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}; color:${color}; margin-left: ${node.attrs.indent}` }, 0] :
+                ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
         }
     },
 
@@ -317,7 +312,7 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             highlight: { default: "transparent" }
         },
-        inclusive: false,
+        inclusive: true,
         parseDOM: [{
             tag: "span", getAttrs(dom: any) {
                 return { highlight: dom.getAttribute("backgroundColor") };
@@ -400,7 +395,33 @@ export const marks: { [index: string]: MarkSpec } = {
         }
     },
 
-    highlight: {
+    summarizeInclusive: {
+        parseDOM: [
+            {
+                tag: "span",
+                getAttrs: (p: any) => {
+                    if (typeof (p) !== "string") {
+                        const style = getComputedStyle(p);
+                        if (style.textDecoration === "underline") return null;
+                        if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
+                            p.parentElement.outerHTML.indexOf("text-decoration-style: solid") !== -1) {
+                            return null;
+                        }
+                    }
+                    return false;
+                }
+            },
+        ],
+        inclusive: true,
+        toDOM() {
+            return ['span', {
+                style: 'text-decoration: underline; text-decoration-style: solid; text-decoration-color: rgba(204, 206, 210, 0.92)'
+            }];
+        }
+    },
+
+    summarize: {
+        inclusive: false,
         parseDOM: [
             {
                 tag: "span",
@@ -417,7 +438,6 @@ export const marks: { [index: string]: MarkSpec } = {
                 }
             },
         ],
-        inclusive: true,
         toDOM() {
             return ['span', {
                 style: 'text-decoration: underline; text-decoration-style: dotted; text-decoration-color: rgba(204, 206, 210, 0.92)'
@@ -462,7 +482,6 @@ export const marks: { [index: string]: MarkSpec } = {
     user_mark: {
         attrs: {
             userid: { default: "" },
-            opened: { default: true },
             modified: { default: "when?" }, // 5 second intervals since 1970
         },
         group: "inline",
@@ -472,16 +491,13 @@ export const marks: { [index: string]: MarkSpec } = {
             const hr = Math.round(min / 60);
             const day = Math.round(hr / 60 / 24);
             const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
-            return node.attrs.opened ?
-                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0] :
-                ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, ['span', 0]];
+            return ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0];
         }
     },
     // the id of the user who entered the text
     user_tag: {
         attrs: {
             userid: { default: "" },
-            opened: { default: true },
             modified: { default: "when?" }, // 5 second intervals since 1970
             tag: { default: "" }
         },
@@ -489,9 +505,7 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
-            return node.attrs.opened ?
-                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0] :
-                ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, ['span', 0]];
+            return ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0];
         }
     },
 
@@ -642,7 +656,7 @@ export class DashDocCommentView {
             }
             const dashDoc = view.state.schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: node.attrs.docid, float: "right" });
             view.dispatch(view.state.tr.insert(getPos() + 1, dashDoc));
-            setTimeout(() => { try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + 2))) } catch (e) { } }, 0);
+            setTimeout(() => { try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + 2))); } catch (e) { } }, 0);
             return undefined;
         };
         this._collapsed.onpointerdown = (e: any) => {
@@ -651,16 +665,16 @@ export class DashDocCommentView {
         this._collapsed.onpointerup = (e: any) => {
             const target = targetNode();
             if (target) {
-                let expand = target.hidden;
-                let tr = view.state.tr.setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true });
+                const expand = target.hidden;
+                const tr = view.state.tr.setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true });
                 view.dispatch(tr.setSelection(TextSelection.create(tr.doc, getPos() + (expand ? 2 : 1)))); // update the attrs 
                 setTimeout(() => {
                     expand && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
-                    try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + (expand ? 2 : 1)))) } catch (e) { }
+                    try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + (expand ? 2 : 1)))); } catch (e) { }
                 }, 0);
             }
             e.stopPropagation();
-        }
+        };
         this._collapsed.onpointerenter = (e: any) => {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
             e.preventDefault();
@@ -913,7 +927,7 @@ export class FootnoteView {
     ignoreMutation() { return true; }
 }
 
-export class SummarizedView {
+export class SummaryView {
     _collapsed: HTMLElement;
     _view: any;
     constructor(node: any, view: any, getPos: any) {
@@ -951,7 +965,8 @@ export class SummarizedView {
     className = (visible: boolean) => "formattedTextBox-summarizer" + (visible ? "" : "-collapsed");
 
     updateSummarizedText(start?: any) {
-        const mark = this._view.state.schema.marks.highlight.create();
+        const mtype = this._view.state.schema.marks.summarize;
+        const mtypeInc = this._view.state.schema.marks.summarizeInclusive;
         let endPos = start;
 
         const visited = new Set();
@@ -959,7 +974,7 @@ export class SummarizedView {
             let skip = false;
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
                 if (node.isLeaf && !visited.has(node) && !skip) {
-                    if (node.marks.find((m: any) => m.type === mark.type)) {
+                    if (node.marks.find((m: any) => m.type === mtype || m.type === mtypeInc)) {
                         visited.add(node);
                         endPos = i + node.nodeSize - 1;
                     }
@@ -984,7 +999,7 @@ const fromJson = schema.nodeFromJSON;
 
 schema.nodeFromJSON = (json: any) => {
     const node = fromJson(json);
-    if (json.type === "star") {
+    if (json.type === schema.marks.summarize.name) {
         node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
     }
     return node;

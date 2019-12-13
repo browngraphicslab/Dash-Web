@@ -32,7 +32,7 @@ interface ContentFittingDocumentViewProps {
     onClick?: ScriptField;
     getTransform: () => Transform;
     addDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
+    moveDocument: (document: Doc, target: Doc | undefined, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument: (document: Doc) => boolean;
     active: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -60,11 +60,12 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
+        const docDragData = de.complete.docDragData;
+        if (docDragData) {
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
                 const target = Doc.GetProto(otherdoc);
                 target.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layoutCustom = Doc.MakeDelegate(de.data.draggedDocuments[0]);
+                target.layoutCustom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
             });
             e.stopPropagation();
         }

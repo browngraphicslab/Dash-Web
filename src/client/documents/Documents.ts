@@ -112,6 +112,7 @@ export interface DocumentOptions {
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
+    limitHeight?:number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
 }
 

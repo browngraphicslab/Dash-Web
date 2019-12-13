@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import { readFile, writeFile, exists, mkdir, unlink, createWriteStream } from 'fs';
 import { ExecOptions } from 'shelljs';
 import { exec } from 'child_process';
 import * as path from 'path';
@@ -6,6 +6,17 @@ import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
 
 const projectRoot = path.resolve(__dirname, "../../");
+export function pathFromRoot(relative?: string) {
+    if (!relative) {
+        return projectRoot;
+    }
+    return path.resolve(projectRoot, relative);
+}
+
+export async function fileDescriptorFromStream(path: string) {
+    const logStream = createWriteStream(path);
+    return new Promise<number>(resolve => logStream.on("open", resolve));
+}
 
 export const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
@@ -20,14 +31,14 @@ export const command_line = (command: string, fromDirectory?: string) => {
 export const read_text_file = (relativePath: string) => {
     const target = path.resolve(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
-        fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+        readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
     });
 };
 
 export const write_text_file = (relativePath: string, contents: any) => {
     const target = path.resolve(__dirname, relativePath);
     return new Promise<void>((resolve, reject) => {
-        fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
+        writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
 
@@ -51,11 +62,7 @@ export async function log_execution<T>({ startMessage, endMessage, action, color
     } catch (e) {
         error = e;
     } finally {
-        if (typeof endMessage === "string") {
-            log_helper(`${endMessage}.`, resolvedColor);
-        } else {
-            log_helper(`${endMessage({ result, error })}.`, resolvedColor);
-        }
+        log_helper(typeof endMessage === "string" ? endMessage : endMessage({ result, error }), resolvedColor);
     }
     return result;
 }
@@ -86,10 +93,10 @@ export function msToTime(duration: number) {
 }
 
 export const createIfNotExists = async (path: string) => {
-    if (await new Promise<boolean>(resolve => fs.exists(path, resolve))) {
+    if (await new Promise<boolean>(resolve => exists(path, resolve))) {
         return true;
     }
-    return new Promise<boolean>(resolve => fs.mkdir(path, error => resolve(error === null)));
+    return new Promise<boolean>(resolve => mkdir(path, error => resolve(error === null)));
 };
 
 export async function Prune(rootDirectory: string): Promise<boolean> {
@@ -97,4 +104,4 @@ export async function Prune(rootDirectory: string): Promise<boolean> {
     return error === null;
 }
 
-export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => fs.unlink(mediaPath, error => resolve(error === null)));
+export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => unlink(mediaPath, error => resolve(error === null)));

@@ -80,35 +80,20 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 
 @observer
 export class ParentDocSelector extends React.Component<SelectorProps> {
-    @observable hover = false;
-
-    @action
-    onMouseLeave = () => {
-        this.hover = false;
-    }
-
-    @action
-    onMouseEnter = () => {
-        this.hover = true;
-    }
-
     render() {
-        let flyout;
-        if (this.hover) {
-            flyout = (
-                <div className="PDS-flyout" title=" ">
-                    <SelectorContextMenu {...this.props} />
-                </div>
-            );
-        }
-        return (
-            <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
-                <p>^</p>
-                {flyout}
-            </span>
+        let flyout = (
+            <div className="parentDocumentSelector-flyout" style={{}} title=" ">
+                <SelectorContextMenu {...this.props} />
+            </div>
         );
+        return <div title="Drag(create link) Tap(view links)" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
+                content={flyout}>
+                <span className="parentDocumentSelector-button" >
+                    <p>^</p>
+                </span>
+            </Flyout>
+        </div>;
     }
 }
 
@@ -117,13 +102,9 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
     @observable hover = false;
 
     @action
-    onMouseLeave = () => {
-        this.hover = false;
-    }
-
-    @action
-    onMouseEnter = () => {
-        this.hover = true;
+    onPointerDown = (e: React.PointerEvent) => {
+        this.hover = !this.hover;
+        e.stopPropagation();
     }
 
     render() {
@@ -131,15 +112,14 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
         if (this.hover) {
             const view = DocumentManager.Instance.getDocumentView(this.props.Document);
             flyout = !view ? (null) : (
-                <div className="PDS-flyout" title=" " onMouseLeave={this.onMouseLeave}>
+                <div className="ParentDocumentSelector-flyout" title=" ">
                     <DocumentButtonBar views={[view]} stack={this.props.Stack} />
                 </div>
             );
         }
         return (
             <span className="buttonSelector"
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
+                onPointerDown={this.onPointerDown}>
                 {this.hover ? (null) : <FontAwesomeIcon icon={faEdit} size={"sm"} />}
                 {flyout}
             </span>

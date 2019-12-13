@@ -147,7 +147,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    moveDocument = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean): boolean => {
+    moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean): boolean => {
         return this.props.removeDocument(doc) && addDocument(doc);
     }
     createRef = (ele: HTMLDivElement | null) => {
@@ -243,7 +243,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const where = [de.x, de.y];
         let targInd = -1;
         let plusOne = false;
-        if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.complete.docDragData) {
             this._docXfs.map((cd, i) => {
                 const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
@@ -252,16 +252,16 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     plusOne = (where[1] > (pos[1] + pos1[1]) / 2 ? 1 : 0) ? true : false;
                 }
             });
-        }
-        if (super.drop(e, de)) {
-            const newDoc = de.data.droppedDocuments[0];
-            const docs = this.childDocList;
-            if (docs) {
-                if (targInd === -1) targInd = docs.length;
-                else targInd = docs.indexOf(this.filteredChildren[targInd]);
-                const srcInd = docs.indexOf(newDoc);
-                docs.splice(srcInd, 1);
-                docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (plusOne ? 1 : 0), 0, newDoc);
+            if (super.drop(e, de)) {
+                const newDoc = de.complete.docDragData.droppedDocuments[0];
+                const docs = this.childDocList;
+                if (docs) {
+                    if (targInd === -1) targInd = docs.length;
+                    else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                    const srcInd = docs.indexOf(newDoc);
+                    docs.splice(srcInd, 1);
+                    docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (plusOne ? 1 : 0), 0, newDoc);
+                }
             }
         }
         return false;

@@ -176,7 +176,7 @@ export class DocumentManager {
     }
 
     public async FollowLink(link: Doc | undefined, doc: Doc, focus: (doc: Doc, maxLocation: string) => void, zoom: boolean = false, reverse: boolean = false, currentContext?: Doc) {
-        const linkDocs = link ? [link] : LinkManager.Instance.getAllRelatedLinks(doc);
+        const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc));
         const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc));
@@ -194,6 +194,8 @@ export class DocumentManager {
             const target = linkFollowDocs[reverse ? 1 : 0];
             target.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
             DocumentManager.Instance.jumpToDocument(linkFollowDocs[reverse ? 1 : 0], zoom, (doc: Doc) => focus(doc, maxLocation), targetContext, linkDoc[Id]);
+        } else if (link) {
+            DocumentManager.Instance.jumpToDocument(link, zoom, (doc: Doc) => focus(doc, "onRight"), undefined, undefined);
         }
     }
 

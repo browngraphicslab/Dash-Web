@@ -85,14 +85,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
                 this._titleControlString = this._accumulatedTitle;
             } else if (this._titleControlString.startsWith("#")) {
-                let selectionTitleFieldKey = this._titleControlString.substring(1);
+                const selectionTitleFieldKey = this._titleControlString.substring(1);
                 selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._accumulatedTitle.startsWith("-"));
                 selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d =>
                     Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle, true)
                 );
             }
         }
-    }))
+    }));
 
     @action titleEntered = (e: any) => {
         const key = e.keyCode || e.which;
@@ -199,7 +199,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
-            handlers: { dragComplete: action(() => this._hidden = this.Interacting = false) },
+            dragComplete: action(e => this._hidden = this.Interacting = false),
             hideSource: true
         });
         e.stopPropagation();
