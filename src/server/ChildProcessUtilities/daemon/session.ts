@@ -19,7 +19,7 @@ createInterface(process.stdin, process.stdout).on('line', async line => {
         case "restart":
             manualRestartActive = true;
             identifiedLog(cyan("Initializing manual restart..."));
-            endPrevious();
+            await endPrevious();
             break;
         case "exit":
             identifiedLog(cyan("Initializing session end"));
