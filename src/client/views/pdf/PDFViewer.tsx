@@ -137,7 +137,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
             console.log(properPath);
             console.log(`The two (url and proper path) ${url === properPath ? "were" : "were not equal"}`);
-            if (url !== properPath) {
+            if (!properPath.includes(url)) {
                 const proto = Doc.GetProto(Document);
                 proto[this.props.fieldKey] = new PdfField(properPath);
                 proto[backup] = url;

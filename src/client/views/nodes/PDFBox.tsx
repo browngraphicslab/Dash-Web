@@ -57,7 +57,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     componentDidMount() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl instanceof PdfField) {
-            Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
+            Pdfjs.getDocument(pdfUrl.url.href).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
