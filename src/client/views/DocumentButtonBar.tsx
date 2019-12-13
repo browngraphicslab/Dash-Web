@@ -114,7 +114,7 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
                         const proto = Doc.GetProto(linkDoc);
                         proto.sourceContext = this.props.views[0].props.ContainingCollectionDoc;
 
-                        const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast((linkDoc.anchor2 as Doc).title) : "-untitled-";
+                        const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
                         const text = FormattedTextBox.ToolTipTextMenu.makeLink(linkDoc, anchor2Title, e.ctrlKey ? "onRight" : "inTab");
                         if (linkDoc.anchor2 instanceof Doc) {
                             proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link

@@ -630,7 +630,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             { fireImmediately: true }
         );
 
-        setTimeout(() => this.tryUpdateHeight(), 0);
+        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight, 0)));
     }
 
     pushToGoogleDoc = async () => {
@@ -1087,10 +1087,15 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     @action
-    tryUpdateHeight() {
-        const scrollHeight = this._ref.current?.scrollHeight;
+    tryUpdateHeight(limitHeight?: number) {
+        let scrollHeight = this._ref.current?.scrollHeight;
         if (!this.layoutDoc.animateToPos && this.layoutDoc.autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+            if (limitHeight && scrollHeight > limitHeight) {
+                scrollHeight = limitHeight;
+                this.layoutDoc.limitHeight = undefined;
+                this.layoutDoc.autoHeight = false;
+            }
             const nh = this.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             const dh = NumCast(this.layoutDoc.height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));

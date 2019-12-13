@@ -101,10 +101,10 @@ export namespace DragManager {
     export class DragCompleteEvent {
         constructor(aborted: boolean, dragData: { [id: string]: any }) {
             this.aborted = aborted;
-            this.docDragData = dragData instanceof DocumentDragData ? dragData as DocumentDragData : undefined;
-            this.annoDragData = dragData instanceof PdfAnnoDragData ? dragData as PdfAnnoDragData : undefined;
-            this.linkDragData = dragData instanceof LinkDragData ? dragData as LinkDragData : undefined;
-            this.columnDragData = dragData instanceof ColumnDragData ? dragData as ColumnDragData : undefined;
+            this.docDragData = dragData instanceof DocumentDragData ? dragData : undefined;
+            this.annoDragData = dragData instanceof PdfAnnoDragData ? dragData : undefined;
+            this.linkDragData = dragData instanceof LinkDragData ? dragData : undefined;
+            this.columnDragData = dragData instanceof ColumnDragData ? dragData : undefined;
         }
         aborted: boolean;
         docDragData?: DocumentDragData;
@@ -140,14 +140,12 @@ export namespace DragManager {
         linkSourceDocument: Doc;
         dontClearTextBox?: boolean;
         linkDocument?: Doc;
-        [id: string]: any;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
             this.colKey = colKey;
         }
         colKey: SchemaHeaderField;
-        [id: string]: any;
     }
     // used by PDFs to conditionally (if the drop completes) create a text annotation when dragging from the PDF toolbar when a text region has been selected.
     // this is pretty clunky and should be rethought out using linkDrag or DocumentDrag
@@ -216,7 +214,7 @@ export namespace DragManager {
 
     // drag links and drop link targets (aliasing them if needed)
     export async function StartLinkTargetsDrag(dragEle: HTMLElement, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
-        let draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
+        const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
 
         if (draggedDocs.length) {
             const moddrag: Doc[] = [];
@@ -225,7 +223,7 @@ export namespace DragManager {
                 if (doc) moddrag.push(doc);
             }
 
-            let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
+            const dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
             dragData.moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
                 const document = SelectionManager.SelectedDocuments()[0];
                 document && document.props.removeDocument && document.props.removeDocument(doc);

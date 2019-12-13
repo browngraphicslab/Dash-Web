@@ -5,7 +5,7 @@ import * as React from 'react';
 import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
 // import { Transform } from 'prosemirror-transform';
-import { Doc } from '../../new_fields/Doc';
+import { Doc, HeightSym } from '../../new_fields/Doc';
 import { Transform } from "../util/Transform";
 import { TraceMobx } from '../../new_fields/util';
 
@@ -27,61 +27,53 @@ export class PreviewCursor extends React.Component<{}> {
         if (PreviewCursor.Visible) {
             if (e.clipboardData) {
                 const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
-                runInAction(() => { PreviewCursor.Visible = false; });
-
+                runInAction(() => PreviewCursor.Visible = false);
 
                 if (e.clipboardData.getData("text/plain") !== "") {
 
                     // tests for youtube and makes video document
                     if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
                         const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
-                        PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
+                        return PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
                             title: url, width: 400, height: 315,
                             nativeWidth: 600, nativeHeight: 472.5,
                             x: newPoint[0], y: newPoint[1]
                         }));
-                        return;
                     }
 
                     // tests for URL and makes web document
                     const re: any = /^https?:\/\//g;
                     if (re.test(e.clipboardData.getData("text/plain"))) {
                         const url = e.clipboardData.getData("text/plain");
-                        PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                            title: url, width: 300, height: 300,
+                        return PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
+                            title: url, width: 500, height: 300,
                             // nativeWidth: 300, nativeHeight: 472.5,
                             x: newPoint[0], y: newPoint[1]
                         }));
-                        return;
                     }
 
                     // creates text document
-                    const newBox = Docs.Create.TextDocument({
-                        width: 200, height: 100,
+                    return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument({
+                        width: 500,
+                        autoHeight: true,
                         x: newPoint[0],
                         y: newPoint[1],
+                        limitHeight: 400,
                         title: "-pasted text-"
-                    });
-
-                    newBox.proto!.autoHeight = true;
-                    PreviewCursor._addLiveTextDoc(newBox);
-                    return;
+                    }));
                 }
                 //pasting in images
                 if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
                     const re: any = /<img src="(.*?)"/g;
                     const arr: any[] = re.exec(e.clipboardData.getData("text/html"));
 
-                    const img: Doc = Docs.Create.ImageDocument(
+                    return PreviewCursor._addDocument(Docs.Create.ImageDocument(
                         arr[1], {
                         width: 300, title: arr[1],
                         x: newPoint[0],
                         y: newPoint[1],
-                    });
-                    PreviewCursor._addDocument(img);
-                    return;
+                    }));
                 }
-
             }
         }
     }

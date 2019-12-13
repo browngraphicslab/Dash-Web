@@ -113,7 +113,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 return;
             }
 
-            var div = document.createElement("div");
+            const div = document.createElement("div");
             div.style.width = "90";
             div.style.height = "20";
             div.style.background = "gray";
