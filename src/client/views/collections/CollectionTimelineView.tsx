@@ -25,6 +25,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { DragManager } from "../../util/DragManager";
 
 
 
@@ -1396,6 +1397,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             e.stopPropagation();
         }
     }
+    private getLocalTransform = (): Transform => new Transform(-NumCast(this.previewdoc!.x), -NumCast(this.previewdoc!.y), 1);
+
+    private getTransform = (): Transform => this.props.ScreenToLocalTransform().transform(this.getLocalTransform());
+    private getTransformOverlay = (): Transform => this.props.ScreenToLocalTransform();
+
+    @undoBatch
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData && de.data.droppedDocuments.length && de.data.droppedDocuments[0] === this.previewdoc) {
+            let [xp, yp] = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
+            if (super.drop(e, de)) {
+                if (de.data instanceof DragManager.DocumentDragData) {
+                    if (de.data.droppedDocuments.length) {
+                        this.previewdoc.x = xp - de.data.offset[0];
+                        this.previewdoc.y = yp - de.data.offset[1];
+                    }
+                }
+            }
+        } else {
+            super.drop(e, de);
+        }
+        return false;
+    }
 
     render() {
         this.props.Document._range = this._range;
@@ -1419,35 +1443,38 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
             console.log(NumCast(this.previewdoc.x));
         }
+
+
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                     <div>
-                        {this.previewdoc !== undefined ? <div style={{ left: NumCast(this.previewdoc.x), top: NumCast(this.previewdoc.y), width: NumCast(this.previewdoc.width), zIndex: 500, height: NumCast(this.previewdoc.height), position: "absolute", }}>
-                            <ContentFittingDocumentView
-                                Document={d}
-                                PanelWidth={() => NumCast(this.previewdoc.width)}
-                                PanelHeight={() => NumCast(this.previewdoc.height)}
-                                DataDocument={this.dataDoc}
-                                fieldKey={this.props.fieldKey}
-                                renderDepth={this.props.renderDepth}
-                                ruleProvider={this.props.ruleProvider}
-                                fitToBox={this.props.fitToBox}
-                                onClick={this.props.onClick}
-                                getTransform={() => this.props.ScreenToLocalTransform()}
-                                focus={this.props.focus}
-                                CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
-                                CollectionView={this.props.CollectionView}
-                                addDocument={this.props.addDocument}
-                                moveDocument={this.props.moveDocument}
-                                removeDocument={this.props.removeDocument}
-                                active={this.props.active}
-                                whenActiveChanged={this.props.whenActiveChanged}
-                                addDocTab={this.props.addDocTab}
-                                pinToPres={this.props.pinToPres}
-                                setPreviewScript={emptyFunction}
-                                previewScript={undefined}></ContentFittingDocumentView>
-                        </div> : undefined}
+                        {this.previewdoc !== undefined ?
+                            <div style={{ left: NumCast(this.previewdoc.x), top: NumCast(this.previewdoc.y), width: NumCast(this.previewdoc.width), zIndex: 500, height: NumCast(this.previewdoc.height), position: "absolute", }}>
+                                <ContentFittingDocumentView
+                                    Document={d}
+                                    PanelWidth={this.previewdoc[WidthSym]}
+                                    PanelHeight={this.previewdoc[HeightSym]}
+                                    DataDocument={this.dataDoc}
+                                    fieldKey={this.props.fieldKey}
+                                    renderDepth={this.props.renderDepth}
+                                    ruleProvider={this.props.ruleProvider}
+                                    fitToBox={this.props.fitToBox}
+                                    onClick={this.props.onClick}
+                                    getTransform={this.getTransform}
+                                    focus={this.props.focus}
+                                    CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
+                                    CollectionView={this.props.CollectionView}
+                                    addDocument={this.props.addDocument}
+                                    moveDocument={this.props.moveDocument}
+                                    removeDocument={this.props.removeDocument}
+                                    active={this.props.active}
+                                    whenActiveChanged={this.props.whenActiveChanged}
+                                    addDocTab={this.props.addDocTab}
+                                    pinToPres={this.props.pinToPres}
+                                    setPreviewScript={emptyFunction}
+                                    previewScript={undefined}></ContentFittingDocumentView>
+                            </div> : undefined}
 
                     </div>
                     <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>

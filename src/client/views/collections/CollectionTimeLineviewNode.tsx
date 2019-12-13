@@ -17,6 +17,7 @@ import React = require("react");
 import { Id } from "../../../new_fields/FieldSymbols";
 import { DocumentContentsView } from '../nodes/DocumentContentsView';
 import { SelectionManager } from "../../util/SelectionManager";
+import { UndoManager, undoBatch } from "../../util/UndoManager";
 
 
 @observer
@@ -35,6 +36,7 @@ export class
         else if (field instanceof ProxyField) { return faObjectGroup; }
         return faBell;
     }
+
 
     documentDisplay(d: Doc, width: number, height: number) {
         let nativeWidth = NumCast(d.nativeWidth, width);
@@ -72,6 +74,8 @@ export class
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                 />
+                <div className="window" style={{ background: "white", top: 0, left: 0, pointerEvents: "all", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }} />
+
             </div>);
     }
 
@@ -195,15 +199,11 @@ export class
                     <div className="unselected" style={{ position: "absolute", zIndex: 11, width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
-                            <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
-                                {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
-                            </div>
+                            {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
                         </div>
                     </div>
                 </div>
-                <div className="hover" style={{ position: "absolute", zIndex: 999, top: this.props.top - this.props.scale * 3, left: this.props.leftval * this.props.transform + this.props.scale, visibility: this.visible === true ? "visible" : "hidden" }}>
-                    {this.documentDisplay(this.props.doc, this.props.scale * 4, this.props.scale * 4)}
-                </div>
+
                 <div ref={this.classref} className={this.selectclass === true ? "selection " : "unselection"} style={{
                     zIndex: 98, position: "absolute", height: "100%",
                 }}>
