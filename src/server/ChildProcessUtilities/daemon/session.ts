@@ -111,12 +111,15 @@ let current_backup: ChildProcess | undefined = undefined;
 async function checkHeartbeat() {
     let error: any;
     try {
+        identifiedLog(green("request Heartbeat..."));
         await request.get(heartbeat);
+        identifiedLog(green("got Heartbeat..."));
         if (restarting || manualRestartActive) {
             addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
             restarting = false;
         }
     } catch (e) {
+        identifiedLog(red("failed Heartbeat..." + e));
         error = e;
     } finally {
         if (error) {
@@ -142,6 +145,8 @@ async function checkHeartbeat() {
                 writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
             }
         }
+        identifiedLog(green("restarting heartbeater"));
+        setTimeout(checkHeartbeat, 1000 * frequency);
     }
 }
 
@@ -152,7 +157,6 @@ async function startListening() {
         process.exit(0);
     }
     await checkHeartbeat();
-    setInterval(checkHeartbeat, 1000 * frequency);
 }
 
 function emailText(error: any) {
