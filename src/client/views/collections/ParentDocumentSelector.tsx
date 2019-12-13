@@ -93,22 +93,21 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
     }
 
     render() {
-        let flyout;
-        if (this.hover) {
-            flyout = (
-                <div className="PDS-flyout" title=" ">
-                    <SelectorContextMenu {...this.props} />
-                </div>
-            );
-        }
-        return (
-            <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
-                <p>^</p>
-                {flyout}
-            </span>
+        let flyout = (
+            <div className="parentDocumentSelector-flyout" style={{ position: "relative", display: "inline-block", height: "100%", width: "100%", }} title=" ">
+                <SelectorContextMenu {...this.props} />
+            </div>
         );
+        return <div title="Drag(create link) Tap(view links)" className="parentDocumentSelector-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
+                content={flyout}>
+                <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
+                    onMouseEnter={this.onMouseEnter}
+                    onMouseLeave={this.onMouseLeave}>
+                    <p>^</p>
+                </span>
+            </Flyout>
+        </div>;
     }
 }
 
@@ -131,7 +130,7 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
         if (this.hover) {
             const view = DocumentManager.Instance.getDocumentView(this.props.Document);
             flyout = !view ? (null) : (
-                <div className="PDS-flyout" title=" " onMouseLeave={this.onMouseLeave}>
+                <div className="ParentDocumentSelector-flyout" title=" " onMouseLeave={this.onMouseLeave}>
                     <DocumentButtonBar views={[view]} stack={this.props.Stack} />
                 </div>
             );

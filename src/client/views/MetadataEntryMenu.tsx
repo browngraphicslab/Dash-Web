@@ -6,7 +6,7 @@ import { KeyValueBox } from './nodes/KeyValueBox';
 import { Doc, Field, DocListCastAsync } from '../../new_fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
-import { emptyFunction } from '../../Utils';
+import { emptyFunction, emptyPath } from '../../Utils';
 
 export type DocLike = Doc | Doc[] | Promise<Doc> | Promise<Doc[]>;
 export interface MetadataEntryProps {
@@ -194,6 +194,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         );
     }
 
+    _ref = React.createRef<HTMLInputElement>();
     render() {
         return (
             <div className="metadataEntry-outerDiv">
@@ -201,14 +202,14 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                     Key:
                     <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
                         getSuggestionValue={this.getSuggestionValue}
-                        suggestions={[]}
+                        suggestions={emptyPath}
                         alwaysRenderSuggestions={false}
                         renderSuggestion={this.renderSuggestion}
                         onSuggestionsFetchRequested={emptyFunction}
                         onSuggestionsClearRequested={emptyFunction}
                         ref={this.autosuggestRef} />
                     Value:
-                    <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                    <input className="metadataEntry-input" ref={this._ref} value={this._currentValue} onClick={e => this._ref.current!.focus()} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
                     {this.considerChildOptions}
                 </div>
                 <div className="metadataEntry-keys" >

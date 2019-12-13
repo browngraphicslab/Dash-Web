@@ -159,13 +159,15 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
-            <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
-                <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                <ul className="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
+            <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
+                content={<ul className="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
                     {<button onClick={this.clearTemplates}>Restore Defaults</button>}
-                </ul>
-            </div>
+                </ul>}>
+                <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
+                    <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
+                </div>
+            </Flyout>
         );
     }
 }

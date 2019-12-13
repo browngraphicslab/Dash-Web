@@ -30,15 +30,15 @@
 }
 
 .template-list {
-    position: absolute;
-    top: 25px;
-    left: 0px;
-    width: max-content;
     font-family: $sans-serif;
     font-size: 12px;
     background-color: $light-color-secondary;
     padding: 2px 12px;
     list-style: none;
+    position: relative;
+    display: inline-block;
+    height: 100%;
+    width: 100%;
 
     .templateToggle, .chromeToggle {
         text-align: left;
