@@ -31,3 +31,7 @@
 2019-12-13 19:19:30.793 INFO  (main) [   ] o.e.j.s.AbstractConnector Started ServerConnector@8297b3a{HTTP/1.1,[http/1.1, h2c]}{0.0.0.0:8983}
 2019-12-13 19:19:30.793 INFO  (main) [   ] o.e.j.s.Server Started @4641ms
 2019-12-13 19:19:31.371 INFO  (qtp1664439369-23) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/info/system params={wt=json} status=0 QTime=51
+2019-12-13 20:58:25.058 INFO  (qtp1664439369-19) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/info/system params={wt=json} status=0 QTime=42
+2019-12-13 20:58:36.863 INFO  (qtp1664439369-22) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/cores params={indexInfo=false&wt=json&_=1576270716757} status=0 QTime=6
+2019-12-13 20:58:36.894 INFO  (qtp1664439369-18) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/info/system params={wt=json&_=1576270716757} status=0 QTime=36
+2019-12-13 20:58:36.921 INFO  (qtp1664439369-40) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/info/system params={wt=json&_=1576270716757} status=0 QTime=24

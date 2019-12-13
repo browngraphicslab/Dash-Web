@@ -136,16 +136,18 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if (matches !== null) {
             const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
             console.log(properPath);
-            console.log(`The two (url and proper path) ${url === properPath ? "were" : "were not equal"}`);
             if (!properPath.includes(url)) {
+                console.log(`The two (url and proper path) were not equal`);
                 const proto = Doc.GetProto(Document);
                 proto[this.props.fieldKey] = new PdfField(properPath);
                 proto[backup] = url;
+            } else {
+                console.log(`The two (url and proper path) were equal`);
             }
         } else {
             console.log("Outer matches was null!");
         }
-        const path = Utils.prepend(`/files/pdf_thumbnails${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
+        const path = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
         this._coverPath = JSON.parse(await rp.get(path));
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
@@ -623,7 +625,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         }
         const nativeWidth = (this.Document.nativeWidth || 0);
         const nativeHeight = (this.Document.nativeHeight || 0);
-        return <img key={this._coverPath.path} src={this._coverPath.path} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
+        const resolved = Utils.prepend(this._coverPath.path);
+        return <img key={resolved} src={resolved} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
 

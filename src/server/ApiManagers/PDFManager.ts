@@ -24,6 +24,14 @@ export default class PDFManager extends ApiManager {
 
 }
 
+function dispatchThumbnail(res: express.Response, { width, height }: Pdfjs.PDFPageViewport, thumbnailName: string) {
+    res.send({
+        path: clientPathToFile(Directory.pdf_thumbnails, thumbnailName),
+        width,
+        height
+    });
+}
+
 function getOrCreateThumbnail(thumbnailName: string, res: express.Response) {
     const noExtension = thumbnailName.substring(0, thumbnailName.length - ".png".length);
     const pageString = noExtension.split('-')[1];
@@ -33,17 +41,13 @@ function getOrCreateThumbnail(thumbnailName: string, res: express.Response) {
         exists(path, (exists: boolean) => {
             if (exists) {
                 const existingThumbnail = createReadStream(path);
-                imageSize(existingThumbnail, (err: any, { width, height }: any) => {
+                imageSize(existingThumbnail, (err: any, viewport: any) => {
                     if (err) {
                         console.log(red(`In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`));
                         console.log(err);
                         return;
                     }
-                    res.send({
-                        path: clientPathToFile(Directory.pdf_thumbnails, thumbnailName),
-                        width,
-                        height
-                    });
+                    dispatchThumbnail(res, viewport, thumbnailName);
                 });
             } else {
                 const offset = thumbnailName.length - pageString.length - 5;
@@ -70,19 +74,20 @@ async function CreateThumbnail(file: string, pageNumber: number, res: express.Re
     await page.render(renderContext).promise;
     const pngStream = canvas.createPNGStream();
     const filenames = path.basename(file).split(".");
-    const pngFile = serverPathToFile(Directory.pdf_thumbnails, `${filenames[0]}-${pageNumber}.png`);
+    const thumbnailName = `${filenames[0]}-${pageNumber}.png`;
+    const pngFile = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
     const out = createWriteStream(pngFile);
     pngStream.pipe(out);
-    out.on("finish", () => {
-        res.send({
-            path: pngFile,
-            width: viewport.width,
-            height: viewport.height
+    return new Promise<void>((resolve, reject) => {
+        out.on("finish", () => {
+            dispatchThumbnail(res, viewport, thumbnailName);
+            resolve();
         });
-    });
-    out.on("error", error => {
-        console.log(red(`In PDF thumbnail creation, encountered the following error when piping ${pngFile}:`));
-        console.log(error);
+        out.on("error", error => {
+            console.log(red(`In PDF thumbnail creation, encountered the following error when piping ${pngFile}:`));
+            console.log(error);
+            reject();
+        });
     });
 }
 
