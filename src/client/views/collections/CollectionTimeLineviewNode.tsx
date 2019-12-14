@@ -38,71 +38,71 @@ export class
     }
 
 
-    
-    
-leSelection(e: React.PointerEvent) {
+
+
+    leSelection(e: React.PointerEvent) {
         this.props.timelinedoc.currdoc = this.props.doc;
     .props.timelinedoc.currval = this.props.doc[this.props.sortstate];
 
 
-ion
-    toggletwo() {
-        this.selectclass = !this.selectclass;
-}
-    
-@action
-    adjust = (e: PointerEvent): void => {
-    this.props.doc[this.props.sortstate] = NumCast(this.props.doc[this.props.sortstate]) + e.movementX / this.props.range;
-    }
-
-    onPointerUp = (e: PointerEvent): void => {
-    document.removeEventListener("pointermove", this.adjust);
-}
-    
-        
-        ta() {
-    return this.props.doc.data;
-    
-
-@observable classref = React.createRef<HTMLDivElement>();
-
-    @observable caption: string = "No caption";
-
-@computed
-    selectclass() {
-    if (this.newclass === undefined) {
-            this.newclass = this.props.select;
+        ion
+        toggletwo() {
+            this.selectclass = !this.selectclass;
         }
-        else if (this.props.select === true) {
-        return true;
-    }
 
-    return this.newclass;
-}
+        @action
+        adjust = (e: PointerEvent): void => {
+            this.props.doc[this.props.sortstate] = NumCast(this.props.doc[this.props.sortstate]) + e.movementX / this.props.range;
+        }
 
-set selectclass(boolean: boolean) {
-    this.newclass = boolean;
-}
-
-@observable newclass: boolean | undefined;
-
-@observable left: number | undefined;
-
-@computed
-get leftval(): number {
-    if (this.left === undefined) {
-        this.left = this.props.leftval;
-        return this.left;
-    }
-    return this.left;
-
-}
+        onPointerUp = (e: PointerEvent): void => {
+            document.removeEventListener("pointermove", this.adjust);
+        }
 
 
+        ta() {
+            return this.props.doc.data;
 
-set leftval(number) {
-    this.left = number;
-}
+
+            @observable classref = React.createRef<HTMLDivElement>();
+
+            @observable caption: string = "No caption";
+
+            @computed
+            selectclass() {
+                if (this.newclass === undefined) {
+                    this.newclass = this.props.select;
+                }
+                else if (this.props.select === true) {
+                    return true;
+                }
+
+                return this.newclass;
+            }
+
+            set selectclass(boolean: boolean) {
+                this.newclass = boolean;
+            }
+
+            @observable newclass: boolean | undefined;
+
+            @observable left: number | undefined;
+
+            @computed
+            get leftval(): number {
+                if (this.left === undefined) {
+                    this.left = this.props.leftval;
+                    return this.left;
+                }
+                return this.left;
+
+            }
+
+
+
+            set leftval(number) {
+                this.left = number;
+            }
 
     private calculatepreview() {
         if (!this.props.rangeval) {
@@ -167,6 +167,7 @@ set leftval(number) {
         );
     }
 }
+
 
 export interface NodeProps {
     scale: number;
