@@ -384,43 +384,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.resetSelections();
     }
 
-    // @action
-    // select(e: React.MouseEvent<HTMLDivElement>, d: Doc, b: HTMLDivElement | undefined) {
-    //     var thumbnail = undefined;
-    //     var header = undefined;
-    //     for (let thumbnails of this.thumbnails) {
-    //         if (thumbnails.thumbnailref === b) {
-    //             thumbnail = (thumbnails.thumbnailref);
-    //             //header = thumbnails.headerref;
-    //         }
-    //     }
-    //     if (e.ctrlKey) {
-    //         if (thumbnail!.classList.contains("selected")) {
-    //             //this.unfocus(thumbnail, header);
-    //             for (let i = 0; i < this.selections.length; i++) {
-    //                 if (this.selections[i] === thumbnail) {
-    //                     this.selections.splice(i, 1);
-    //                 }
-    //             }
-    //         }
-    //         else {
-    //             //this.focus(thumbnail, header);
-    //             this.selections.push(thumbnail);
-    //         }
-    //     }
-    //     else {
-    //         this.selections = [];
-    //         for (let thumbnails of this.thumbnails) {
-    //             //this.unfocus(thumbnails.thumbnailref, thumbnails.headerref);
-    //         }
-    //         if (!thumbnail!.classList.contains("selected")) {
-    //             //this.focus(thumbnail, header);
-    //             this.selections.push(thumbnail);
-    //         }
-    //     }
-    // }
-
-
     @observable private filtered: String[] = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
     private selections: (HTMLDivElement | undefined)[] = [];
     @observable _lastX: number = 0;
@@ -1477,15 +1440,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             {this._visible ? this.marqueeDiv : null}
                         </div>}
                     </div>
-                    {/* <Flyout
-                        anchorPoint={anchorPoints.RIGHT_TOP}
-                        content={<div>
-                            <h5><b>Filter</b></h5>
-                            {this.filterbuttons}
-                        </div>
-                        }>
-                        <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-                    </Flyout> */}
                     <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound * this.nodeoffset}px)`, }}>
                         {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "10000%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
