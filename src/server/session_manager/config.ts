@@ -24,9 +24,10 @@ export const crashPath = resolve(logPath, "./crashes");
  * State
  */
 export enum SessionState {
-    INITIALIZING,
-    LISTENING,
-    AUTOMATIC_RESTART,
-    MANUAL_RESTART,
-    EXITING
+    STARTING = "STARTING",
+    INITIALIZED = "INITIALIZED",
+    LISTENING = "LISTENING",
+    CRASH_RESTARTING = "CRASH_RESTARTING",
+    MANUALLY_RESTARTING = "MANUALLY_RESTARTING",
+    EXITING = "EXITING"
 }

@@ -7,26 +7,31 @@ import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
 import { ChildProcess, exec, execSync } from "child_process";
 import InputManager from "./input_manager";
-import { identifier, logPath, crashPath, onWindows, pid, ports, heartbeat, recipient, LOCATION, latency } from "./config";
+import { identifier, logPath, crashPath, onWindows, pid, ports, heartbeat, recipient, LOCATION, latency, SessionState } from "./config";
 const killport = require("kill-port");
 
 process.on('SIGINT', endPrevious);
+let state: SessionState = SessionState.STARTING;
+const is = (...reference: SessionState[]) => reference.includes(state);
+const set = (reference: SessionState) => state = reference;
 
 const { registerCommand } = new InputManager({ identifier });
 
-let manualRestartActive = false;
 registerCommand("restart", [], async () => {
-    manualRestartActive = true;
+    set(SessionState.MANUALLY_RESTARTING);
     identifiedLog(cyan("Initializing manual restart..."));
     await endPrevious();
 });
 
 registerCommand("exit", [], async () => {
+    set(SessionState.EXITING);
     identifiedLog(cyan("Initializing session end"));
     await endPrevious();
     identifiedLog("Cleanup complete. Exiting session...\n");
     execSync(killAllCommand());
 });
+
+registerCommand("state", [], () => identifiedLog(state));
 
 if (!existsSync(logPath)) {
     mkdirSync(logPath);
@@ -50,9 +55,6 @@ if (!["win32", "darwin"].includes(process.platform)) {
     identifiedLog(red("Invalid operating system: this script is supported only on Mac and Windows."));
     process.exit(1);
 }
-
-let restarting = false;
-let count = 0;
 
 function startServerCommand() {
     if (onWindows) {
@@ -95,42 +97,44 @@ async function endPrevious() {
 let current_backup: ChildProcess | undefined = undefined;
 
 async function checkHeartbeat() {
+    const listening = is(SessionState.LISTENING);
     let error: any;
     try {
-        count && !restarting && process.stdout.write(`${identifier} 👂 `);
+        listening && process.stdout.write(`${identifier} 👂 `);
         await request.get(heartbeat);
-        count && !restarting && console.log('⇠ 💚');
-        if (restarting || manualRestartActive) {
-            addLogEntry(count++ ? "Backup server successfully restarted" : "Server successfully started", green);
-            restarting = false;
+        listening && console.log('⇠ 💚');
+        if (!listening) {
+            addLogEntry(is(SessionState.INITIALIZED) ? "Server successfully started" : "Backup server successfully restarted", green);
+            set(SessionState.LISTENING);
         }
     } catch (e) {
-        count && !restarting && console.log("⇠ 💔");
+        listening && console.log("⇠ 💔");
         error = e;
     } finally {
-        if (error) {
-            if (!restarting || manualRestartActive) {
-                restarting = true;
-                if (count && !manualRestartActive) {
-                    console.log();
-                    addLogEntry("Detected a server crash", red);
-                    identifiedLog(red(error.message));
-                    await endPrevious();
-                    await log_execution({
-                        startMessage: identifier + " Sending crash notification email",
-                        endMessage: ({ error, result }) => {
-                            const success = error === null && result === true;
-                            return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
-                        },
-                        action: async () => notify(error || "Hmm, no error to report..."),
-                        color: cyan
-                    });
-                    identifiedLog(green("Initiating server restart..."));
-                }
-                manualRestartActive = false;
-                current_backup = exec(startServerCommand(), err => identifiedLog(err?.message || count ? "Previous server process exited." : "Spawned initial server."));
-                writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
+        if (error && !is(SessionState.CRASH_RESTARTING, SessionState.INITIALIZED)) {
+            if (is(SessionState.STARTING)) {
+                set(SessionState.INITIALIZED);
+            } else if (is(SessionState.MANUALLY_RESTARTING)) {
+                set(SessionState.CRASH_RESTARTING);
+            } else {
+                set(SessionState.CRASH_RESTARTING);
+                console.log();
+                addLogEntry("Detected a server crash", red);
+                identifiedLog(red(error.message));
+                await endPrevious();
+                await log_execution({
+                    startMessage: identifier + " Sending crash notification email",
+                    endMessage: ({ error, result }) => {
+                        const success = error === null && result === true;
+                        return identifier + ` ${(success ? `Notification successfully sent to` : `Failed to notify`)} ${recipient} ${timestamp()}`;
+                    },
+                    action: async () => notify(error || "Hmm, no error to report..."),
+                    color: cyan
+                });
+                identifiedLog(green("Initiating server restart..."));
             }
+            current_backup = exec(startServerCommand(), err => identifiedLog(err?.message || is(SessionState.INITIALIZED) ? "Spawned initial server." : "Previous server process exited."));
+            writeLocalPidLog("server", `${(current_backup?.pid ?? -2) + 1} created ${timestamp()}`);
         }
         setTimeout(checkHeartbeat, 1000 * latency);
     }
