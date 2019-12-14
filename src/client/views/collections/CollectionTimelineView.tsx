@@ -116,27 +116,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private previewdoc: Doc | undefined;
     @action
     makePreview(newdoc: Doc, string: string) {
-        console.log("SWAGGY");
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
+        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
         let proto = text.proto!;
         let ting = NumCast(newdoc[this.currentSortingKey]);
-        console.log(ting);
-        console.log(newdoc[this.currentSortingKey]);
         proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
         let doc = Docs.Create.StackingDocument([newdoc, text,], { width: 500, height: 500, title: "Untitled Collection", chromeStatus: "disabled" });
         doc.title = "preview";
         this.previewdoc = doc;
-        //this.props.addDocument(doc);
     }
 
     @action
     updatePreview(newdoc: Doc, string: string) {
         const doclist = Cast(this.previewdoc.data, listSpec(Doc));
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "swaggy" });
+        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
         let proto = text.proto!;
         let ting = NumCast(newdoc[this.currentSortingKey]);
-        console.log(ting);
-        console.log(newdoc[this.currentSortingKey]);
         proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
         if (doclist) {
             doclist[0] = newdoc;
@@ -208,10 +202,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             });
         reaction(
             () => this.props.Document.sortstate,
-            () => {
+            async () => {
                 this.transtate = true;
                 this.initiallyPopulateThumbnails();
                 this.createticks();
+                let doc = await Cast(this.props.Document.currdoc, Doc);
+                let string = await StrCast(this.props.Document.currval);
+                doc ? this.updatePreview(doc, string) : undefined;
             }
         );
     }

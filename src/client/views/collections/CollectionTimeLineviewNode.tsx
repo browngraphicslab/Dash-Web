@@ -74,24 +74,15 @@ export class
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
                 />
-                <div className="window" style={{ background: "white", top: 0, left: 0, pointerEvents: "all", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }} />
+                <div className="window" style={{ background: "transparent", top: 0, left: 0, pointerEvents: "all", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }} />
 
             </div>);
     }
 
     @action
     toggleSelection(e: React.PointerEvent) {
-        // e.stopPropagation();
-        // this.selectclass = !this.selectclass;
-        // if (e.button === 2) {
-        //     e.preventDefault();
-        //     this.props.createportal();
-        // }
-        // else if (this.props.update === true) {
-        //     document.addEventListener("pointermove", (this.adjust));
-        //     document.addEventListener("pointerup", (this.onPointerUp));
-        // }
-
+        this.props.timelinedoc.currdoc = this.props.doc;
+        this.props.timelinedoc.currval = this.props.doc[this.props.sortstate];
     }
 
     @action
@@ -117,25 +108,6 @@ export class
 
     @observable caption: string = "No caption";
 
-    transitio: string = "";
-    @action
-    maketransition() {
-        this.props.transition ? this.transitio = "1s left ease, 1s top ease, 1s opacity ease" : this.transitio = "1s opacity ease";
-    }
-
-    @action
-    tog() {
-        if (this.classref.current) {
-            // if (this.props.toggleopac === true && this.classref.current.classList.contains("unselection")) {
-            //     this.opacity = 0.3;
-            // }
-            //else {
-            this.opacity = 1;
-            //}
-        }
-    }
-
-    opacity: number | undefined;
     @computed
     get selectclass() {
         if (this.newclass === undefined) {
@@ -170,19 +142,6 @@ export class
         this.left = number;
     }
 
-    @observable
-    private visible: boolean = false;
-
-    @action
-    private setvisible() {
-        this.props.timelinedoc.currdoc = this.props.doc;
-        this.props.timelinedoc.currval = this.props.doc[this.props.sortstate];
-    }
-    @action
-    private setvisible2() {
-        console.log(this.visible);
-    }
-
     private calculatepreview() {
         if (!this.props.rangeval) {
             console.log(this.props.doc[this.props.sortstate]);
@@ -193,10 +152,10 @@ export class
     render() {
         return (
             <div>
-                <div onPointerEnter={() => this.setvisible()} onPointerLeave={() => this.setvisible2()} onPointerDown={(e) => this.toggleSelection(e)} style={{
-                    zIndex: 1, transition: this.transitio, opacity: (this.opacity ? this.opacity : 1), position: "absolute", left: this.props.leftval * this.props.transform, top: this.props.top, width: this.props.scale, height: this.props.scale,
+                <div onPointerDown={(e) => this.toggleSelection(e)} style={{
+                    zIndex: 1, position: "absolute", left: this.props.leftval * this.props.transform, top: this.props.top, width: this.props.scale, height: this.props.scale,
                 }}>
-                    <div className="unselected" style={{ position: "absolute", zIndex: 11, width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
+                    <div className="unselected" style={{ position: "absolute", zIndex: 11, width: this.props.scale, height: this.props.scale, pointerEvents: "all", overflow: "hidden" }}>
                         <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
                             {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
