@@ -7,7 +7,7 @@ import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from 'path';
 import { ChildProcess, exec, execSync } from "child_process";
 import InputManager from "./input_manager";
-import { identifier, logPath, crashPath, onWindows, pid, ports, heartbeat, recipient, LOCATION, latency, SessionState } from "./config";
+import { identifier, logPath, crashPath, onWindows, pid, ports, heartbeat, recipient, latency, SessionState } from "./config";
 const killport = require("kill-port");
 
 process.on('SIGINT', endPrevious);
@@ -111,13 +111,13 @@ async function checkHeartbeat() {
         listening && console.log("⇠ 💔");
         error = e;
     } finally {
-        if (error && !is(SessionState.CRASH_RESTARTING, SessionState.INITIALIZED)) {
+        if (error && !is(SessionState.AUTOMATICALLY_RESTARTING, SessionState.INITIALIZED)) {
             if (is(SessionState.STARTING)) {
                 set(SessionState.INITIALIZED);
             } else if (is(SessionState.MANUALLY_RESTARTING)) {
-                set(SessionState.CRASH_RESTARTING);
+                set(SessionState.AUTOMATICALLY_RESTARTING);
             } else {
-                set(SessionState.CRASH_RESTARTING);
+                set(SessionState.AUTOMATICALLY_RESTARTING);
                 console.log();
                 addLogEntry("Detected a server crash", red);
                 identifiedLog(red(error.message));
@@ -140,20 +140,11 @@ async function checkHeartbeat() {
     }
 }
 
-async function startListening() {
-    identifiedLog(yellow(`After initialization, will poll server heartbeat repeatedly...\n`));
-    if (!LOCATION) {
-        identifiedLog(red("No location specified for session manager. Please include as a command line environment variable or in a .env file."));
-        process.exit(0);
-    }
-    await checkHeartbeat();
-}
-
 function emailText(error: any) {
     return [
         `Hey ${recipient.split("@")[0]},`,
         "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
-        `Location: ${LOCATION}\nError: ${error}`,
+        `Location: ${heartbeat}\nError: ${error}`,
         "The server should already be restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress."
     ].join("\n\n");
 }
@@ -177,4 +168,5 @@ async function notify(error: any) {
     });
 }
 
-startListening();
+identifiedLog(yellow(`After initialization, will poll server heartbeat repeatedly...\n`));
+checkHeartbeat();
