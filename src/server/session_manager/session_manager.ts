@@ -40,11 +40,10 @@ if (!existsSync(crashPath)) {
     mkdirSync(crashPath);
 }
 
-const crashLogPath = resolve(crashPath, `./session_crashes_${new Date().toISOString()}.log`);
 function addLogEntry(message: string, color: Color) {
     const formatted = color(`${message} ${timestamp()}.`);
     identifiedLog(formatted);
-    // appendFileSync(crashLogPath, `${formatted}\n`);
+    // appendFileSync(resolve(crashPath, `./session_crashes_${new Date().toISOString()}.log`), `${formatted}\n`);
 }
 
 function identifiedLog(message?: any, ...optionalParams: any[]) {
