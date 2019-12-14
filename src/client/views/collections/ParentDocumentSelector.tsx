@@ -81,7 +81,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 @observer
 export class ParentDocSelector extends React.Component<SelectorProps> {
     render() {
-        let flyout = (
+        const flyout = (
             <div className="parentDocumentSelector-flyout" style={{}} title=" ">
                 <SelectorContextMenu {...this.props} />
             </div>

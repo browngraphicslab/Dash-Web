@@ -3,7 +3,7 @@ import { action, observable, runInAction, reaction, IReactionDisposer, trace, un
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc, HeightSym } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
@@ -49,6 +49,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     constructor(props: any) {
         super(props);
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        const nw = this.Document.nativeWidth = NumCast(this.extensionDocSync.nativeWidth, NumCast(this.Document.nativeWidth, 927));
+        const nh = this.Document.nativeHeight = NumCast(this.extensionDocSync.nativeHeight, NumCast(this.Document.nativeHeight, 1200));
+        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
 
         const backup = "oldPath";
         const { Document } = this.props;
@@ -78,10 +81,6 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this._selectReactionDisposer && this._selectReactionDisposer();
     }
     componentDidMount() {
-        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        if (pdfUrl instanceof PdfField) {
-            Pdfjs.getDocument(pdfUrl.url.href).promise.then(pdf => runInAction(() => this._pdf = pdf));
-        }
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
                 document.removeEventListener("keydown", this.onKeyDown);
@@ -90,9 +89,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     }
 
     loaded = (nw: number, nh: number, np: number) => {
-        this.dataDoc.numPages = np;
-        this.Document.nativeWidth = nw * 96 / 72;
-        this.Document.nativeHeight = nh * 96 / 72;
+        this.extensionDocSync.numPages = np;
+        this.extensionDocSync.nativeWidth = this.Document.nativeWidth = nw * 96 / 72;
+        this.extensionDocSync.nativeHeight = this.Document.nativeHeight = nh * 96 / 72;
         !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
@@ -220,9 +219,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
-            width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
-            height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,
-            transform: `scale(${this.props.ContentScaling()})`
+            width: !this.props.Document.fitWidth ? this.Document.nativeWidth || 0 : `${100 / this.contentScaling}%`,
+            height: !this.props.Document.fitWidth ? this.Document.nativeHeight || 0 : `${100 / this.contentScaling}%`,
+            transform: `scale(${this.contentScaling})`
         }}  >
             <div className="pdfBox-title-outer">
                 <strong className="pdfBox-title" >{this.props.Document.title}</strong>
@@ -248,10 +247,19 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         </div>;
     }
 
+    _pdfjsRequested = false;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        return !pdfUrl || !this._pdf || !this.extensionDoc || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
-            this.renderTitleBox : this.renderPdfView;
+        if (pdfUrl && this.extensionDoc && (this._everActive || (this.extensionDoc.nativeWidth && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+            if (pdfUrl instanceof PdfField && this._pdf) {
+                return this.renderPdfView;
+            }
+            if (!this._pdfjsRequested) {
+                this._pdfjsRequested = true;
+                Pdfjs.getDocument(pdfUrl.url.href).promise.then(pdf => runInAction(() => this._pdf = pdf));
+            }
+        }
+        return this.renderTitleBox;
     }
 }
