@@ -136,7 +136,7 @@ async function checkHeartbeat() {
             set(SessionState.LISTENING);
         }
     } catch (e) {
-        listening && console.log("⇠ 💔");
+        listening && console.log("⇠ 💔\n");
         error = e;
     } finally {
         if (error && !is(SessionState.AUTOMATICALLY_RESTARTING, SessionState.INITIALIZED, SessionState.UPDATING)) {
@@ -146,7 +146,6 @@ async function checkHeartbeat() {
                 set(SessionState.AUTOMATICALLY_RESTARTING);
             } else {
                 set(SessionState.AUTOMATICALLY_RESTARTING);
-                console.log();
                 addLogEntry("Detected a server crash", red);
                 identifiedLog(red(error.message));
                 await endPrevious();
