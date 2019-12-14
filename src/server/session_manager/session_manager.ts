@@ -36,7 +36,10 @@ registerCommand("update", [], async () => {
     identifiedLog(cyan("Initializing server update from version control..."));
     await endPrevious();
     await new Promise<void>(resolve => {
-        exec("git pull && npm install", () => {
+        exec(updateCommand(), error => {
+            if (error) {
+                identifiedLog(red(error.message));
+            }
             resolve();
         });
     });
@@ -66,6 +69,13 @@ function identifiedLog(message?: any, ...optionalParams: any[]) {
 if (!["win32", "darwin"].includes(process.platform)) {
     identifiedLog(red("Invalid operating system: this script is supported only on Mac and Windows."));
     process.exit(1);
+}
+
+function updateCommand() {
+    if (onWindows) {
+        return '"C:\\Program Files\\Git\\git-bash.exe" -c "git pull && npm install"';
+    }
+    return `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && git pull && npm install"\nend tell'`;
 }
 
 function startServerCommand() {
