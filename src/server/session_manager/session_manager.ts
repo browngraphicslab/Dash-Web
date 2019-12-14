@@ -23,13 +23,15 @@ registerCommand("restart", [], async () => {
     await endPrevious();
 });
 
-registerCommand("exit", [], async () => {
+registerCommand("exit", [], exit);
+
+async function exit() {
     set(SessionState.EXITING);
     identifiedLog(cyan("Initializing session end"));
     await endPrevious();
     identifiedLog("Cleanup complete. Exiting session...\n");
     execSync(killAllCommand());
-});
+}
 
 registerCommand("update", [], async () => {
     set(SessionState.UPDATING);
@@ -43,8 +45,7 @@ registerCommand("update", [], async () => {
             resolve();
         });
     });
-    set(SessionState.MANUALLY_RESTARTING);
-    identifiedLog("Update complete. Initializing manual restart...\n");
+    await exit();
 });
 
 registerCommand("state", [], () => identifiedLog(state));
