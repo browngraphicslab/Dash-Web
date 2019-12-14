@@ -72,18 +72,23 @@ if (!["win32", "darwin"].includes(process.platform)) {
     process.exit(1);
 }
 
+const windowsPrepend = (command: string) => `"C:\\Program Files\\Git\\git-bash.exe" -c "${command}"`;
+const macPrepend = (command: string) => `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && ${command}"\nend tell'`;
+
 function updateCommand() {
+    const command = "git pull && npm install";
     if (onWindows) {
-        return '"C:\\Program Files\\Git\\git-bash.exe" -c "git pull && npm install"';
+        return windowsPrepend(command);
     }
-    return `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && git pull && npm install"\nend tell'`;
+    return macPrepend(command);
 }
 
 function startServerCommand() {
+    const command = "npm run start-release";
     if (onWindows) {
-        return '"C:\\Program Files\\Git\\git-bash.exe" -c "npm run start-release"';
+        return windowsPrepend(command);
     }
-    return `osascript -e 'tell app "Terminal"\ndo script "cd ${pathFromRoot()} && npm run start-release"\nend tell'`;
+    return macPrepend(command);
 }
 
 function killAllCommand() {
