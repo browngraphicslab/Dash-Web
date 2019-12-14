@@ -31,6 +31,16 @@ registerCommand("exit", [], async () => {
     execSync(killAllCommand());
 });
 
+registerCommand("update", [], async () => {
+    set(SessionState.UPDATING);
+    await new Promise<void>(resolve => {
+        exec("git pull && npm install", () => {
+            resolve();
+        });
+    });
+    set(SessionState.MANUALLY_RESTARTING);
+});
+
 registerCommand("state", [], () => identifiedLog(state));
 
 if (!existsSync(logPath)) {
@@ -110,7 +120,7 @@ async function checkHeartbeat() {
         listening && console.log("⇠ 💔");
         error = e;
     } finally {
-        if (error && !is(SessionState.AUTOMATICALLY_RESTARTING, SessionState.INITIALIZED)) {
+        if (error && !is(SessionState.AUTOMATICALLY_RESTARTING, SessionState.INITIALIZED, SessionState.UPDATING)) {
             if (is(SessionState.STARTING)) {
                 set(SessionState.INITIALIZED);
             } else if (is(SessionState.MANUALLY_RESTARTING)) {
