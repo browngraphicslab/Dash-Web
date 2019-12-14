@@ -1441,9 +1441,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
 
             let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
-            console.log(NumCast(this.previewdoc.x));
         }
-
 
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
