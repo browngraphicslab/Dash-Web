@@ -33,12 +33,15 @@ registerCommand("exit", [], async () => {
 
 registerCommand("update", [], async () => {
     set(SessionState.UPDATING);
+    identifiedLog(cyan("Initializing server update from version control..."));
+    await endPrevious();
     await new Promise<void>(resolve => {
         exec("git pull && npm install", () => {
             resolve();
         });
     });
     set(SessionState.MANUALLY_RESTARTING);
+    identifiedLog("Update complete. Initializing manual restart...\n");
 });
 
 registerCommand("state", [], () => identifiedLog(state));
