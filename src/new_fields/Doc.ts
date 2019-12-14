@@ -467,9 +467,14 @@ export namespace Doc {
     // to store annotations, ink, and other data.
     //
     export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
-        const extension = doc[fieldKey + "_ext"] as Doc;
-        (extension === undefined) && setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-        return extension ? extension : undefined;
+        const extension = doc[fieldKey + "_ext"];
+        if (extension === undefined) {
+            setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
+        }
+        return extension ? extension as Doc : undefined;
+    }
+    export function fieldExtensionDocSync(doc: Doc, fieldKey: string) {
+        return (doc[fieldKey + "_ext"] as Doc) ||  CreateDocumentExtensionForField(doc, fieldKey);
     }
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {

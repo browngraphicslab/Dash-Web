@@ -417,7 +417,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             // clear out old marquees and initialize menu for new selection
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
-            PDFMenu.Instance.Snippet = this.createSnippet;
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
@@ -515,7 +514,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 }
 
                 if (!e.ctrlKey) {
-                    PDFMenu.Instance.Status = "snippet";
                     PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
                 }
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -599,7 +597,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
             setTimeout((() => {
                 this.Document.height = this.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-                this.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+                this.Document.nativeHeight = (this.Document.nativeWidth || 0) * this._coverPath.height / this._coverPath.width;
             }).bind(this), 0);
         }
         const nativeWidth = (this.Document.nativeWidth || 0);
