@@ -51,7 +51,7 @@ export function SetupDrag(
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
                 e.persist();
-                let dragDoc = await docFunc();
+                const dragDoc = await docFunc();
                 dragDoc && CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,

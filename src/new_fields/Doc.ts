@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction, action } from "mobx";
+import { observable, ObservableMap, runInAction, action, untracked } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -474,7 +474,7 @@ export namespace Doc {
         return extension ? extension as Doc : undefined;
     }
     export function fieldExtensionDocSync(doc: Doc, fieldKey: string) {
-        return (doc[fieldKey + "_ext"] as Doc) ||  CreateDocumentExtensionForField(doc, fieldKey);
+        return (doc[fieldKey + "_ext"] as Doc) || CreateDocumentExtensionForField(doc, fieldKey);
     }
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
@@ -754,3 +754,9 @@ Scripting.addGlobal(function docList(field: any) { return DocListCast(field); })
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean) {
+    let docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => (!excludeCollections || !Cast(d.data, listSpec(Doc), null)) && d.type !== DocumentType.KVP && !Doc.AreProtosEqual(d, container));
+    if (docs.length) untracked(() => container && (container.cachedSelection = new List(docs)));
+    else docs = untracked(() => DocListCast(container.cachedSelection));
+    return new List(docs);
+});

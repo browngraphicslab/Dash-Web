@@ -57,7 +57,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         value = eq ? value.substr(1) : value;
         const dubEq = value.startsWith(":=") ? "computed" : value.startsWith(";=") ? "script" : false;
         value = dubEq ? value.substr(2) : value;
-        const options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
+        const editable = value.includes("selectedDocs"); // bcz: Argh TODO - need a UI mechanism for letting user know that a function can't be run read-only. e.g., selectedDocs() wants to cache its old value so it can't be run read-only
+        const options: ScriptOptions = { addReturn: true, params: { this: "Doc" }, editable: editable };
         if (dubEq) options.typecheck = false;
         const script = CompileScript(value, options);
         if (!script.compiled) {
