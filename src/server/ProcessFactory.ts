@@ -1,10 +1,8 @@
 import { existsSync, mkdirSync } from "fs";
-import { pathFromRoot, log_execution, fileDescriptorFromStream } from '../ActionUtilities';
-import { red, green } from "colors";
+import { pathFromRoot, fileDescriptorFromStream } from './ActionUtilities';
 import rimraf = require("rimraf");
 import { ChildProcess, spawn, StdioOptions } from "child_process";
 import { Stream } from "stream";
-import { resolve } from "path";
 
 export namespace ProcessFactory {
 
@@ -18,27 +16,6 @@ export namespace ProcessFactory {
         const child = spawn(command, args, { detached, stdio });
         child.unref();
         return child;
-    }
-
-    export namespace NamedAgents {
-
-        export async function persistenceDaemon() {
-            await log_execution({
-                startMessage: "\ninitializing persistence daemon",
-                endMessage: ({ result, error }) => {
-                    const success = error === null && result !== undefined;
-                    if (!success) {
-                        console.log(red("failed to initialize the persistance daemon"));
-                        console.log(error);
-                        process.exit(0);
-                    }
-                    return "failsafe daemon process successfully spawned";
-                },
-                action: () => createWorker('npx', ['ts-node', resolve(__dirname, "./daemon/persistence_daemon.ts")], ["ignore", "inherit", "inherit"]),
-                color: green
-            });
-            console.log();
-        }
     }
 
 }
