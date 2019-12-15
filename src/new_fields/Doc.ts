@@ -754,9 +754,8 @@ Scripting.addGlobal(function docList(field: any) { return DocListCast(field); })
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
-Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean) {
+Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     let docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => (!excludeCollections || !Cast(d.data, listSpec(Doc), null)) && d.type !== DocumentType.KVP && !Doc.AreProtosEqual(d, container));
-    if (docs.length) untracked(() => container && (container.cachedSelection = new List(docs)));
-    else docs = untracked(() => DocListCast(container.cachedSelection));
+    if (!docs.length) return prevValue;
     return new List(docs);
 });
