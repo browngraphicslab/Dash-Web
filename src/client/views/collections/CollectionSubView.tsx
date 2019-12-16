@@ -262,7 +262,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             const type = result["content-type"];
                             if (type) {
-                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
+                                Docs.Get.DocumentFromType(type, str, options)
                                     .then(doc => doc && this.props.addDocument(doc));
                             }
                         });
@@ -281,7 +281,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const dropFileName = file ? file.name : "-empty-";
                     promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
                         results.map(action(({ clientAccessPath }: any) => {
-                            const full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
+                            const full = { ...options, width: 300, title: dropFileName };
                             const pathname = Utils.prepend(clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 doc && (Doc.GetProto(doc).fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));

@@ -822,6 +822,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
+            this._editorView.state.schema.Document = this.props.Document;
             if (startup && this._editorView) {
                 Doc.GetProto(doc).documentText = undefined;
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startup));

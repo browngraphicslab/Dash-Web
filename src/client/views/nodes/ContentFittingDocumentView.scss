@@ -2,10 +2,11 @@
 
 .contentFittingDocumentView {
     position: relative;
-    height: auto !important;
+    display: flex;
+    align-items: center;
 
     .contentFittingDocumentView-previewDoc {
-        position: absolute;
+        position: relative;
         display: inline;
     }
 

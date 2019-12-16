@@ -30,6 +30,7 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
 import { TraceMobx } from "../../../new_fields/util";
+import { PdfField } from "../../../new_fields/URLField";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -416,7 +417,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             // clear out old marquees and initialize menu for new selection
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
-            PDFMenu.Instance.Snippet = this.createSnippet;
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
@@ -514,7 +514,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 }
 
                 if (!e.ctrlKey) {
-                    PDFMenu.Instance.Status = "snippet";
                     PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
                 }
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -598,12 +597,13 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
             setTimeout((() => {
                 this.Document.height = this.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-                this.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+                this.Document.nativeHeight = (this.Document.nativeWidth || 0) * this._coverPath.height / this._coverPath.width;
             }).bind(this), 0);
         }
         const nativeWidth = (this.Document.nativeWidth || 0);
         const nativeHeight = (this.Document.nativeHeight || 0);
-        return <img key={this._coverPath.path} src={this._coverPath.path} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
+        const resolved = Utils.prepend(this._coverPath.path);
+        return <img key={resolved} src={resolved} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
 

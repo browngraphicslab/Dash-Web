@@ -48,6 +48,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
+import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 const requestImageSize = require('../util/request-image-size');
@@ -112,7 +113,7 @@ export interface DocumentOptions {
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
-    limitHeight?:number; // maximum height for newly created (eg, from pasting) text documents
+    limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
 }
 
@@ -171,6 +172,10 @@ export namespace Docs {
                 layout: { view: KeyValueBox, dataField: data },
                 options: { height: 150 }
             }],
+            [DocumentType.DOCUMENT, {
+                layout: { view: DocumentBox, dataField: data },
+                options: { height: 250 }
+            }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: data },
                 options: { currentTimecode: 0 },
@@ -181,7 +186,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
-                options: { nativeWidth: 1200, curPage: 1 }
+                options: { curPage: 1 }
             }],
             [DocumentType.ICON, {
                 layout: { view: IconBox, dataField: data },
@@ -482,6 +487,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
+        export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCUMENT), document, { title: document ? document.title + "" : "container", ...options });
+        }
+
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
@@ -644,17 +653,20 @@ export namespace Docs {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {
                 ctor = Docs.Create.ImageDocument;
+                if (!options.width) options.width = 300;
             }
             if (type.indexOf("video") !== -1) {
                 ctor = Docs.Create.VideoDocument;
+                if (!options.width) options.width = 600;
+                if (!options.height) options.height = options.width * 2 / 3;
             }
             if (type.indexOf("audio") !== -1) {
                 ctor = Docs.Create.AudioDocument;
             }
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
-                options.nativeWidth = 927;
-                options.nativeHeight = 1200;
+                if (!options.width) options.width = 400;
+                if (!options.height) options.height = options.width * 1200 / 927;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;

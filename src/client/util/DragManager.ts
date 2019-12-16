@@ -18,7 +18,7 @@ import { convertDropDataToButtons } from "./DropConverter";
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
-    docFunc: () => Doc | Promise<Doc>,
+    docFunc: () => Doc | Promise<Doc> | undefined,
     moveFunc?: DragManager.MoveFunction,
     dropAction?: dropActionType,
     treeViewId?: string,
@@ -32,13 +32,15 @@ export function SetupDrag(
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         const doc = await docFunc();
-        const dragData = new DragManager.DocumentDragData([doc]);
-        dragData.dropAction = dropAction;
-        dragData.moveDocument = moveFunc;
-        dragData.treeViewId = treeViewId;
-        dragData.dontHideOnDrop = dontHideOnDrop;
-        DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
-        dragStarted && dragStarted();
+        if (doc) {
+            const dragData = new DragManager.DocumentDragData([doc]);
+            dragData.dropAction = dropAction;
+            dragData.moveDocument = moveFunc;
+            dragData.treeViewId = treeViewId;
+            dragData.dontHideOnDrop = dontHideOnDrop;
+            DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
+            dragStarted && dragStarted();
+        }
     };
     const onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
@@ -49,12 +51,13 @@ export function SetupDrag(
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
                 e.persist();
-                CollectionDockingView.Instance.StartOtherDrag({
+                const dragDoc = await docFunc();
+                dragDoc && CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                }, [await docFunc()]);
+                }, [dragDoc]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);

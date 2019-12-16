@@ -882,6 +882,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;
     }
+    @computed get placeholder() {
+        return <div style={{ background: "gray", width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
+            <span style={{ fontSize: 96, background: "gray", margin: "auto", display: "flex" }}>{this.props.Document.title}></span></div>;
+    }
+    @computed get marqueeView() {
+        return <MarqueeView {...this.props} extensionDoc={this.extensionDoc!} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
+            addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
+            <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
+                easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                {this.children}
+            </CollectionFreeFormViewPannableContents>
+        </MarqueeView>;
+    }
     render() {
         TraceMobx();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
@@ -895,13 +908,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
                 style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>
-                <MarqueeView {...this.props} extensionDoc={this.extensionDoc} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
-                    addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
-                    <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
-                        easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        {this.children}
-                    </CollectionFreeFormViewPannableContents>
-                </MarqueeView>
+                {!BoolCast(this.Document.LODdisable) && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 && this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale < NumCast(this.Document.LODarea, 100000) ? this.placeholder : this.marqueeView}
                 <CollectionFreeFormOverlayView elements={this.elementFunc} />
             </div>;
     }

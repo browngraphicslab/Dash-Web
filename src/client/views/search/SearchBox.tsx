@@ -234,8 +234,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.Create.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-
+        return Docs.Create.TreeDocument(docs, { width: 200, height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
     @action.bound
@@ -341,7 +340,7 @@ export class SearchBox extends React.Component {
         return (
             <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
                 <div className="searchBox-bar">
-                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef} title="Drag Results as Collection">
+                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => this._searchString ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}

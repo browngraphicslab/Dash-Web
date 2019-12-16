@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction, action } from "mobx";
+import { observable, ObservableMap, runInAction, action, untracked } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -467,9 +467,14 @@ export namespace Doc {
     // to store annotations, ink, and other data.
     //
     export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
-        const extension = doc[fieldKey + "_ext"] as Doc;
-        (extension === undefined) && setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-        return extension ? extension : undefined;
+        const extension = doc[fieldKey + "_ext"];
+        if (extension === undefined) {
+            setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
+        }
+        return extension ? extension as Doc : undefined;
+    }
+    export function fieldExtensionDocSync(doc: Doc, fieldKey: string) {
+        return (doc[fieldKey + "_ext"] as Doc) || CreateDocumentExtensionForField(doc, fieldKey);
     }
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
@@ -682,7 +687,9 @@ export namespace Doc {
     }
 
 
+    export function LinkOtherAnchor(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? Cast(linkDoc.anchor2, Doc) as Doc : Cast(linkDoc.anchor1, Doc) as Doc; }
     export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
+
     export function linkFollowUnhighlight() {
         Doc.UnhighlightAll();
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
@@ -749,3 +756,7 @@ Scripting.addGlobal(function docList(field: any) { return DocListCast(field); })
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
+    const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)) && d.type !== DocumentType.KVP);
+    return docs.length ? new List(docs) : prevValue;
+});
