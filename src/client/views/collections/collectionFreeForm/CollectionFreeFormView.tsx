@@ -884,7 +884,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     @computed get placeholder() {
         return <div style={{ background: "gray", width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
-            <span style={{ fontSize: 96, background: "gray", margin: "auto", display: "flex" }}>{this.props.Document.title}></span></div>;
+            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title}</span></div>;
     }
     @computed get marqueeView() {
         return <MarqueeView {...this.props} extensionDoc={this.extensionDoc!} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}

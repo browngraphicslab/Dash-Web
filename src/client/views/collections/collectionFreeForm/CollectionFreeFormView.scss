@@ -28,6 +28,14 @@
     // touch action none means that the browser will handle none of the touch actions. this allows us to implement our own actions.
     touch-action: none;
 
+    .collectionfreeformview-placeholderSpan {
+        font-size: 32;
+        background: gray;
+        margin: auto;
+        display: flex;
+        text-align: center;
+    }
+
     .collectionfreeformview>.jsx-parser {
         position: inherit;
         height: 100%;
