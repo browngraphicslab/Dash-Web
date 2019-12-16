@@ -215,9 +215,10 @@ export class DocumentButtonBar extends React.Component<{ views: DocumentView[], 
     }
 
     render() {
+        if (!this.props.views.length) return (null);
         const templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc.getLayoutPropStr("show" + template.Name) ? true : false, false as boolean)));
+            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.getLayoutPropStr("show" + template.Name) ? true : false, false as boolean)));
 
         const isText = this.props.views[0].props.Document.data instanceof RichTextField; // bcz: Todo - can't assume layout is using the 'data' field.  need to add fieldKey to DocumentView
         const considerPull = isText && this.considerGoogleDocsPull;
