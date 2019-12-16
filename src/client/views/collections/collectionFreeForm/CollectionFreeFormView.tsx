@@ -13,7 +13,7 @@ import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fiel
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -559,6 +559,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
+        Doc.linkFollowHighlight(doc);
+        if (doc.z) {
+            return;
+        }
         // TODO This technically isn't correct if type !== "doc", as 
         // currently nothing is done, but we should probably push a new state
         if (state.type === "doc" && this.Document.panX !== undefined && this.Document.panY !== undefined) {
