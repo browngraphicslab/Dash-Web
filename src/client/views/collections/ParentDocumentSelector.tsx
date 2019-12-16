@@ -120,7 +120,7 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
         const view = DocumentManager.Instance.getDocumentView(this.props.Document);
         let flyout = (
             <div className="ParentDocumentSelector-flyout" title=" ">
-                <DocumentButtonBar views={[view!]} stack={this.props.Stack} />
+                <DocumentButtonBar views={[view]} stack={this.props.Stack} />
             </div>
         );
         return <span title="Tap for menu" onPointerDown={e => e.stopPropagation()} className="buttonSelector">
