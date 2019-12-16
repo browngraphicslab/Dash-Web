@@ -31,9 +31,9 @@ interface ContentFittingDocumentViewProps {
     CollectionDoc?: Doc;
     onClick?: ScriptField;
     getTransform: () => Transform;
-    addDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, target: Doc | undefined, addDoc: ((doc: Doc) => boolean)) => boolean;
-    removeDocument: (document: Doc) => boolean;
+    addDocument?: (document: Doc) => boolean;
+    moveDocument?: (document: Doc, target: Doc | undefined, addDoc: ((doc: Doc) => boolean)) => boolean;
+    removeDocument?: (document: Doc) => boolean;
     active: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;

@@ -103,7 +103,7 @@ export class ScriptField extends ObjectField {
     }
     public static CompileScript(script: string, params: object = {}, addReturn = false) {
         const compiled = CompileScript(script, {
-            params: { this: Doc.name, ...params },
+            params: { this: Doc.name, _last_: "any", ...params },
             typecheck: false,
             editable: true,
             addReturn: addReturn

@@ -25,5 +25,6 @@ export enum DocumentType {
     COLOR = "color",
     DOCULINK = "doculink",
     PDFANNO = "pdfanno",
-    INK = "ink"
+    INK = "ink",
+    DOCUMENT = "document"
 }

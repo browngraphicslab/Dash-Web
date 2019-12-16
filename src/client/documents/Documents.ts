@@ -48,6 +48,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
+import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 const requestImageSize = require('../util/request-image-size');
@@ -170,6 +171,10 @@ export namespace Docs {
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: data },
                 options: { height: 150 }
+            }],
+            [DocumentType.DOCUMENT, {
+                layout: { view: DocumentBox, dataField: data },
+                options: { height: 250 }
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: data },
@@ -480,6 +485,10 @@ export namespace Docs {
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
+        }
+
+        export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCUMENT), document, { title: document ? document.title + "" : "container", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
