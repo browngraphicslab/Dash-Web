@@ -29,7 +29,7 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.clear();
                 manager.SelectedDocuments.set(docView, true);
             }
-            // Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+            Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         }
         @action
         DeselectDoc(docView: DocumentView): void {
@@ -82,5 +82,5 @@ export namespace SelectionManager {
     }
 }
 
-//Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
+Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 
