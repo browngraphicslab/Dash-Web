@@ -106,23 +106,27 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
         this.hover = !this.hover;
         e.stopPropagation();
     }
+    customStylesheet(styles: any) {
+        return {
+            ...styles,
+            panel: {
+                ...styles.panel,
+                minWidth: "100px"
+            },
+        };
+    }
 
     render() {
-        let flyout;
-        if (this.hover) {
-            const view = DocumentManager.Instance.getDocumentView(this.props.Document);
-            flyout = !view ? (null) : (
-                <div className="ParentDocumentSelector-flyout" title=" ">
-                    <DocumentButtonBar views={[view]} stack={this.props.Stack} />
-                </div>
-            );
-        }
-        return (
-            <span className="buttonSelector"
-                onPointerDown={this.onPointerDown}>
-                {this.hover ? (null) : <FontAwesomeIcon icon={faEdit} size={"sm"} />}
-                {flyout}
-            </span>
+        const view = DocumentManager.Instance.getDocumentView(this.props.Document);
+        let flyout = (
+            <div className="ParentDocumentSelector-flyout" title=" ">
+                <DocumentButtonBar views={[view!]} stack={this.props.Stack} />
+            </div>
         );
+        return <span title="Tap for menu" onPointerDown={e => e.stopPropagation()} className="buttonSelector">
+            <Flyout anchorPoint={anchorPoints.RIGHT_TOP} content={flyout} stylesheet={this.customStylesheet}>
+                <FontAwesomeIcon icon={faEdit} size={"sm"} />
+            </Flyout>
+        </span>;
     }
 }
