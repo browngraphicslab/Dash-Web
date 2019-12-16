@@ -47,7 +47,7 @@ export namespace Templates {
             </div>
         </div>` );
 
-    export const Title = new Template("Title (alt-t)", TemplatePosition.InnerTop,
+    export const Title = new Template("Title", TemplatePosition.InnerTop,
         `<div>
             <div style="height:25px; width:100%; background-color: rgba(0, 0, 0, .4); color: white; z-index: 100">
                 <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>

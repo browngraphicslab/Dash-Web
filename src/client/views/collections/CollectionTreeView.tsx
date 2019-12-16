@@ -198,7 +198,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.templateDataDoc, "inTab", this.props.libraryPath), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.templateDataDoc, "onRight", this.props.libraryPath), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.dataDoc).length) {
-                    ContextMenu.Instance.addItem({ description: "Focus", event: () => (view => view && view.props.focus(this.props.document, true))(DocumentManager.Instance.getFirstDocumentView(this.dataDoc)), icon: "camera" });
+                    ContextMenu.Instance.addItem({ description: "Focus", event: () => (view => view && view.props.focus(this.props.document, true))(DocumentManager.Instance.getFirstDocumentView(this.props.document)), icon: "camera" });
                 }
                 ContextMenu.Instance.addItem({ description: "Delete Item", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
             } else {

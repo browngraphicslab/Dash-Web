@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -6,7 +6,6 @@ import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
 import { Doc } from '../../new_fields/Doc';
 import { Transform } from "../util/Transform";
-import { TraceMobx } from '../../new_fields/util';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -25,7 +24,7 @@ export class PreviewCursor extends React.Component<{}> {
     paste = (e: ClipboardEvent) => {
         if (PreviewCursor.Visible && e.clipboardData) {
             const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
-            PreviewCursor.Visible = false;
+            runInAction(() => PreviewCursor.Visible = false);
 
             if (e.clipboardData.getData("text/plain") !== "") {
                 // tests for youtube and makes video document

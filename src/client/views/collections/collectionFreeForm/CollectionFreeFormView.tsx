@@ -559,10 +559,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
-        Doc.linkFollowHighlight(doc);
-        if (doc.z) {
-            return;
-        }
+
         // TODO This technically isn't correct if type !== "doc", as 
         // currently nothing is done, but we should probably push a new state
         if (state.type === "doc" && this.Document.panX !== undefined && this.Document.panY !== undefined) {
@@ -596,10 +593,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
             const savedState = { px: this.Document.panX, py: this.Document.panY, s: this.Document.scale, pt: this.Document.panTransformType };
 
-            this.setPan(newPanX, newPanY, "Ease");
+            if (!doc.z) this.setPan(newPanX, newPanY, "Ease"); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
             Doc.BrushDoc(this.props.Document);
             this.props.focus(this.props.Document);
             willZoom && this.setScaleToZoom(layoutdoc, scale);
+            Doc.linkFollowHighlight(doc);
 
             afterFocus && setTimeout(() => {
                 if (afterFocus && afterFocus()) {
