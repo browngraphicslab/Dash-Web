@@ -137,20 +137,42 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+     public static FloatDoc(topDocView:DocumentView, x:number, y:number) {
+        const topDoc = topDocView.props.Document;
+        const de = new DragManager.DocumentDragData([topDoc]);
+        de.dragDivName = topDocView.props.dragDivName;
+        de.moveDocument = topDocView.props.moveDocument;
+        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
+        setTimeout(() => {
+            const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
+            if (newDocView) {
+                const contentDiv = newDocView.ContentDiv!;
+                const xf = contentDiv.getBoundingClientRect();
+                DragManager.StartDocumentDrag([contentDiv], de, x, y, { offsetX: x - xf.left, offsetY: y - xf.top, hideSource: true });
+            }
+        }, 0);
+    }
+
     onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.altKey && (e.key === "†" || e.key === "t") && !(e.nativeEvent as any).StopPropagationForReal) {
+        if (e.altKey && !(e.nativeEvent as any).StopPropagationForReal) {
             (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
             e.stopPropagation();
             e.preventDefault();
-            if (!StrCast(this.Document.showTitle)) this.Document.showTitle = "title";
-            if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
-            else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
-                {
-                    this._titleRef.current?.setIsFocused(false);
-                    const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
-                    any.keeplocation = true;
-                    any?.focus();
+            if (e.key === "†" || e.key === "t") {
+                if (!StrCast(this.Document.showTitle)) this.Document.showTitle = "title";
+                if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
+                else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
+                    {
+                        this._titleRef.current?.setIsFocused(false);
+                        const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                        any.keeplocation = true;
+                        any?.focus();
+                    }
                 }
+            } else if (e.key === "f") {
+                const ex = (e.nativeEvent.target! as any).getBoundingClientRect().left;
+                const ey = (e.nativeEvent.target!as any).getBoundingClientRect().top;
+                DocumentView.FloatDoc(this, ex, ey);
             }
         }
     }
