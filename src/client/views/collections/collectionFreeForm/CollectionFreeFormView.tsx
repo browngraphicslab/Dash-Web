@@ -908,7 +908,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
                 style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>
-                {!BoolCast(this.Document.LODdisable) && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 && this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale < NumCast(this.Document.LODarea, 100000) ? this.placeholder : this.marqueeView}
+                {!BoolCast(this.Document.LODdisable) && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 && this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale < NumCast(this.Document.LODarea, 100000) ? this.placeholder : this.marqueeView}
                 <CollectionFreeFormOverlayView elements={this.elementFunc} />
             </div>;
     }
