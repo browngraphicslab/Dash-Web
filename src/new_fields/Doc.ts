@@ -687,7 +687,9 @@ export namespace Doc {
     }
 
 
+    export function LinkOtherAnchor(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? Cast(linkDoc.anchor2, Doc) as Doc : Cast(linkDoc.anchor1, Doc) as Doc; }
     export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
+
     export function linkFollowUnhighlight() {
         Doc.UnhighlightAll();
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
@@ -755,6 +757,6 @@ Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProt
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    let docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => (!excludeCollections || !Cast(d.data, listSpec(Doc), null)) && d.type !== DocumentType.KVP && !Doc.AreProtosEqual(d, container));
+    const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)) && d.type !== DocumentType.KVP);
     return docs.length ? new List(docs) : prevValue;
 });

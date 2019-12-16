@@ -2,8 +2,8 @@ import { observable, action, runInAction, ObservableMap } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { List } from "../../new_fields/List";
+import { Scripting } from "./Scripting";
 
 export namespace SelectionManager {
 
@@ -81,3 +81,6 @@ export namespace SelectionManager {
         return Array.from(manager.SelectedDocuments.keys());
     }
 }
+
+Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
+
