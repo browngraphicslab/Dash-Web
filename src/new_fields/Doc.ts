@@ -756,6 +756,5 @@ Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     let docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => (!excludeCollections || !Cast(d.data, listSpec(Doc), null)) && d.type !== DocumentType.KVP && !Doc.AreProtosEqual(d, container));
-    if (!docs.length) return prevValue;
-    return new List(docs);
+    return docs.length ? new List(docs) : prevValue;
 });

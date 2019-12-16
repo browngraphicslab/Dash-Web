@@ -22,7 +22,7 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Auto Show Selected", event: () => Doc.GetProto(this.props.Document).data = ComputedField.MakeFunction("selectedDocs(this,true,_last_)?.[0]"), icon: "expand-arrows-alt" });
+        funcs.push({ description: "Auto Show Selected", event: () => Doc.GetProto(this.props.Document).data = ComputedField.MakeFunction("selectedDocs(this,true,[_last_])?.[0]"), icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
     }
