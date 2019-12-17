@@ -47,6 +47,7 @@ interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
+    active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;

@@ -5,12 +5,13 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { List } from "../../../new_fields/List";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
@@ -34,9 +35,8 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
     }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Auto Show Selected", event: () => this.showSelection, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Prev Selection", event: () => this.prevSelection, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Lock Selection", event: () => this.lockSelection, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.isSelectionLocked() ? "Show" : "Lock") + " Selection", event: () => this.toggleLockSelection, icon: "expand-arrows-alt" });
+        funcs.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
 
         ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
     }
@@ -46,9 +46,12 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
     showSelection = () => {
         Doc.GetProto(this.props.Document)[this.props.fieldKey] = ComputedField.MakeFunction("selectedDocs(this,true,[_last_])?.[0]");
     }
-    toggleLockSelection = () => {
+    isSelectionLocked = () => {
         const kvpstring = Field.toKeyValueString(this.props.Document, this.props.fieldKey);
-        (kvpstring.startsWith("=") || kvpstring.startsWith(":=")) ? this.lockSelection() : this.showSelection();
+        return !(kvpstring.startsWith("=") || kvpstring.startsWith(":="));
+    }
+    toggleLockSelection = () => {
+        !this.isSelectionLocked() ? this.lockSelection() : this.showSelection();
     }
     prevSelection = () => {
         if (this._curSelection > 0) {
@@ -61,9 +64,6 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
         }
     }
     onPointerDown = (e: React.PointerEvent) => {
-        if (e.button === 0 && !e.altKey) {
-            e.stopPropagation();
-        }
     }
     onClick = (e: React.MouseEvent) => {
         if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) this.toggleLockSelection();
@@ -78,9 +78,14 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
     getTransform = () => this.props.ScreenToLocalTransform().translate(-15, -15);
     render() {
         const containedDoc = this.props.Document[this.props.fieldKey] as Doc;
-        return <div className="documentBox-container" ref={this._contRef} onContextMenu={this.specificContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+        return <div className="documentBox-container" ref={this._contRef}
+            onContextMenu={this.specificContextMenu}
+            onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{ background: StrCast(this.props.Document.backgroundColor) }}>
-            {!containedDoc ? (null) : <ContentFittingDocumentView
+            <div className="documentBox-lock">
+                <FontAwesomeIcon icon={this.isSelectionLocked() ? "lock" : "unlock"} size="sm" />
+            </div>
+            {!(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
                 Document={containedDoc}
                 DataDocument={undefined}
                 LibraryPath={emptyPath}
@@ -92,7 +97,7 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 getTransform={this.getTransform}
-                renderDepth={this.props.renderDepth + 1}
+                renderDepth={this.props.Document.forceActive ? 0 : this.props.renderDepth + 1} // bcz: really need to have an 'alwaysSelected' prop that's not conflated with renderDepth
                 PanelWidth={this.pwidth}
                 PanelHeight={this.pheight}
                 focus={this.props.focus}

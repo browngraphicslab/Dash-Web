@@ -137,7 +137,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-     public static FloatDoc(topDocView:DocumentView, x:number, y:number) {
+    public static FloatDoc(topDocView: DocumentView, x: number, y: number) {
         const topDoc = topDocView.props.Document;
         const de = new DragManager.DocumentDragData([topDoc]);
         de.dragDivName = topDocView.props.dragDivName;
@@ -171,7 +171,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }
             } else if (e.key === "f") {
                 const ex = (e.nativeEvent.target! as any).getBoundingClientRect().left;
-                const ey = (e.nativeEvent.target!as any).getBoundingClientRect().top;
+                const ey = (e.nativeEvent.target! as any).getBoundingClientRect().top;
                 DocumentView.FloatDoc(this, ex, ey);
             }
         }

@@ -873,7 +873,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
-        if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.button === 0 && this.active(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {

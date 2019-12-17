@@ -111,7 +111,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
-                        renderDepth={this.props.renderDepth + 1}
+                        renderDepth={this.props.renderDepth}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
