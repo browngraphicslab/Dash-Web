@@ -3,4 +3,7 @@
     height: 100%;
     pointer-events: all;
     background: gray;
+    border: gray solid 15px;
+    border-top: #aaaaa3 inset 15px;
+    border-bottom: #aaaaa3 outset 15px;
 }

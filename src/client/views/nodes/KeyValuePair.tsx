@@ -5,7 +5,6 @@ import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Util
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
-import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { ContextMenu } from '../ContextMenu';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
