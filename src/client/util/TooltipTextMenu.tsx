@@ -709,7 +709,6 @@ export class TooltipTextMenu {
             return false;
         }
         this.setMark(colorMark, state, dispatch);
-        toggleMark(colorMark.type, { color: color })(state, dispatch);
     }
 
     createColorDropdown() {
@@ -927,7 +926,12 @@ export class TooltipTextMenu {
                 const tr = updateBullets(state.tr.setNodeMarkup(state.selection.from, node.type, attrs), state.schema);
                 dispatch(tr.setSelection(new NodeSelection(tr.doc.resolve(state.selection.from))));
             } else {
-                toggleMark(mark.type, mark.attrs)(state, dispatch);
+                toggleMark(mark.type, mark.attrs)(state, (tx: any) => {
+                    const { from, $from, to, empty } = tx.selection;
+                    if (!tx.doc.rangeHasMark(from, to, mark.type)) {
+                        toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
+                    } else dispatch(tx);
+                });
             }
         }
     }

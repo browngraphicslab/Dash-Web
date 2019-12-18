@@ -43,6 +43,8 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkingControl } from '../InkingControl';
 import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
+import { List } from '../../../new_fields/List';
+import { FormattedTextBoxComment } from './FormattedTextBoxComment';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -135,20 +137,42 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    public static FloatDoc(topDocView: DocumentView, x: number, y: number) {
+        const topDoc = topDocView.props.Document;
+        const de = new DragManager.DocumentDragData([topDoc]);
+        de.dragDivName = topDocView.props.dragDivName;
+        de.moveDocument = topDocView.props.moveDocument;
+        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
+        setTimeout(() => {
+            const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
+            if (newDocView) {
+                const contentDiv = newDocView.ContentDiv!;
+                const xf = contentDiv.getBoundingClientRect();
+                DragManager.StartDocumentDrag([contentDiv], de, x, y, { offsetX: x - xf.left, offsetY: y - xf.top, hideSource: true });
+            }
+        }, 0);
+    }
+
     onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.altKey && (e.key === "†" || e.key === "t") && !(e.nativeEvent as any).StopPropagationForReal) {
+        if (e.altKey && !(e.nativeEvent as any).StopPropagationForReal) {
             (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
             e.stopPropagation();
             e.preventDefault();
-            if (!StrCast(this.Document.showTitle)) this.Document.showTitle = "title";
-            if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
-            else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
-                {
-                    this._titleRef.current?.setIsFocused(false);
-                    const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
-                    any.keeplocation = true;
-                    any?.focus();
+            if (e.key === "†" || e.key === "t") {
+                if (!StrCast(this.Document.showTitle)) this.Document.showTitle = "title";
+                if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
+                else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
+                    {
+                        this._titleRef.current?.setIsFocused(false);
+                        const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                        any.keeplocation = true;
+                        any?.focus();
+                    }
                 }
+            } else if (e.key === "f") {
+                const ex = (e.nativeEvent.target! as any).getBoundingClientRect().left;
+                const ey = (e.nativeEvent.target! as any).getBoundingClientRect().top;
+                DocumentView.FloatDoc(this, ex, ey);
             }
         }
     }
@@ -170,6 +194,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.onClickHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             } else if (this.Document.type === DocumentType.BUTTON) {
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
+            } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
+                FormattedTextBoxComment.Hide();
+                this.Document.links?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0]!, this.props.Document)]));
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
@@ -316,6 +343,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
+    makeSelBtnClicked = (): void => {
+        if (this.Document.isButton || this.Document.onClick || this.Document.ignoreClick) {
+            this.Document.isButton = false;
+            this.Document.ignoreClick = false;
+            this.Document.onClick = undefined;
+        } else {
+            this.props.Document.isButton = "Selector";
+        }
+    }
+
+    @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.complete.annoDragData) {
@@ -433,13 +471,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript("toggleDetail(this)"), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
+        onClicks.push({ description: this.props.Document.isButton ? "Remove Select Link Behavior" : "Select Link", event: this.makeSelBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
-        onClicks.push({
-            description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => {
-                this.props.Document.collectionContext = this.props.ContainingCollectionDoc;
-                ScriptBox.EditButtonScript("Foreach Collection Doc (d) => ", this.props.Document, "onClick", obj.x, obj.y, "docList(this.collectionContext.data).map(d => {", "});\n");
-            }
-        });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         const funcs: ContextMenuProps[] = [];

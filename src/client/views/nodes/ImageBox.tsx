@@ -18,7 +18,6 @@ import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from '../DocComponent';
-import { InkingControl } from '../InkingControl';
 import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";

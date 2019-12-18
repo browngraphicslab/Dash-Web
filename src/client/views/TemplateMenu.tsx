@@ -1,6 +1,5 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
@@ -10,7 +9,6 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
 import { StrCast } from "../../new_fields/Types";
-import { emptyFunction } from "../../Utils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -62,22 +60,11 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
         const topDocView = this.props.docs[0];
-        const topDoc = topDocView.props.Document;
         const ex = e.target.getBoundingClientRect().left;
         const ey = e.target.getBoundingClientRect().top;
-        const de = new DragManager.DocumentDragData([topDoc]);
-        de.dragDivName = topDocView.props.dragDivName;
-        de.moveDocument = topDocView.props.moveDocument;
-        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
-        setTimeout(() => {
-            const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
-            if (newDocView) {
-                const contentDiv = newDocView.ContentDiv!;
-                const xf = contentDiv.getBoundingClientRect();
-                DragManager.StartDocumentDrag([contentDiv], de, ex, ey, { offsetX: ex - xf.left, offsetY: ey - xf.top, hideSource: true });
-            }
-        }, 0);
+        DocumentView.FloatDoc(topDocView, ex, ey);
     }
+
 
     @undoBatch
     @action

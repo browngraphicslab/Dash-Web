@@ -48,7 +48,9 @@ export const documentSchema = createSchema({
     animateToDimensions: listSpec("number"), // layout information about the target rectangle a document is animating towards 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
     strokeWidth: "number",
-    fontSize: "string"
+    fontSize: "string",
+    LODarea: "number",          // area (width*height) where CollectionFreeFormViews switch from a label to rendering contents
+    LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
 });
 
 export const positionSchema = createSchema({

@@ -741,7 +741,11 @@ export class DashDocView {
                 self._dashDoc = dashDoc;
                 dashDoc.hideSidebar = true;
                 if (node.attrs.width !== dashDoc.width + "px" || node.attrs.height !== dashDoc.height + "px") {
-                    view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc.width + "px", height: dashDoc.height + "px" }));
+                    try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                        view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc.width + "px", height: dashDoc.height + "px" }));
+                    } catch (e) {
+                        console.log(e);
+                    }
                 }
                 this._reactionDisposer && this._reactionDisposer();
                 this._reactionDisposer = reaction(() => dashDoc[HeightSym]() + dashDoc[WidthSym](), () => {

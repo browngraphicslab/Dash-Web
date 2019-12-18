@@ -410,7 +410,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if ((this.Document.scale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
-            e.stopPropagation();
+            //e.stopPropagation();
         }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active(true)) {

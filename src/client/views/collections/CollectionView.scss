@@ -9,7 +9,7 @@
     border-radius: inherit;
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow: hidden; // bcz: used to be 'auto' which would create scrollbars when there's a floating doc that's not visible. not sure if that's better, but the scrollbars are annoying...
 }
 
 #google-tags {
