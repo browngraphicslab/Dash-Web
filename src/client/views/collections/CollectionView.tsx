@@ -33,6 +33,7 @@ import './CollectionView.scss';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
 import { TraceMobx } from '../../../new_fields/util';
+import { Utils } from '../../../Utils';
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -268,7 +269,12 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
+                Cast(d.data, ImageField) ?
+                    (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
+                        Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
+                    :
+                    ""))}
         </div>);
     }
 }
