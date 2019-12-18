@@ -9,7 +9,7 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { Cast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
@@ -41,7 +41,7 @@ export class CurrentUserUtils {
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
-    static setupCreatorButtons(doc: Doc) {
+    static setupCreatorButtons(doc: Doc, buttons?: string[]) {
         const notes = CurrentUserUtils.setupNoteTypes(doc);
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
         doc.activePen = doc;
@@ -61,12 +61,33 @@ export class CurrentUserUtils {
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
         ];
-        return docProtoData.map(data => Docs.Create.FontIconDocument({
+        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
             ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen,
             backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
         }));
+    }
+
+    static async updateCreatorButtons(doc: Doc) {
+        const toolsBtn = await Cast(doc.ToolsBtn, Doc);
+        if (toolsBtn) {
+            const stackingDoc = await Cast(toolsBtn.sourcePanel, Doc);
+            if (stackingDoc) {
+                const stackdocs = await Cast(stackingDoc.data, listSpec(Doc));
+                if (stackdocs) {
+                    const dragset = await Cast(stackdocs[0], Doc);
+                    if (dragset) {
+                        const dragdocs = await Cast(dragset.data, listSpec(Doc));
+                        if (dragdocs) {
+                            const dragDocs = await Promise.all(dragdocs.map(async d => await d));
+                            const newButtons = this.setupCreatorButtons(doc, dragDocs.map(d => StrCast(d.title)));
+                            newButtons.map(nb => Doc.AddDocToList(dragset, "data", nb));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.  when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
@@ -203,6 +224,7 @@ export class CurrentUserUtils {
         doc.undoBtn && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc.undoBtn as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
         doc.redoBtn && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc.redoBtn as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
+        this.updateCreatorButtons(doc);
         return doc;
     }
 
