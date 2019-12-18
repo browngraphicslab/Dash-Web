@@ -9,11 +9,14 @@ import { ChildProcess, exec, execSync } from "child_process";
 import InputManager from "./input_manager";
 import { identifier, logPath, crashPath, onWindows, pid, ports, heartbeat, recipient, latency, SessionState } from "./config";
 const killport = require("kill-port");
+import * as IPC from "ipc-event-emitter";
 
 process.on('SIGINT', endPrevious);
 let state: SessionState = SessionState.STARTING;
 const is = (...reference: SessionState[]) => reference.includes(state);
 const set = (reference: SessionState) => state = reference;
+
+
 
 const { registerCommand } = new InputManager({ identifier });
 
