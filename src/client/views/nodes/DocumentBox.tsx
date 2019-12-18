@@ -33,6 +33,9 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
             }
         });
     }
+    componentWillUnmount() {
+        this._prevSelectionDisposer && this._prevSelectionDisposer();
+    }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.isSelectionLocked() ? "Show" : "Lock") + " Selection", event: () => this.toggleLockSelection, icon: "expand-arrows-alt" });

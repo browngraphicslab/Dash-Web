@@ -127,7 +127,7 @@ export default class KeyManager {
 
         switch (keyname) {
             case "f":
-                let dv = SelectionManager.SelectedDocuments()?.[0];
+                const dv = SelectionManager.SelectedDocuments()?.[0];
                 if (dv) {
                     const ex = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];
                     const ey = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];

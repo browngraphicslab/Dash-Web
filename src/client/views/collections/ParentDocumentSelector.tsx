@@ -118,7 +118,7 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
 
     render() {
         const view = DocumentManager.Instance.getDocumentView(this.props.Document);
-        let flyout = (
+        const flyout = (
             <div className="ParentDocumentSelector-flyout" title=" ">
                 <DocumentButtonBar views={[view]} stack={this.props.Stack} />
             </div>

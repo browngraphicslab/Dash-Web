@@ -233,11 +233,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         if (e.button === 0) {
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
-            SelectionManager.SelectedDocuments().map(dv => {
+            let selected = SelectionManager.SelectedDocuments().slice();
+            SelectionManager.DeselectAll();
+            selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
             });
-            SelectionManager.DeselectAll();
             document.removeEventListener("pointermove", this.onCloseMove);
             document.removeEventListener("pointerup", this.onCloseUp);
         }
