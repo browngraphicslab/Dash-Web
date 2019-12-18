@@ -723,7 +723,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
-        if (!this.props.Document) return (null);
+        if (!(this.props.Document instanceof Doc)) return (null);
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
