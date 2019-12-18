@@ -266,7 +266,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 let newLayout = Doc.Layout(draggedDoc);
                 if (typeof (draggedDoc.layout) === "string") {
                     newLayout = Doc.MakeDelegate(draggedDoc);
-                    newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${this.props.fieldKey}"}`);
+                    newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={'${this.props.fieldKey}'}`);
                 }
                 this.Document.layoutCustom = newLayout;
                 this.Document.layoutKey = "layoutCustom";

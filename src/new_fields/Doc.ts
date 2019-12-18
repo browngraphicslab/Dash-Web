@@ -609,7 +609,7 @@ export namespace Doc {
         const data = fieldTemplate.data;
         // setTimeout(action(() => {
         !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
-        const layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
+        const layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldName}'}`);
         const layoutDelegate = Doc.Layout(fieldTemplate);
         layoutDelegate.layout = layout;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;

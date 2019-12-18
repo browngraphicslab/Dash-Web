@@ -118,7 +118,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     fieldTemplate.title = metaKey;
                     Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
                     if (text.startsWith(">>")) {
-                        Doc.GetProto(docTemplate).layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+                        Doc.GetProto(docTemplate).layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={"${metaKey}"}`);
                     }
                 }
             }
