@@ -104,11 +104,12 @@ export class DocumentManager {
     public get LinkedDocumentViews() {
         const pairs = DocumentManager.Instance.DocumentViews.filter(dv =>
             (dv.isSelected() || Doc.IsBrushed(dv.props.Document)) // draw links from DocumentViews that are selected or brushed OR
-            || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
-                const rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
-                const init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
-                return init && rest;
-            })
+            // || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
+            //     const rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
+            //     const init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
+            //     return init && rest;
+            // }
+            // )
         ).reduce((pairs, dv) => {
             const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
