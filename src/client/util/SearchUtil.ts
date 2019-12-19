@@ -34,9 +34,9 @@ export namespace SearchUtil {
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
-        const result: IdSearchResult = JSON.parse(await rp.get(Utils.prepend("/search"), {
-            qs: { ...options, q: query },
-        }));
+        let rpquery = Utils.prepend("/search");
+        let gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
+        const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
             return result;
         }

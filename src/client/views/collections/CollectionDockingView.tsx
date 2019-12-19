@@ -649,8 +649,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
         if (doc.dockingConfig) {
-            MainView.Instance.openWorkspace(doc);
-            return true;
+            return MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, dataDoc, undefined, libraryPath);
         } else if (location === "close") {
