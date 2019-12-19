@@ -166,7 +166,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const layoutDoc = Doc.Layout(doc);
         const height = () => this.getDocHeight(doc);
-        const finalDxf = () => dxf();
         return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
@@ -178,7 +177,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
             PanelWidth={width}
             PanelHeight={height}
-            getTransform={finalDxf}
+            getTransform={dxf}
             focus={this.props.focus}
             CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
             CollectionView={this.props.CollectionView}
@@ -250,7 +249,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                     targInd = i;
-                    let axis = this.Document.viewType === CollectionViewType.Masonry ? 0 : 1;
+                    const axis = this.Document.viewType === CollectionViewType.Masonry ? 0 : 1;
                     plusOne = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });

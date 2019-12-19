@@ -80,7 +80,7 @@ export class CurrentUserUtils {
                     if (dragset) {
                         const dragdocs = await Cast(dragset.data, listSpec(Doc));
                         if (dragdocs) {
-                            const dragDocs = await Promise.all(dragdocs.map(async d => await d));
+                            const dragDocs = await Promise.all(dragdocs);
                             const newButtons = this.setupCreatorButtons(doc, dragDocs.map(d => StrCast(d.title)));
                             newButtons.map(nb => Doc.AddDocToList(dragset, "data", nb));
                         }

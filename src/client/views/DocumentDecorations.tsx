@@ -233,7 +233,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         if (e.button === 0) {
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
-            let selected = SelectionManager.SelectedDocuments().slice();
+            const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
