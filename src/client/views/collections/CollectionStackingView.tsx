@@ -25,6 +25,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ScriptBox } from "../ScriptBox";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import { TraceMobx } from "../../../new_fields/util";
+import { CollectionViewType } from "./CollectionView";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -165,7 +166,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const layoutDoc = Doc.Layout(doc);
         const height = () => this.getDocHeight(doc);
-        const finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
+        const finalDxf = () => dxf();
         return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
@@ -242,14 +243,15 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     drop = (e: Event, de: DragManager.DropEvent) => {
         const where = [de.x, de.y];
         let targInd = -1;
-        let plusOne = false;
+        let plusOne = 0;
         if (de.complete.docDragData) {
             this._docXfs.map((cd, i) => {
                 const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                     targInd = i;
-                    plusOne = (where[1] > (pos[1] + pos1[1]) / 2 ? 1 : 0) ? true : false;
+                    let axis = this.Document.viewType === CollectionViewType.Masonry ? 0 : 1;
+                    plusOne = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });
             if (super.drop(e, de)) {
@@ -260,7 +262,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     else targInd = docs.indexOf(this.filteredChildren[targInd]);
                     const srcInd = docs.indexOf(newDoc);
                     docs.splice(srcInd, 1);
-                    docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (plusOne ? 1 : 0), 0, newDoc);
+                    docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, newDoc);
                 }
             }
         }
@@ -320,8 +322,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1] + (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0)).
-            scale(NumCast(doc.width, 1) / this.columnWidth);
+            translate(offset[0], offset[1] + (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0));
     }
 
     sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
