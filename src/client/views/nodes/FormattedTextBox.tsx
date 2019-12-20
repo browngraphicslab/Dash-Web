@@ -78,6 +78,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     public static ToolTipTextMenu: TooltipTextMenu | undefined = undefined;
     public ProseRef?: HTMLDivElement;
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
+    private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
     private _searchIndex = 0;
@@ -806,7 +807,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     const r1 = refNode && refNode.getBoundingClientRect();
                     const r3 = self._ref.current!.getBoundingClientRect();
                     if (r1.top < r3.top || r1.top > r3.bottom) {
-                        r1 && (self._ref.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                        r1 && (self._scrollRef.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
                     }
                     return true;
                 },
@@ -1149,7 +1150,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }}>
+                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
                 {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
