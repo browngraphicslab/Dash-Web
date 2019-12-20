@@ -94,27 +94,6 @@ export const inpRules = {
                 }
                 return state.tr;
             }),
-
-        // activate a style by name using prefix '%'
-        new InputRule(
-            new RegExp(/%[a-z]+$/),
-            (state, match, start, end) => {
-                const color = match[0].substring(1, match[0].length);
-                const marks = TooltipTextMenuManager.Instance._brushMap.get(color);
-                if (marks) {
-                    const tr = state.tr.deleteRange(start, end);
-                    return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;
-                }
-                const isValidColor = (strColor: string) => {
-                    const s = new Option().style;
-                    s.color = strColor;
-                    return s.color === strColor.toLowerCase(); // 'false' if color wasn't assigned
-                };
-                if (isValidColor(color)) {
-                    return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontColor.create({ color: color }));
-                }
-                return null;
-            }),
         // stop using active style
         new InputRule(
             new RegExp(/%%$/),
@@ -269,7 +248,7 @@ export const inpRules = {
                 return state.tr.removeStoredMark(state.schema.marks.summarizeInclusive.create());
             }),
         new InputRule(
-            new RegExp(/%f\$/),
+            new RegExp(/%f$/),
             (state, match, start, end) => {
                 const newNode = schema.nodes.footnote.create({});
                 const tr = state.tr;
@@ -277,6 +256,27 @@ export const inpRules = {
                 return tr.setSelection(new NodeSelection( // select the footnote node to open its display
                     tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
                         tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize)));
+            }),
+
+        // activate a style by name using prefix '%'
+        new InputRule(
+            new RegExp(/%[a-z]+$/),
+            (state, match, start, end) => {
+                const color = match[0].substring(1, match[0].length);
+                const marks = TooltipTextMenuManager.Instance._brushMap.get(color);
+                if (marks) {
+                    const tr = state.tr.deleteRange(start, end);
+                    return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;
+                }
+                const isValidColor = (strColor: string) => {
+                    const s = new Option().style;
+                    s.color = strColor;
+                    return s.color === strColor.toLowerCase(); // 'false' if color wasn't assigned
+                };
+                if (isValidColor(color)) {
+                    return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontColor.create({ color: color }));
+                }
+                return null;
             }),
     ]
 };
