@@ -765,14 +765,14 @@ export class DashDocView {
                     renderDepth={1}
                     PanelWidth={self._dashDoc[WidthSym]}
                     PanelHeight={self._dashDoc[HeightSym]}
-                    focus={emptyFunction}
+                    focus={self._textBox.props.focus}
                     backgroundColor={returnEmptyString}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
                     zoomToScale={emptyFunction}
                     getScale={returnOne}
-                    dontRegisterView={true}
+                    dontRegisterView={false}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={this.contentScaling}
@@ -780,7 +780,12 @@ export class DashDocView {
             }
         });
         const self = this;
-        this._dashSpan.onkeydown = function (e: any) { };
+        this._dashSpan.onkeydown = function (e: any) {
+            e.stopPropagation();
+            if (e.key === "Tab" || e.key === "Enter") {
+                e.preventDefault();
+            }
+        };
         this._dashSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._dashSpan.onwheel = function (e: any) { e.preventDefault(); };
         this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };

@@ -76,8 +76,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
     public static ToolTipTextMenu: TooltipTextMenu | undefined = undefined;
+    public ProseRef?: HTMLDivElement;
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
-    private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
     private _searchIndex = 0;
@@ -244,7 +244,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark));
     }
     protected createDropTarget = (ele: HTMLDivElement) => {
-        this._proseRef = ele;
+        this.ProseRef = ele;
         this.dropDisposer && this.dropDisposer();
         ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
     }
@@ -571,7 +571,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this._ruleFontSize = rules ? rules.size : 0;
                 rules && setTimeout(() => {
                     const view = this._editorView!;
-                    if (this._proseRef) {
+                    if (this.ProseRef) {
                         const n = new NodeSelection(view.state.doc.resolve(0));
                         if (this._editorView!.state.doc.textContent === "") {
                             view.dispatch(view.state.tr.setSelection(new TextSelection(view.state.doc.resolve(0), view.state.doc.resolve(2))).
@@ -794,10 +794,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 startup = NumCast(doc[fieldKey], 99).toString();
             }
         }
-        if (this._proseRef) {
+        if (this.ProseRef) {
             const self = this;
             this._editorView && this._editorView.destroy();
-            this._editorView = new EditorView(this._proseRef, {
+            this._editorView = new EditorView(this.ProseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
                     const ref = editorView.domAtPos(editorView.state.selection.from);
@@ -874,7 +874,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             e.preventDefault();
         }
         if (e.button === 0 && this.active(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            e.stopPropagation();
+            if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // don't stop propagation if clicking in the sidebar
+                e.stopPropagation();
+            }
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             e.preventDefault();
@@ -901,7 +903,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.tryUpdateHeight();
 
         // see if we need to preserve the insertion point
-        const prosediv = this._proseRef?.children?.[0] as any;
+        const prosediv = this.ProseRef?.children?.[0] as any;
         const keeplocation = prosediv?.keeplocation;
         prosediv && (prosediv.keeplocation = undefined);
         const pos = this._editorView?.state.selection.$from.pos || 1;
@@ -925,8 +927,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pcords.pos + 2)));
                 e.preventDefault();
             }
-            if (!node && this._proseRef) {
-                const lastNode = this._proseRef.children[this._proseRef.children.length - 1].children[this._proseRef.children[this._proseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
+            if (!node && this.ProseRef) {
+                const lastNode = this.ProseRef.children[this.ProseRef.children.length - 1].children[this.ProseRef.children[this.ProseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
                 if (e.clientY > lastNode.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
                     this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
                 }
@@ -1057,17 +1059,20 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             e.preventDefault();
             return;
         }
-        if (!this._editorView!.state.selection.empty && e.key === "%") {
-            this._editorView!.state.schema.EnteringStyle = true;
+        let state = this._editorView!.state;
+        if (!state.selection.empty && e.key === "%") {
+            state.schema.EnteringStyle = true;
             e.preventDefault();
             e.stopPropagation();
             return;
         }
 
-        if (this._editorView!.state.selection.empty || !this._editorView!.state.schema.EnteringStyle) {
-            this._editorView!.state.schema.EnteringStyle = false;
+        if (state.selection.empty || !state.schema.EnteringStyle) {
+            state.schema.EnteringStyle = false;
         }
         if (e.key === "Escape") {
+            this._editorView!.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
+            (document.activeElement as any).blur?.();
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
