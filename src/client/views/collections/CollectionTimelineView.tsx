@@ -27,9 +27,8 @@ import { Transform } from "../../util/Transform";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { DragManager } from "../../util/DragManager";
 
-
-
-
+//Types for storing positions of various components of the view.
+//Anntations
 type MarkerUnit = {
     document: Doc,
     element: JSX.Element,
@@ -38,7 +37,7 @@ type MarkerUnit = {
     mapref: HTMLDivElement | undefined;
     linkedthumbnail: Node | undefined;
 };
-
+//Tick marks of ruler.
 type Tick = {
     counter: number,
     leftval: number,
@@ -46,7 +45,7 @@ type Tick = {
     ref: React.RefObject<HTMLDivElement>;
     transform: number,
 };
-
+//Thumbnail placement of document.
 type Node = {
     doc: Doc;
     select?: boolean;
@@ -77,6 +76,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private disposer: Opt<IReactionDisposer>;
     private documentThumbnailReferences: React.RefObject<Thumbnail>[] = [];
 
+    //Handles repositioning the preview window and dragging in external documents to be uploaded.
     @action
     onDrop = (e: React.DragEvent): Promise<void> => {
         const { pageX, pageY } = e;
@@ -99,7 +99,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return super.onDrop(e, { x: pt[0], y: pt[1] }, undefined, mutator);
     }
 
-
+    //Return pre-existing annotataions ("markers") on the timeline.
     private get markerDocs() {
         let stored = Cast(this.props.Document.markers, listSpec(Doc));
         if (!stored) {
@@ -112,6 +112,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         super(props);
     }
 
+    /*The previewdoc is a document containing two children: a display for the selected thumbnail on the timeline and a text document that dispalays the 
+    selected document's value. While this document is created for the first time with the make preview method, it does not get added to the props, meaning
+    the preview document gets deleted/recreated every time the ruler is opened.
+    */
     @observable
     private previewdoc: Doc | undefined;
     @action
@@ -138,14 +142,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-
+    //The firat time the timeline is loaded all of the components need to be calculated. 
     componentWillMount() {
         //context menu field    
 
         runInAction(() => {
-            for (let i = 0; i < this.filtered.length; i++) {
-                this.types[i] = true;
-            }
             this.leftbound = 0;
             this.rightbound = 4;
         });
@@ -153,11 +154,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.initializeMarkers();
         this.createRows();
         this.createticks();
-        this.filtermenu();
-        this.createdownbool();
         window.addEventListener('resize', () => this.createRows(this.rowscale));
     }
+    
     componentDidMount() {
+        //Selecting a thumbnail updates the preview document.
         reaction(
             () => this.props.Document.currdoc,
             async () => {
@@ -171,7 +172,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
         );
-
+        //Addding a new document causes the thumbnails to be recalculatedd.
         reaction(
             () => this.childDocs,
             () => {
@@ -179,6 +180,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.createticks();
             }
         );
+        //Changing the height of the browser window leads to rows being recalculated.
         reaction(
             () => this.props.Document.windowheight,
             () => {
@@ -186,6 +188,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.createticks();
             }
         );
+        //Changing the widdth of the browser window causes the position of the ruler to be recalculated.
         reaction(() => this.props.Document.barwidth,
             () => {
                 this.rightbound = 4;
@@ -194,16 +197,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.createticks();
 
             });
+        //Updating vertical sort field changes placement of thumbnails.
         reaction(() => this.props.Document.verticalsortstate,
             () => {
-                this.transtate = true;
                 this.initiallyPopulateThumbnails();
                 this.createticks();
             });
+        //Updating horizontal sort field changes placement of thumbnails.
         reaction(
             () => this.props.Document.sortstate,
             async () => {
-                this.transtate = true;
                 this.initiallyPopulateThumbnails();
                 this.createticks();
                 let doc = await Cast(this.props.Document.currdoc, Doc);
@@ -219,6 +222,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+    //Annotations or "markers" are taken from stored values.
     @action
     initializeMarkers = async () => {
         let markers = this.markerDocs;
@@ -246,6 +250,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
+    //Handles dragging borders of annotation.
     @action
     onPointerMove_LeftResize = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -253,10 +258,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) - e.movementX;
         document.addEventListener("pointerup", this.onPointerUp);
     }
-
+    //Currently selected annotation.
     @observable markdoc: Doc | undefined = undefined;
+    
     @action
     onPointerDown_LeftResize = (e: React.PointerEvent, doc: Doc): void => {
+        //if right click, delete marker.
         if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(doc), 1);
             this.selectedMarker = undefined;
@@ -279,6 +286,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_RightResize = (e: React.PointerEvent, doc: Doc): void => {
+        //if right click, delete marker.
         if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(doc), 1);
             this.selectedMarker = undefined;
@@ -292,6 +300,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
+    //Handles creating the jsx class of marker.
     createmarker = (doc: Doc): JSX.Element | undefined => {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
         markerUnit.element = (
@@ -319,6 +328,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return undefined;
     }
 
+    //Preview icon of document on scroll bar.
     createmap = (doc: Doc) => {
         let map = <div
             style={{
@@ -332,83 +342,35 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }}></div>;
         return map;
     }
-
+    //Handles deselecting thubmnails.
     @action
     resetSelections() {
         this.selections = [];
-        for (let thumbnail of this.thumbnails) {
-            //this.unfocus(thumbnail.thumbnailref, thumbnail.headerref);
-        }
     }
-
-    private filterbuttons: JSX.Element[] = [];
-
-    filtermenu() {
-        let childDocs = DocListCast(this.props.Document.data);
-        let types = new Set<string>();
-        childDocs.map(doc => {
-            let data = doc.data;
-            if (!data) {
-                return;
-            }
-            let type: string | undefined;
-            if (data instanceof Promise) {
-                data.then(field => {
-                    field && (type = this.inferType(field)) && types.add(type);
-                });
-            } else {
-                (type = this.inferType(data)) && types.add(type);
-            }
-        });
-
-        let existingTypes = Array.from(types);
-        this.filterbuttons = [];
-
-        for (let i = 0; i < existingTypes.length; i++) {
-            let doc = existingTypes[i];
-            let button = React.createRef<HTMLInputElement>();
-            this.filterbuttons.push(
-                <div><input ref={button} type="checkbox" checked={this.types[i]} onChange={() => this.toggleFilter(doc, i, button)} />{doc}</div>);
-        }
-    }
-
-    @action
-    toggleFilter = (key: string, i: number, button: React.RefObject<HTMLInputElement>) => {
-        if (this.filtered.includes(key)) {
-            this.filtered.splice(this.filtered.indexOf(key), 1);
-        }
-        else {
-            this.filtered.push(key);
-        }
-        this.types[i] = button.current!.checked;
-        this.resetSelections();
-    }
-
-    @observable private filtered: String[] = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
+    //Selected thumbnails
     private selections: (HTMLDivElement | undefined)[] = [];
+    //Variables primarily used for the marquee select featuer.
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
     @observable _downY: number = 0;
     @observable _visible: boolean = false;
-
+    //Update size of marker when screen is resizedd.
     @action
     markerrender() {
         let markers = DocListCast(this.markerDocs);
         markers.forEach(doc => {
             let newscale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
             doc.initialLeft = (NumCast(doc.initialLeft) * (newscale / NumCast(doc.initialScale)));
-            //doc.initialLeft = (NumCast(doc.initialLeft) * newscale / NumCast(doc.initialScale)) - newscale * (this.leftbound - NumCast(doc.initialX));
             doc.initialX = this.leftbound;
             doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale));
             doc.initialScale = newscale;
         });
     }
 
-
+    //For selecting or deleting a marker.
     @action
     onPointerDown_DeleteMarker = (e: React.PointerEvent, annotation: string, markerUnit: MarkerUnit): void => {
-
         if (e.button === 2) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
@@ -428,7 +390,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
     }
-
+    //Double clicking on a marker sets screen size to its range.
     @action
     doubleclick(e: React.MouseEvent, markerUnit: MarkerUnit) {
         if (markerUnit.ref!.style.border === "1px dashed black") {
@@ -440,7 +402,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private preventbug: boolean = false;
-
+    //Changes nearest tick to be dotted line when a marker is being created since it will snap to this value.
     onPointerMove_Selector = async (e: PointerEvent) => {
         let doc = await this.markerDocs[this.markerDocs.length - 1];
         if (this.preventbug) {
@@ -466,9 +428,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
+    //Calculate closest tick to marker when user is finished dragging it out.
     @action
     onPointerUp_Selector = async (e: PointerEvent) => {
-        this.downbool = true;
 
         document.removeEventListener("pointermove", this.onPointerMove_Selector, true);
         let mintick: React.RefObject<HTMLDivElement>;
@@ -493,40 +455,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private _values: DocValuePair<number>[] = [{ childDoc: undefined, value: 0 }];
+    //contains all of the icons that dispaly documents on the timeline.
     @observable private thumbnails: Node[] = [];
-    private filterDocs = (thumbnail: Node[]): Node[] => {
-        let thumbnails = [];
-        for (let oldthumbnail of thumbnail) {
-            if (this.filtered.includes("Image")) { if (oldthumbnail.doc.data instanceof ImageField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Audio")) { if (oldthumbnail.doc.data instanceof AudioField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Pdf")) { if (oldthumbnail.doc.data instanceof PdfField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Text")) { if (oldthumbnail.doc.data instanceof RichTextField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Video")) { if (oldthumbnail.doc.data instanceof VideoField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Web")) { if (oldthumbnail.doc.data instanceof WebField) { thumbnails.push(oldthumbnail); } }
-            else if (this.filtered.includes("Misc")) { thumbnails.push(oldthumbnail); }
-        }
-        return thumbnails;
-    }
 
-    private inferType = (data: FieldResult<Field>) => {
-        if (!data) {
-            return undefined;
-        }
-        switch (data.constructor) {
-            case ImageField: return "Image";
-            case AudioField: return "Audio";
-            case PdfField: return "PDF";
-            case RichTextField: return "Text";
-            case VideoField: return "Video";
-            case WebField: return "Image";
-            case DateField: return "Date";
-            case List: return "Collection";
-            default:
-                return undefined;
-        }
-    }
     @observable
     private toggle_tick_numbers: boolean = true;
+   
+    //Method that handles initial document placement on the timeline.
     @action
     initiallyPopulateThumbnails() {
         this.thumbnails = [];
@@ -537,7 +472,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (!childCount) {
             return;
         }
-
+        //Sort based on field being sorted on. 
         const partitioned = {
             booleans: [] as DocValuePair<boolean>[],
             strings: [] as DocValuePair<string>[],
@@ -566,6 +501,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         const { booleans, strings, numbers } = partitioned;
 
         let sortedPairs: DocValuePair<any>[];
+        //Handles case where the ruler has to compare two different types (i.e, boolean and string)
         if (hasMixedTypes) {
             const serialized: DocValuePair<string>[] = strings;
             for (const { childDoc, value } of booleans) {
@@ -586,15 +522,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
         this.documentThumbnailReferences = [];
-
-        // can we tighten this up? not well defined
+        //Range defines range from first and last document on the ruler
         this._range = (sortedPairs.lastElement().value - sortedPairs[0].value);
         let laststring = undefined;
         this.toggle_tick_numbers = true;
+        //If not sorting on numbers (range0), don't display numbers under tick marks.
         if (this._range === 0) {
             this.toggle_tick_numbers = false;
 
         }
+        //If not soting on numbers, place strings or booleans evenly across ruler (except for overlaps!)
         if (isNaN(this._range)) {
             this.toggle_tick_numbers = false;
             this._range = sortedPairs.length;
@@ -611,7 +548,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
         this._values = sortedPairs;
-
+        //Store calculated values for positions in thumbnails array.
         let { value: first } = sortedPairs[0];
         for (const { value, childDoc } of sortedPairs) {
             this.thumbnails.push({
@@ -624,18 +561,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
         this.removeOverlap();
+        //Edge case of no ddcuments.
         if (sortedPairs.length === 0) {
             this._values.push({ childDoc: undefined, value: 0 });
         }
     }
-
+    //Calculate position of document on the scroll bar.
     private computeMapPosition(first: number, current: number): number {
         const padding = 0.05;
         const currentPosition = (this._range * padding) + current - first;
         const fractionalOffset = this.barwidth / (this._range * (1 + 2 * padding));
         return currentPosition * fractionalOffset;
     }
-
+    //Calculate position of document on the actual ruler.
     private computeHorizontalPosition(first: number, current: number): number {
         const zoomFactor = this.barwidth / (this.barwidth - this.rightbound - this.leftbound);
         const leftOffset = this.leftbound * zoomFactor;
@@ -647,6 +585,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.removeOverlap();
     }
 
+    //Check to see if documents are overlapping on the ruler and update their positions accordingly.
     @action
     removeOverlap() {
         for (let thumbnail1 of this.thumbnails) {
@@ -683,6 +622,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }
                 }
             }
+            //Once overlaps chceked, sort on the y axis.
             for (let thumbnail1 of this.thumbnails) {
                 for (let thumbnail2 of this.thumbnails) {
                     if (thumbnail1.row !== thumbnail2.row) {
@@ -701,14 +641,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }
                 }
             }
-            // for (let thumbnail of this.thumbnails) {
-            //     if (thumbnail.row >= this.rows.length) {
-            //         this.rowscale = this.rowscale * 0.9;
-            //     }
-            // }
         }
     }
-
+    //Calculates whether position overlaps.
     private checkOverlap = (a: Node, b: Node): boolean => {
 
         const { horizontalPos: first } = a;
@@ -730,6 +665,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.tickrefs.push(tickref);
             let val = 0;
             let scale = (this.barwidth - this.rightbound - this.leftbound) / this.barwidth;
+            //Modular statements handle the size of ticks and whether they should have a corresponing number displayed.
             if (counter % 100 === 0) {
                 val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0].value - this._range * 0.05);
                 let t = { counter: counter, leftval: leftval, val: val, ref: tickref, transform: scale } as Tick;
@@ -748,6 +684,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.updateThumbnailValues();
     }
 
+    //Calculate rows for the y axis of the ruler. 
     @action
     createRows(number?: number) {
         this.rowval = [];
@@ -769,14 +706,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         this.updateThumbnailValues();
     }
-
+    //Array of row's pixel heights, used for calculating positions of documents layer.
     @observable
     private rowval: number[] = [];
-
+    //Height of all rows, adjustable.
     @observable private rowscale: number = 50;
 
     @observable private selectedMarker: MarkerUnit | undefined;
-
+    //Color used for marker backgrounds, togglable in the chrome.
     private get selectedColor() {
         let doc = this.props.Document;
         let color: string;
@@ -790,7 +727,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_AdjustScale = (e: React.PointerEvent<HTMLDivElement>): void => {
-        this.downbool = false;
         if (e.button === 0) {
             document.addEventListener("pointermove", this.onPointerMove_AdjustScale);
             document.addEventListener("pointerup", this.onPointerUp_Dragger);
@@ -798,10 +734,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             e.preventDefault();
         }
     }
-
+    //When edges of rows are dragged, their height can be adjusted. Capped at 40 and 100 pixels.
     @action
     onPointerMove_AdjustScale = (e: PointerEvent): void => {
-        this.downbool = false;
         e.stopPropagation();
         e.preventDefault();
         let number = e.movementY;
@@ -817,6 +752,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createRows();
         document.addEventListener("pointerup", this.onPointerUp_Dragger);
     }
+    //Left side boundary of viewport of ruler. Adjusted with the scroll bar.
     @computed
     private get leftbound() {
         let doc = this.props.Document;
@@ -832,6 +768,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private set leftbound(number) {
         this.props.Document.leftbound = number;
     }
+    //Right side boundary of viewport of ruler. Adjusted with the scroll bar.
 
     @computed
     private get rightbound() {
@@ -849,13 +786,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.rightbound = number;
     }
 
-
+    //Size of scroll bar at bottom. Use for calcualting range of displayed documents.
     private get barwidth() {
         let doc = this.props.Document;
         doc.barwidth = this.props.PanelWidth();
         return NumCast(doc.barwidth);
     }
-
+    //Height of internal dash window.
     private set windowheight(number) {
         this.props.Document.windowheight = number;
     }
@@ -870,6 +807,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.barwidth = number;
     }
 
+    //Field documents are sorted by.
     private get currentSortingKey() {
         let doc = this.props.Document;
         if (!doc.sortstate) {
@@ -877,7 +815,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         return String(doc.sortstate);
     }
-
+    //If toggled on, rows are displaayed with dotted lines. By defailt is false. Toggled in chrome.
     private set rowPrev(boolean: boolean) {
         this.props.Document.rowPrev = boolean;
     }
@@ -902,48 +840,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return BoolCast(doc.bugfix);
     }
 
-    private set update(boolean: boolean) {
-        this.props.Document.update = boolean;
-    }
-
-    private get update() {
-        let doc = this.props.Document;
-        if (!doc.update) {
-            this.update = false;
-        }
-        return BoolCast(doc.update);
-    }
-
-    private set transtate(boolean: boolean) {
-        this.props.Document.transtate = boolean;
-    }
-
-    private get transtate() {
-        let doc = this.props.Document;
-        if (doc.transtate === undefined) {
-            doc.transtate = true;
-        }
-        return BoolCast(doc.transtate);
-    }
-
-
-    private set opac(boolean: boolean) {
-        this.props.Document.opac = boolean;
-    }
-
-    private get opac() {
-        let doc = this.props.Document;
-        if (!doc.opac) {
-            this.opac = false;
-        }
-        return BoolCast(doc.opac);
-    }
-
+    //Sorting keys are a field inputed by the user corresponding to what field the ruler sorts on.
     private set currentSortingKey(string) {
         this.props.Document.sortstate = string;
 
     }
-
+    //For y axis sorting in overlaps.
     private get verticalSortingKey() {
         let doc = this.props.Document;
         if (!doc.verticalsortstate) {
@@ -955,7 +857,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private set verticalSortingKey(string) {
         this.props.Document.verticalsortstate = string;
     }
-
+    //Changing text on markers.
     @action annotationUpdate = (newValue: string) => {
         if (newValue !== "") {
             this.selectedMarker!.document.annotation = newValue;
@@ -968,6 +870,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private _range = 0;
 
+    //Lowest value on the ruler, used for calculations
     private get minvalue() {
         let doc = this.props.Document;
         return NumCast(doc.minvalue);
@@ -977,20 +880,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.minvalue = number;
     }
 
-
+    //for when moving the scroll bar.  
     @action
     leftboundSet = (number: number) => {
-        this.transtate = false;
         runInAction(() => this.leftbound = number);
         this.markerrender();
     }
     @action
     rightboundSet = (number: number) => {
-        this.transtate = false;
         this.rightbound = number;
         this.markerrender();
     }
 
+    //For moving marquee.
     @action
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
         for (let thumbnails of this.thumbnails) {
@@ -1001,12 +903,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.persist();
         this._downX = e.pageX;
         this._downY = e.pageY;
+        //Only show marquee on right click.
         if (e.button === 2) {
             document.addEventListener("pointermove", this.onPointerMove_Marquee, true);
             document.addEventListener("pointerup", this.onPointerUp_Marquee, true);
         }
     }
-
+    //Create a new marker when a user clicks on the row the actual ruler is in.
     @action
     onPointerDown_Timeline = async (e: React.PointerEvent) => {
         e.persist();
@@ -1053,7 +956,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-
+    //Moving mouse with marquee updates its dimensions.
     @action
     onPointerMove_Marquee = async (e: PointerEvent) => {
         this._lastY = e.pageY;
@@ -1067,10 +970,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
     }
-
+    
     @action
     onPointerUp_Marquee = (e: PointerEvent): void => {
-        this.downbool = true;
         document.removeEventListener("pointermove", this.onPointerMove_Marquee, true);
         if (this._visible) {
             if (!e.shiftKey) {
@@ -1086,6 +988,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
+    //When hover over a thumbnail with marquee, display more infomation.
     marqueeSelect() {
         if (this.marqueeref.current !== null) {
             let posInfo = this.marqueeref.current.getBoundingClientRect();
@@ -1116,21 +1019,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
     private newselect: (HTMLDivElement | undefined)[] = [];
 
-    focus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        thumbnail!.classList.toggle("selected", true);
-        thumbnail!.classList.toggle("unselected", false);
-        header!.classList.toggle("selection", true);
-        header!.classList.toggle("unselection", false);
-    }
-
-    unfocus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        thumbnail!.classList.toggle("selected", false);
-        thumbnail!.classList.toggle("unselected", true);
-        header!.classList.toggle("selection", false);
-        header!.classList.toggle("unselection", true);
-    }
-
-
+    //Actual marquee element.
     @computed
     get marqueeDiv() {
         let v = this.props.ScreenToLocalTransform().translate(0, 0).transformDirection(this._lastX - this._downX, this._lastY - this._downY);
@@ -1140,61 +1029,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerUp_Dragger = (e: PointerEvent): void => {
-        this.downbool = true;
         document.removeEventListener("pointermove", this.onPointerMove_AdjustScale);
     }
 
-    @undoBatch
-    makeBtnClicked = (): void => {
-        let doc = Doc.GetProto(this.props.Document);
-        doc.isButton = !BoolCast(doc.isButton);
-        if (doc.isButton) {
-            if (!doc.nativeWidth) {
-                doc.nativeWidth = this.props.Document[WidthSym]();
-                doc.nativeHeight = this.props.Document[HeightSym]();
-            }
-        } else {
-            doc.nativeWidth = doc.nativeHeight = undefined;
-        }
-    }
-
-    makeportal() {
-        console.timeLog("portal made");
-        let portal = Docs.Create.FreeformDocument([], { width: 100, height: 100, title: this.props.Document.title + ".portal" });
-        //DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
-        //this.makeBtnClicked();
-        this.props.addDocTab && this.props.addDocTab(portal, portal, "onBottom");
-        this.createRows();
-    }
-
-    @observable private transition: boolean | undefined;
-
-    @action
-    opacset = (boolean: boolean) => {
-        this.opac = boolean;
-    }
-
-    @observable
-    downbool: boolean | undefined;
-
-    @action
-    createdownbool() {
-        if (this.downbool === undefined) {
-            this.downbool = true;
-        }
-    }
 
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
-        this.downbool = false;
         document.addEventListener("pointermove", this.onPointerMove_OnBar);
         e.stopPropagation();
         e.preventDefault();
     }
-
+    //Dragging scroll bar changes scope of viewport.
     @action
     onPointerMove_OnBar = (e: PointerEvent): void => {
-        this.transtate = false;
         e.stopPropagation();
         let newx2 = this.rightbound - e.movementX;
         let newx = this.leftbound + e.movementX;
@@ -1209,7 +1056,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.leftbound = (this.leftbound + e.movementX);
             this.rightbound = (this.rightbound - e.movementX);
         }
-        //this.createticks();
         document.addEventListener("pointerup", this.onPointerUp);
     }
 
@@ -1221,13 +1067,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointermove", this.onPointerMove_LeftResize);
         document.removeEventListener("pointermove", this.onPointerMove_RightResize);
         document.body.style.cursor = "default";
-        this.downbool = true;
     }
 
+
+    //Adjusting left eddge of scroll bar corresponds to adjustments of ruler display
     @action
     onPointerMove_LeftBound = (e: PointerEvent): void => {
-        this.transtate = false;
-
         e.stopPropagation();
         if (this.leftbound + e.movementX < 0) {
             this.leftbound = 0;
@@ -1238,14 +1083,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         else {
             this.leftbound = (this.leftbound + e.movementX);
         }
-        //this.createticks();
         document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
     }
-
+    //Vice versa for right,
     @action
     onPointerMove_RightBound = (e: PointerEvent): void => {
-        this.transtate = false;
 
         e.stopPropagation();
         if (this.rightbound - e.movementX < 4) {
@@ -1255,10 +1098,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.rightbound = (this.barwidth - this.leftbound - 20);
         }
         else { this.rightbound = (this.rightbound - e.movementX); }
-
-
-        //this.createticks();
-
         document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
 
@@ -1268,21 +1107,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onPointerDown_LeftBound = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove_LeftBound);
         e.stopPropagation();
-        this.downbool = false;
     }
 
     @action
-    onPointerDown2_RightBound = (e: React.PointerEvent): void => {
+    onPointerDown_RightBound = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove_RightBound);
         e.stopPropagation();
-        this.downbool = (false);
     }
 
+    //Clicking off the actual scroll bar but within the box that contains it will make the bar jump to the point clicked on.
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
         this.props.addDocument(new Doc);
-        this.transtate = false;
-        this.downbool = false;
         let temp = this.barwidth - this.rightbound - this.leftbound;
         let newx = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98;
         this.leftbound = (newx);
@@ -1300,9 +1136,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.stopPropagation();
     }
 
-
-    @observable firstround: boolean = false;
-
+    //Makes tick elements.
     callback(t: Tick) {
         if (t.counter % 100 === 0 && this.toggle_tick_numbers === true) {
             return (<div className="max" ref={t.ref} style={{
@@ -1325,43 +1159,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             return (<div className="active" ref={t.ref} style={{ position: "absolute", top: "0%", left: t.leftval * (this.barwidth / (this.barwidth - this.leftbound - this.rightbound)), zIndex: 1 }} />);
         }
     }
-
+    //Calcualting how much of the scroll bar takes up the entire screen for fine tuning document placement.
     private get nodeoffset() {
         return this.barwidth / (this.barwidth - this.leftbound - this.rightbound);
     }
-
+    //Method passed into node class such that clicking on it results in preview changing.
     sethoverdoc(doc: Doc) {
         this.previewdoc = doc;
     }
-
-    @observable
-    private previewwidth: number = 500;
-
-    @observable
-    private previewheight: number = 500;
-
-    _ignore = 0;
-    onPreWheel = (e: React.WheelEvent) => {
-        this._ignore = e.timeStamp;
-    }
-    onPrePointer = (e: React.PointerEvent) => {
-        this._ignore = e.timeStamp;
-    }
-    onPostPointer = (e: React.PointerEvent) => {
-        if (this._ignore !== e.timeStamp) {
-            e.stopPropagation();
-        }
-    }
-    onPostWheel = (e: React.WheelEvent) => {
-        if (this._ignore !== e.timeStamp) {
-            e.stopPropagation();
-        }
-    }
+ 
     private getLocalTransform = (): Transform => new Transform(-NumCast(this.previewdoc!.x), -NumCast(this.previewdoc!.y), 1);
-
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().transform(this.getLocalTransform());
-    private getTransformOverlay = (): Transform => this.props.ScreenToLocalTransform();
-
+    //For dragging preview.
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -1386,28 +1195,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let d = this.previewdoc;
-        let width = 50;
-        let height = 50;
-        if (d) {
-            let nativeWidth = NumCast(d.nativeWidth, width);
-            let nativeHeight = NumCast(d.nativeHeight, height);
-
-            let wscale = width / (nativeWidth ? nativeWidth : width);
-            if (wscale * nativeHeight > height) {
-                wscale = height / (nativeHeight ? nativeHeight : height);
-            }
-            let contentScaling = () => wscale;
-            let transform = () => new Transform(0, 0, 1);
-            let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
-
-            let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
-        }
-
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                     <div>
-                        {this.previewdoc !== undefined ?
+                        {//The preview doc window.
+                        this.previewdoc !== undefined ?
                             <div style={{ left: NumCast(this.previewdoc.x), top: NumCast(this.previewdoc.y), width: NumCast(this.previewdoc.width), zIndex: 500, height: NumCast(this.previewdoc.height), position: "absolute", }}>
                                 <ContentFittingDocumentView
                                     Document={d}
@@ -1435,11 +1228,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             </div> : undefined}
 
                     </div>
+                    {/*Marquee*/}
                     <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
                         {<div style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                             {this._visible ? this.marqueeDiv : null}
                         </div>}
                     </div>
+                    {/*Rows, thumbnails, markers, ticks*/}
                     <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "0px", height: "100%", width: "100%", transform: `translateX(${-this.leftbound * this.nodeoffset}px)`, }}>
                         {this.rowval.map((value, i) => i === Math.round(this.rowval.length / 2) ? (<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", height: "5px", position: "absolute", top: this.rowval[Math.round(this.rowval.length / 2)], width: "10000%", zIndex: 100 }} />) :
                             (<div onPointerDown={this.rowPrev ? this.onPointerDown_AdjustScale : undefined} style={{ cursor: this.rowPrev ? "n-resize" : "", borderTop: this.rowPrev ? "1px black dashed" : "", height: "5px", position: "absolute", top: value, width: "100%", zIndex: 100 }} />))}
@@ -1455,16 +1250,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                                 whenActiveChanged={returnFalse}
                                 addDocTab={this.props.addDocTab}
                                 pinToPres={this.props.pinToPres}
-                                createportal={(undefined)}
                                 leftval={node.horizontalPos}
                                 doc={node.doc}
                                 sortstate={this.currentSortingKey}
                                 top={this.rowval[node.row]}
-                                transition={this.transtate}
-                                toggleopac={BoolCast(this.opac)}
                                 timelineTop={this.rowval[Math.round(this.rowval.length / 2)]}
                                 select={node.select ? node.select : false}
-                                update={this.update}
                                 range={this._range}
                                 rangeval={this.toggle_tick_numbers}
                                 sethover={this.sethoverdoc}
@@ -1480,7 +1271,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>
                     </div>
                 </div >
-                {
+                {//The scroll bar on botttom
                     this.previewflag && <div ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, height: "50px", bottom: "0px", width: "100%", position: "fixed", }}>
                         {this.thumbnails.map(item => <div
                             style={{
@@ -1491,7 +1282,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             }}>
                         </div>)}
                         <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.leftbound, height: "100%" }}></div>
-                        <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", left: this.props.PanelWidth() - this.rightbound, height: "100%", zIndex: 100 }}></div>
+                        <div className="v2" onPointerDown={this.onPointerDown_RightBound} style={{ cursor: "ew-resize", position: "absolute", left: this.props.PanelWidth() - this.rightbound, height: "100%", zIndex: 100 }}></div>
                         <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.leftbound, width: this.barwidth - this.rightbound - this.leftbound, height: "100%", position: "absolute" }}>
                         </div>
                     </div>

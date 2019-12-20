@@ -19,11 +19,12 @@ import { DocumentContentsView } from '../nodes/DocumentContentsView';
 import { SelectionManager } from "../../util/SelectionManager";
 import { UndoManager, undoBatch } from "../../util/UndoManager";
 
-
+//Thumbnail class defines the icons used for displaying documents in the ruler view.
 @observer
 export class
     Thumbnail extends React.Component<NodeProps> {
-
+    
+    //Provides icon based on document type.
     @action
     checkData = (document: Doc): IconProp => {
         let field = document.data;
@@ -37,7 +38,7 @@ export class
         return faBell;
     }
 
-
+    //Display document with document contents view.
     documentDisplay(d: Doc, width: number, height: number) {
         let nativeWidth = NumCast(d.nativeWidth, width);
         let nativeHeight = NumCast(d.nativeHeight, height);
@@ -78,36 +79,18 @@ export class
 
             </div>);
     }
-
+    //when you click on the thumbnail.
     @action
     toggleSelection(e: React.PointerEvent) {
         this.props.timelinedoc.currdoc = this.props.doc;
         this.props.timelinedoc.currval = this.props.doc[this.props.sortstate];
     }
-
+    //when thumbnail is marquee selected.
     @action
     toggletwo() {
         this.selectclass = !this.selectclass;
     }
-
-    @action
-    adjust = (e: PointerEvent): void => {
-        this.props.doc[this.props.sortstate] = NumCast(this.props.doc[this.props.sortstate]) + e.movementX / this.props.range;
-    }
-
-    onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.adjust);
-    }
-
-
-    returnData() {
-        return this.props.doc.data;
-    }
-
-    @observable classref = React.createRef<HTMLDivElement>();
-
-    @observable caption: string = "No caption";
-
+    //Handles selection from marquee.
     @computed
     get selectclass() {
         if (this.newclass === undefined) {
@@ -127,7 +110,7 @@ export class
     @observable newclass: boolean | undefined;
 
     @observable left: number | undefined;
-
+    //Handles where thumbnail should be placed on screen.
     @computed
     get leftval(): number {
         if (this.left === undefined) {
@@ -141,7 +124,7 @@ export class
     set leftval(number) {
         this.left = number;
     }
-
+    //Displays numerical value of thubmnail on ruler when selected with marquee.
     private calculatepreview() {
         if (!this.props.rangeval) {
             console.log(this.props.doc[this.props.sortstate]);
@@ -149,6 +132,8 @@ export class
         }
         return Math.round(NumCast(this.props.doc[this.props.sortstate]))
     }
+
+    //First half is just the square icon of the document, second (After the "selection class") is extra information when selected by marquee.
     render() {
         return (
             <div>
@@ -163,7 +148,7 @@ export class
                     </div>
                 </div>
 
-                <div ref={this.classref} className={this.selectclass === true ? "selection " : "unselection"} style={{
+                <div className={this.selectclass === true ? "selection " : "unselection"} style={{
                     zIndex: 98, position: "absolute", height: "100%",
                 }}>
                     <div style=
@@ -191,18 +176,14 @@ export interface NodeProps {
     doc: Doc;
     top: number;
     renderDepth: number;
-    createportal: (() => void) | undefined;
     CollectionView: Opt<CollectionView>;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     scrollTop: number;
-    transition: boolean;
-    toggleopac: boolean;
     timelineTop: number;
     select: boolean;
-    update: boolean;
     range: number;
     rangeval: boolean;
     sethover: (doc: Doc) => void;
