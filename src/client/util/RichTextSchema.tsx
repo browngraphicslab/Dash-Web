@@ -16,7 +16,7 @@ import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
-import { BoolCast, NumCast } from "../../new_fields/Types";
+import { BoolCast, NumCast, Cast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
@@ -702,6 +702,7 @@ export class DashDocView {
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
     contentScaling = () => NumCast(this._dashDoc!.nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!.nativeWidth) : 1;
+    outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBox = tbox;
         this._dashSpan = document.createElement("div");
@@ -765,7 +766,7 @@ export class DashDocView {
                     renderDepth={1}
                     PanelWidth={self._dashDoc[WidthSym]}
                     PanelHeight={self._dashDoc[HeightSym]}
-                    focus={self._textBox.props.focus}
+                    focus={self.outerFocus}
                     backgroundColor={returnEmptyString}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
