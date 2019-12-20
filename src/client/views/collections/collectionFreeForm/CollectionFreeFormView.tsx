@@ -798,14 +798,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
         }
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: async () => this.Document.fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
+        layoutItems.push({ description: `${this.Document.LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document.LODdisable = !this.Document.LODdisable, icon: "table" });
+        layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document.fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         layoutItems.push({ description: `${this.Document.isRuleProvider ? "Stop Auto Format" : "Auto Format"}`, event: this.autoFormat, icon: "chalkboard" });
         layoutItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
-        layoutItems.push({
-            description: "Import document", icon: "upload", event: ({ x, y }) => {
+        layoutItems.push({ description: "Import document", icon: "upload", event: ({ x, y }) => {
                 const input = document.createElement("input");
                 input.type = "file";
                 input.accept = ".zip";
