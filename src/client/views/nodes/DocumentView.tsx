@@ -45,6 +45,7 @@ import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
 import { List } from '../../../new_fields/List';
 import { FormattedTextBoxComment } from './FormattedTextBoxComment';
+import { ApiTester } from '../ApiTester';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -560,6 +561,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
                 cm.addItem({ description: "Collaboration ACLs...", subitems: aclsMenu, icon: "share" });
             }
+        });
+        runInAction(() => {
+            cm.addItem({
+                description: "API",
+                event: () => {
+                    OverlayView.Instance.addWindow(<ApiTester />, { x: 0, y: 0, width: 400, height: 400 });
+                },
+                icon: "alicorn"
+            });
         });
         runInAction(() => {
             cm.addItem({
