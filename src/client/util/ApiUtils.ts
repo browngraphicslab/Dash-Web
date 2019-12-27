@@ -1,5 +1,5 @@
 import * as rp from 'request-promise';
-import { Opt, Doc, DocListCastAsync } from '../../new_fields/Doc';
+import { Opt, Doc, DocListCastAsync, Field } from '../../new_fields/Doc';
 import { Docs } from '../documents/Documents';
 import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 import { Utils } from '../../Utils';
@@ -110,6 +110,92 @@ export namespace ApiUtils {
             }
             const key = rowObj[primaryKey];
             if (!key) continue;
+            let rowDoc = docMap[key];
+            if (!rowDoc) {
+                rowDoc = new Doc;
+                Doc.assign(rowDoc, rowObj);
+                docs.push(rowDoc);
+            } else {
+                Doc.assign(rowDoc, rowObj);
+            }
+        }
+        return true;
+    }
+
+    export interface ParseApiOptions {
+        primaryKey: string;
+        columns?: string[];
+        //parsers?: { [key: string]: (value: string) => Field }
+    }
+
+    export async function queryListApi(url: string, options: ParseApiOptions): Promise<Opt<Doc>> {
+        const table = await rp.get(url, { json: true });
+        if (!Array.isArray(table)) {
+            return undefined;
+        }
+
+        const { primaryKey, columns } = options;
+
+        const docs: Doc[] = [];
+        const fields = new Set<string>();
+        for (const record of table) {
+            let rowObj: { [column: string]: Field } = {};
+            for (const fieldName of columns ?? Object.keys(record)) {
+                const field = record[fieldName];
+                if (!Field.IsField(field)) {
+                    continue;
+                }
+                fields.add(fieldName);
+                rowObj[fieldName] = field;
+            }
+            const rowDoc = new Doc();
+            Doc.assign(rowDoc, rowObj);
+            docs.push(rowDoc);
+        }
+        const collection = Docs.Create.SchemaDocument(Array.from(fields).map(col => new SchemaHeaderField(col)), docs, {});
+        collection.primaryKey = primaryKey;
+        if (columns) {
+            collection.activeColumns = new List(columns);
+        }
+        return collection;
+    }
+
+    export async function updateApi(url: string, doc: Doc): Promise<boolean> {
+        let docs = await DocListCastAsync(doc.data);
+        if (!docs) {
+            const list = new List<Doc>();
+            docs = list as Doc[];
+            doc.data = list;
+        }
+        const primaryKey = Cast(doc.primaryKey, "string");
+        const columns = Cast(doc.activeColumns, listSpec("string"));
+        if (!primaryKey) {
+            return false;
+        }
+        const docMap: { [key: string]: Doc } = {};
+        for (let i = 0; i < docs.length; i++) {
+            const doc = docs[i];
+            const key = Cast(doc[primaryKey], "string");
+            if (key) {
+                docMap[key] = doc;
+            }
+        }
+        const table = await rp.get(url, { json: true });
+        if (!Array.isArray(table)) {
+            return false;
+        }
+
+        for (const record of table) {
+            let rowObj: { [column: string]: Field } = {};
+            for (const fieldName of columns || Object.keys(record)) {
+                const field = record[fieldName];
+                if (!Field.IsField(field)) {
+                    continue;
+                }
+                rowObj[fieldName] = field;
+            }
+            const key = rowObj[primaryKey];
+            if (!(typeof key === "string")) continue;
             let rowDoc = docMap[key];
             if (!rowDoc) {
                 rowDoc = new Doc;
