@@ -42,6 +42,9 @@ import React = require("react");
 import { computedFn } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { OverlayView } from "../../OverlayView";
+import { ApiTester } from "../../ApiTester";
+import { TableApiDialog } from "../../TableApiDialog";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -805,7 +808,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         layoutItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
-        layoutItems.push({ description: "Import document", icon: "upload", event: ({ x, y }) => {
+        layoutItems.push({
+            description: "Import document", icon: "upload", event: ({ x, y }) => {
                 const input = document.createElement("input");
                 input.type = "file";
                 input.accept = ".zip";
@@ -842,6 +846,26 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             icon: "eye"
         });
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
+
+        const apiItems: ContextMenuProps[] = [];
+        apiItems.push({
+            description: "Table API",
+            event: () => {
+                let disposer: () => void;
+                disposer = OverlayView.Instance.addWindow(<TableApiDialog onCreate={doc => {
+                    this.props.addDocument(doc);
+                    disposer();
+                }} />, { x: e.clientX, y: e.clientY, width: 400, height: 400 })
+            },
+            icon: "alicorn"
+        });
+        apiItems.push({
+            description: "JSON API",
+            event: () => OverlayView.Instance.addWindow(<ApiTester />, { x: e.clientX, y: e.clientY, width: 400, height: 400 }),
+            icon: "alicorn"
+        });
+
+        ContextMenu.Instance.addItem({ description: "Add api doc...", subitems: apiItems, icon: "external-link-alt" });
     }
 
 

@@ -73,6 +73,21 @@ export class ScriptField extends ObjectField {
         this.script = script;
     }
 
+    private autoRunDisposer?: number;
+
+    autoRun(timer: number, args?: { [name: string]: any }) {
+        if (this.autoRunDisposer !== undefined) {
+            clearInterval(this.autoRunDisposer);
+        }
+        if (timer > 0) {
+            this.autoRunDisposer = window.setInterval(() => this.script.run(args), timer);
+        }
+    }
+
+    get isAutoRunning(): boolean {
+        return this.autoRunDisposer !== undefined;
+    }
+
     //     init(callback: (res: Field) => any) {
     //         const options = this.options!;
     //         const keys = Object.keys(options.options.capturedIds);
@@ -101,7 +116,7 @@ export class ScriptField extends ObjectField {
     [ToScriptString]() {
         return "script field";
     }
-    public static CompileScript(script: string, params: object = {}, addReturn = false) {
+    public static CompileScript(script: string, params: { [name: string]: string } = {}, addReturn = false) {
         const compiled = CompileScript(script, {
             params: { this: Doc.name, _last_: "any", ...params },
             typecheck: false,
@@ -110,12 +125,12 @@ export class ScriptField extends ObjectField {
         });
         return compiled;
     }
-    public static MakeFunction(script: string, params: object = {}) {
+    public static MakeFunction(script: string, params: { [name: string]: string } = {}) {
         const compiled = ScriptField.CompileScript(script, params, true);
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
 
-    public static MakeScript(script: string, params: object = {}) {
+    public static MakeScript(script: string, params: { [name: string]: string } = {}) {
         const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
@@ -127,11 +142,11 @@ export class ComputedField extends ScriptField {
     _lastComputedResult: any;
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
     value = computedFn((doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, _last_: this._lastComputedResult }, console.log).result);
-    public static MakeScript(script: string, params: object = {}, ) {
+    public static MakeScript(script: string, params: { [name: string]: string } = {}, ) {
         const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
     }
-    public static MakeFunction(script: string, params: object = {}) {
+    public static MakeFunction(script: string, params: { [name: string]: string } = {}) {
         const compiled = ScriptField.CompileScript(script, params, true);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
     }

@@ -1,0 +1,40 @@
+.tableApi-form {
+    display: grid;
+    grid-template-columns: max-content auto;
+    grid-gap: 5px;
+    padding: 5px;
+}
+
+.tableApi-form label {
+    text-align: right;
+}
+
+.tableApi-form input {
+    width: 100%;
+}
+
+.tableApi-buttons {
+display: flex;
+}
+
+.tableApi-button {
+    flex: 1 1 0px;
+    margin: 5px;
+}
+
+.tableApi-columns {
+    border: 2px solid black;
+    border-radius: 2px;
+    min-height: 10px;
+    width: 100%;
+}
+
+.tableApi-columnHeader {
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.tableApi-columnRow {
+    text-align: center;
+}
