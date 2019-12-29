@@ -48,6 +48,11 @@ export class ApiTester extends React.Component {
         }
     }
 
+    @action
+    onPrimaryKeyChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.primaryColumn = e.currentTarget.value;
+    }
+
     submitCols = async () => {
         const page = await ApiUtils.fetchHtml(this.url);
         const table = page?.querySelector(this.selector);
@@ -65,6 +70,7 @@ export class ApiTester extends React.Component {
         if (!this.primaryColumn) {
             return;
         }
+        const key = this.primaryColumn;
         const page = await ApiUtils.fetchHtml(this.url);
         const table = page?.querySelectorAll(this.selector)[this.index ?? 0];
         if (!(table instanceof HTMLTableElement)) {
@@ -72,7 +78,7 @@ export class ApiTester extends React.Component {
         }
 
         runInAction(() => {
-            this.doc = ApiUtils.parseTable(table, { columns: this.columns?.filter(col => col.enabled).map(col => col.name), primaryKey: this.primaryColumn });
+            this.doc = ApiUtils.parseTable(table, { columns: this.columns?.filter(col => col.enabled).map(col => col.name), primaryKey: key });
             this.columns = undefined;
         });
     }
@@ -98,12 +104,40 @@ export class ApiTester extends React.Component {
         });
     }
 
+    submitApi = async () => {
+        if (!this.primaryColumn) {
+            return;
+        }
+        const key = this.primaryColumn;
+
+        const doc = await ApiUtils.queryListApi(this.url, { primaryKey: key });
+        runInAction(() => {
+            this.doc = doc;
+        });
+    }
+
+    updateApi = async () => {
+        if (!this.doc) {
+            return;
+        }
+        if (!this.primaryColumn) {
+            return;
+        }
+        const doc = this.doc;
+
+        runInAction(() => {
+            ApiUtils.updateApi(this.url, doc);
+            this.columns = undefined;
+        });
+    }
+
     render() {
         return (
             <div style={{ background: "gray" }}>
-                <div><input value={this.url} onChange={this.onUrlChanged}></input></div>
-                <div><input value={this.selector} onChange={this.onSelectorChanged}></input></div>
-                <div><input value={this.index} onChange={this.onIndexChanged}></input></div>
+                <div>Url: <input value={this.url} onChange={this.onUrlChanged}></input></div>
+                <div>Selector: <input value={this.selector} onChange={this.onSelectorChanged}></input></div>
+                <div>Index: <input value={this.index} onChange={this.onIndexChanged}></input></div>
+                <div>Primary Key: <input value={this.primaryColumn} onChange={this.onPrimaryKeyChanged}></input></div>
                 {this.columns ? this.columns.map(col => {
                     return (
                         <div key={col.name}>
@@ -123,6 +157,8 @@ export class ApiTester extends React.Component {
                 <div><button onClick={this.submitCols}>Get Columns</button></div>
                 <div><button onClick={this.submit}>Submit</button></div>
                 <div><button onClick={this.update} disabled={this.doc === undefined}>Update</button></div>
+                <div><button onClick={this.submitApi}>Submit Api</button></div>
+                <div><button onClick={this.updateApi} disabled={this.doc === undefined}>Update Api</button></div>
                 <div>
                     {this.doc ? <DocumentView Document={this.doc} ContainingCollectionDoc={undefined}
                         ContainingCollectionView={undefined} LibraryPath={[]} ScreenToLocalTransform={() => Transform.Identity()} renderDepth={0}
