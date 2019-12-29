@@ -9,13 +9,18 @@ import { ChildProcess, exec, execSync } from "child_process";
 import InputManager from "./input_manager";
 import { identifier, logPath, crashPath, onWindows, pid, ports, heartbeat, recipient, latency, SessionState } from "./config";
 const killport = require("kill-port");
+import * as io from "socket.io";
 
 process.on('SIGINT', endPrevious);
 let state: SessionState = SessionState.STARTING;
 const is = (...reference: SessionState[]) => reference.includes(state);
 const set = (reference: SessionState) => state = reference;
 
+const endpoint = io();
+endpoint.on("connection", socket => {
 
+});
+endpoint.listen(process.env.PORT);
 
 const { registerCommand } = new InputManager({ identifier });
 
@@ -116,7 +121,7 @@ function timestamp() {
 
 async function endPrevious() {
     identifiedLog(yellow("Cleaning up previous connections..."));
-    current_backup?.kill("SIGKILL");
+    current_backup?.kill();
     await Promise.all(ports.map(port => {
         const task = killport(port, 'tcp');
         return task.catch((error: any) => identifiedLog(red(error)));
