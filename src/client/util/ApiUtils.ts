@@ -6,6 +6,7 @@ import { Utils } from '../../Utils';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { Cast } from '../../new_fields/Types';
+import { Scripting } from './Scripting';
 
 export namespace ApiUtils {
     export async function fetchHtml(url: string): Promise<Opt<Document>> {
@@ -62,7 +63,7 @@ export namespace ApiUtils {
             Doc.assign(rowDoc, rowObj);
             docs.push(rowDoc);
         }
-        const collection = Docs.Create.SchemaDocument(includedColumns.map(col => new SchemaHeaderField(col.name)), docs, {});
+        const collection = Docs.Create.SchemaDocument([new SchemaHeaderField(primaryKey), ...includedColumns.filter(col => col.name !== primaryKey).map(col => new SchemaHeaderField(col.name))], docs, {});
         collection.primaryKey = primaryKey;
         if (columns) {
             collection.activeColumns = new List(columns);
@@ -124,16 +125,29 @@ export namespace ApiUtils {
 
     export interface ParseApiOptions {
         primaryKey: string;
+        selector?: string;
         columns?: string[];
         //parsers?: { [key: string]: (value: string) => Field }
     }
 
-    export async function queryListApi(url: string, options: ParseApiOptions): Promise<Opt<Doc>> {
-        const table = await rp.get(url, { json: true });
-        if (!Array.isArray(table)) {
-            return undefined;
+    export function getJsonColumns(table: any[]): string[] {
+        const columns = new Set<string>();
+
+        for (const row of table) {
+            for (const fieldName in row) {
+                const field = row[fieldName];
+
+                if (!Field.IsField(field)) {
+                    continue;
+                }
+                columns.add(fieldName);
+            }
         }
 
+        return Array.from(columns);
+    }
+
+    export function queryListApi(table: any[], options: ParseApiOptions): Doc {
         const { primaryKey, columns } = options;
 
         const docs: Doc[] = [];
@@ -152,7 +166,8 @@ export namespace ApiUtils {
             Doc.assign(rowDoc, rowObj);
             docs.push(rowDoc);
         }
-        const collection = Docs.Create.SchemaDocument(Array.from(fields).map(col => new SchemaHeaderField(col)), docs, {});
+        fields.delete(primaryKey);
+        const collection = Docs.Create.SchemaDocument([new SchemaHeaderField(primaryKey), ...Array.from(fields).map(col => new SchemaHeaderField(col))], docs, {});
         collection.primaryKey = primaryKey;
         if (columns) {
             collection.activeColumns = new List(columns);
@@ -160,7 +175,7 @@ export namespace ApiUtils {
         return collection;
     }
 
-    export async function updateApi(url: string, doc: Doc): Promise<boolean> {
+    export async function updateApi(table: any[], doc: Doc): Promise<boolean> {
         let docs = await DocListCastAsync(doc.data);
         if (!docs) {
             const list = new List<Doc>();
@@ -179,10 +194,6 @@ export namespace ApiUtils {
             if (key) {
                 docMap[key] = doc;
             }
-        }
-        const table = await rp.get(url, { json: true });
-        if (!Array.isArray(table)) {
-            return false;
         }
 
         for (const record of table) {
@@ -207,4 +218,9 @@ export namespace ApiUtils {
         }
         return true;
     }
+
 }
+
+Scripting.addGlobal("ApiUtils", ApiUtils);
+Scripting.addGlobal("rp", rp);
+Scripting.addGlobal("corsPrefix", Utils.CorsProxy);

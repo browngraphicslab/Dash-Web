@@ -1,13 +1,15 @@
-import * as React from 'react'
-import { Doc } from '../../new_fields/Doc';
-import './TableApiDialog.scss'
+import * as React from 'react';
+import { Doc } from '../../../new_fields/Doc';
+import './TableApiDialog.scss';
 import { action, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
-import { ApiUtils } from '../util/ApiUtils';
+import { ApiUtils } from '../../util/ApiUtils';
+import { CompileScript } from '../../util/Scripting';
+import { ScriptField } from '../../../new_fields/ScriptField';
 
 export interface TableApiDialogProps {
     onCreate(doc: Doc): void;
-};
+}
 
 @observer
 export class TableApiDialog extends React.Component<TableApiDialogProps> {
@@ -71,10 +73,6 @@ export class TableApiDialog extends React.Component<TableApiDialogProps> {
             return;
         }
 
-        runInAction(() => {
-            this.columns = undefined;
-        });
-
         const doc = ApiUtils.parseTable(table, { columns: this.columns?.filter(col => col.enabled).map(col => col.name), primaryKey: key });
 
         doc.selector = this.selector;
@@ -83,28 +81,50 @@ export class TableApiDialog extends React.Component<TableApiDialogProps> {
             doc.index = this.index;
         }
 
+        const script = `
+            ApiUtils.fetchHtml(this.url as string).then(page => {
+                const table = page?.querySelectorAll(this.selector as string)[this.index as number ?? 0];
+                ApiUtils.updateTable(table, this);
+            });
+        `;
+
+        const result = CompileScript(script, { params: { this: Doc.name }, editable: true });
+        if (!result.compiled) {
+            throw new Error("Couldn't compile api update script");
+        }
+
+        doc.updateScript = new ScriptField(result);
+
+        runInAction(() => {
+            this.columns = undefined;
+        });
+
         this.props.onCreate(doc);
     }
 
     render() {
         const columns = this.columns ?
             <table>
-                <tr key="_headerRow">
-                    <td></td>
-                    <td className="tableApi-columnHeader">Enabled</td>
-                    <td className="tableApi-columnHeader">Primary Key?</td>
-                </tr>
-                {this.columns.map(col => {
-                    return (
-                        <tr key={col.name} className="tableApi-row">
-                            <td>{col.name}</td>
-                            <td className="tableApi-columnRow"><input checked={col.enabled} type="checkbox"
-                                onChange={action((e: React.ChangeEvent<HTMLInputElement>) => col.enabled = e.currentTarget.checked)} name={col.name} /></td>
-                            <td className="tableApi-columnRow"><input checked={this.primaryColumn === col.name} type="checkbox"
-                                onChange={action((e: React.ChangeEvent<HTMLInputElement>) => this.primaryColumn = col.name)} name={col.name} /></td>
-                        </tr>
-                    );
-                })}
+                <thead>
+                    <tr key="_headerRow">
+                        <td></td>
+                        <td className="tableApi-columnHeader">Enabled</td>
+                        <td className="tableApi-columnHeader">Primary Key?</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {this.columns.map(col => {
+                        return (
+                            <tr key={col.name} className="tableApi-row">
+                                <td>{col.name}</td>
+                                <td className="tableApi-columnRow"><input checked={col.enabled} type="checkbox"
+                                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => col.enabled = e.currentTarget.checked)} name={col.name} /></td>
+                                <td className="tableApi-columnRow"><input checked={this.primaryColumn === col.name} type="checkbox"
+                                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => this.primaryColumn = col.name)} name={col.name} /></td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
             </table> : null;
         return (
             <div className="tableApi-outerDiv">

@@ -74,7 +74,7 @@ interface String {
     normalize(form: "NFC" | "NFD" | "NFKC" | "NFKD"): string;
     normalize(form?: string): string;
     repeat(count: number): string;
-    replace(a:any, b:any):string; // bcz: fix this
+    replace(a: any, b: any): string; // bcz: fix this
     startsWith(searchString: string, position?: number): boolean;
     anchor(name: string): string;
     big(): string;
@@ -206,4 +206,8 @@ declare const Docs: {
     StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
 };
 
-declare function d(...args:any[]):any;
+declare function d(...args: any[]): any;
+
+declare const rp: any;
+declare const ApiUtils: any;
+declare const corsPrefix: (url: string) => string;

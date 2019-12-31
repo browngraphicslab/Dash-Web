@@ -43,8 +43,8 @@ import { computedFn } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { OverlayView } from "../../OverlayView";
-import { ApiTester } from "../../ApiTester";
-import { TableApiDialog } from "../../TableApiDialog";
+import { TableApiDialog } from "../../apis/TableApiDialog";
+import { JsonApiDialog } from "../../apis/JsonApiDialog";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -855,13 +855,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 disposer = OverlayView.Instance.addWindow(<TableApiDialog onCreate={doc => {
                     this.props.addDocument(doc);
                     disposer();
-                }} />, { x: e.clientX, y: e.clientY, width: 400, height: 400 })
+                }} />, { x: e.clientX, y: e.clientY, width: 400, height: 400 });
             },
             icon: "alicorn"
         });
         apiItems.push({
             description: "JSON API",
-            event: () => OverlayView.Instance.addWindow(<ApiTester />, { x: e.clientX, y: e.clientY, width: 400, height: 400 }),
+            event: () => {
+                let disposer: () => void;
+                disposer = OverlayView.Instance.addWindow(<JsonApiDialog onCreate={doc => {
+                    this.props.addDocument(doc);
+                    disposer();
+                }} />, { x: e.clientX, y: e.clientY, width: 400, height: 400 });
+            },
             icon: "alicorn"
         });
 

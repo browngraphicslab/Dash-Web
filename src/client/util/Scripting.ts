@@ -265,7 +265,7 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
     host.writeFile("file.ts", funcScript);
 
     if (typecheck) host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
-    const program = ts.createProgram(["file.ts"], {}, host);
+    const program = ts.createProgram(["file.ts"], { target: ts.ScriptTarget.ES2019 }, host);
     const testResult = program.emit();
     const outputText = host.readFile("file.js");
 

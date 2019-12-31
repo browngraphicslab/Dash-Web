@@ -11,7 +11,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../../new_fields/ScriptField";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -682,6 +682,27 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
+            const script = Cast(this.props.Document.updateScript, ScriptField);
+            if (script !== undefined) {
+                ContextMenu.Instance.addItem({
+                    description: "Update", event: () => {
+                        script.script.run({ this: this.props.Document });
+                    }, icon: "table"
+                });
+                if (script.isAutoRunning) {
+                    ContextMenu.Instance.addItem({
+                        description: "Stop Auto-update", event: () => {
+                            script.autoRun(0);
+                        }, icon: "table"
+                    });
+                } else {
+                    ContextMenu.Instance.addItem({
+                        description: "Auto-update", event: () => {
+                            script.autoRun(1000 * 60, { this: this.props.Document });
+                        }, icon: "table"
+                    });
+                }
+            }
         }
     }
 

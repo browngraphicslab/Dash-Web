@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
-import { ApiUtils } from '../util/ApiUtils';
-import { Doc } from '../../new_fields/Doc';
-import { CollectionSchemaView } from './collections/CollectionSchemaView';
-import { DocumentView } from './nodes/DocumentView';
-import { Transform } from '../util/Transform';
-import { returnFalse, emptyFunction, returnOne } from '../../Utils';
+import { ApiUtils } from '../../util/ApiUtils';
+import * as rp from 'request-promise';
+import { returnOne, emptyFunction, returnFalse } from '../../../Utils';
+import { DocumentView } from '../nodes/DocumentView';
+import { Doc } from '../../../new_fields/Doc';
+import { Transform } from '../../util/Transform';
 
 @observer
 export class ApiTester extends React.Component {
@@ -110,7 +110,7 @@ export class ApiTester extends React.Component {
         }
         const key = this.primaryColumn;
 
-        const doc = await ApiUtils.queryListApi(this.url, { primaryKey: key });
+        const doc = await ApiUtils.queryListApi(await rp.get(this.url, { json: true }), { primaryKey: key });
         runInAction(() => {
             this.doc = doc;
         });
@@ -125,8 +125,9 @@ export class ApiTester extends React.Component {
         }
         const doc = this.doc;
 
+        const table = await rp.get(this.url, { json: true });
         runInAction(() => {
-            ApiUtils.updateApi(this.url, doc);
+            ApiUtils.updateApi(table, doc);
             this.columns = undefined;
         });
     }

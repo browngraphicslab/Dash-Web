@@ -78,9 +78,12 @@ export class ScriptField extends ObjectField {
     autoRun(timer: number, args?: { [name: string]: any }) {
         if (this.autoRunDisposer !== undefined) {
             clearInterval(this.autoRunDisposer);
+            this.autoRunDisposer = undefined;
         }
         if (timer > 0) {
-            this.autoRunDisposer = window.setInterval(() => this.script.run(args), timer);
+            this.autoRunDisposer = window.setInterval(() => {
+                this.script.run(args);
+            }, timer);
         }
     }
 
