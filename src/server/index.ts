@@ -10,7 +10,7 @@ import initializeServer from './Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
+import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -21,10 +21,10 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import { disconnect } from "../server/Initialization";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { Session } from "./session";
+import { Utils } from "../Utils";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -35,6 +35,7 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
+    await Session.distributeKey();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
@@ -89,14 +90,13 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     addSupervisedRoute({
         method: Method.GET,
-        subscription: "/kill",
-        secureHandler: ({ res }) => {
-            const { send } = process;
-            if (send) {
+        subscription: new RouteSubscriber("kill").add("password"),
+        secureHandler: ({ req, res }) => {
+            if (req.params.password === Session.key) {
+                process.send!({ action: yellow("kill") });
                 res.send("Server successfully killed.");
-                send({ action: "kill" });
             } else {
-                res.send("Server worker does not have a viable send protocol. Did not attempt to kill server.");
+                res.redirect("/home");
             }
         }
     });
