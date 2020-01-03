@@ -60,7 +60,7 @@ export namespace Session {
         } else {
             const notifyMaster = (update: string) => process.send?.({ update });
             notifyMaster(green("initializing..."));
-            const gracefulExit = async (error: Error) => {
+            const activeExit = async (error: Error) => {
                 if (!listening) {
                     return;
                 }
@@ -74,7 +74,7 @@ export namespace Session {
                 notifyMaster(red(error.message));
                 process.exit(1);
             };
-            process.on('uncaughtException', gracefulExit);
+            process.on('uncaughtException', activeExit);
             const checkHeartbeat = async () => {
                 await new Promise<void>(resolve => {
                     setTimeout(async () => {
@@ -84,10 +84,9 @@ export namespace Session {
                                 notifyMaster(green("server is now successfully listening..."));
                             }
                             listening = true;
-                        } catch (error) {
-                            await gracefulExit(error);
-                        } finally {
                             resolve();
+                        } catch (error) {
+                            await activeExit(error);
                         }
                     }, 1000 * 15);
                 });
