@@ -16,7 +16,7 @@ export class SearchManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("solr").add("action"),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const { action } = req.params;
                 if (["start", "stop"].includes(action)) {
                     const status = req.params.action === "start";
@@ -30,7 +30,7 @@ export class SearchManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/textsearch",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const q = req.query.q;
                 if (q === undefined) {
                     res.send([]);
@@ -50,7 +50,7 @@ export class SearchManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/search",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const solrQuery: any = {};
                 ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
                 if (solrQuery.q === undefined) {

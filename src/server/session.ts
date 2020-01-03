@@ -18,15 +18,24 @@ export namespace Session {
     const masterIdentifier = yellow("__master__");
     const workerIdentifier = magenta("__worker__");
 
+    function killAll() {
+        execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node");
+    }
+
+    function log(message?: any, ...optionalParams: any[]) {
+        const identifier = `${isMaster ? masterIdentifier : workerIdentifier}:`;
+        console.log(identifier, message, ...optionalParams);
+    }
+
     export async function initialize(work: Function) {
         let listening = false;
         let active: Worker;
         if (isMaster) {
             process.on("uncaughtException", error => {
                 if (error.message !== "Channel closed") {
-                    console.log(`${masterIdentifier}: ${red(error.message)}`);
+                    log(red(error.message));
                     if (error.stack) {
-                        console.log(`${masterIdentifier}:\n${red(error.stack)}`);
+                        log(`\n${red(error.stack)}`);
                     }
                 }
             });
@@ -36,30 +45,36 @@ export namespace Session {
                     active.process.kill();
                 }
                 active = fork();
-                active.on("message", ({ update }) => {
-                    if (update) {
-                        console.log(`${workerIdentifier}: ${update}`);
+                active.on("message", ({ lifecycle, action }) => {
+                    if (action) {
+                        console.log(`${workerIdentifier}: action requested (${action})`);
+                        switch (action) {
+                            case "kill":
+                                log(red("An authorized user has ended the server from the /kill route"));
+                        }
+                    } else if (lifecycle) {
+                        console.log(`${workerIdentifier}: lifecycle phase (${lifecycle})`);
                     }
                 });
             };
             spawn();
             on("exit", ({ process: { pid } }, code, signal) => {
                 const prompt = `Server worker with process id ${pid} has exited with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.`;
-                console.log(`${masterIdentifier}: ${cyan(prompt)}`);
+                log(cyan(prompt));
                 spawn();
             });
             const restart = () => {
                 listening = false;
                 const prompt = `Server worker with process id ${active.process.pid} has been manually killed.`;
-                console.log(`${masterIdentifier}: ${cyan(prompt)}`);
+                log(cyan(prompt));
                 spawn();
             };
             const { registerCommand } = new InputManager({ identifier });
-            registerCommand("exit", [], () => execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node"));
+            registerCommand("exit", [], killAll);
             registerCommand("restart", [], restart);
         } else {
-            const notifyMaster = (update: string) => process.send?.({ update });
-            notifyMaster(green("initializing..."));
+            const logLifecycleEvent = (lifecycle: string) => process.send?.({ lifecycle });
+            logLifecycleEvent(green("initializing..."));
             const activeExit = async (error: Error) => {
                 if (!listening) {
                     return;
@@ -70,8 +85,8 @@ export namespace Session {
                 if (_socket) {
                     Utils.Emit(_socket, MessageStore.ConnectionTerminated, "Manual");
                 }
-                notifyMaster(red(`Crash event detected @ ${new Date().toUTCString()}`));
-                notifyMaster(red(error.message));
+                logLifecycleEvent(red(`Crash event detected @ ${new Date().toUTCString()}`));
+                logLifecycleEvent(red(error.message));
                 process.exit(1);
             };
             process.on('uncaughtException', activeExit);
@@ -81,7 +96,7 @@ export namespace Session {
                         try {
                             await get(heartbeat);
                             if (!listening) {
-                                notifyMaster(green("server is now successfully listening..."));
+                                logLifecycleEvent(green("server is now successfully listening..."));
                             }
                             listening = true;
                             resolve();

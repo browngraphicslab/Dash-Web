@@ -33,7 +33,7 @@ export default class DownloadManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("imageHierarchyExport").add('docId'),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const id = req.params.docId;
                 const hierarchy: Hierarchy = {};
                 await buildHierarchyRecursive(id, hierarchy);
@@ -44,7 +44,7 @@ export default class DownloadManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("downloadId").add("docId"),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 return BuildAndDispatchZip(res, async zip => {
                     const { id, docs, files } = await getDocs(req.params.docId);
                     const docString = JSON.stringify({ id, docs });
@@ -59,7 +59,7 @@ export default class DownloadManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("serializeDoc").add("docId"),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const { docs, files } = await getDocs(req.params.docId);
                 res.send({ docs, files: Array.from(files) });
             }

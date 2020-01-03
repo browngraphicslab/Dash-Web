@@ -18,7 +18,7 @@ import * as whm from 'webpack-hot-middleware';
 import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
-import { publicDirectory, ExitHandlers } from '.';
+import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
 import { timeMap } from './ApiManagers/UserManager';
 import { blue, yellow } from 'colors';

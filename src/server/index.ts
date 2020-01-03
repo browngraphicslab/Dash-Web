@@ -7,7 +7,7 @@ const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
 import initializeServer from './Initialization';
-import RouteManager, { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
+import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
 import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
@@ -28,8 +28,6 @@ import { Session } from "./session";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
-
-export const ExitHandlers = new Array<() => void>();
 
 /**
  * These are the functions run before the server starts
@@ -80,29 +78,30 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/",
-        onValidation: ({ res }) => res.redirect("/home")
+        secureHandler: ({ res }) => res.redirect("/home")
     });
 
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/serverHeartbeat",
-        onValidation: ({ res }) => res.send(true)
+        secureHandler: ({ res }) => res.send(true)
     });
 
     addSupervisedRoute({
         method: Method.GET,
-        subscription: "/shutdown",
-        onValidation: async ({ res }) => {
-            WebSocket.disconnect();
-            await disconnect();
-            await Database.disconnect();
-            SolrManager.SetRunning(false);
-            res.send("Server successfully shut down.");
-            process.exit(0);
+        subscription: "/kill",
+        secureHandler: ({ res }) => {
+            const { send } = process;
+            if (send) {
+                res.send("Server successfully killed.");
+                send({ action: "kill" });
+            } else {
+                res.send("Server worker does not have a viable send protocol. Did not attempt to kill server.");
+            }
         }
     });
 
-    const serve: OnUnauthenticated = ({ req, res }) => {
+    const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
@@ -111,8 +110,8 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: ["/home", new RouteSubscriber("doc").add("docId")],
-        onValidation: serve,
-        onUnauthenticated: ({ req, ...remaining }) => {
+        secureHandler: serve,
+        publicHandler: ({ req, ...remaining }) => {
             const { originalUrl: target } = req;
             const sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
             const docAccess = target.startsWith("/doc/");
@@ -129,7 +128,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     WebSocket.initialize(serverPort, isRelease);
 }
 
-async function start() {
+async function launch() {
     await log_execution({
         startMessage: "\nstarting execution of preliminary functions",
         endMessage: "completed preliminary functions\n",
@@ -138,4 +137,4 @@ async function start() {
     await initializeServer({ serverPort: 1050, routeSetter });
 }
 
-Session.initialize(start);
+Session.initialize(launch);

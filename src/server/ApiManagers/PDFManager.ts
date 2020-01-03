@@ -17,7 +17,7 @@ export default class PDFManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("thumbnail").add("filename"),
-            onValidation: ({ req, res }) => getOrCreateThumbnail(req.params.filename, res)
+            secureHandler: ({ req, res }) => getOrCreateThumbnail(req.params.filename, res)
         });
 
     }

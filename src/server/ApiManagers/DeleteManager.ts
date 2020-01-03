@@ -10,7 +10,7 @@ export default class DeleteManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/delete",
-            onValidation: async ({ res, isRelease }) => {
+            secureHandler: async ({ res, isRelease }) => {
                 if (isRelease) {
                     return _permission_denied(res, deletionPermissionError);
                 }
@@ -22,7 +22,7 @@ export default class DeleteManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/deleteAll",
-            onValidation: async ({ res, isRelease }) => {
+            secureHandler: async ({ res, isRelease }) => {
                 if (isRelease) {
                     return _permission_denied(res, deletionPermissionError);
                 }
@@ -35,7 +35,7 @@ export default class DeleteManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/deleteWithAux",
-            onValidation: async ({ res, isRelease }) => {
+            secureHandler: async ({ res, isRelease }) => {
                 if (isRelease) {
                     return _permission_denied(res, deletionPermissionError);
                 }
@@ -47,7 +47,7 @@ export default class DeleteManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/deleteWithGoogleCredentials",
-            onValidation: async ({ res, isRelease }) => {
+            secureHandler: async ({ res, isRelease }) => {
                 if (isRelease) {
                     return _permission_denied(res, deletionPermissionError);
                 }
