@@ -13,6 +13,7 @@ import { green } from "colors";
 
 export namespace WebSocket {
 
+    export let _socket: Socket;
     const clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
@@ -28,6 +29,8 @@ export namespace WebSocket {
     export function initialize(socketPort: number, isRelease: boolean) {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
+            _socket = socket;
+
             socket.use((_packet, next) => {
                 const userEmail = socketMap.get(socket);
                 if (userEmail) {

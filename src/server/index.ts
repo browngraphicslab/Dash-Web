@@ -21,17 +21,11 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import { yellow, red, cyan } from "colors";
 import { disconnect } from "../server/Initialization";
 import { Logger } from "./ProcessFactory";
-import { isMaster, on, fork, workers } from "cluster";
-import { identifier } from "./session_manager/config";
-import InputManager from "./session_manager/input_manager";
-import { execSync } from "child_process";
-import { CrashEmail } from "./session_manager/crash_email";
-const killport = require("kill-port");
+import { yellow } from "colors";
+import { Session } from "./session";
 
-export const onWindows = process.platform === "win32";
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -144,28 +138,4 @@ async function start() {
     await initializeServer({ serverPort: 1050, routeSetter });
 }
 
-const admin = ["samuel_wilkins@brown.edu"];
-if (isMaster) {
-    fork();
-    on("exit", ({ process: { pid } }, code, signal) => {
-        const prompt = `Server worker with process id ${pid} has died with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.\n`;
-        console.log(cyan(prompt));
-        fork();
-    });
-    const { registerCommand } = new InputManager({ identifier });
-    registerCommand("exit", [], () => execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node"));
-    registerCommand("restart", [], () => {
-        for (const id in workers) {
-            workers[id]?.kill();
-        }
-        fork();
-    });
-} else {
-    process.on('uncaughtException', async error => {
-        await CrashEmail.dispatch(error, admin);
-        console.error(red(`Crash event detected @ ${new Date().toUTCString()}`));
-        console.error(error.message);
-        process.exit(1);
-    });
-    start();
-}
+Session.initialize(start);
