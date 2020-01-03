@@ -17,6 +17,7 @@ export namespace Session {
     export let key: string;
     export const signature = "Best,\nServer Session Manager";
     let activeWorker: Worker;
+    let listening = false;
     const masterIdentifier = `${yellow("__master__")}:`;
     const workerIdentifier = `${magenta("__worker__")}:`;
 
@@ -40,6 +41,10 @@ export namespace Session {
         return false;
     }
 
+    function logLifecycleEvent(lifecycle: string) {
+        process.send?.({ lifecycle });
+    }
+
     function messageHandler({ lifecycle, action }: any) {
         if (action) {
             console.log(`${workerIdentifier} action requested (${action})`);
@@ -54,6 +59,21 @@ export namespace Session {
         }
     }
 
+    async function activeExit(error: Error) {
+        if (!listening) {
+            return;
+        }
+        listening = false;
+        await Promise.all(admin.map(recipient => Email.dispatch(recipient, "Dash Web Server Crash", crashReport(error))));
+        const { _socket } = WebSocket;
+        if (_socket) {
+            Utils.Emit(_socket, MessageStore.ConnectionTerminated, "Manual");
+        }
+        logLifecycleEvent(red(`Crash event detected @ ${new Date().toUTCString()}`));
+        logLifecycleEvent(red(error.message));
+        process.exit(1);
+    }
+
     function crashReport({ name, message, stack }: Error) {
         return [
             "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
@@ -66,7 +86,6 @@ export namespace Session {
     }
 
     export async function initialize(work: Function) {
-        let listening = false;
         if (isMaster) {
             process.on("uncaughtException", error => {
                 if (error.message !== "Channel closed") {
@@ -96,22 +115,7 @@ export namespace Session {
                 tryKillActiveWorker();
             });
         } else {
-            const logLifecycleEvent = (lifecycle: string) => process.send?.({ lifecycle });
             logLifecycleEvent(green("initializing..."));
-            const activeExit = async (error: Error) => {
-                if (!listening) {
-                    return;
-                }
-                listening = false;
-                await Promise.all(admin.map(recipient => Email.dispatch(recipient, "Dash Web Server Crash", crashReport(error))));
-                const { _socket } = WebSocket;
-                if (_socket) {
-                    Utils.Emit(_socket, MessageStore.ConnectionTerminated, "Manual");
-                }
-                logLifecycleEvent(red(`Crash event detected @ ${new Date().toUTCString()}`));
-                logLifecycleEvent(red(error.message));
-                process.exit(1);
-            };
             process.on('uncaughtException', activeExit);
             const checkHeartbeat = async () => {
                 await new Promise<void>(resolve => {
