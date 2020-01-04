@@ -30,7 +30,7 @@ export namespace Session {
      * Validates and reads the configuration file, accordingly builds a child process factory
      * and spawns off an initial process that will respawn as predecessors die.
      */
-    export async function initializeMaster(): Promise<Repl> {
+    export async function initializeMonitorThread(): Promise<Repl> {
         let activeWorker: Worker;
 
         // read in configuration .json file only once, in the master thread
@@ -101,9 +101,13 @@ export namespace Session {
         setupMaster({ silent: !showServerOutput });
 
         // attempts to kills the active worker ungracefully
-        const tryKillActiveWorker = (): boolean => {
+        const tryKillActiveWorker = (strict = true): boolean => {
             if (activeWorker && !activeWorker.isDead()) {
-                activeWorker.process.kill();
+                if (strict) {
+                    activeWorker.process.kill();
+                } else {
+                    activeWorker.kill();
+                }
                 return true;
             }
             return false;
@@ -129,7 +133,7 @@ export namespace Session {
                     switch (message) {
                         case "kill":
                             console.log(masterIdentifier, red("An authorized user has ended the server session from the /kill route"));
-                            tryKillActiveWorker();
+                            tryKillActiveWorker(false);
                             process.exit(0);
                         case "notify_crash":
                             const { error: { name, message, stack } } = args;
@@ -179,7 +183,7 @@ export namespace Session {
      * email if the server encounters an uncaught exception or if the server cannot be reached.
      * @param work the function specifying the work to be done by each worker thread
      */
-    export async function initializeWorker(work: Function): Promise<void> {
+    export async function initializeWorkerThread(work: Function): Promise<void> {
         let listening = false;
 
         // notify master thread (which will log update in the console) of initialization via IPC

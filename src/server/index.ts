@@ -94,7 +94,8 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ req, res }) => {
             if (req.params.key === process.env.session_key) {
                 res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                setTimeout(() => process.send!({ action: { message: "kill" } }), 1000 * 5);
+                // setTimeout(() => process.send!({ action: { message: "kill" } }), 1000 * 5);
+                process.send!({ action: { message: "kill" } });
             } else {
                 res.redirect("/home");
             }
@@ -132,11 +133,11 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
  * Thread dependent session initialization
  */
 if (isMaster) {
-    Session.initializeMaster().then(({ registerCommand }) => {
+    Session.initializeMonitorThread().then(({ registerCommand }) => {
         registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
     });
 } else {
-    Session.initializeWorker(async () => {
+    Session.initializeWorkerThread(async () => {
         await log_execution({
             startMessage: "\nstarting execution of preliminary functions",
             endMessage: "completed preliminary functions\n",
