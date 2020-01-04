@@ -25,9 +25,12 @@ import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { Session } from "./Session/session";
 import { isMaster } from "cluster";
+import { execSync } from "child_process";
 
 if (isMaster) {
-    Session.initializeMaster();
+    Session.initializeMaster().then(repl => {
+        repl.registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+    });
 } else {
     Session.initializeWorker(launch);
 }

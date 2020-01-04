@@ -30,7 +30,7 @@ export namespace Session {
      * Validates and reads the configuration file, accordingly builds a child process factory
      * and spawns off an initial process that will respawn as predecessors die.
      */
-    export async function initializeMaster() {
+    export async function initializeMaster(): Promise<Repl> {
         let activeWorker: Worker;
 
         // read in configuration .json file only once, in the master thread
@@ -43,10 +43,9 @@ export namespace Session {
             heartbeat,
             showServerOutput,
             pollingIntervalSeconds
-        } = function loadConfiguration() {
+        } = function loadConfiguration(): any {
             try {
-                const raw = readFileSync('./session.config.json', 'utf8');
-                const configuration = JSON.parse(raw);
+                const configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
                 const options = {
                     throwError: true,
                     allowUnknownAttributes: false
@@ -72,17 +71,21 @@ export namespace Session {
             }
         }();
 
-        // this sends a random guid to the configuration's recipients, allowing them alone
+        // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
         // to kill the server via the /kill/:password route
         const key = Utils.GenerateGuid();
         const timestamp = new Date().toUTCString();
         const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature}`;
-        await Email.dispatchAll(recipients, "Server Termination Key", content);
-
-        console.log(masterIdentifier, "distributed session key to recipients");
+        const results = await Email.dispatchAll(recipients, "Server Termination Key", content);
+        if (results.some(success => !success)) {
+            console.log(masterIdentifier, red("distribution of session key failed"));
+        } else {
+            console.log(masterIdentifier, green("distributed session key to recipients"));
+        }
 
         // handle exceptions in the master thread - there shouldn't be many of these
-        // the IPC (inter process communication) channel closed exception can't seem to be caught in a try catch, and is inconsequential, so it is ignored
+        // the IPC (inter process communication) channel closed exception can't seem
+        // to be caught in a try catch, and is inconsequential, so it is ignored
         process.on("uncaughtException", ({ message, stack }) => {
             if (message !== "Channel closed") {
                 console.log(masterIdentifier, red(message));
@@ -96,7 +99,7 @@ export namespace Session {
         setupMaster({ silent: !showServerOutput });
 
         // attempts to kills the active worker ungracefully
-        const tryKillActiveWorker = () => {
+        const tryKillActiveWorker = (): boolean => {
             if (activeWorker && !activeWorker.isDead()) {
                 activeWorker.process.kill();
                 return true;
@@ -104,8 +107,9 @@ export namespace Session {
             return false;
         };
 
-        // kills the current active worker and proceeds to spawn a new worker, feeding in configuration information as environment variables
-        const spawn = () => {
+        // kills the current active worker and proceeds to spawn a new worker,
+        // feeding in configuration information as environment variables
+        const spawn = (): void => {
             tryKillActiveWorker();
             activeWorker = fork({
                 heartbeat,
@@ -150,10 +154,9 @@ export namespace Session {
         });
 
         // builds the repl that allows the following commands to be typed into stdin of the master thread
-        const { registerCommand } = new Repl({ identifier: masterIdentifier });
-        registerCommand("exit", [], () => execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node"));
-        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-        registerCommand("restart", [], () => {
+        const repl = new Repl({ identifier: masterIdentifier });
+        repl.registerCommand("exit", [], () => execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node"));
+        repl.registerCommand("restart", [], () => {
             // indicate to the worker that we are 'expecting' this restart
             activeWorker.send({ setListening: false });
             tryKillActiveWorker();
@@ -161,6 +164,9 @@ export namespace Session {
 
         // finally, set things in motion by spawning off the first child (server) process
         spawn();
+
+        // returned to allow the caller to add custom commands
+        return repl;
     }
 
     /**
@@ -180,7 +186,7 @@ export namespace Session {
 
         // called whenever the process has a reason to terminate, either through an uncaught exception
         // in the process (potentially inconsistent state) or the server cannot be reached
-        const activeExit = (error: Error) => {
+        const activeExit = (error: Error): void => {
             if (!listening) {
                 return;
             }
@@ -210,7 +216,7 @@ export namespace Session {
 
         // this monitors the health of the server by submitting a get request to whatever port / route specified
         // by the configuration every n seconds, where n is also given by the configuration. 
-        const checkHeartbeat = async () => {
+        const checkHeartbeat = async (): Promise<void> => {
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
                     try {
