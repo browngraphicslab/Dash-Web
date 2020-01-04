@@ -15,7 +15,6 @@ const onWindows = process.platform === "win32";
 
 export namespace Session {
 
-    const { masterIdentifier, workerIdentifier, recipients, signature, heartbeat, silentChildren } = loadConfiguration();
     export let key: string;
     let activeWorker: Worker;
     let listening = false;
@@ -47,16 +46,8 @@ export namespace Session {
         }
     }
 
-    function log(message?: any, ...optionalParams: any[]) {
-        const identifier = isMaster ? masterIdentifier : workerIdentifier;
-        console.log(identifier, message, ...optionalParams);
-    }
-
-    export async function distributeKey() {
-        key = Utils.GenerateGuid();
-        const timestamp = new Date().toUTCString();
-        const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature}`;
-        return Promise.all(recipients.map((recipient: string) => Email.dispatch(recipient, "Server Termination Key", content)));
+    export async function email(recipients: string[], subject: string, content: string) {
+        return Promise.all(recipients.map((recipient: string) => Email.dispatch(recipient, subject, content)));
     }
 
     function tryKillActiveWorker() {
@@ -67,70 +58,85 @@ export namespace Session {
         return false;
     }
 
-    function logLifecycleEvent(lifecycle: string) {
-        process.send?.({ lifecycle });
-    }
-
-    function messageHandler({ lifecycle, action }: any) {
-        if (action) {
-            console.log(`${workerIdentifier} action requested (${action})`);
-            switch (action) {
-                case "kill":
-                    log(red("An authorized user has ended the server from the /kill route"));
-                    tryKillActiveWorker();
-                    process.exit(0);
-            }
-        } else if (lifecycle) {
-            console.log(`${workerIdentifier} lifecycle phase (${lifecycle})`);
-        }
-    }
-
     async function activeExit(error: Error) {
         if (!listening) {
             return;
         }
         listening = false;
-        await Promise.all(recipients.map((recipient: string) => Email.dispatch(recipient, "Dash Web Server Crash", crashReport(error))));
+        process.send?.({
+            action: {
+                message: "notify_crash",
+                args: { error }
+            }
+        });
         const { _socket } = WebSocket;
         if (_socket) {
             Utils.Emit(_socket, MessageStore.ConnectionTerminated, "Manual");
         }
-        logLifecycleEvent(red(`Crash event detected @ ${new Date().toUTCString()}`));
-        logLifecycleEvent(red(error.message));
+        process.send?.({ lifecycle: red(`Crash event detected @ ${new Date().toUTCString()}`) });
+        process.send?.({ lifecycle: red(error.message) });
         process.exit(1);
-    }
-
-    function crashReport({ name, message, stack }: Error) {
-        return [
-            "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
-            `name:\n${name}`,
-            `message:\n${message}`,
-            `stack:\n${stack}`,
-            "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
-            signature
-        ].join("\n\n");
     }
 
     export async function initialize(work: Function) {
         if (isMaster) {
-            process.on("uncaughtException", error => {
-                if (error.message !== "Channel closed") {
-                    log(red(error.message));
-                    if (error.stack) {
-                        log(`\n${red(error.stack)}`);
+            const {
+                masterIdentifier,
+                workerIdentifier,
+                recipients,
+                signature,
+                heartbeat,
+                silentChildren
+            } = loadConfiguration();
+            await (async function distributeKey() {
+                key = Utils.GenerateGuid();
+                const timestamp = new Date().toUTCString();
+                const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature}`;
+                return email(recipients, "Server Termination Key", content);
+            })();
+            console.log(masterIdentifier, "distributed session key to recipients");
+            process.on("uncaughtException", ({ message, stack }) => {
+                if (message !== "Channel closed") {
+                    console.log(masterIdentifier, red(message));
+                    if (stack) {
+                        console.log(masterIdentifier, `\n${red(stack)}`);
                     }
                 }
             });
             setupMaster({ silent: silentChildren });
             const spawn = () => {
                 tryKillActiveWorker();
-                activeWorker = fork();
-                activeWorker.on("message", messageHandler);
+                activeWorker = fork({ heartbeat, session_key: key });
+                console.log(masterIdentifier, `spawned new server worker with process id ${activeWorker.process.pid}`);
+                activeWorker.on("message", ({ lifecycle, action }) => {
+                    if (action) {
+                        const { message, args } = action;
+                        console.log(`${workerIdentifier} action requested (${cyan(message)})`);
+                        switch (message) {
+                            case "kill":
+                                console.log(masterIdentifier, red("An authorized user has ended the server session from the /kill route"));
+                                tryKillActiveWorker();
+                                process.exit(0);
+                            case "notify_crash":
+                                const { error: { name, message, stack } } = args;
+                                email(recipients, "Dash Web Server Crash", [
+                                    "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
+                                    `name:\n${name}`,
+                                    `message:\n${message}`,
+                                    `stack:\n${stack}`,
+                                    "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
+                                    signature
+                                ].join("\n\n"));
+                        }
+                    } else if (lifecycle) {
+                        console.log(`${workerIdentifier} lifecycle phase (${lifecycle})`);
+                    }
+                });
             };
             spawn();
             on("exit", ({ process: { pid } }, code, signal) => {
                 const prompt = `Server worker with process id ${pid} has exited with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.`;
-                log(cyan(prompt));
+                console.log(masterIdentifier, cyan(prompt));
                 spawn();
             });
             const { registerCommand } = new Repl({ identifier: masterIdentifier });
@@ -141,15 +147,15 @@ export namespace Session {
                 tryKillActiveWorker();
             });
         } else {
-            logLifecycleEvent(green("initializing..."));
+            process.send?.({ lifecycle: green("initializing...") });
             process.on('uncaughtException', activeExit);
             const checkHeartbeat = async () => {
                 await new Promise<void>(resolve => {
                     setTimeout(async () => {
                         try {
-                            await get(heartbeat);
+                            await get(process.env.heartbeat!);
                             if (!listening) {
-                                logLifecycleEvent(green("listening..."));
+                                process.send?.({ lifecycle: green("listening...") });
                             }
                             listening = true;
                             resolve();

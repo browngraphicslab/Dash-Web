@@ -24,7 +24,6 @@ import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { Session } from "./Session/session";
-import { Utils } from "../Utils";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -35,7 +34,6 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
-    await Session.distributeKey();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
@@ -92,8 +90,8 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: new RouteSubscriber("kill").add("password"),
         secureHandler: ({ req, res }) => {
-            if (req.params.password === Session.key) {
-                process.send!({ action: yellow("kill") });
+            if (req.params.password === process.env.session_key) {
+                process.send!({ action: { message: "kill" } });
                 res.send("Server successfully killed.");
             } else {
                 res.redirect("/home");
