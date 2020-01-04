@@ -175,7 +175,7 @@ export namespace Session {
      * email if the server encounters an uncaught exception or if the server cannot be reached.
      * @param work the function specifying the work to be done by each worker thread
      */
-    export async function initializeWorker(work: Function) {
+    export async function initializeWorker(work: Function): Promise<void> {
         let listening = false;
 
         // notify master thread (which will log update in the console) of initialization via IPC
