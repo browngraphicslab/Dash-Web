@@ -28,8 +28,8 @@ import { isMaster } from "cluster";
 import { execSync } from "child_process";
 
 if (isMaster) {
-    Session.initializeMaster().then(repl => {
-        repl.registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+    Session.initializeMaster().then(({ registerCommand }) => {
+        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
     });
 } else {
     Session.initializeWorker(launch);
