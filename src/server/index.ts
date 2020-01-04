@@ -27,14 +27,6 @@ import { Session } from "./Session/session";
 import { isMaster } from "cluster";
 import { execSync } from "child_process";
 
-if (isMaster) {
-    Session.initializeMaster().then(({ registerCommand }) => {
-        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-    });
-} else {
-    Session.initializeWorker(launch);
-}
-
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -136,11 +128,20 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     WebSocket.initialize(serverPort, isRelease);
 }
 
-async function launch() {
-    await log_execution({
-        startMessage: "\nstarting execution of preliminary functions",
-        endMessage: "completed preliminary functions\n",
-        action: preliminaryFunctions
+/**
+ * Thread dependent session initialization
+ */
+if (isMaster) {
+    Session.initializeMaster().then(({ registerCommand }) => {
+        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
     });
-    await initializeServer({ serverPort: 1050, routeSetter });
+} else {
+    Session.initializeWorker(async () => {
+        await log_execution({
+            startMessage: "\nstarting execution of preliminary functions",
+            endMessage: "completed preliminary functions\n",
+            action: preliminaryFunctions
+        });
+        await initializeServer({ serverPort: 1050, routeSetter });
+    });
 }
