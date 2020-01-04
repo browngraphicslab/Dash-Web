@@ -90,11 +90,11 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     addSupervisedRoute({
         method: Method.GET,
-        subscription: new RouteSubscriber("kill").add("password"),
+        subscription: new RouteSubscriber("kill").add("key"),
         secureHandler: ({ req, res }) => {
-            if (req.params.password === process.env.session_key) {
-                process.send!({ action: { message: "kill" } });
-                res.send("Server successfully killed.");
+            if (req.params.key === process.env.session_key) {
+                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
+                setTimeout(() => process.send!({ action: { message: "kill" } }), 1000 * 5);
             } else {
                 res.redirect("/home");
             }
@@ -125,7 +125,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(serverPort, isRelease);
+    WebSocket.start(isRelease);
 }
 
 /**
@@ -142,6 +142,6 @@ if (isMaster) {
             endMessage: "completed preliminary functions\n",
             action: preliminaryFunctions
         });
-        await initializeServer({ serverPort: 1050, routeSetter });
+        await initializeServer(routeSetter);
     });
 }

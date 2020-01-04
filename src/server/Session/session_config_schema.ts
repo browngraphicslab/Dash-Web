@@ -1,7 +1,7 @@
 import { Schema } from "jsonschema";
 
 const emailPattern = /^(([a-zA-Z0-9_.-])+@([a-zA-Z0-9_.-])+\.([a-zA-Z])+([a-zA-Z])+)?$/g;
-const localPortPattern = /http\:\/\/localhost:\d+\/[a-zA-Z]+/g;
+const localPortPattern = /\/[a-zA-Z]+/g;
 
 const properties = {
     recipients: {
@@ -12,7 +12,9 @@ const properties = {
         },
         minLength: 1
     },
-    heartbeat: {
+    serverPort: { type: "number" },
+    socketPort: { type: "number" },
+    heartbeatRoute: {
         type: "string",
         pattern: localPortPattern
     },

@@ -40,7 +40,9 @@ export namespace Session {
             workerIdentifier,
             recipients,
             signature,
-            heartbeat,
+            heartbeatRoute,
+            serverPort,
+            socketPort,
             showServerOutput,
             pollingIntervalSeconds
         } = function loadConfiguration(): any {
@@ -72,7 +74,7 @@ export namespace Session {
         }();
 
         // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
-        // to kill the server via the /kill/:password route
+        // to kill the server via the /kill/:key route
         const key = Utils.GenerateGuid();
         const timestamp = new Date().toUTCString();
         const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature}`;
@@ -112,7 +114,9 @@ export namespace Session {
         const spawn = (): void => {
             tryKillActiveWorker();
             activeWorker = fork({
-                heartbeat,
+                heartbeatRoute,
+                serverPort,
+                socketPort,
                 pollingIntervalSeconds,
                 session_key: key
             });
@@ -212,18 +216,22 @@ export namespace Session {
         // one reason to exit, as the process might be in an inconsistent state after such an exception
         process.on('uncaughtException', activeExit);
 
-        const { pollingIntervalSeconds, heartbeat } = process.env;
-
+        const {
+            pollingIntervalSeconds,
+            heartbeatRoute,
+            serverPort
+        } = process.env;
         // this monitors the health of the server by submitting a get request to whatever port / route specified
         // by the configuration every n seconds, where n is also given by the configuration. 
+        const heartbeat = `http://localhost:${serverPort}${heartbeatRoute}`;
         const checkHeartbeat = async (): Promise<void> => {
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
                     try {
-                        await get(heartbeat!);
+                        await get(heartbeat);
                         if (!listening) {
                             // notify master thread (which will log update in the console) via IPC that the server is up and running
-                            process.send?.({ lifecycle: green("listening...") });
+                            process.send?.({ lifecycle: green(`listening on ${serverPort}...`) });
                         }
                         listening = true;
                         resolve();
@@ -239,12 +247,8 @@ export namespace Session {
             checkHeartbeat();
         };
 
-        // the actual work of the process, may be asynchronous
-        // for Dash, this is the code that launches the server
         work();
-
-        // begin polling
-        checkHeartbeat();
+        checkHeartbeat(); // begin polling
     }
 
 }

@@ -26,15 +26,9 @@ import { blue, yellow } from 'colors';
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
 export type RouteSetter = (server: RouteManager) => void;
-export interface InitializationOptions {
-    serverPort: number;
-    routeSetter: RouteSetter;
-}
-
 export let disconnect: Function;
 
-export default async function InitializeServer(options: InitializationOptions) {
-    const { serverPort, routeSetter } = options;
+export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
 
     app.use(express.static(publicDirectory));
@@ -63,8 +57,9 @@ export default async function InitializeServer(options: InitializationOptions) {
 
     routeSetter(new RouteManager(app, isRelease));
 
+    const serverPort = Number(process.env.serverPort);
     const server = app.listen(serverPort, () => {
-        logPort("server", serverPort);
+        logPort("server", Number(serverPort));
         console.log();
     });
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));

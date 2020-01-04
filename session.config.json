@@ -3,7 +3,9 @@
     "recipients": [
         "samuel_wilkins@brown.edu"
     ],
-    "heartbeat": "http://localhost:1050/serverHeartbeat",
+    "serverPort": 1050,
+    "socketPort": 4321,
+    "heartbeatRoute": "/serverHeartbeat",
     "pollingIntervalSeconds": 15,
     "masterIdentifier": "__master__",
     "workerIdentifier": "__worker__",
