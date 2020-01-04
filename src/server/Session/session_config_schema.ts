@@ -1,25 +1,31 @@
 import { Schema } from "jsonschema";
 
-export const configurationSchema: Schema = {
-    id: "/Configuration",
-    type: "object",
-    properties: {
-        recipients: {
-            type: "array",
-            items: {
-                type: "string",
-                pattern: /[^\@]+\@[^\@]+/g
-            },
-            minLength: 1
-        },
-        heartbeat: {
+const emailPattern = /^(([a-zA-Z0-9_.-])+@([a-zA-Z0-9_.-])+\.([a-zA-Z])+([a-zA-Z])+)?$/g;
+const localPortPattern = /http\:\/\/localhost:\d+\/[a-zA-Z]+/g;
+
+const properties = {
+    recipients: {
+        type: "array",
+        items: {
             type: "string",
-            pattern: /http\:\/\/localhost:\d+\/[a-zA-Z]+/g
+            pattern: emailPattern
         },
-        signature: { type: "string" },
-        masterIdentifier: { type: "string", minLength: 1 },
-        workerIdentifier: { type: "string", minLength: 1 },
-        silentChildren: { type: "boolean" }
+        minLength: 1
     },
-    required: ["heartbeat", "recipients", "signature", "masterIdentifier", "workerIdentifier", "silentChildren"]
+    heartbeat: {
+        type: "string",
+        pattern: localPortPattern
+    },
+    signature: { type: "string" },
+    masterIdentifier: { type: "string", minLength: 1 },
+    workerIdentifier: { type: "string", minLength: 1 },
+    showServerOutput: { type: "boolean" },
+    pollingIntervalSeconds: { type: "number", minimum: 1, maximum: 86400 }
+};
+
+export const configurationSchema: Schema = {
+    id: "/configuration",
+    type: "object",
+    properties,
+    required: Object.keys(properties)
 };

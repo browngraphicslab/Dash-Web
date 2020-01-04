@@ -1,10 +1,11 @@
 {
-    "heartbeat": "http://localhost:1050/serverHeartbeat",
-    "signature": "Best,\nServer Session Manager",
-    "masterIdentifier": "__master__",
-    "workerIdentifier": "__worker__",
+    "showServerOutput": false,
     "recipients": [
         "samuel_wilkins@brown.edu"
     ],
-    "silentChildren": true
+    "heartbeat": "http://localhost:1050/serverHeartbeat",
+    "pollingIntervalSeconds": 15,
+    "masterIdentifier": "__master__",
+    "workerIdentifier": "__worker__",
+    "signature": "Best,\nServer Session Manager"
 }

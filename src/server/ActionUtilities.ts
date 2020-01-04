@@ -118,6 +118,10 @@ export namespace Email {
         }
     });
 
+    export async function dispatchAll(recipients: string[], subject: string, content: string) {
+        return Promise.all(recipients.map((recipient: string) => Email.dispatch(recipient, subject, content)));
+    }
+
     export async function dispatch(recipient: string, subject: string, content: string): Promise<boolean> {
         const mailOptions = {
             to: recipient,

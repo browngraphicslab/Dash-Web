@@ -24,6 +24,13 @@ import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { Session } from "./Session/session";
+import { isMaster } from "cluster";
+
+if (isMaster) {
+    Session.initializeMaster();
+} else {
+    Session.initializeWorker(launch);
+}
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -134,5 +141,3 @@ async function launch() {
     });
     await initializeServer({ serverPort: 1050, routeSetter });
 }
-
-Session.initialize(launch);
