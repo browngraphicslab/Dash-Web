@@ -23,7 +23,7 @@ import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
-import { Session } from "./session";
+import { Session } from "./Session/session";
 import { Utils } from "../Utils";
 
 export const publicDirectory = path.resolve(__dirname, "public");

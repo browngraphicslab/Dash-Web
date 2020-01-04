@@ -1,0 +1,10 @@
+{
+    "heartbeat": "http://localhost:1050/serverHeartbeat",
+    "signature": "Best,\nServer Session Manager",
+    "masterIdentifier": "__master__",
+    "workerIdentifier": "__worker__",
+    "recipients": [
+        "samuel_wilkins@brown.edu"
+    ],
+    "silentChildren": true
+}

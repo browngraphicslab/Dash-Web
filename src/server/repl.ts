@@ -13,7 +13,7 @@ export interface Registration {
     action: Action;
 }
 
-export default class InputManager {
+export default class Repl {
     private identifier: string;
     private onInvalid: ((culprit?: string) => string) | string;
     private isCaseSensitive: boolean;
