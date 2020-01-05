@@ -7,10 +7,10 @@ const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
 import initializeServer from './Initialization';
-import RouteManager, { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
+import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
+import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -21,14 +21,14 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import { yellow, red } from "colors";
-import { disconnect } from "../server/Initialization";
-import { ProcessFactory, Logger } from "./ProcessFactory";
+import { Logger } from "./ProcessFactory";
+import { yellow } from "colors";
+import { Session } from "./Session/session";
+import { isMaster } from "cluster";
+import { execSync } from "child_process";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
-
-export const ExitHandlers = new Array<() => void>();
 
 /**
  * These are the functions run before the server starts
@@ -79,29 +79,30 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/",
-        onValidation: ({ res }) => res.redirect("/home")
+        secureHandler: ({ res }) => res.redirect("/home")
     });
 
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/serverHeartbeat",
-        onValidation: ({ res }) => res.send(true)
+        secureHandler: ({ res }) => res.send(true)
     });
 
     addSupervisedRoute({
         method: Method.GET,
-        subscription: "/shutdown",
-        onValidation: async ({ res }) => {
-            WebSocket.disconnect();
-            await disconnect();
-            await Database.disconnect();
-            SolrManager.SetRunning(false);
-            res.send("Server successfully shut down.");
-            process.exit(0);
+        subscription: new RouteSubscriber("kill").add("key"),
+        secureHandler: ({ req, res }) => {
+            if (req.params.key === process.env.session_key) {
+                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
+                // setTimeout(() => process.send!({ action: { message: "kill" } }), 1000 * 5);
+                process.send!({ action: { message: "kill" } });
+            } else {
+                res.redirect("/home");
+            }
         }
     });
 
-    const serve: OnUnauthenticated = ({ req, res }) => {
+    const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
@@ -110,8 +111,8 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: ["/home", new RouteSubscriber("doc").add("docId")],
-        onValidation: serve,
-        onUnauthenticated: ({ req, ...remaining }) => {
+        secureHandler: serve,
+        publicHandler: ({ req, ...remaining }) => {
             const { originalUrl: target } = req;
             const sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
             const docAccess = target.startsWith("/doc/");
@@ -125,14 +126,23 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(serverPort, isRelease);
+    WebSocket.start(isRelease);
 }
 
-(async function start() {
-    await log_execution({
-        startMessage: "\nstarting execution of preliminary functions",
-        endMessage: "completed preliminary functions\n",
-        action: preliminaryFunctions
+/**
+ * Thread dependent session initialization
+ */
+if (isMaster) {
+    Session.initializeMonitorThread().then(({ registerCommand }) => {
+        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
     });
-    await initializeServer({ serverPort: 1050, routeSetter });
-})();
+} else {
+    Session.initializeWorkerThread(async () => {
+        await log_execution({
+            startMessage: "\nstarting execution of preliminary functions",
+            endMessage: "completed preliminary functions\n",
+            action: preliminaryFunctions
+        });
+        await initializeServer(routeSetter);
+    });
+}

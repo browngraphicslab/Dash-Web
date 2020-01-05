@@ -82,7 +82,7 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
-        _socket.on("connection_terminated", () => alert("Your connection to the server has been terminated."));
+        Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, () => alert("Your connection to the server has been terminated."));
     }
 
     function errorFunc(): never {

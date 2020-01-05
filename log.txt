@@ -1,5 +1,0 @@
-
-> dash@1.0.0 start C:\Users\dash\Documents\Dash-Web
-> ts-node-dev -- src/server/index.ts
-
-Using ts-node version 7.0.1, typescript version 3.4.1

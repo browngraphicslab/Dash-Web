@@ -7,12 +7,13 @@ export interface Configuration {
     isCaseSensitive?: boolean;
 }
 
+type Action = (parsedArgs: IterableIterator<string>) => any | Promise<any>;
 export interface Registration {
-    argPattern: RegExp[];
-    action: (parsedArgs: IterableIterator<string>) => any | Promise<any>;
+    argPatterns: RegExp[];
+    action: Action;
 }
 
-export default class InputManager {
+export default class Repl {
     private identifier: string;
     private onInvalid: ((culprit?: string) => string) | string;
     private isCaseSensitive: boolean;
@@ -42,9 +43,10 @@ export default class InputManager {
         return `${this.identifier} commands: { ${members.sort().join(", ")} }`;
     }
 
-    public registerCommand = (basename: string, argPattern: RegExp[], action: any | Promise<any>) => {
+    public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: Action) => {
         const existing = this.commandMap.get(basename);
-        const registration = { argPattern, action };
+        const converted = argPatterns.map(input => input instanceof RegExp ? input : new RegExp(input));
+        const registration = { argPatterns: converted, action };
         if (existing) {
             existing.push(registration);
         } else {
@@ -74,14 +76,14 @@ export default class InputManager {
         const registered = this.commandMap.get(command);
         if (registered) {
             const { length } = args;
-            const candidates = registered.filter(({ argPattern: { length: count } }) => count === length);
-            for (const { argPattern, action } of candidates) {
+            const candidates = registered.filter(({ argPatterns: { length: count } }) => count === length);
+            for (const { argPatterns, action } of candidates) {
                 const parsed: string[] = [];
                 let matched = false;
                 if (length) {
                     for (let i = 0; i < length; i++) {
                         let matches: RegExpExecArray | null;
-                        if ((matches = argPattern[i].exec(args[i])) === null) {
+                        if ((matches = argPatterns[i].exec(args[i])) === null) {
                             break;
                         }
                         parsed.push(matches[0]);

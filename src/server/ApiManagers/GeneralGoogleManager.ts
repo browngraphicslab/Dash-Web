@@ -19,7 +19,7 @@ export default class GeneralGoogleManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/readGoogleAccessToken",
-            onValidation: async ({ user, res }) => {
+            secureHandler: async ({ user, res }) => {
                 const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
                 if (!token) {
                     return res.send(GoogleApiServerUtils.generateAuthenticationUrl());
@@ -31,7 +31,7 @@ export default class GeneralGoogleManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/writeGoogleAccessToken",
-            onValidation: async ({ user, req, res }) => {
+            secureHandler: async ({ user, req, res }) => {
                 res.send(await GoogleApiServerUtils.processNewUser(user.id, req.body.authenticationCode));
             }
         });
@@ -39,7 +39,7 @@ export default class GeneralGoogleManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: new RouteSubscriber("googleDocs").add("sector", "action"),
-            onValidation: async ({ req, res, user }) => {
+            secureHandler: async ({ req, res, user }) => {
                 const sector: GoogleApiServerUtils.Service = req.params.sector as GoogleApiServerUtils.Service;
                 const action: GoogleApiServerUtils.Action = req.params.action as GoogleApiServerUtils.Action;
                 const endpoint = await GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], user.id);
