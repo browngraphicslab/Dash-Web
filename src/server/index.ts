@@ -26,6 +26,8 @@ import { yellow } from "colors";
 import { Session } from "./Session/session";
 import { isMaster } from "cluster";
 import { execSync } from "child_process";
+import { Utils } from "../Utils";
+import { MessageStore } from "./Message";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -132,17 +134,31 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 /**
  * Thread dependent session initialization
  */
-if (isMaster) {
-    Session.initializeMonitorThread().then(({ registerCommand }) => {
-        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-    });
-} else {
-    Session.initializeWorkerThread(async () => {
-        await log_execution({
-            startMessage: "\nstarting execution of preliminary functions",
-            endMessage: "completed preliminary functions\n",
-            action: preliminaryFunctions
+(async function launch() {
+    if (isMaster) {
+        const emailGenerator = (error: Error) => {
+            const subject = "Dash Web Server Crash";
+            const { name, message, stack } = error;
+            const body = [
+                "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
+                `name:\n${name}`,
+                `message:\n${message}`,
+                `stack:\n${stack}`,
+                "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
+            ].join("\n\n");
+            return { subject, body };
+        };
+        const customizer = await Session.initializeMonitorThread(emailGenerator);
+        customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+    } else {
+        const addExitHandler = await Session.initializeWorkerThread(async () => {
+            await log_execution({
+                startMessage: "\nstarting execution of preliminary functions",
+                endMessage: "completed preliminary functions\n",
+                action: preliminaryFunctions
+            });
+            await initializeServer(routeSetter);
         });
-        await initializeServer(routeSetter);
-    });
-}
+        addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
+    }
+})();

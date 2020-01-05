@@ -1,30 +1,33 @@
 import { createInterface, Interface } from "readline";
-import { red } from "colors";
+import { red, green, white } from "colors";
 
 export interface Configuration {
     identifier: string;
     onInvalid?: (culprit?: string) => string | string;
+    onValid?: (success?: string) => string | string;
     isCaseSensitive?: boolean;
 }
 
-type Action = (parsedArgs: IterableIterator<string>) => any | Promise<any>;
+export type ReplAction = (parsedArgs: Array<string>) => any | Promise<any>;
 export interface Registration {
     argPatterns: RegExp[];
-    action: Action;
+    action: ReplAction;
 }
 
 export default class Repl {
     private identifier: string;
-    private onInvalid: ((culprit?: string) => string) | string;
+    private onInvalid: (culprit?: string) => string | string;
+    private onValid: (success: string) => string | string;
     private isCaseSensitive: boolean;
     private commandMap = new Map<string, Registration[]>();
     public interface: Interface;
     private busy = false;
     private keys: string | undefined;
 
-    constructor({ identifier: prompt, onInvalid, isCaseSensitive }: Configuration) {
+    constructor({ identifier: prompt, onInvalid, onValid, isCaseSensitive }: Configuration) {
         this.identifier = prompt;
         this.onInvalid = onInvalid || this.usage;
+        this.onValid = onValid || this.success;
         this.isCaseSensitive = isCaseSensitive ?? true;
         this.interface = createInterface(process.stdin, process.stdout).on('line', this.considerInput);
     }
@@ -43,7 +46,9 @@ export default class Repl {
         return `${this.identifier} commands: { ${members.sort().join(", ")} }`;
     }
 
-    public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: Action) => {
+    private success = (command: string) => `${this.identifier} completed execution of ${white(command)}`;
+
+    public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
         const existing = this.commandMap.get(basename);
         const converted = argPatterns.map(input => input instanceof RegExp ? input : new RegExp(input));
         const registration = { argPatterns: converted, action };
@@ -59,7 +64,13 @@ export default class Repl {
         this.busy = false;
     }
 
+    private valid = (command: string) => {
+        console.log(green(typeof this.onValid === "string" ? this.onValid : this.onValid(command)));
+        this.busy = false;
+    }
+
     private considerInput = async (line: string) => {
+        console.log("raw", line);
         if (this.busy) {
             console.log(red("Busy"));
             return;
@@ -91,8 +102,8 @@ export default class Repl {
                     matched = true;
                 }
                 if (!length || matched) {
-                    await action(parsed[Symbol.iterator]());
-                    this.busy = false;
+                    await action(parsed);
+                    this.valid(`${command} ${parsed.join(" ")}`);
                     return;
                 }
             }

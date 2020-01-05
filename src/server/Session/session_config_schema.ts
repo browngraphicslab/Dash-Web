@@ -3,7 +3,7 @@ import { Schema } from "jsonschema";
 const emailPattern = /^(([a-zA-Z0-9_.-])+@([a-zA-Z0-9_.-])+\.([a-zA-Z])+([a-zA-Z])+)?$/g;
 const localPortPattern = /\/[a-zA-Z]+/g;
 
-const properties = {
+const properties: { [name: string]: Schema } = {
     recipients: {
         type: "array",
         items: {
@@ -12,8 +12,15 @@ const properties = {
         },
         minLength: 1
     },
-    serverPort: { type: "number" },
-    socketPort: { type: "number" },
+    ports: {
+        type: "object",
+        properties: {
+            server: { type: "number" },
+            socket: { type: "number" }
+        },
+        required: ["server"],
+        additionalProperties: true
+    },
     heartbeatRoute: {
         type: "string",
         pattern: localPortPattern
