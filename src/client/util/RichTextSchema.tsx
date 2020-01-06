@@ -274,6 +274,7 @@ export const marks: { [index: string]: MarkSpec } = {
     link: {
         attrs: {
             href: {},
+            showPreview: { default: true },
             location: { default: null },
             title: { default: null },
             docref: { default: false } // flags whether the linked text comes from a document within Dash.  If so, an attribution label is appended after the text
