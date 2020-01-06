@@ -1,8 +1,5 @@
 import { Schema } from "jsonschema";
 
-const emailPattern = /^(([a-zA-Z0-9_.-])+@([a-zA-Z0-9_.-])+\.([a-zA-Z])+([a-zA-Z])+)?$/g;
-const routePattern = /\/[a-zA-Z]*/g;
-
 export const configurationSchema: Schema = {
     id: "/configuration",
     type: "object",
@@ -18,25 +15,7 @@ export const configurationSchema: Schema = {
         },
         pollingRoute: {
             type: "string",
-            pattern: routePattern
-        },
-        email: {
-            type: "object",
-            properties: {
-                recipients: {
-                    type: "array",
-                    items: {
-                        type: "string",
-                        pattern: emailPattern
-                    },
-                    minLength: 1
-                },
-                signature: {
-                    type: "string",
-                    minLength: 1
-                }
-            },
-            required: ["recipients"]
+            pattern: /\/[a-zA-Z]*/g
         },
         masterIdentifier: {
             type: "string",

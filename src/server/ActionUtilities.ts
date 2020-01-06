@@ -119,7 +119,13 @@ export namespace Email {
     });
 
     export async function dispatchAll(recipients: string[], subject: string, content: string) {
-        return Promise.all(recipients.map((recipient: string) => Email.dispatch(recipient, subject, content)));
+        const failures: string[] = [];
+        await Promise.all(recipients.map(async (recipient: string) => {
+            if (!await Email.dispatch(recipient, subject, content)) {
+                failures.push(recipient);
+            }
+        }));
+        return failures;
     }
 
     export async function dispatch(recipient: string, subject: string, content: string): Promise<boolean> {

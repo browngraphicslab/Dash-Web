@@ -3,7 +3,6 @@ import { on, fork, setupMaster, Worker } from "cluster";
 import { execSync } from "child_process";
 import { get } from "request-promise";
 import { Utils } from "../../Utils";
-import { Email } from "../ActionUtilities";
 import Repl, { ReplAction } from "../repl";
 import { readFileSync } from "fs";
 import { validate, ValidationError } from "jsonschema";
@@ -24,16 +23,10 @@ const onWindows = process.platform === "win32";
      */
 export namespace Session {
 
-    interface EmailOptions {
-        recipients: string[];
-        signature?: string;
-    }
-
     interface Configuration {
         showServerOutput: boolean;
         masterIdentifier: string;
         workerIdentifier: string;
-        email: EmailOptions | undefined;
         ports: { [description: string]: number };
         pollingRoute: string;
         pollingIntervalSeconds: number;
@@ -44,17 +37,19 @@ export namespace Session {
         showServerOutput: false,
         masterIdentifier: yellow("__monitor__:"),
         workerIdentifier: magenta("__server__:"),
-        email: undefined,
         ports: { server: 3000 },
         pollingRoute: "/",
         pollingIntervalSeconds: 30
     };
 
-    const defaultSignature = "-Server Session Manager";
-
     interface MasterCustomizer {
         addReplCommand: (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => void;
         addChildMessageHandler: (message: string, handler: ActionHandler) => void;
+    }
+
+    export interface NotifierHooks {
+        key: (key: string) => boolean | Promise<boolean>;
+        crash: (error: Error) => boolean | Promise<boolean>;
     }
 
     export interface SessionAction {
@@ -67,20 +62,6 @@ export namespace Session {
     export interface EmailTemplate {
         subject: string;
         body: string;
-    }
-    export type CrashEmailGenerator = (error: Error) => EmailTemplate | Promise<EmailTemplate>;
-
-    function defaultEmailGenerator({ name, message, stack }: Error) {
-        return {
-            subject: "Server Crash Event",
-            body: [
-                "You are being notified of a server crash event. Here's what we know:",
-                `name:\n${name}`,
-                `message:\n${message}`,
-                `stack:\n${stack}`,
-                "The server is already restarting itself automatically"
-            ].join("\n\n")
-        };
     }
 
     function loadAndValidateConfiguration(): any {
@@ -138,10 +119,9 @@ export namespace Session {
      * Validates and reads the configuration file, accordingly builds a child process factory
      * and spawns off an initial process that will respawn as predecessors die.
      */
-    export async function initializeMonitorThread(custom?: CrashEmailGenerator): Promise<MasterCustomizer> {
+    export async function initializeMonitorThread(notifiers?: NotifierHooks): Promise<MasterCustomizer> {
         let activeWorker: Worker;
         const childMessageHandlers: { [message: string]: (action: SessionAction, args: any) => void } = {};
-        const crashEmailGenerator = custom || defaultEmailGenerator;
 
         // read in configuration .json file only once, in the master thread
         // pass down any variables the pertinent to the child processes as environment variables
@@ -149,7 +129,6 @@ export namespace Session {
             masterIdentifier,
             workerIdentifier,
             ports,
-            email,
             pollingRoute,
             showServerOutput,
             pollingIntervalSeconds
@@ -160,12 +139,10 @@ export namespace Session {
         // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
         // to kill the server via the /kill/:key route
         let key: string | undefined;
-        if (email) {
-            const { recipients, signature } = email;
+        if (notifiers && notifiers.key) {
             key = Utils.GenerateGuid();
-            const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${signature || defaultSignature}`;
-            const results = await Email.dispatchAll(recipients, "Server Termination Key", content);
-            const statement = results.some(success => !success) ? red("distribution of session key failed") : green("distributed session key to recipients");
+            const success = await notifiers.key(key);
+            const statement = success ? green("distributed session key to recipients") : red("distribution of session key failed");
             masterLog(statement);
         }
 
@@ -233,17 +210,14 @@ export namespace Session {
                     console.log(timestamp(), `${workerIdentifier} action requested (${cyan(message)})`);
                     switch (message) {
                         case "kill":
-                            masterLog(red("An authorized user has manually ended the server session"));
+                            masterLog(red("an authorized user has manually ended the server session"));
                             tryKillActiveWorker(true);
                             process.exit(0);
                         case "notify_crash":
-                            if (email) {
-                                const { recipients, signature } = email;
+                            if (notifiers && notifiers.crash) {
                                 const { error } = args;
-                                const { subject, body } = await crashEmailGenerator(error);
-                                const content = `${body}\n\n${signature || defaultSignature}`;
-                                const results = await Email.dispatchAll(recipients, subject, content);
-                                const statement = results.some(success => !success) ? red("distribution of crash notification failed") : green("distributed crash notification to recipients");
+                                const success = await notifiers.crash(error);
+                                const statement = success ? green("distributed crash notification to recipients") : red("distribution of crash notification failed");
                                 masterLog(statement);
                             }
                         case "set_port":
@@ -273,9 +247,7 @@ export namespace Session {
         const repl = new Repl({ identifier: () => `${timestamp()} ${masterIdentifier}` });
         repl.registerCommand("exit", [], () => execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node"));
         repl.registerCommand("restart", [], restart);
-        repl.registerCommand("set", [/[a-zA-Z]+/g, "port", /\d+/g, /true|false/g], args => {
-            setPort(args[0], Number(args[2]), args[3] === "true");
-        });
+        repl.registerCommand("set", [/[a-zA-Z]+/, "port", /\d+/, /true|false/], args => setPort(args[0], Number(args[2]), args[3] === "true"));
         // finally, set things in motion by spawning off the first child (server) process
         spawn();
 
@@ -318,7 +290,7 @@ export namespace Session {
             });
             await Promise.all(exitHandlers.map(handler => handler(error)));
             // notify master thread (which will log update in the console) of crash event via IPC
-            process.send?.({ lifecycle: red(`Crash event detected @ ${new Date().toUTCString()}`) });
+            process.send?.({ lifecycle: red(`crash event detected @ ${new Date().toUTCString()}`) });
             process.send?.({ lifecycle: red(error.message) });
             process.exit(1);
         };

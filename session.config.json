@@ -4,12 +4,6 @@
         "server": 1050,
         "socket": 4321
     },
-    "email": {
-        "recipients": [
-            "samuel_wilkins@brown.edu"
-        ],
-        "signature": "Best,\nDash Server Session Manager"
-    },
     "pollingRoute": "/serverHeartbeat",
     "pollingIntervalSeconds": 15
 }

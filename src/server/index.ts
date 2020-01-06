@@ -18,7 +18,7 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
-import { log_execution } from "./ActionUtilities";
+import { log_execution, Email } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
@@ -146,30 +146,35 @@ async function launchServer() {
 }
 
 /**
- * A function to dictate the format of the message sent on crash
- * @param error the error that caused the crash
- */
-function crashEmailGenerator(error: Error) {
-    const subject = "Dash Web Server Crash";
-    const { name, message, stack } = error;
-    const body = [
-        "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
-        `name:\n${name}`,
-        `message:\n${message}`,
-        `stack:\n${stack}`,
-        "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
-    ].join("\n\n");
-    return { subject, body };
-}
-
-/**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
  * Otherwise, we must be on a worker thread that was spawned *by* the monitor (master) thread, and thus
  * our job should be to run the server.
  */
 async function launchMonitoredSession() {
     if (isMaster) {
-        const customizer = await Session.initializeMonitorThread(crashEmailGenerator);
+        const recipients = ["samuel_wilkins@brown.edu"];
+        const signature = "-Dash Server Session Manager";
+        const customizer = await Session.initializeMonitorThread({
+            key: async (key: string) => {
+                const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${signature}`;
+                const failures = await Email.dispatchAll(recipients, "Server Termination Key", content);
+                return failures.length === 0;
+            },
+            crash: async (error: Error) => {
+                const subject = "Dash Web Server Crash";
+                const { name, message, stack } = error;
+                const body = [
+                    "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
+                    `name:\n${name}`,
+                    `message:\n${message}`,
+                    `stack:\n${stack}`,
+                    "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
+                ].join("\n\n");
+                const content = `${body}\n\n${signature}`;
+                const failures = await Email.dispatchAll(recipients, subject, content);
+                return failures.length === 0;
+            }
+        });
         customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
         customizer.addReplCommand("solr", [/start|stop/g], args => SolrManager.SetRunning(args[0] === "start"));
     } else {
