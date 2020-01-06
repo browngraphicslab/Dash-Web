@@ -34,7 +34,7 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     app.use(express.static(publicDirectory, {
         setHeaders: (res, path) => {
-            res.setHeader("Access-Control-Allow-Origin", "true");
+            res.setHeader("Access-Control-Allow-Origin", "*");
         }
     }));
     app.use("/images", express.static(publicDirectory));
