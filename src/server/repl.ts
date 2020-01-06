@@ -2,7 +2,7 @@ import { createInterface, Interface } from "readline";
 import { red, green, white } from "colors";
 
 export interface Configuration {
-    identifier: string;
+    identifier: () => string | string;
     onInvalid?: (culprit?: string) => string | string;
     onValid?: (success?: string) => string | string;
     isCaseSensitive?: boolean;
@@ -15,7 +15,7 @@ export interface Registration {
 }
 
 export default class Repl {
-    private identifier: string;
+    private identifier: () => string | string;
     private onInvalid: (culprit?: string) => string | string;
     private onValid: (success: string) => string | string;
     private isCaseSensitive: boolean;
@@ -32,6 +32,8 @@ export default class Repl {
         this.interface = createInterface(process.stdin, process.stdout).on('line', this.considerInput);
     }
 
+    private resolvedIdentifier = () => typeof this.identifier === "string" ? this.identifier : this.identifier();
+
     private usage = () => {
         const resolved = this.keys;
         if (resolved) {
@@ -43,10 +45,10 @@ export default class Repl {
         while (!(next = keys.next()).done) {
             members.push(next.value);
         }
-        return `${this.identifier} commands: { ${members.sort().join(", ")} }`;
+        return `${this.resolvedIdentifier()} commands: { ${members.sort().join(", ")} }`;
     }
 
-    private success = (command: string) => `${this.identifier} completed execution of ${white(command)}`;
+    private success = (command: string) => `${this.resolvedIdentifier()} completed execution of ${white(command)}`;
 
     public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
         const existing = this.commandMap.get(basename);

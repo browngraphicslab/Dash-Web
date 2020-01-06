@@ -270,7 +270,7 @@ export namespace Session {
         });
 
         // builds the repl that allows the following commands to be typed into stdin of the master thread
-        const repl = new Repl({ identifier: masterIdentifier });
+        const repl = new Repl({ identifier: () => `${timestamp()} ${masterIdentifier}` });
         repl.registerCommand("exit", [], () => execSync(onWindows ? "taskkill /f /im node.exe" : "killall -9 node"));
         repl.registerCommand("restart", [], restart);
         repl.registerCommand("set", [/[a-zA-Z]+/g, "port", /\d+/g, /true|false/g], args => {
