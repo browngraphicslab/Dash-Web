@@ -10,6 +10,6 @@
         ],
         "signature": "Best,\nDash Server Session Manager"
     },
-    "heartbeatRoute": "/serverHeartbeat",
+    "pollingRoute": "/serverHeartbeat",
     "pollingIntervalSeconds": 15
 }

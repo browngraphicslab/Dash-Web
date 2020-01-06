@@ -8,6 +8,7 @@ import { command_line } from "../ActionUtilities";
 import request = require('request-promise');
 import { red } from "colors";
 import RouteSubscriber from "../RouteSubscriber";
+import { execSync } from "child_process";
 
 export class SearchManager extends ApiManager {
 
@@ -72,7 +73,7 @@ export namespace SolrManager {
         const args = status ? "start" : "stop -p 8983";
         try {
             console.log(`Solr management: trying to ${args}`);
-            console.log(await command_line(`./solr.cmd ${args}`, "./solr-8.3.1/bin"));
+            console.log(execSync(`./solr.cmd ${args}`, { cwd: "./solr-8.3.1/bin" }));
             return true;
         } catch (e) {
             console.log(red(`Solr management error: unable to ${args}`));

@@ -1,4 +1,4 @@
-import { red, cyan, green, yellow, magenta } from "colors";
+import { red, cyan, green, yellow, magenta, blue } from "colors";
 import { on, fork, setupMaster, Worker } from "cluster";
 import { execSync } from "child_process";
 import { get } from "request-promise";
@@ -35,7 +35,7 @@ export namespace Session {
         workerIdentifier: string;
         email: EmailOptions | undefined;
         ports: { [description: string]: number };
-        heartbeatRoute: string;
+        pollingRoute: string;
         pollingIntervalSeconds: number;
         [key: string]: any;
     }
@@ -46,7 +46,7 @@ export namespace Session {
         workerIdentifier: magenta("__server__:"),
         email: undefined,
         ports: { server: 3000 },
-        heartbeatRoute: "/",
+        pollingRoute: "/",
         pollingIntervalSeconds: 30
     };
 
@@ -83,6 +83,57 @@ export namespace Session {
         };
     }
 
+    function loadAndValidateConfiguration(): any {
+        try {
+            const configuration: Configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
+            const options = {
+                throwError: true,
+                allowUnknownAttributes: false
+            };
+            // ensure all necessary and no excess information is specified by the configuration file
+            validate(configuration, configurationSchema, options);
+            let formatMaster = true;
+            let formatWorker = true;
+            Object.keys(defaultConfiguration).forEach(property => {
+                if (!configuration[property]) {
+                    if (property === "masterIdentifier") {
+                        formatMaster = false;
+                    } else if (property === "workerIdentifier") {
+                        formatWorker = false;
+                    }
+                    configuration[property] = defaultConfiguration[property];
+                }
+            });
+            if (formatMaster) {
+                configuration.masterIdentifier = yellow(configuration.masterIdentifier + ":");
+            }
+            if (formatWorker) {
+                configuration.workerIdentifier = magenta(configuration.workerIdentifier + ":");
+            }
+            return configuration;
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                console.log(red("\nSession configuration failed."));
+                console.log("The given session.config.json configuration file is invalid.");
+                console.log(`${error.instance}: ${error.stack}`);
+                process.exit(0);
+            } else if (error.code === "ENOENT" && error.path === "./session.config.json") {
+                console.log(cyan("Loading default session parameters..."));
+                console.log("Consider including a session.config.json configuration file in your project root for customization.");
+                return defaultConfiguration;
+            } else {
+                console.log(red("\nSession configuration failed."));
+                console.log("The following unknown error occurred during configuration.");
+                console.log(error.stack);
+                process.exit(0);
+            }
+        }
+    }
+
+    function timestamp() {
+        return blue(`[${new Date().toUTCString()}]`);
+    }
+
     /**
      * Validates and reads the configuration file, accordingly builds a child process factory
      * and spawns off an initial process that will respawn as predecessors die.
@@ -99,54 +150,12 @@ export namespace Session {
             workerIdentifier,
             ports,
             email,
-            heartbeatRoute,
+            pollingRoute,
             showServerOutput,
             pollingIntervalSeconds
-        } = function loadAndValidateConfiguration(): any {
-            try {
-                const configuration: Configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
-                const options = {
-                    throwError: true,
-                    allowUnknownAttributes: false
-                };
-                // ensure all necessary and no excess information is specified by the configuration file
-                validate(configuration, configurationSchema, options);
-                let formatMaster = true;
-                let formatWorker = true;
-                Object.keys(defaultConfiguration).forEach(property => {
-                    if (!configuration[property]) {
-                        if (property === "masterIdentifier") {
-                            formatMaster = false;
-                        } else if (property === "workerIdentifier") {
-                            formatWorker = false;
-                        }
-                        configuration[property] = defaultConfiguration[property];
-                    }
-                });
-                if (formatMaster) {
-                    configuration.masterIdentifier = yellow(configuration.masterIdentifier + ":");
-                }
-                if (formatWorker) {
-                    configuration.workerIdentifier = magenta(configuration.workerIdentifier + ":");
-                }
-                return configuration;
-            } catch (error) {
-                if (error instanceof ValidationError) {
-                    console.log(red("\nSession configuration failed."));
-                    console.log("The given session.config.json configuration file is invalid.");
-                    console.log(`${error.instance}: ${error.stack}`);
-                    process.exit(0);
-                } else if (error.code === "ENOENT" && error.path === "./session.config.json") {
-                    console.log(defaultConfiguration.masterIdentifier, "consider including a session.config.json configuration file in your project root.");
-                    return defaultConfiguration;
-                } else {
-                    console.log(red("\nSession configuration failed."));
-                    console.log("The following unknown error occurred during configuration.");
-                    console.log(error.stack);
-                    process.exit(0);
-                }
-            }
-        }();
+        } = loadAndValidateConfiguration();
+
+        const masterLog = (...optionalParams: any[]) => console.log(timestamp(), masterIdentifier, ...optionalParams);
 
         // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
         // to kill the server via the /kill/:key route
@@ -154,14 +163,10 @@ export namespace Session {
         if (email) {
             const { recipients, signature } = email;
             key = Utils.GenerateGuid();
-            const timestamp = new Date().toUTCString();
-            const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature || defaultSignature}`;
+            const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${signature || defaultSignature}`;
             const results = await Email.dispatchAll(recipients, "Server Termination Key", content);
-            if (results.some(success => !success)) {
-                console.log(masterIdentifier, red("distribution of session key failed"));
-            } else {
-                console.log(masterIdentifier, green("distributed session key to recipients"));
-            }
+            const statement = results.some(success => !success) ? red("distribution of session key failed") : green("distributed session key to recipients");
+            masterLog(statement);
         }
 
         // handle exceptions in the master thread - there shouldn't be many of these
@@ -169,9 +174,9 @@ export namespace Session {
         // to be caught in a try catch, and is inconsequential, so it is ignored
         process.on("uncaughtException", ({ message, stack }) => {
             if (message !== "Channel closed") {
-                console.log(masterIdentifier, red(message));
+                masterLog(red(message));
                 if (stack) {
-                    console.log(masterIdentifier, `uncaught exception\n${red(stack)}`);
+                    masterLog(`uncaught exception\n${red(stack)}`);
                 }
             }
         });
@@ -180,12 +185,12 @@ export namespace Session {
         setupMaster({ silent: !showServerOutput });
 
         // attempts to kills the active worker ungracefully
-        const tryKillActiveWorker = (strict = true): boolean => {
+        const tryKillActiveWorker = (graceful = false): boolean => {
             if (activeWorker && !activeWorker.isDead()) {
-                if (strict) {
-                    activeWorker.process.kill();
-                } else {
+                if (graceful) {
                     activeWorker.kill();
+                } else {
+                    activeWorker.process.kill();
                 }
                 return true;
             }
@@ -194,14 +199,18 @@ export namespace Session {
 
         const restart = () => {
             // indicate to the worker that we are 'expecting' this restart
-            activeWorker.send({ setListening: false });
+            activeWorker.send({ setResponsiveness: false });
             tryKillActiveWorker();
         };
 
         const setPort = (port: string, value: number, immediateRestart: boolean) => {
-            ports[port] = value;
-            if (immediateRestart) {
-                restart();
+            if (value >= 1024 && value <= 65535) {
+                ports[port] = value;
+                if (immediateRestart) {
+                    restart();
+                }
+            } else {
+                masterLog(red(`${port} is an invalid port number`));
             }
         };
 
@@ -210,22 +219,22 @@ export namespace Session {
         const spawn = (): void => {
             tryKillActiveWorker();
             activeWorker = fork({
-                heartbeatRoute,
+                pollingRoute,
                 serverPort: ports.server,
                 socketPort: ports.socket,
                 pollingIntervalSeconds,
                 session_key: key
             });
-            console.log(masterIdentifier, `spawned new server worker with process id ${activeWorker.process.pid}`);
+            masterLog(`spawned new server worker with process id ${activeWorker.process.pid}`);
             // an IPC message handler that executes actions on the master thread when prompted by the active worker
             activeWorker.on("message", async ({ lifecycle, action }) => {
                 if (action) {
                     const { message, args } = action as SessionAction;
-                    console.log(`${workerIdentifier} action requested (${cyan(message)})`);
+                    console.log(timestamp(), `${workerIdentifier} action requested (${cyan(message)})`);
                     switch (message) {
                         case "kill":
-                            console.log(masterIdentifier, red("An authorized user has manually ended the server session"));
-                            tryKillActiveWorker(false);
+                            masterLog(red("An authorized user has manually ended the server session"));
+                            tryKillActiveWorker(true);
                             process.exit(0);
                         case "notify_crash":
                             if (email) {
@@ -233,7 +242,9 @@ export namespace Session {
                                 const { error } = args;
                                 const { subject, body } = await crashEmailGenerator(error);
                                 const content = `${body}\n\n${signature || defaultSignature}`;
-                                Email.dispatchAll(recipients, subject, content);
+                                const results = await Email.dispatchAll(recipients, subject, content);
+                                const statement = results.some(success => !success) ? red("distribution of crash notification failed") : green("distributed crash notification to recipients");
+                                masterLog(statement);
                             }
                         case "set_port":
                             const { port, value, immediateRestart } = args;
@@ -245,7 +256,7 @@ export namespace Session {
                             }
                     }
                 } else if (lifecycle) {
-                    console.log(`${workerIdentifier} lifecycle phase (${lifecycle})`);
+                    console.log(timestamp(), `${workerIdentifier} lifecycle phase (${lifecycle})`);
                 }
             });
         };
@@ -253,7 +264,7 @@ export namespace Session {
         // a helpful cluster event called on the master thread each time a child process exits
         on("exit", ({ process: { pid } }, code, signal) => {
             const prompt = `server worker with process id ${pid} has exited with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.`;
-            console.log(masterIdentifier, cyan(prompt));
+            masterLog(cyan(prompt));
             // to make this a robust, continuous session, every time a child process dies, we immediately spawn a new one
             spawn();
         });
@@ -282,22 +293,22 @@ export namespace Session {
      * @param work the function specifying the work to be done by each worker thread
      */
     export async function initializeWorkerThread(work: Function): Promise<(handler: ExitHandler) => void> {
-        let listening = false;
+        let shouldServerBeResponsive = false;
         const exitHandlers: ExitHandler[] = [];
 
         // notify master thread (which will log update in the console) of initialization via IPC
         process.send?.({ lifecycle: green("compiling and initializing...") });
 
         // updates the local value of listening to the value sent from master
-        process.on("message", ({ setListening }) => listening = setListening);
+        process.on("message", ({ setResponsiveness }) => shouldServerBeResponsive = setResponsiveness);
 
         // called whenever the process has a reason to terminate, either through an uncaught exception
         // in the process (potentially inconsistent state) or the server cannot be reached
         const activeExit = async (error: Error): Promise<void> => {
-            if (!listening) {
+            if (!shouldServerBeResponsive) {
                 return;
             }
-            listening = false;
+            shouldServerBeResponsive = false;
             // communicates via IPC to the master thread that it should dispatch a crash notification email
             process.send?.({
                 action: {
@@ -317,22 +328,22 @@ export namespace Session {
 
         const {
             pollingIntervalSeconds,
-            heartbeatRoute,
+            pollingRoute,
             serverPort
         } = process.env;
         // this monitors the health of the server by submitting a get request to whatever port / route specified
         // by the configuration every n seconds, where n is also given by the configuration. 
-        const heartbeat = `http://localhost:${serverPort}${heartbeatRoute}`;
-        const checkHeartbeat = async (): Promise<void> => {
+        const pollTarget = `http://localhost:${serverPort}${pollingRoute}`;
+        const pollServer = async (): Promise<void> => {
             await new Promise<void>(resolve => {
                 setTimeout(async () => {
                     try {
-                        await get(heartbeat);
-                        if (!listening) {
+                        await get(pollTarget);
+                        if (!shouldServerBeResponsive) {
                             // notify master thread (which will log update in the console) via IPC that the server is up and running
                             process.send?.({ lifecycle: green(`listening on ${serverPort}...`) });
                         }
-                        listening = true;
+                        shouldServerBeResponsive = true;
                         resolve();
                     } catch (error) {
                         // if we expect the server to be unavailable, i.e. during compilation,
@@ -343,11 +354,11 @@ export namespace Session {
                 }, 1000 * Number(pollingIntervalSeconds));
             });
             // controlled, asynchronous infinite recursion achieves a persistent poll that does not submit a new request until the previous has completed
-            checkHeartbeat();
+            pollServer();
         };
 
         work();
-        checkHeartbeat(); // begin polling
+        pollServer(); // begin polling
 
         return (handler: ExitHandler) => exitHandlers.push(handler);
     }

@@ -10,7 +10,7 @@ import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import { SearchManager } from './ApiManagers/SearchManager';
+import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -163,14 +163,15 @@ function crashEmailGenerator(error: Error) {
 }
 
 /**
- * If on the master thread, launches the monitor for the session.
- * Otherwise, the thread must have been spawned *by* the monitor, and thus
- * should run the server as a worker.
+ * If we're the monitor (master) thread, we should launch the monitor logic for the session.
+ * Otherwise, we must be on a worker thread that was spawned *by* the monitor (master) thread, and thus
+ * our job should be to run the server.
  */
 async function launchMonitoredSession() {
     if (isMaster) {
         const customizer = await Session.initializeMonitorThread(crashEmailGenerator);
         customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+        customizer.addReplCommand("solr", [/start|stop/g], args => SolrManager.SetRunning(args[0] === "start"));
     } else {
         const addExitHandler = await Session.initializeWorkerThread(launchServer); // server initialization delegated to worker
         addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
@@ -178,9 +179,10 @@ async function launchMonitoredSession() {
 }
 
 /**
- * Ensures that development mode avoids
- * the overhead and lack of default output
- * found in a release session.
+ * If you're in development mode, you won't need to run a session.
+ * The session spawns off new server processes each time an error is encountered, and doesn't
+ * log the output of the server process, so it's not ideal for development.
+ * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
 if (process.env.RELEASE) {
     launchMonitoredSession();
