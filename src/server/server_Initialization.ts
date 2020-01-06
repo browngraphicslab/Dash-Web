@@ -32,7 +32,11 @@ export let disconnect: Function;
 export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
 
-    app.use(express.static(publicDirectory));
+    app.use(express.static(publicDirectory, {
+        setHeaders: (res, path) => {
+            res.setHeader("Access-Control-Allow-Origin", "true");
+        }
+    }));
     app.use("/images", express.static(publicDirectory));
     const corsOptions = {
         origin: function (origin: any, callback: any) {
