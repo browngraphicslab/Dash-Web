@@ -96,7 +96,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ req, res }) => {
             if (req.params.key === process.env.session_key) {
                 res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                // setTimeout(() => process.send!({ action: { message: "kill" } }), 1000 * 5);
                 process.send!({ action: { message: "kill" } });
             } else {
                 res.redirect("/home");

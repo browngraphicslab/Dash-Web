@@ -24,6 +24,34 @@ const onWindows = process.platform === "win32";
      */
 export namespace Session {
 
+    interface EmailOptions {
+        recipients: string[];
+        signature?: string;
+    }
+
+    interface Configuration {
+        showServerOutput: boolean;
+        masterIdentifier: string;
+        workerIdentifier: string;
+        email: EmailOptions | undefined;
+        ports: { [description: string]: number };
+        heartbeatRoute: string;
+        pollingIntervalSeconds: number;
+        [key: string]: any;
+    }
+
+    const defaultConfiguration: Configuration = {
+        showServerOutput: false,
+        masterIdentifier: yellow("__monitor__:"),
+        workerIdentifier: magenta("__server__:"),
+        email: undefined,
+        ports: { server: 3000 },
+        heartbeatRoute: "/",
+        pollingIntervalSeconds: 30
+    };
+
+    const defaultSignature = "-Server Session Manager";
+
     interface MasterCustomizer {
         addReplCommand: (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => void;
         addChildMessageHandler: (message: string, handler: ActionHandler) => void;
@@ -42,65 +70,98 @@ export namespace Session {
     }
     export type CrashEmailGenerator = (error: Error) => EmailTemplate | Promise<EmailTemplate>;
 
+    function defaultEmailGenerator({ name, message, stack }: Error) {
+        return {
+            subject: "Server Crash Event",
+            body: [
+                "You are being notified of a server crash event. Here's what we know:",
+                `name:\n${name}`,
+                `message:\n${message}`,
+                `stack:\n${stack}`,
+                "The server is already restarting itself automatically"
+            ].join("\n\n")
+        };
+    }
+
     /**
      * Validates and reads the configuration file, accordingly builds a child process factory
      * and spawns off an initial process that will respawn as predecessors die.
      */
-    export async function initializeMonitorThread(crashEmailGenerator?: CrashEmailGenerator): Promise<MasterCustomizer> {
+    export async function initializeMonitorThread(custom?: CrashEmailGenerator): Promise<MasterCustomizer> {
         let activeWorker: Worker;
         const childMessageHandlers: { [message: string]: (action: SessionAction, args: any) => void } = {};
+        const crashEmailGenerator = custom || defaultEmailGenerator;
 
         // read in configuration .json file only once, in the master thread
         // pass down any variables the pertinent to the child processes as environment variables
-        const configuration = function loadConfiguration(): any {
+        const {
+            masterIdentifier,
+            workerIdentifier,
+            ports,
+            email,
+            heartbeatRoute,
+            showServerOutput,
+            pollingIntervalSeconds
+        } = function loadAndValidateConfiguration(): any {
             try {
-                const configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
+                const configuration: Configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
                 const options = {
                     throwError: true,
                     allowUnknownAttributes: false
                 };
                 // ensure all necessary and no excess information is specified by the configuration file
                 validate(configuration, configurationSchema, options);
-                configuration.masterIdentifier = yellow(configuration.masterIdentifier + ":");
-                configuration.workerIdentifier = magenta(configuration.workerIdentifier + ":");
+                let formatMaster = true;
+                let formatWorker = true;
+                Object.keys(defaultConfiguration).forEach(property => {
+                    if (!configuration[property]) {
+                        if (property === "masterIdentifier") {
+                            formatMaster = false;
+                        } else if (property === "workerIdentifier") {
+                            formatWorker = false;
+                        }
+                        configuration[property] = defaultConfiguration[property];
+                    }
+                });
+                if (formatMaster) {
+                    configuration.masterIdentifier = yellow(configuration.masterIdentifier + ":");
+                }
+                if (formatWorker) {
+                    configuration.workerIdentifier = magenta(configuration.workerIdentifier + ":");
+                }
                 return configuration;
             } catch (error) {
-                console.log(red("\nSession configuration failed."));
                 if (error instanceof ValidationError) {
+                    console.log(red("\nSession configuration failed."));
                     console.log("The given session.config.json configuration file is invalid.");
                     console.log(`${error.instance}: ${error.stack}`);
+                    process.exit(0);
                 } else if (error.code === "ENOENT" && error.path === "./session.config.json") {
-                    console.log("Please include a session.config.json configuration file in your project root.");
+                    console.log(defaultConfiguration.masterIdentifier, "consider including a session.config.json configuration file in your project root.");
+                    return defaultConfiguration;
                 } else {
+                    console.log(red("\nSession configuration failed."));
                     console.log("The following unknown error occurred during configuration.");
                     console.log(error.stack);
+                    process.exit(0);
                 }
-                console.log();
-                process.exit(0);
             }
         }();
 
-        const {
-            masterIdentifier,
-            workerIdentifier,
-            recipients,
-            ports,
-            signature,
-            heartbeatRoute,
-            showServerOutput,
-            pollingIntervalSeconds
-        } = configuration;
-
         // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
         // to kill the server via the /kill/:key route
-        const key = Utils.GenerateGuid();
-        const timestamp = new Date().toUTCString();
-        const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature}`;
-        const results = await Email.dispatchAll(recipients, "Server Termination Key", content);
-        if (results.some(success => !success)) {
-            console.log(masterIdentifier, red("distribution of session key failed"));
-        } else {
-            console.log(masterIdentifier, green("distributed session key to recipients"));
+        let key: string | undefined;
+        if (email) {
+            const { recipients, signature } = email;
+            key = Utils.GenerateGuid();
+            const timestamp = new Date().toUTCString();
+            const content = `The key for this session (started @ ${timestamp}) is ${key}.\n\n${signature || defaultSignature}`;
+            const results = await Email.dispatchAll(recipients, "Server Termination Key", content);
+            if (results.some(success => !success)) {
+                console.log(masterIdentifier, red("distribution of session key failed"));
+            } else {
+                console.log(masterIdentifier, green("distributed session key to recipients"));
+            }
         }
 
         // handle exceptions in the master thread - there shouldn't be many of these
@@ -167,10 +228,11 @@ export namespace Session {
                             tryKillActiveWorker(false);
                             process.exit(0);
                         case "notify_crash":
-                            if (crashEmailGenerator) {
+                            if (email) {
+                                const { recipients, signature } = email;
                                 const { error } = args;
                                 const { subject, body } = await crashEmailGenerator(error);
-                                const content = `${body}\n\n${signature}`;
+                                const content = `${body}\n\n${signature || defaultSignature}`;
                                 Email.dispatchAll(recipients, subject, content);
                             }
                         case "set_port":
@@ -224,7 +286,7 @@ export namespace Session {
         const exitHandlers: ExitHandler[] = [];
 
         // notify master thread (which will log update in the console) of initialization via IPC
-        process.send?.({ lifecycle: green("initializing...") });
+        process.send?.({ lifecycle: green("compiling and initializing...") });
 
         // updates the local value of listening to the value sent from master
         process.on("message", ({ setListening }) => listening = setListening);

@@ -1,15 +1,15 @@
 {
     "showServerOutput": false,
-    "recipients": [
-        "samuel_wilkins@brown.edu"
-    ],
     "ports": {
         "server": 1050,
         "socket": 4321
     },
+    "email": {
+        "recipients": [
+            "samuel_wilkins@brown.edu"
+        ],
+        "signature": "Best,\nDash Server Session Manager"
+    },
     "heartbeatRoute": "/serverHeartbeat",
-    "pollingIntervalSeconds": 15,
-    "masterIdentifier": "__master__",
-    "workerIdentifier": "__worker__",
-    "signature": "Best,\nServer Session Manager"
+    "pollingIntervalSeconds": 15
 }

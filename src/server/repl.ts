@@ -70,7 +70,6 @@ export default class Repl {
     }
 
     private considerInput = async (line: string) => {
-        console.log("raw", line);
         if (this.busy) {
             console.log(red("Busy"));
             return;
