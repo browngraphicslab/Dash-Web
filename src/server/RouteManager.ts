@@ -14,16 +14,16 @@ export interface CoreArguments {
     isRelease: boolean;
 }
 
-export type OnValidation = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
-export type OnUnauthenticated = (core: CoreArguments) => any | Promise<any>;
-export type OnError = (core: CoreArguments & { error: any }) => any | Promise<any>;
+export type SecureHandler = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
+export type PublicHandler = (core: CoreArguments) => any | Promise<any>;
+export type ErrorHandler = (core: CoreArguments & { error: any }) => any | Promise<any>;
 
 export interface RouteInitializer {
     method: Method;
     subscription: string | RouteSubscriber | (string | RouteSubscriber)[];
-    onValidation: OnValidation;
-    onUnauthenticated?: OnUnauthenticated;
-    onError?: OnError;
+    secureHandler: SecureHandler;
+    publicHandler?: PublicHandler;
+    errorHandler?: ErrorHandler;
 }
 
 const registered = new Map<string, Set<Method>>();
@@ -69,7 +69,7 @@ export default class RouteManager {
             if (malformedCount) {
                 console.log(`please ensure all routes adhere to ^\/$|^\/[A-Za-z]+(\/\:[A-Za-z]+)*$`);
             }
-            process.exit(0);
+            process.exit(1);
         } else {
             console.log(green("all server routes have been successfully registered:"));
             Array.from(registered.keys()).sort().forEach(route => console.log(cyan(route)));
@@ -82,7 +82,7 @@ export default class RouteManager {
      * @param initializer 
      */
     addSupervisedRoute = (initializer: RouteInitializer): void => {
-        const { method, subscription, onValidation, onUnauthenticated, onError } = initializer;
+        const { method, subscription, secureHandler: onValidation, publicHandler: onUnauthenticated, errorHandler: onError } = initializer;
         const isRelease = this._isRelease;
         const supervised = async (req: express.Request, res: express.Response) => {
             const { user, originalUrl: target } = req;

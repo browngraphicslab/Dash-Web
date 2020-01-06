@@ -8,6 +8,7 @@ import { command_line } from "../ActionUtilities";
 import request = require('request-promise');
 import { red } from "colors";
 import RouteSubscriber from "../RouteSubscriber";
+import { execSync } from "child_process";
 
 export class SearchManager extends ApiManager {
 
@@ -16,7 +17,7 @@ export class SearchManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("solr").add("action"),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const { action } = req.params;
                 if (["start", "stop"].includes(action)) {
                     const status = req.params.action === "start";
@@ -30,7 +31,7 @@ export class SearchManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/textsearch",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const q = req.query.q;
                 if (q === undefined) {
                     res.send([]);
@@ -50,7 +51,7 @@ export class SearchManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/search",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const solrQuery: any = {};
                 ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
                 if (solrQuery.q === undefined) {
@@ -72,10 +73,11 @@ export namespace SolrManager {
         const args = status ? "start" : "stop -p 8983";
         try {
             console.log(`Solr management: trying to ${args}`);
-            console.log(await command_line(`solr.cmd ${args}`, "./solr-8.3.1/bin"));
+            console.log(execSync(`./solr.cmd ${args}`, { cwd: "./solr-8.3.1/bin" }));
             return true;
         } catch (e) {
             console.log(red(`Solr management error: unable to ${args}`));
+            console.log(e);
             return false;
         }
     }

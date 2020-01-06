@@ -12,7 +12,7 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("environment").add("key"),
-            onValidation: ({ req, res }) => {
+            secureHandler: ({ req, res }) => {
                 const { key } = req.params;
                 const value = process.env[key];
                 if (!value) {
@@ -25,7 +25,7 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/pull",
-            onValidation: async ({ res }) => {
+            secureHandler: async ({ res }) => {
                 return new Promise<void>(resolve => {
                     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', err => {
                         if (err) {
@@ -42,7 +42,7 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/buxton",
-            onValidation: async ({ res }) => {
+            secureHandler: async ({ res }) => {
                 const cwd = './src/scraping/buxton';
 
                 const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
@@ -56,7 +56,7 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/version",
-            onValidation: ({ res }) => {
+            secureHandler: ({ res }) => {
                 return new Promise<void>(resolve => {
                     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout) => {
                         if (err) {

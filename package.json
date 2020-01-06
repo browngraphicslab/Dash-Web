@@ -160,6 +160,7 @@
         "ipc-event-emitter": "^2.0.2",
         "jquery-awesome-cursor": "^0.3.1",
         "js-datepicker": "^4.6.6",
+        "jsonschema": "^1.2.5",
         "jsonwebtoken": "^8.5.0",
         "jsx-to-string": "^1.4.0",
         "kill-port": "^1.6.0",
