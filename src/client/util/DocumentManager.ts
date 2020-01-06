@@ -136,7 +136,7 @@ export class DocumentManager {
         const docView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
         let annotatedDoc = await Cast(docView?.props.Document.annotationOn, Doc);
         if (annotatedDoc) {
-            let first = DocumentManager.Instance.getFirstDocumentView(annotatedDoc);
+            const first = DocumentManager.Instance.getFirstDocumentView(annotatedDoc);
             if (first) annotatedDoc = first.props.Document;
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
