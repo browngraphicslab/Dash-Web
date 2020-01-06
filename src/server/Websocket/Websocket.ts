@@ -63,7 +63,7 @@ export namespace WebSocket {
             };
         });
 
-        const socketPort = process.env.socketPort ? Number(process.env.socketPort) : 4321;
+        const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }

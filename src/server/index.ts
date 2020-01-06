@@ -6,7 +6,7 @@ import { Database } from './database';
 const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './Initialization';
+import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
@@ -130,6 +130,12 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     WebSocket.start(isRelease);
 }
 
+/**
+ * This function can be used in two different ways. If not in release mode,
+ * this is simply the logic that is invoked to start the server. In release mode,
+ * however, this becomes the logic invoked by a single worker thread spawned by
+ * the main monitor (master) thread.
+ */
 async function launchServer() {
     await log_execution({
         startMessage: "\nstarting execution of preliminary functions",
@@ -139,31 +145,45 @@ async function launchServer() {
     await initializeServer(routeSetter);
 }
 
-if (process.env.RELEASE) {
-    /**
- * Thread dependent session initialization
+/**
+ * A function to dictate the format of the message sent on crash
+ * @param error the error that caused the crash
  */
-    (async function launchSession() {
-        if (isMaster) {
-            const emailGenerator = (error: Error) => {
-                const subject = "Dash Web Server Crash";
-                const { name, message, stack } = error;
-                const body = [
-                    "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
-                    `name:\n${name}`,
-                    `message:\n${message}`,
-                    `stack:\n${stack}`,
-                    "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
-                ].join("\n\n");
-                return { subject, body };
-            };
-            const customizer = await Session.initializeMonitorThread(emailGenerator);
-            customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-        } else {
-            const addExitHandler = await Session.initializeWorkerThread(launchServer);
-            addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
-        }
-    })();
+function crashEmailGenerator(error: Error) {
+    const subject = "Dash Web Server Crash";
+    const { name, message, stack } = error;
+    const body = [
+        "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
+        `name:\n${name}`,
+        `message:\n${message}`,
+        `stack:\n${stack}`,
+        "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
+    ].join("\n\n");
+    return { subject, body };
+}
+
+/**
+ * If on the master thread, launches the monitor for the session.
+ * Otherwise, the thread must have been spawned *by* the monitor, and thus
+ * should run the server as a worker.
+ */
+async function launchMonitoredSession() {
+    if (isMaster) {
+        const customizer = await Session.initializeMonitorThread(crashEmailGenerator);
+        customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+    } else {
+        const addExitHandler = await Session.initializeWorkerThread(launchServer); // server initialization delegated to worker
+        addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
+    }
+}
+
+/**
+ * Ensures that development mode avoids
+ * the overhead and lack of default output
+ * found in a release session.
+ */
+if (process.env.RELEASE) {
+    launchMonitoredSession();
 } else {
     launchServer();
 }
