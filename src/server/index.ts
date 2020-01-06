@@ -130,34 +130,40 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     WebSocket.start(isRelease);
 }
 
-/**
+async function launchServer() {
+    await log_execution({
+        startMessage: "\nstarting execution of preliminary functions",
+        endMessage: "completed preliminary functions\n",
+        action: preliminaryFunctions
+    });
+    await initializeServer(routeSetter);
+}
+
+if (process.env.RELEASE) {
+    /**
  * Thread dependent session initialization
  */
-(async function launch() {
-    if (isMaster) {
-        const emailGenerator = (error: Error) => {
-            const subject = "Dash Web Server Crash";
-            const { name, message, stack } = error;
-            const body = [
-                "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
-                `name:\n${name}`,
-                `message:\n${message}`,
-                `stack:\n${stack}`,
-                "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
-            ].join("\n\n");
-            return { subject, body };
-        };
-        const customizer = await Session.initializeMonitorThread(emailGenerator);
-        customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-    } else {
-        const addExitHandler = await Session.initializeWorkerThread(async () => {
-            await log_execution({
-                startMessage: "\nstarting execution of preliminary functions",
-                endMessage: "completed preliminary functions\n",
-                action: preliminaryFunctions
-            });
-            await initializeServer(routeSetter);
-        });
-        addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
-    }
-})();
+    (async function launchSession() {
+        if (isMaster) {
+            const emailGenerator = (error: Error) => {
+                const subject = "Dash Web Server Crash";
+                const { name, message, stack } = error;
+                const body = [
+                    "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
+                    `name:\n${name}`,
+                    `message:\n${message}`,
+                    `stack:\n${stack}`,
+                    "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
+                ].join("\n\n");
+                return { subject, body };
+            };
+            const customizer = await Session.initializeMonitorThread(emailGenerator);
+            customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+        } else {
+            const addExitHandler = await Session.initializeWorkerThread(launchServer);
+            addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
+        }
+    })();
+} else {
+    launchServer();
+}
