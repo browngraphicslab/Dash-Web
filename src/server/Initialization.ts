@@ -57,7 +57,7 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     routeSetter(new RouteManager(app, isRelease));
 
-    const serverPort = Number(process.env.serverPort);
+    const serverPort = process.env.serverPort ? Number(process.env.serverPort) : 1050;
     const server = app.listen(serverPort, () => {
         logPort("server", Number(serverPort));
         console.log();
