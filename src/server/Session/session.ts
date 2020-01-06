@@ -42,14 +42,14 @@ export namespace Session {
         pollingIntervalSeconds: 30
     };
 
-    interface MasterCustomizer {
+    interface MasterExtensions {
         addReplCommand: (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => void;
         addChildMessageHandler: (message: string, handler: ActionHandler) => void;
     }
 
     export interface NotifierHooks {
-        key: (key: string) => boolean | Promise<boolean>;
-        crash: (error: Error) => boolean | Promise<boolean>;
+        key?: (key: string) => boolean | Promise<boolean>;
+        crash?: (error: Error) => boolean | Promise<boolean>;
     }
 
     export interface SessionAction {
@@ -119,7 +119,7 @@ export namespace Session {
      * Validates and reads the configuration file, accordingly builds a child process factory
      * and spawns off an initial process that will respawn as predecessors die.
      */
-    export async function initializeMonitorThread(notifiers?: NotifierHooks): Promise<MasterCustomizer> {
+    export async function initializeMonitorThread(notifiers?: NotifierHooks): Promise<MasterExtensions> {
         let activeWorker: Worker;
         const childMessageHandlers: { [message: string]: (action: SessionAction, args: any) => void } = {};
 
@@ -181,7 +181,7 @@ export namespace Session {
         };
 
         const setPort = (port: string, value: number, immediateRestart: boolean) => {
-            if (value >= 1024 && value <= 65535) {
+            if (value > 1023 && value < 65536) {
                 ports[port] = value;
                 if (immediateRestart) {
                     restart();
