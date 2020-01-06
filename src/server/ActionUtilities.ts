@@ -118,25 +118,34 @@ export namespace Email {
         }
     });
 
-    export async function dispatchAll(recipients: string[], subject: string, content: string) {
-        const failures: string[] = [];
-        await Promise.all(recipients.map(async (recipient: string) => {
-            if (!await Email.dispatch(recipient, subject, content)) {
-                failures.push(recipient);
-            }
-        }));
-        return failures;
+    export interface DispatchFailure {
+        recipient: string;
+        error: Error;
     }
 
-    export async function dispatch(recipient: string, subject: string, content: string): Promise<boolean> {
+    export async function dispatchAll(recipients: string[], subject: string, content: string) {
+        const failures: DispatchFailure[] = [];
+        await Promise.all(recipients.map(async (recipient: string) => {
+            let error: Error | null;
+            if ((error = await Email.dispatch(recipient, subject, content)) !== null) {
+                failures.push({
+                    recipient,
+                    error
+                });
+            }
+        }));
+        return failures.length ? failures : undefined;
+    }
+
+    export async function dispatch(recipient: string, subject: string, content: string): Promise<Error | null> {
         const mailOptions = {
             to: recipient,
             from: 'brownptcdash@gmail.com',
             subject,
             text: `Hello ${recipient.split("@")[0]},\n\n${content}`
         } as MailOptions;
-        return new Promise<boolean>(resolve => {
-            smtpTransport.sendMail(mailOptions, (dispatchError: Error | null) => resolve(dispatchError === null));
+        return new Promise<Error | null>(resolve => {
+            smtpTransport.sendMail(mailOptions, resolve);
         });
     }
 
