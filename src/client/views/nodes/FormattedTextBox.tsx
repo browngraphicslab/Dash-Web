@@ -47,6 +47,7 @@ import { AudioBox } from './AudioBox';
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
+import RichTextMenu from '../../util/RichTextMenu';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -1032,7 +1033,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                // return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                RichTextMenu.Instance.changeView(newView);
+                return RichTextMenu.Instance;
             }
         });
     }
@@ -1121,7 +1124,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+            // TODO: ftong --> update from dash in richtextmenu
+            RichTextMenu.Instance.updateFromDash(this._editorView!, undefined, this.props);
+            // FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }
