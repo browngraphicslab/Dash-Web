@@ -8,7 +8,7 @@ import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter } from "@fortawesome/free-solid-svg-icons";
 import { MenuItem, Dropdown } from "prosemirror-menu";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
@@ -16,10 +16,11 @@ import { NumCast } from "../../new_fields/Types";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { unimplementedFunction } from "../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
+import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
 import "./RichTextMenu.scss";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown);
+library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter);
 
 @observer
 export default class RichTextMenu extends AntimodeMenu {
@@ -34,6 +35,13 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @observable private brushIsEmpty: boolean = true;
     @observable private brushMarks: Set<Mark> = new Set();
+    @observable private showBrushDropdown: boolean = false;
+
+    @observable private activeFontColor: string = "black";
+    @observable private showColorDropdown: boolean = false;
+
+    @observable private activeHighlightColor: string = "transparent";
+    @observable private showHighlightDropdown: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -76,8 +84,8 @@ export default class RichTextMenu extends AntimodeMenu {
         const activeFamilies = active && active.get("families");
         const activeSizes = active && active.get("sizes");
 
-        this.activeFontFamily = !activeFamilies || activeFamilies.length == 0 ? "default" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
-        this.activeFontSize = !activeSizes || activeSizes.length == 0 ? "default" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
+        this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "default" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
+        this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "default" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
 
         // this.update_mark_doms();
     }
@@ -160,7 +168,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean }[]): JSX.Element {
-        let items = options.map(({ title, label, hidden }) => {
+        const items = options.map(({ title, label, hidden }) => {
             if (hidden) {
                 return label === activeOption ?
                     <option value={label} title={title} selected hidden>{label}</option> :
@@ -183,7 +191,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean }[]): JSX.Element {
-        let items = options.map(({ title, label, hidden }) => {
+        const items = options.map(({ title, label, hidden }) => {
             if (hidden) {
                 return label === activeOption ?
                     <option value={label} title={title} selected hidden>{label}</option> :
@@ -270,25 +278,22 @@ export default class RichTextMenu extends AntimodeMenu {
         return true;
     }
 
+    @action 
+    toggleBrushDropdown() { this.showBrushDropdown = !this.showBrushDropdown; }
+
     createBrushButton() {
         const self = this;
-        function onClick(e: React.PointerEvent) {
-            console.log("clicked button");
-            // dom.addEventListener("pointerdown", e => {
+        function onBrushClick(e: React.PointerEvent) {
             e.preventDefault();
-            self.view && self.view.focus();
-            //     if (dom.contains(e.target as Node)) {
             e.stopPropagation();
-            //         command(this.view.state, this.view.dispatch, this.view);
-            //     }
-            // });
-
+            self.view && self.view.focus();
             self.view && self.fillBrush(self.view.state, self.view.dispatch);
-
-            // // update dropdown with marks
-            // const newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
-            // self._brushDropdownDom && self.tooltip.replaceChild(newBrushDropdowndom, self._brushDropdownDom);
-            // self._brushDropdownDom = newBrushDropdowndom;
+        }
+        function onDropdownClick(e: React.PointerEvent) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.toggleBrushDropdown();
         }
 
         let label = "Stored marks: ";
@@ -305,15 +310,17 @@ export default class RichTextMenu extends AntimodeMenu {
 
         return (
             <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onClick}>
+                <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick}>
                     <FontAwesomeIcon icon="eye-dropper" size="lg" />
                 </button>
-                <button className="dropdown-button antimodeMenu-button"><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                <div className="dropdown">
-                    <p>{label}</p>
-                    <button onPointerDown={this.clearBrush}>Clear brush</button>
-                    {/* <input placeholder="Enter URL"></input> */}
-                </div>
+                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                {this.showBrushDropdown ? 
+                    (<div className="dropdown">
+                        <p>{label}</p>
+                        <button onPointerDown={this.clearBrush}>Clear brush</button>
+                        {/* <input placeholder="Enter URL"></input> */}
+                    </div>) 
+                    : <></> }
             </div>
         );
     }
@@ -330,20 +337,14 @@ export default class RichTextMenu extends AntimodeMenu {
 
         if (this.brushIsEmpty) {
             const selected_marks = this.getMarksInSelection(this.view.state);
-            // if (this._brushdom) {
             if (selected_marks.size >= 0) {
                 this.brushMarks = selected_marks;
-                // const newbrush = this.createBrush(true).render(this.view).dom;
-                // this.tooltip.replaceChild(newbrush, this._brushdom);
-                // this._brushdom = newbrush;
                 this.brushIsEmpty = !this.brushIsEmpty;
-                // TooltipTextMenuManager.Instance._brushIsEmpty = !TooltipTextMenuManager.Instance._brushIsEmpty;
             }
             // }
         }
         else {
             const { from, to, $from } = this.view.state.selection;
-            // if (this._brushdom) {
             if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
                 if (this.brushMarks && to - from > 0) {
                     this.view.dispatch(this.view.state.tr.removeMark(from, to));
@@ -353,39 +354,135 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             }
             else {
-                // const newbrush = this.createBrush(false).render(this.view).dom;
-                // this.tooltip.replaceChild(newbrush, this._brushdom);
-                // this._brushdom = newbrush;
                 this.brushIsEmpty = !this.brushIsEmpty;
-                // TooltipTextMenuManager.Instance._brushIsEmpty = !TooltipTextMenuManager.Instance._brushIsEmpty;
             }
-            // }
         }
         console.log("brush marks are ", this.brushMarks);
     }
 
-    // createColorButton() {
-    //     const self = this;
-    //     function onClick(e: React.PointerEvent) {
-    //         console.log("clicked button");
-    //         // dom.addEventListener("pointerdown", e => {
-    //         e.preventDefault();
-    //         self.view && self.view.focus();
-    //         //     if (dom.contains(e.target as Node)) {
-    //         e.stopPropagation();
-    //         //         command(this.view.state, this.view.dispatch, this.view);
-    //         //     }
-    //         // });
-    //         self.view && command && command(self.view!.state, self.view!.dispatch, self.view);
-    //         self.view && onclick && onclick(self.view!.state, self.view!.dispatch, self.view);
-    //     }
+    @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
+    @action setActiveColor(color: string) { this.activeFontColor = color; }
 
-    //     return (
-    //         <button className="antimodeMenu-button" title="Set font color" onPointerDown={onClick}>
-    //             <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
-    //         </button>
-    //     );
-    // }
+    createColorButton() {
+        const self = this;
+        function onColorClick(e: React.PointerEvent) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
+        }
+        function onDropdownClick(e: React.PointerEvent) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.toggleColorDropdown();
+        }
+        function changeColor(e: React.PointerEvent, color: string) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.setActiveColor(color);
+            self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
+        }
+
+        const colors = [
+            DarkPastelSchemaPalette.get("pink2"),
+            DarkPastelSchemaPalette.get("purple4"),
+            DarkPastelSchemaPalette.get("bluegreen1"),
+            DarkPastelSchemaPalette.get("yellow4"),
+            DarkPastelSchemaPalette.get("red2"),
+            DarkPastelSchemaPalette.get("bluegreen7"),
+            DarkPastelSchemaPalette.get("bluegreen5"),
+            DarkPastelSchemaPalette.get("orange1"),
+            "#757472",
+            "#000"
+        ];
+
+        return (
+            <div className="button-dropdown-wrapper">
+                <button className="antimodeMenu-button" title="" onPointerDown={onColorClick}>
+                    <FontAwesomeIcon icon="palette" size="lg" />
+                </button>
+                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                {this.showColorDropdown ? 
+                    (<div className="dropdown">
+                        {colors.map(color => {
+                            return <button style={{backgroundColor: color}} onPointerDown={e => changeColor(e, color)}></button>;
+                        })}
+                    </div>) 
+                    : <></> }
+            </div>
+        );
+    }
+
+    public insertColor(color: String, state: EditorState<any>, dispatch: any) {
+        const colorMark = state.schema.mark(state.schema.marks.pFontColor, { color: color });
+        if (state.selection.empty) {
+            dispatch(state.tr.addStoredMark(colorMark));
+            return false;
+        }
+        this.setMark(colorMark, state, dispatch);
+    }
+
+    @action toggleHighlightDropdown() { this.showHighlightDropdown = !this.showHighlightDropdown; }
+    @action setActiveHighlight(color: string) { this.activeHighlightColor = color; }
+
+    createHighlighterButton() {
+        const self = this;
+        function onHighlightClick(e: React.PointerEvent) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
+        }
+        function onDropdownClick(e: React.PointerEvent) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.toggleHighlightDropdown();
+        }
+        function changeHighlight(e: React.PointerEvent, color: string) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.setActiveHighlight(color);
+            self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
+        }
+
+        const colors = [
+            PastelSchemaPalette.get("pink2"),
+            PastelSchemaPalette.get("purple4"),
+            PastelSchemaPalette.get("bluegreen1"),
+            PastelSchemaPalette.get("yellow4"),
+            PastelSchemaPalette.get("red2"),
+            PastelSchemaPalette.get("bluegreen7"),
+            PastelSchemaPalette.get("bluegreen5"),
+            PastelSchemaPalette.get("orange1"),
+            "white",
+            "transparent"
+        ];
+
+        return (
+            <div className="button-dropdown-wrapper">
+                <button className="antimodeMenu-button" title="" onPointerDown={onHighlightClick}>
+                    <FontAwesomeIcon icon="highlighter" size="lg" />
+                </button>
+                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                {this.showHighlightDropdown ? 
+                    (<div className="dropdown">
+                        {colors.map(color => {
+                            return <button style={{backgroundColor: color}} onPointerDown={e => changeHighlight(e, color)}></button>;
+                        })}
+                    </div>) 
+                    : <></> }
+            </div>
+        );
+    }
+
+    insertHighlight(color: String, state: EditorState<any>, dispatch: any) {
+        if (state.selection.empty) return false;
+        toggleMark(state.schema.marks.marker, { highlight: color })(state, dispatch);
+    }
 
     reference_node(pos: ResolvedPos<any>): ProsNode | null {
         if (!this.view) return null;
@@ -432,7 +529,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
             { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
             { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
-        ]
+        ];
 
         const fontFamilyOptions = [
             { mark: schema.marks.pFontFamily.create({ family: "Times New Roman" }), title: "Set font family", label: "Times New Roman", command: this.changeFontFamily },
@@ -444,7 +541,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily },
             { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
             { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
-        ]
+        ];
 
         // //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
         // updateListItemDropdown(label: string, listTypeBtn: any) {
@@ -471,7 +568,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
             { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
-        ]
+        ];
 
         // options: { node: NodeType | null, title: string, label: string, command: (node: NodeType) => void, hidden ?: boolean } []
 
@@ -482,6 +579,8 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("strikethrough", "Strikethrough", toggleMark(schema.marks.strikethrough)),
             this.createButton("superscript", "Superscript", toggleMark(schema.marks.superscript)),
             this.createButton("subscript", "Subscript", toggleMark(schema.marks.subscript)),
+            this.createColorButton(),
+            this.createHighlighterButton(),
             this.createBrushButton(),
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
             this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
