@@ -71,6 +71,7 @@ export namespace Session {
 
     function loadAndValidateConfiguration(): Configuration {
         try {
+            console.log(timestamp(), cyan("validating configuration..."));
             const configuration: Configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
             const options = {
                 throwError: true,
@@ -125,6 +126,7 @@ export namespace Session {
      * and spawns off an initial process that will respawn as predecessors die.
      */
     export async function initializeMonitorThread(notifiers?: NotifierHooks): Promise<MasterExtensions> {
+        console.log(timestamp(), cyan("initializing session..."));
         let activeWorker: Worker;
         const childMessageHandlers: { [message: string]: ActionHandler } = {};
 
@@ -188,6 +190,7 @@ export namespace Session {
         };
 
         const killSession = (graceful = true) => {
+            masterLog(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
             tryKillActiveWorker(graceful);
             process.exit(0);
         };
@@ -263,7 +266,7 @@ export namespace Session {
         repl.registerCommand("exit", [/clean|force/], args => killSession(args[0] === "clean"));
         repl.registerCommand("restart", [], restartServer);
         repl.registerCommand("set", [letters, "port", number, boolean], args => setPort(args[0], Number(args[2]), args[3] === "true"));
-        repl.registerCommand("set", [/polling/, /interval/, number, boolean], args => {
+        repl.registerCommand("set", [/polling/, number, boolean], args => {
             const newPollingIntervalSeconds = Math.floor(Number(args[2]));
             if (newPollingIntervalSeconds < 0) {
                 masterLog(red("the polling interval must be a non-negative integer"));

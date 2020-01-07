@@ -3,7 +3,7 @@ import { red, green, white } from "colors";
 
 export interface Configuration {
     identifier: () => string | string;
-    onInvalid?: (culprit?: string) => string | string;
+    onInvalid?: (command: string, validCommand: boolean) => string | string;
     onValid?: (success?: string) => string | string;
     isCaseSensitive?: boolean;
 }
@@ -16,8 +16,8 @@ export interface Registration {
 
 export default class Repl {
     private identifier: () => string | string;
-    private onInvalid: (culprit?: string) => string | string;
-    private onValid: (success: string) => string | string;
+    private onInvalid: ((command: string, validCommand: boolean) => string) | string;
+    private onValid: ((success: string) => string) | string;
     private isCaseSensitive: boolean;
     private commandMap = new Map<string, Registration[]>();
     public interface: Interface;
@@ -34,18 +34,24 @@ export default class Repl {
 
     private resolvedIdentifier = () => typeof this.identifier === "string" ? this.identifier : this.identifier();
 
-    private usage = () => {
-        const resolved = this.keys;
-        if (resolved) {
-            return resolved;
+    private usage = (command: string, validCommand: boolean) => {
+        if (validCommand) {
+            const formatted = white(command);
+            const patterns = green(this.commandMap.get(command)!.map(({ argPatterns }) => `${formatted}  ${argPatterns.join("  ")}`).join('\n'));
+            return `${this.resolvedIdentifier()}\nthe given arguments do not match any registered patterns for ${formatted}\nthe list of valid argument patterns is given by:\n${patterns}`;
+        } else {
+            const resolved = this.keys;
+            if (resolved) {
+                return resolved;
+            }
+            const members: string[] = [];
+            const keys = this.commandMap.keys();
+            let next: IteratorResult<string>;
+            while (!(next = keys.next()).done) {
+                members.push(next.value);
+            }
+            return `${this.resolvedIdentifier()} commands: { ${members.sort().join(", ")} }`;
         }
-        const members: string[] = [];
-        const keys = this.commandMap.keys();
-        let next: IteratorResult<string>;
-        while (!(next = keys.next()).done) {
-            members.push(next.value);
-        }
-        return `${this.resolvedIdentifier()} commands: { ${members.sort().join(", ")} }`;
     }
 
     private success = (command: string) => `${this.resolvedIdentifier()} completed execution of ${white(command)}`;
@@ -61,8 +67,8 @@ export default class Repl {
         }
     }
 
-    private invalid = (culprit?: string) => {
-        console.log(red(typeof this.onInvalid === "string" ? this.onInvalid : this.onInvalid(culprit)));
+    private invalid = (command: string, validCommand: boolean) => {
+        console.log(red(typeof this.onInvalid === "string" ? this.onInvalid : this.onInvalid(command, validCommand)));
         this.busy = false;
     }
 
@@ -83,7 +89,7 @@ export default class Repl {
         }
         const [command, ...args] = line.split(/\s+/g);
         if (!command) {
-            return this.invalid();
+            return this.invalid(command, false);
         }
         const registered = this.commandMap.get(command);
         if (registered) {
@@ -108,8 +114,10 @@ export default class Repl {
                     return;
                 }
             }
+            this.invalid(command, true);
+        } else {
+            this.invalid(command, false);
         }
-        this.invalid(command);
     }
 
 }
