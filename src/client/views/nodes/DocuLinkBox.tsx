@@ -1,6 +1,6 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Utils } from '../../../Utils';
@@ -12,6 +12,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { DocumentType } from "../../documents/DocumentTypes";
 import { documentSchema } from "../../../new_fields/documentSchemas";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 type DocLinkSchema = makeInterface<[typeof documentSchema]>;
 const DocLinkDocument = makeInterface(documentSchema);
@@ -68,17 +69,31 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
 
     render() {
         const anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
-        const hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;
-        const y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
-        const x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
+        let anchorScale = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO ? 0.33 : 1;
+        let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
+        let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
         const c = StrCast(this.props.Document.backgroundColor, "lightblue");
         const anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
+
+        // really hacky stuff to make the link box display at the top right of hypertext link in a formatted text box.  somehow, this should get moved into the hyperlink itself...
+        const other = window.document.getElementById((this.props.Document[anchor] as Doc)[Id]);
+        if (other) {
+            (this.props.Document[this.props.fieldKey] as Doc)?.data; // ugh .. assumes that 'data' is the field used to store the text
+            setTimeout(() => {
+                let m = other.getBoundingClientRect();
+                let mp = this.props.ScreenToLocalTransform().transformPoint(m.right - 5, m.top + 5);
+                this.props.Document[this.props.fieldKey + "_x"] = mp[0] / this.props.PanelWidth() * 100;
+                this.props.Document[this.props.fieldKey + "_y"] = mp[1] / this.props.PanelHeight() * 100;
+            }, 0);
+            anchorScale = 0.15;
+        }
+
         const timecode = this.props.Document[anchor + "Timecode"];
         const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
         return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle}
             ref={this._ref} style={{
                 background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
-                transform: `scale(${hasAnchor ? 0.333 : 1 / this.props.ContentScaling()})`
+                transform: `scale(${anchorScale / this.props.ContentScaling()})`
             }} />;
     }
 }

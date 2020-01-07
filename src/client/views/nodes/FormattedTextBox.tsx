@@ -217,7 +217,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     public highlightSearchTerms = (terms: string[]) => {
-        if (this._editorView && (this._editorView as any).docView) {
+        if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
@@ -1060,7 +1060,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             e.preventDefault();
             return;
         }
-        let state = this._editorView!.state;
+        const state = this._editorView!.state;
         if (!state.selection.empty && e.key === "%") {
             state.schema.EnteringStyle = true;
             e.preventDefault();

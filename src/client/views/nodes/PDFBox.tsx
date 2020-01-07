@@ -21,6 +21,7 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../new_fields/documentSchemas';
+import { url } from 'inspector';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -61,7 +62,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         console.log("\nHere's the { url } being fed into the outer regex:");
         console.log(href);
         console.log("And here's the 'properPath' build from the captured filename:\n");
-        if (matches !== null) {
+        if (matches !== null && href.startsWith(window.location.origin)) {
             const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
             console.log(properPath);
             if (!properPath.includes(href)) {

@@ -91,13 +91,11 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
 
     render() {
-        return (
-            <div className="collectionfreeformlinksview-container">
-                <svg className="collectionfreeformlinksview-svgCanvas">
-                    {SelectionManager.GetIsDragging() ? (null) : this.uniqueConnections}
-                </svg>
-                {this.props.children}
-            </div>
-        );
+        return <div className="collectionfreeformlinksview-container">
+            <svg className="collectionfreeformlinksview-svgCanvas">
+                {SelectionManager.GetIsDragging() ? (null) : this.uniqueConnections}
+            </svg>
+            {this.props.children}
+        </div>;
     }
 }
