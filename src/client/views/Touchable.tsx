@@ -26,7 +26,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         }
 
         if (this.prevPoints.size) {
-            console.log(e.targetTouches.length);
             switch (this.prevPoints.size) {
                 case 1:
                     this.handle1PointerDown(e);
@@ -35,11 +34,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                     this.handle2PointersDown(e);
                     break;
             }
-
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
         }
     }
 
@@ -110,6 +104,17 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         e.preventDefault();
     }
 
-    handle1PointerDown = (e: React.TouchEvent): any => { };
-    handle2PointersDown = (e: React.TouchEvent): any => { };
+    handle1PointerDown = (e: React.TouchEvent): any => {
+        document.removeEventListener("touchmove", this.onTouch);
+        document.addEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+        document.addEventListener("touchend", this.onTouchEnd);
+    }
+
+    handle2PointersDown = (e: React.TouchEvent): any => {
+        document.removeEventListener("touchmove", this.onTouch);
+        document.addEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+        document.addEventListener("touchend", this.onTouchEnd);
+    }
 }

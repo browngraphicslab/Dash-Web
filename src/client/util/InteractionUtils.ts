@@ -8,7 +8,7 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
-    export function GetMyTargetTouches(e: TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
+    export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
         let myTouches = new Array<React.Touch>();
         for (let i = 0; i < e.targetTouches.length; i++) {
             let pt = e.targetTouches.item(i);

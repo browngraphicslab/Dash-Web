@@ -326,9 +326,30 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     handle1PointerDown = (e: React.TouchEvent) => {
+        if (e.nativeEvent.cancelBubble) return;
         let pt = e.targetTouches.item(0);
         if (pt) {
             this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+            if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+                document.removeEventListener("touchmove", this.onTouch);
+                document.addEventListener("touchmove", this.onTouch);
+                document.removeEventListener("touchend", this.onTouchEnd);
+                document.addEventListener("touchend", this.onTouchEnd);
+                if (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let point = this.getTransform().transformPoint(pt.pageX, pt.pageY);
+                    this._points.push({ X: point[0], Y: point[1] });
+                }
+                else if (InkingControl.Instance.selectedTool === InkTool.None) {
+                    this._lastX = pt.pageX;
+                    this._lastY = pt.pageY;
+                }
+                else {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }
         }
     }
 
@@ -544,14 +565,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     handle2PointersDown = (e: React.TouchEvent) => {
-        let pt1: React.Touch | null = e.targetTouches.item(0);
-        let pt2: React.Touch | null = e.targetTouches.item(1);
-        if (!pt1 || !pt2) return;
+        if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
+            let pt1: React.Touch | null = e.targetTouches.item(0);
+            let pt2: React.Touch | null = e.targetTouches.item(1);
+            if (!pt1 || !pt2) return;
 
-        let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
-        let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-        this._lastX = centerX;
-        this._lastY = centerY;
+            let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+            let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+            this._lastX = centerX;
+            this._lastY = centerY;
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+            e.stopPropagation();
+        }
     }
 
     cleanUpInteractions = () => {
