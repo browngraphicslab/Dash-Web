@@ -12,12 +12,16 @@ import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscr
 import { MenuItem, Dropdown } from "prosemirror-menu";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
-import { NumCast } from "../../new_fields/Types";
+import { NumCast, Cast, StrCast } from "../../new_fields/Types";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
-import { unimplementedFunction } from "../../Utils";
+import { unimplementedFunction, Utils } from "../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
 import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
 import "./RichTextMenu.scss";
+import { DocServer } from "../DocServer";
+import { Doc } from "../../new_fields/Doc";
+import { SelectionManager } from "./SelectionManager";
+import { LinkManager } from "./LinkManager";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
 library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink);
@@ -81,6 +85,10 @@ export default class RichTextMenu extends AntimodeMenu {
         // this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
         // this._linkDropdownDom = newLinkDropdowndom;
 
+        // const targetTitle = await this.getTextLinkTargetTitle();
+        // // console.log(targetTitle);
+        // this.setCurrentLink(targetTitle);
+
         // update active font family and size
         const active = this.getActiveFontStylesOnSelection();
         const activeFamilies = active && active.get("families");
@@ -88,6 +96,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
         this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "default" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "default" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
+
+        const targetTitle = await this.getTextLinkTargetTitle();
+        this.setCurrentLink(targetTitle);
 
         // this.update_mark_doms();
     }
@@ -274,7 +285,7 @@ export default class RichTextMenu extends AntimodeMenu {
         return true;
     }
 
-    @action 
+    @action
     toggleBrushDropdown() { this.showBrushDropdown = !this.showBrushDropdown; }
 
     createBrushButton() {
@@ -308,13 +319,13 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="button-dropdown-wrapper">
                 <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick}><FontAwesomeIcon icon="eye-dropper" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showBrushDropdown ? 
+                {this.showBrushDropdown ?
                     (<div className="dropdown">
                         <p>{label}</p>
                         <button onPointerDown={this.clearBrush}>Clear brush</button>
                         {/* <input placeholder="Enter URL"></input> */}
-                    </div>) 
-                    : <></> }
+                    </div>)
+                    : <></>}
             </div>
         );
     }
@@ -396,13 +407,13 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="button-dropdown-wrapper">
                 <button className="antimodeMenu-button" title="" onPointerDown={onColorClick}><FontAwesomeIcon icon="palette" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showColorDropdown ? 
+                {this.showColorDropdown ?
                     (<div className="dropdown">
                         {colors.map(color => {
-                            return <button style={{backgroundColor: color}} onPointerDown={e => changeColor(e, color)}></button>;
+                            if (color) return <button style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button>;
                         })}
-                    </div>) 
-                    : <></> }
+                    </div>)
+                    : <></>}
             </div>
         );
     }
@@ -458,13 +469,13 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="button-dropdown-wrapper">
                 <button className="antimodeMenu-button" title="" onPointerDown={onHighlightClick}><FontAwesomeIcon icon="highlighter" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showHighlightDropdown ? 
+                {this.showHighlightDropdown ?
                     (<div className="dropdown">
                         {colors.map(color => {
-                            return <button style={{backgroundColor: color}} onPointerDown={e => changeHighlight(e, color)}></button>;
+                            if (color) return <button style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}></button>;
                         })}
-                    </div>) 
-                    : <></> }
+                    </div>)
+                    : <></>}
             </div>
         );
     }
@@ -489,27 +500,30 @@ export default class RichTextMenu extends AntimodeMenu {
             self.setCurrentLink(e.target.value);
         }
 
-        const targetTitle = await this.getTextLinkTargetTitle();
-        console.log(targetTitle);
-        // this.setCurrentLink(targetTitle);
+        // const targetTitle = this.getTextLinkTargetTitle();
+        console.log("link curr is ", this.currentLink);
+        // // this.setCurrentLink(targetTitle);
+        const link = this.currentLink ? this.currentLink : "";
 
         return (
             <div className="button-dropdown-wrapper">
                 <button className="antimodeMenu-button" title="" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="link" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showLinkDropdown ? 
+                {this.showLinkDropdown ?
                     (<div className="dropdown">
                         <p>Linked to:</p>
-                        {/* <input value={this.currentLink} placeholder="Enter URL" onChange={onLinkChange}/>
-                        <button onPointerDown={e => this.makeLinkToURL("input value", "onRight")}>Apply hyperlink</button>
-                        <button onPointerDown={e => this.deleteLink()}>Remove link</button> */}
-                    </div>) 
-                    : <></> }
+                        <input value={link} placeholder="Enter URL" onChange={onLinkChange} />
+                        <button onPointerDown={e => this.makeLinkToURL(link, "onRight")}>Apply hyperlink</button>
+                        <button onPointerDown={e => this.deleteLink()}>Remove link</button>
+                    </div>)
+                    : <></>}
             </div>
         );
     }
 
     async getTextLinkTargetTitle() {
+        if (!this.view) return;
+
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
@@ -542,7 +556,10 @@ export default class RichTextMenu extends AntimodeMenu {
         }
     }
 
+    // TODO: should check for valid URL
     makeLinkToURL = (target: String, lcoation: string) => {
+        if (!this.view) return;
+
         let node = this.view.state.selection.$from.nodeAfter;
         let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
@@ -552,8 +569,10 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     deleteLink = () => {
+        if (!this.view) return;
+
         const node = this.view.state.selection.$from.nodeAfter;
-        const link = node && node.marks.find(m => m.type === this.view.state.schema.marks.link);
+        const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
         const href = link!.attrs.href;
         if (href) {
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
@@ -562,7 +581,7 @@ export default class RichTextMenu extends AntimodeMenu {
                     DocServer.GetRefField(linkclicked).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             LinkManager.Instance.deleteLink(linkDoc);
-                            this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+                            this.view!.dispatch(this.view!.state.tr.removeMark(this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link));
                         }
                     });
                 }
