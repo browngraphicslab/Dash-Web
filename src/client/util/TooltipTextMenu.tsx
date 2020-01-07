@@ -20,6 +20,8 @@ import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/S
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
+// deprecated in favor of richtextmenu
+
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
     public static Toolbar: HTMLDivElement | undefined;

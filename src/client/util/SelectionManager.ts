@@ -3,6 +3,8 @@ import { Doc } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
 import { List } from "../../new_fields/List";
+import { DocumentDecorations } from "../views/DocumentDecorations";
+import RichTextMenu from "./RichTextMenu";
 
 export namespace SelectionManager {
 
@@ -14,7 +16,6 @@ export namespace SelectionManager {
 
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
-            console.log("select doc!!!");
             // if doc is not in SelectedDocuments, add it
             if (!manager.SelectedDocuments.get(docView)) {
                 if (!ctrlPressed) {
