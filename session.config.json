@@ -1,0 +1,9 @@
+{
+    "showServerOutput": false,
+    "ports": {
+        "server": 1050,
+        "socket": 4321
+    },
+    "pollingRoute": "/serverHeartbeat",
+    "pollingIntervalSeconds": 15
+}

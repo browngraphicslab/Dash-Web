@@ -6,11 +6,11 @@ import { Database } from './database';
 const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './Initialization';
+import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import { SearchManager } from './ApiManagers/SearchManager';
+import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -18,13 +18,16 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
-import { log_execution } from "./ActionUtilities";
+import { log_execution, Email } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
-import { Session } from "./session";
+import { Session } from "./Session/session";
+import { isMaster } from "cluster";
+import { execSync } from "child_process";
 import { Utils } from "../Utils";
+import { MessageStore } from "./Message";
 
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
@@ -35,7 +38,6 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
-    await Session.distributeKey();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
@@ -90,11 +92,11 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     addSupervisedRoute({
         method: Method.GET,
-        subscription: new RouteSubscriber("kill").add("password"),
+        subscription: new RouteSubscriber("kill").add("key"),
         secureHandler: ({ req, res }) => {
-            if (req.params.password === Session.key) {
-                process.send!({ action: yellow("kill") });
-                res.send("Server successfully killed.");
+            if (req.params.key === process.env.session_key) {
+                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
+                process.send!({ action: { message: "kill" } });
             } else {
                 res.redirect("/home");
             }
@@ -125,16 +127,70 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(serverPort, isRelease);
+    WebSocket.start(isRelease);
 }
 
-async function launch() {
+/**
+ * This function can be used in two different ways. If not in release mode,
+ * this is simply the logic that is invoked to start the server. In release mode,
+ * however, this becomes the logic invoked by a single worker thread spawned by
+ * the main monitor (master) thread.
+ */
+async function launchServer() {
     await log_execution({
         startMessage: "\nstarting execution of preliminary functions",
         endMessage: "completed preliminary functions\n",
         action: preliminaryFunctions
     });
-    await initializeServer({ serverPort: 1050, routeSetter });
+    await initializeServer(routeSetter);
 }
 
-Session.initialize(launch);
+/**
+ * If we're the monitor (master) thread, we should launch the monitor logic for the session.
+ * Otherwise, we must be on a worker thread that was spawned *by* the monitor (master) thread, and thus
+ * our job should be to run the server.
+ */
+async function launchMonitoredSession() {
+    if (isMaster) {
+        const recipients = ["samuel_wilkins@brown.edu"];
+        const signature = "-Dash Server Session Manager";
+        const customizer = await Session.initializeMonitorThread({
+            key: async (key: string) => {
+                const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${signature}`;
+                const failures = await Email.dispatchAll(recipients, "Server Termination Key", content);
+                return failures.length === 0;
+            },
+            crash: async (error: Error) => {
+                const subject = "Dash Web Server Crash";
+                const { name, message, stack } = error;
+                const body = [
+                    "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
+                    `name:\n${name}`,
+                    `message:\n${message}`,
+                    `stack:\n${stack}`,
+                    "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
+                ].join("\n\n");
+                const content = `${body}\n\n${signature}`;
+                const failures = await Email.dispatchAll(recipients, subject, content);
+                return failures.length === 0;
+            }
+        });
+        customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+        customizer.addReplCommand("solr", [/start|stop/g], args => SolrManager.SetRunning(args[0] === "start"));
+    } else {
+        const addExitHandler = await Session.initializeWorkerThread(launchServer); // server initialization delegated to worker
+        addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
+    }
+}
+
+/**
+ * If you're in development mode, you won't need to run a session.
+ * The session spawns off new server processes each time an error is encountered, and doesn't
+ * log the output of the server process, so it's not ideal for development.
+ * So, the 'else' clause is exactly what we've always run when executing npm start.
+ */
+if (process.env.RELEASE) {
+    launchMonitoredSession();
+} else {
+    launchServer();
+}

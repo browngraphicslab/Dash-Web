@@ -1,33 +1,38 @@
 import { createInterface, Interface } from "readline";
-import { red } from "colors";
+import { red, green, white } from "colors";
 
 export interface Configuration {
-    identifier: string;
+    identifier: () => string | string;
     onInvalid?: (culprit?: string) => string | string;
+    onValid?: (success?: string) => string | string;
     isCaseSensitive?: boolean;
 }
 
-type Action = (parsedArgs: IterableIterator<string>) => any | Promise<any>;
+export type ReplAction = (parsedArgs: Array<string>) => any | Promise<any>;
 export interface Registration {
     argPatterns: RegExp[];
-    action: Action;
+    action: ReplAction;
 }
 
-export default class InputManager {
-    private identifier: string;
-    private onInvalid: ((culprit?: string) => string) | string;
+export default class Repl {
+    private identifier: () => string | string;
+    private onInvalid: (culprit?: string) => string | string;
+    private onValid: (success: string) => string | string;
     private isCaseSensitive: boolean;
     private commandMap = new Map<string, Registration[]>();
     public interface: Interface;
     private busy = false;
     private keys: string | undefined;
 
-    constructor({ identifier: prompt, onInvalid, isCaseSensitive }: Configuration) {
+    constructor({ identifier: prompt, onInvalid, onValid, isCaseSensitive }: Configuration) {
         this.identifier = prompt;
         this.onInvalid = onInvalid || this.usage;
+        this.onValid = onValid || this.success;
         this.isCaseSensitive = isCaseSensitive ?? true;
         this.interface = createInterface(process.stdin, process.stdout).on('line', this.considerInput);
     }
+
+    private resolvedIdentifier = () => typeof this.identifier === "string" ? this.identifier : this.identifier();
 
     private usage = () => {
         const resolved = this.keys;
@@ -40,10 +45,12 @@ export default class InputManager {
         while (!(next = keys.next()).done) {
             members.push(next.value);
         }
-        return `${this.identifier} commands: { ${members.sort().join(", ")} }`;
+        return `${this.resolvedIdentifier()} commands: { ${members.sort().join(", ")} }`;
     }
 
-    public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: Action) => {
+    private success = (command: string) => `${this.resolvedIdentifier()} completed execution of ${white(command)}`;
+
+    public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
         const existing = this.commandMap.get(basename);
         const converted = argPatterns.map(input => input instanceof RegExp ? input : new RegExp(input));
         const registration = { argPatterns: converted, action };
@@ -56,6 +63,11 @@ export default class InputManager {
 
     private invalid = (culprit?: string) => {
         console.log(red(typeof this.onInvalid === "string" ? this.onInvalid : this.onInvalid(culprit)));
+        this.busy = false;
+    }
+
+    private valid = (command: string) => {
+        console.log(green(typeof this.onValid === "string" ? this.onValid : this.onValid(command)));
         this.busy = false;
     }
 
@@ -91,8 +103,8 @@ export default class InputManager {
                     matched = true;
                 }
                 if (!length || matched) {
-                    await action(parsed[Symbol.iterator]());
-                    this.busy = false;
+                    await action(parsed);
+                    this.valid(`${command} ${parsed.join(" ")}`);
                     return;
                 }
             }

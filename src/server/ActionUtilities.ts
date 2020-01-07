@@ -4,6 +4,8 @@ import { exec } from 'child_process';
 import * as path from 'path';
 import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
+import * as nodemailer from "nodemailer";
+import { MailOptions } from "nodemailer/lib/json-transport";
 
 const projectRoot = path.resolve(__dirname, "../../");
 export function pathFromRoot(relative?: string) {
@@ -105,3 +107,37 @@ export async function Prune(rootDirectory: string): Promise<boolean> {
 }
 
 export const Destroy = (mediaPath: string) => new Promise<boolean>(resolve => unlink(mediaPath, error => resolve(error === null)));
+
+export namespace Email {
+
+    const smtpTransport = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+            user: 'brownptcdash@gmail.com',
+            pass: 'browngfx1'
+        }
+    });
+
+    export async function dispatchAll(recipients: string[], subject: string, content: string) {
+        const failures: string[] = [];
+        await Promise.all(recipients.map(async (recipient: string) => {
+            if (!await Email.dispatch(recipient, subject, content)) {
+                failures.push(recipient);
+            }
+        }));
+        return failures;
+    }
+
+    export async function dispatch(recipient: string, subject: string, content: string): Promise<boolean> {
+        const mailOptions = {
+            to: recipient,
+            from: 'brownptcdash@gmail.com',
+            subject,
+            text: `Hello ${recipient.split("@")[0]},\n\n${content}`
+        } as MailOptions;
+        return new Promise<boolean>(resolve => {
+            smtpTransport.sendMail(mailOptions, (dispatchError: Error | null) => resolve(dispatchError === null));
+        });
+    }
+
+}

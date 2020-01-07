@@ -18,15 +18,15 @@ export namespace WebSocket {
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
 
-    export async function start(serverPort: number, isRelease: boolean) {
+    export async function start(isRelease: boolean) {
         await preliminaryFunctions();
-        initialize(serverPort, isRelease);
+        initialize(isRelease);
     }
 
     async function preliminaryFunctions() {
     }
 
-    export function initialize(socketPort: number, isRelease: boolean) {
+    function initialize(isRelease: boolean) {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
             _socket = socket;
@@ -63,6 +63,7 @@ export namespace WebSocket {
             };
         });
 
+        const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }

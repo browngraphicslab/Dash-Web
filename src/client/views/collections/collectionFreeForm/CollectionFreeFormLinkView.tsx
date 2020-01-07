@@ -66,9 +66,12 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
-        return (<line key="linkLine" className="collectionfreeformlinkview-linkLine"
-            style={{ opacity: this._opacity }}
-            x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-            x2={`${pt2[0]}`} y2={`${pt2[1]}`} />);
+        let aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
+        let bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
+        return !aActive && !bActive ? (null) :
+            <line key="linkLine" className="collectionfreeformlinkview-linkLine"
+                style={{ opacity: this._opacity }}
+                x1={`${pt1[0]}`} y1={`${pt1[1]}`}
+                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />;
     }
 }

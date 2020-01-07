@@ -85,11 +85,11 @@ export const inpRules = {
                 const value = state.doc.textBetween(start, end);
                 if (value) {
                     DocServer.GetRefField(value).then(docx => {
-                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500, }, value);
                         DocUtils.Publish(target, value, returnFalse, returnFalse);
                         DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
                     });
-                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + value), location: "onRight", title: value });
+                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + value), location: "onRight", title: value, targetId: value });
                     return state.tr.addMark(start, end, link);
                 }
                 return state.tr;

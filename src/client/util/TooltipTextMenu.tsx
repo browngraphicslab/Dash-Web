@@ -449,8 +449,8 @@ export class TooltipTextMenu {
     //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     // }
 
-    makeLink = (targetDoc: Doc, title: string, location: string): string => {
-        const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + targetDoc[Id]), title: title, location: location });
+    makeLink = (linkDocId: string, title: string, location: string, targetDocId: string): string => {
+        const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, targetId: targetDocId });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
             addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         const node = this.view.state.selection.$from.nodeAfter;
