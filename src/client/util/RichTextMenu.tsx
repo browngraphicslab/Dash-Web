@@ -8,7 +8,7 @@ import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink } from "@fortawesome/free-solid-svg-icons";
 import { MenuItem, Dropdown } from "prosemirror-menu";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
@@ -20,7 +20,7 @@ import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/S
 import "./RichTextMenu.scss";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter);
+library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink);
 
 @observer
 export default class RichTextMenu extends AntimodeMenu {
@@ -42,6 +42,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @observable private activeHighlightColor: string = "transparent";
     @observable private showHighlightDropdown: boolean = false;
+
+    @observable private currentLink: string | undefined = "";
+    @observable private showLinkDropdown: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -67,9 +70,8 @@ export default class RichTextMenu extends AntimodeMenu {
         const state = view.state;
         // DocumentDecorations.Instance.showTextBar();
         props && (this.editorProps = props);
-        // // Don't do anything if the document/selection didn't change
-        // if (lastState && lastState.doc.eq(state.doc) &&
-        //     lastState.selection.eq(state.selection)) return;
+        // Don't do anything if the document/selection didn't change
+        if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) return;
 
         // this.reset_mark_doms();
 
@@ -147,15 +149,9 @@ export default class RichTextMenu extends AntimodeMenu {
     createButton(faIcon: string, title: string, command?: any, onclick?: any) {
         const self = this;
         function onClick(e: React.PointerEvent) {
-            console.log("clicked button");
-            // dom.addEventListener("pointerdown", e => {
             e.preventDefault();
-            self.view && self.view.focus();
-            //     if (dom.contains(e.target as Node)) {
             e.stopPropagation();
-            //         command(this.view.state, this.view.dispatch, this.view);
-            //     }
-            // });
+            self.view && self.view.focus();
             self.view && command && command(self.view!.state, self.view!.dispatch, self.view);
             self.view && onclick && onclick(self.view!.state, self.view!.dispatch, self.view);
         }
@@ -310,9 +306,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         return (
             <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick}>
-                    <FontAwesomeIcon icon="eye-dropper" size="lg" />
-                </button>
+                <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick}><FontAwesomeIcon icon="eye-dropper" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 {this.showBrushDropdown ? 
                     (<div className="dropdown">
@@ -400,9 +394,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         return (
             <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onColorClick}>
-                    <FontAwesomeIcon icon="palette" size="lg" />
-                </button>
+                <button className="antimodeMenu-button" title="" onPointerDown={onColorClick}><FontAwesomeIcon icon="palette" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 {this.showColorDropdown ? 
                     (<div className="dropdown">
@@ -464,9 +456,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         return (
             <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onHighlightClick}>
-                    <FontAwesomeIcon icon="highlighter" size="lg" />
-                </button>
+                <button className="antimodeMenu-button" title="" onPointerDown={onHighlightClick}><FontAwesomeIcon icon="highlighter" size="lg" /></button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 {this.showHighlightDropdown ? 
                     (<div className="dropdown">
@@ -482,6 +472,102 @@ export default class RichTextMenu extends AntimodeMenu {
     insertHighlight(color: String, state: EditorState<any>, dispatch: any) {
         if (state.selection.empty) return false;
         toggleMark(state.schema.marks.marker, { highlight: color })(state, dispatch);
+    }
+
+    @action toggleLinkDropdown() { this.showLinkDropdown = !this.showLinkDropdown; }
+    @action setCurrentLink(link: string) { this.currentLink = link; }
+
+    createLinkButton() {
+        const self = this;
+        function onDropdownClick(e: React.PointerEvent) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.view && self.view.focus();
+            self.toggleLinkDropdown();
+        }
+        function onLinkChange(e: React.ChangeEvent<HTMLInputElement>) {
+            self.setCurrentLink(e.target.value);
+        }
+
+        const targetTitle = await this.getTextLinkTargetTitle();
+        console.log(targetTitle);
+        // this.setCurrentLink(targetTitle);
+
+        return (
+            <div className="button-dropdown-wrapper">
+                <button className="antimodeMenu-button" title="" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="link" size="lg" /></button>
+                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                {this.showLinkDropdown ? 
+                    (<div className="dropdown">
+                        <p>Linked to:</p>
+                        {/* <input value={this.currentLink} placeholder="Enter URL" onChange={onLinkChange}/>
+                        <button onPointerDown={e => this.makeLinkToURL("input value", "onRight")}>Apply hyperlink</button>
+                        <button onPointerDown={e => this.deleteLink()}>Remove link</button> */}
+                    </div>) 
+                    : <></> }
+            </div>
+        );
+    }
+
+    async getTextLinkTargetTitle() {
+        const node = this.view.state.selection.$from.nodeAfter;
+        const link = node && node.marks.find(m => m.type.name === "link");
+        if (link) {
+            const href = link.attrs.href;
+            if (href) {
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    if (linkclicked) {
+                        const linkDoc = await DocServer.GetRefField(linkclicked);
+                        if (linkDoc instanceof Doc) {
+                            const anchor1 = await Cast(linkDoc.anchor1, Doc);
+                            const anchor2 = await Cast(linkDoc.anchor2, Doc);
+                            const currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+                            if (currentDoc && anchor1 && anchor2) {
+                                if (Doc.AreProtosEqual(currentDoc, anchor1)) {
+                                    return StrCast(anchor2.title);
+                                }
+                                if (Doc.AreProtosEqual(currentDoc, anchor2)) {
+                                    return StrCast(anchor1.title);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return href;
+                }
+            } else {
+                return link.attrs.title;
+            }
+        }
+    }
+
+    makeLinkToURL = (target: String, lcoation: string) => {
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
+        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+        this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
+        node = this.view.state.selection.$from.nodeAfter;
+        link = node && node.marks.find(m => m.type.name === "link");
+    }
+
+    deleteLink = () => {
+        const node = this.view.state.selection.$from.nodeAfter;
+        const link = node && node.marks.find(m => m.type === this.view.state.schema.marks.link);
+        const href = link!.attrs.href;
+        if (href) {
+            if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                if (linkclicked) {
+                    DocServer.GetRefField(linkclicked).then(async linkDoc => {
+                        if (linkDoc instanceof Doc) {
+                            LinkManager.Instance.deleteLink(linkDoc);
+                            this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+                        }
+                    });
+                }
+            }
+        }
     }
 
     reference_node(pos: ResolvedPos<any>): ProsNode | null {
@@ -543,34 +629,12 @@ export default class RichTextMenu extends AntimodeMenu {
             { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
         ];
 
-        // //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
-        // updateListItemDropdown(label: string, listTypeBtn: any) {
-        //     //remove old btn
-        //     if (listTypeBtn) { this.tooltip.removeChild(listTypeBtn); }
-
-        //     //Make a dropdown of all list types
-        //     const toAdd: MenuItem[] = [];
-        //     this.listTypeToIcon.forEach((icon, type) => {
-        //         toAdd.push(this.dropdownBulletBtn(icon, "color: black; width: 40px;", type, this.view, this.listTypes, this.changeBulletType));
-        //     });
-        //     //option to remove the list formatting
-        //     toAdd.push(this.dropdownBulletBtn("X", "color: black; width: 40px;", undefined, this.view, this.listTypes, this.changeBulletType));
-
-        //     listTypeBtn = (new Dropdown(toAdd, { label: label, css: "color:black; width: 40px;" }) as MenuItem).render(this.view).dom;
-
-        //     //add this new button and return it
-        //     this.tooltip.appendChild(listTypeBtn);
-        //     return listTypeBtn;
-        // }
-
         const listTypeOptions = [
             { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
             { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
         ];
-
-        // options: { node: NodeType | null, title: string, label: string, command: (node: NodeType) => void, hidden ?: boolean } []
 
         const buttons = [
             this.createButton("bold", "Bold", toggleMark(schema.marks.strong)),
@@ -581,37 +645,13 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("subscript", "Subscript", toggleMark(schema.marks.subscript)),
             this.createColorButton(),
             this.createHighlighterButton(),
+            this.createLinkButton(),
             this.createBrushButton(),
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
             this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
             this.createMarksDropdown(this.activeFontFamily, fontFamilyOptions),
             this.createNodesDropdown(this.activeListType, listTypeOptions),
         ];
-
-        // this._marksToDoms = new Map();
-        // items.forEach(({ title, dom, command }) => {
-        //     // this.tooltip.appendChild(dom);
-        //     switch (title) {
-        //         case "Bold":
-        //             this._marksToDoms.set(schema.mark(schema.marks.strong), dom);
-        //             // this.basicTools && this.basicTools.appendChild(dom.cloneNode(true));
-        //             break;
-        //         case "Italic":
-        //             this._marksToDoms.set(schema.mark(schema.marks.em), dom);
-        //             // this.basicTools && this.basicTools.appendChild(dom.cloneNode(true));
-        //             break;
-        //     }
-
-        //     //pointer down handler to activate button effects
-        //     dom.addEventListener("pointerdown", e => {
-        //         e.preventDefault();
-        //         this.view.focus();
-        //         if (dom.contains(e.target as Node)) {
-        //             e.stopPropagation();
-        //             command(this.view.state, this.view.dispatch, this.view);
-        //         }
-        //     });
-        // });
 
         return this.getElement(buttons);
     }
