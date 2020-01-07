@@ -130,15 +130,16 @@ export namespace Session {
 
         // read in configuration .json file only once, in the master thread
         // pass down any variables the pertinent to the child processes as environment variables
+        const configuration = loadAndValidateConfiguration();
         const {
             masterIdentifier,
             workerIdentifier,
             ports,
             pollingRoute,
             showServerOutput,
-            pollingIntervalSeconds,
             pollingFailureTolerance
-        } = loadAndValidateConfiguration();
+        } = configuration;
+        let { pollingIntervalSeconds } = configuration;
 
         const masterLog = (...optionalParams: any[]) => console.log(timestamp(), masterIdentifier, ...optionalParams);
 
@@ -256,16 +257,22 @@ export namespace Session {
 
         // builds the repl that allows the following commands to be typed into stdin of the master thread
         const repl = new Repl({ identifier: () => `${timestamp()} ${masterIdentifier}` });
+        const boolean = /true|false/;
+        const number = /\d+/;
+        const letters = /[a-zA-Z]+/;
         repl.registerCommand("exit", [/clean|force/], args => killSession(args[0] === "clean"));
         repl.registerCommand("restart", [], restartServer);
-        repl.registerCommand("set", [/[a-zA-Z]+/, "port", /\d+/, /true|false/], args => setPort(args[0], Number(args[2]), args[3] === "true"));
-        repl.registerCommand("set", [/polling/, /interval/, /\d+/], args => {
+        repl.registerCommand("set", [letters, "port", number, boolean], args => setPort(args[0], Number(args[2]), args[3] === "true"));
+        repl.registerCommand("set", [/polling/, /interval/, number, boolean], args => {
             const newPollingIntervalSeconds = Math.floor(Number(args[2]));
             if (newPollingIntervalSeconds < 0) {
                 masterLog(red("the polling interval must be a non-negative integer"));
             } else {
                 if (newPollingIntervalSeconds !== pollingIntervalSeconds) {
-                    activeWorker.send({ newPollingIntervalSeconds });
+                    pollingIntervalSeconds = newPollingIntervalSeconds;
+                    if (args[3] === "true") {
+                        activeWorker.send({ newPollingIntervalSeconds });
+                    }
                 }
             }
         });
