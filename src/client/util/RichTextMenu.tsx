@@ -283,7 +283,7 @@ export default class RichTextMenu extends AntimodeMenu {
             //     }
             // });
 
-            self.view && self.brush_function(self.view.state, self.view.dispatch);
+            self.view && self.fillBrush(self.view.state, self.view.dispatch);
 
             // // update dropdown with marks
             // const newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
@@ -307,8 +307,8 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="button-dropdown-wrapper">
                 <button className="antimodeMenu-button" title="" onPointerDown={onClick}>
                     <FontAwesomeIcon icon="eye-dropper" size="lg" />
-                    <button className="dropdown-button"><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 </button>
+                <button className="dropdown-button antimodeMenu-button"><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 <div className="dropdown">
                     <p>{label}</p>
                     <button onPointerDown={this.clearBrush}>Clear brush</button>
@@ -320,12 +320,12 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action
     clearBrush() {
-        this.brushIsEmpty = true;
-        this.brushMarks = new Set();
+        RichTextMenu.Instance.brushIsEmpty = true;
+        RichTextMenu.Instance.brushMarks = new Set();
     }
 
     @action
-    brush_function(state: EditorState<any>, dispatch: any) {
+    fillBrush(state: EditorState<any>, dispatch: any) {
         if (!this.view) return;
 
         if (this.brushIsEmpty) {
