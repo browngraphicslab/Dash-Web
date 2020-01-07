@@ -574,19 +574,51 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
         const href = link!.attrs.href;
+        console.log("delete link", node, link, href);
         if (href) {
+            console.log("has href");
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                 if (linkclicked) {
+                    console.log("linkclicked");
                     DocServer.GetRefField(linkclicked).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
+                            console.log("is doc");
                             LinkManager.Instance.deleteLink(linkDoc);
+                            console.log("remove the link! ", this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link);
                             this.view!.dispatch(this.view!.state.tr.removeMark(this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link));
                         }
                     });
                 }
+            } else {
+                console.log("remove the link! ", this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link);
+                if (node) {
+                    let extension = this.linkExtend(this.view!.state.selection.$anchor, href);
+                    console.log("remove the link", extension.from, extension.to);
+                    this.view!.dispatch(this.view!.state.tr.removeMark(extension.from, extension.to, this.view!.state.schema.marks.link));
+
+                }
             }
         }
+    }
+
+    linkExtend($start: ResolvedPos, href: string) {
+        const mark = this.view!.state.schema.marks.link;
+
+        let startIndex = $start.index();
+        let endIndex = $start.indexAfter();
+
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.href === href).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.href === href).length) endIndex++;
+
+        let startPos = $start.start();
+        let endPos = startPos;
+        for (let i = 0; i < endIndex; i++) {
+            let size = $start.parent.child(i).nodeSize;
+            if (i < startIndex) startPos += size;
+            endPos += size;
+        }
+        return { from: startPos, to: endPos };
     }
 
     reference_node(pos: ResolvedPos<any>): ProsNode | null {
