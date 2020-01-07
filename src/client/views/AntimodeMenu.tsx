@@ -125,4 +125,14 @@ export default abstract class AntimodeMenu extends React.Component {
             </div>
         );
     }
+
+    protected getElementWithRows(rows: JSX.Element[], numRows: number) {
+        return (
+            <div className="antimodeMenu-cont with-rows" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
+                style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay, height: 35 * numRows + "px" }}>
+                {rows}
+                <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />
+            </div>
+        );
+    }
 }

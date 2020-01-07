@@ -8,6 +8,15 @@
     // overflow: hidden;    
     display: flex;
 
+    &.with-rows {
+        flex-direction: column
+    }
+
+    .antimodeMenu-row {
+        display: flex;
+        height: 35px;
+    }
+
     .antimodeMenu-button {
         background-color: transparent;
         width: 35px;

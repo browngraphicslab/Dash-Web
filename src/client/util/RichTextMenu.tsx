@@ -29,7 +29,7 @@ library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSub
 @observer
 export default class RichTextMenu extends AntimodeMenu {
     static Instance: RichTextMenu;
-    @observable private isVisible: boolean = false;
+    public overDropdown: boolean = false; // kind of hacky way to prevent selects not being selectable
 
     private view?: EditorView;
     private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
@@ -73,7 +73,6 @@ export default class RichTextMenu extends AntimodeMenu {
         }
         this.view = view;
         const state = view.state;
-        this.isVisible = true;
         // DocumentDecorations.Instance.showTextBar();
         props && (this.editorProps = props);
         // Don't do anything if the document/selection didn't change
@@ -179,14 +178,19 @@ export default class RichTextMenu extends AntimodeMenu {
         });
 
         const self = this;
-        function onChange(val: string) {
+        function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log("on change marks");
             options.forEach(({ label, mark, command }) => {
-                if (val === label) {
+                if (e.target.value === label) {
                     self.view && mark && command(mark, self.view);
                 }
             });
         }
-        return <select onChange={e => onChange(e.target.value)}>{items}</select>;
+        function onPointerEnter() { self.overDropdown = true; }
+        function onPointerLeave() { self.overDropdown = false; }
+        return <select onChange={onChange} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>{items}</select>;
     }
 
     createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean }[]): JSX.Element {
@@ -209,7 +213,9 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        return <select onChange={e => onChange(e.target.value)}>{items}</select>;
+        function onPointerEnter() { self.overDropdown = true; }
+        function onPointerLeave() { self.overDropdown = false; }
+        return <select onChange={e => onChange(e.target.value)} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>{items}</select>;
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
@@ -274,8 +280,7 @@ export default class RichTextMenu extends AntimodeMenu {
         return true;
     }
 
-    @action
-    toggleBrushDropdown() { this.showBrushDropdown = !this.showBrushDropdown; }
+    @action toggleBrushDropdown() { this.showBrushDropdown = !this.showBrushDropdown; }
 
     createBrushButton() {
         const self = this;
@@ -648,9 +653,6 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     render() {
-        // if (!this.isVisible) return <></>;
-        SelectionManager.SelectedDocuments()
-        // if (this.Pinned || )
 
         const fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
@@ -689,7 +691,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
         ];
 
-        const buttons = [
+        const row1 = <div className="antimodeMenu-row">{[
             this.createButton("bold", "Bold", toggleMark(schema.marks.strong)),
             this.createButton("italic", "Italic", toggleMark(schema.marks.em)),
             this.createButton("underline", "Underline", toggleMark(schema.marks.underline)),
@@ -701,11 +703,18 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createLinkButton(),
             this.createBrushButton(),
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
+        ]}</div>
+
+        const row2 = <div className="antimodeMenu-row">{[
             this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
             this.createMarksDropdown(this.activeFontFamily, fontFamilyOptions),
             this.createNodesDropdown(this.activeListType, listTypeOptions),
+        ]}</div>
+
+        const buttons = [
+            row1, row2
         ];
 
-        return this.getElement(buttons);
+        return this.getElementWithRows(buttons, 2);
     }
 }
