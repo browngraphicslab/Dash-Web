@@ -233,19 +233,20 @@ export const inpRules = {
             new RegExp(/%\(/),
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
-                const sm = state.storedMarks || undefined;
+                const sm = state.storedMarks || [];
                 const mark = state.schema.marks.summarizeInclusive.create();
+                sm.push(mark);
                 const selected = state.tr.setSelection(new TextSelection(state.doc.resolve(start), state.doc.resolve(end))).addMark(start, end, mark);
                 const content = selected.selection.content();
-                const replaced = node ? selected.replaceRangeWith(start, start,
-                    schema.nodes.summary.create({ visibility: true, text: content, textslice: content.toJSON() })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                const replaced = node ? selected.replaceRangeWith(start, end,
+                    schema.nodes.summary.create({ visibility: true, text: content, textslice: content.toJSON() })) :
                     state.tr;
-                return replaced.setSelection(new TextSelection(replaced.doc.resolve(end + 1)));
+                return replaced.setSelection(new TextSelection(replaced.doc.resolve(end + 1))).setStoredMarks([...node.marks, ...sm]);
             }),
         new InputRule(
             new RegExp(/%\)/),
             (state, match, start, end) => {
-                return state.tr.removeStoredMark(state.schema.marks.summarizeInclusive.create());
+                return state.tr.deleteRange(start, end).removeStoredMark(state.schema.marks.summarizeInclusive.create());
             }),
         new InputRule(
             new RegExp(/%f$/),

@@ -119,7 +119,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
                         if (linkDoc.anchor2 instanceof Doc) {
-                            const text = FormattedTextBox.ToolTipTextMenu.makeLink(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", linkDoc.anchor2[Id]);
+                            const text = FormattedTextBox.ToolTipTextMenu.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", linkDoc.anchor2[Id]);
                             proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
                         }
                     }
