@@ -6,7 +6,7 @@ import { Database } from './database';
 const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './server_Initialization';
+import initializeServer from './server_initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
@@ -22,7 +22,7 @@ import { log_execution, Email } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
-import { yellow } from "colors";
+import { yellow, red } from "colors";
 import { Session } from "./Session/session";
 import { isMaster } from "cluster";
 import { execSync } from "child_process";
@@ -152,17 +152,19 @@ async function launchServer() {
  */
 async function launchMonitoredSession() {
     if (isMaster) {
-        const recipients = ["samuel_wilkins@brown.edu"];
+        const notificationRecipients = ["samuel_wilkins@brown.edu"];
         const signature = "-Dash Server Session Manager";
-        const customizer = await Session.initializeMonitorThread({
-            key: async (key: string) => {
+        const extensions = await Session.initializeMonitorThread({
+            key: async (key, masterLog) => {
                 const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${signature}`;
-                const failures = await Email.dispatchAll(recipients, "Server Termination Key", content);
-                return failures.length === 0;
+                const failures = await Email.dispatchAll(notificationRecipients, "Server Termination Key", content);
+                if (failures) {
+                    failures.map(({ recipient, error: { message } }) => masterLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+                    return false;
+                }
+                return true;
             },
-            crash: async (error: Error) => {
-                const subject = "Dash Web Server Crash";
-                const { name, message, stack } = error;
+            crash: async ({ name, message, stack }, masterLog) => {
                 const body = [
                     "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
                     `name:\n${name}`,
@@ -171,12 +173,16 @@ async function launchMonitoredSession() {
                     "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
                 ].join("\n\n");
                 const content = `${body}\n\n${signature}`;
-                const failures = await Email.dispatchAll(recipients, subject, content);
-                return failures.length === 0;
+                const failures = await Email.dispatchAll(notificationRecipients, "Dash Web Server Crash", content);
+                if (failures) {
+                    failures.map(({ recipient, error: { message } }) => masterLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+                    return false;
+                }
+                return true;
             }
         });
-        customizer.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-        customizer.addReplCommand("solr", [/start|stop/g], args => SolrManager.SetRunning(args[0] === "start"));
+        extensions.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+        extensions.addReplCommand("solr", [/start|stop/g], args => SolrManager.SetRunning(args[0] === "start"));
     } else {
         const addExitHandler = await Session.initializeWorkerThread(launchServer); // server initialization delegated to worker
         addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));

@@ -30,6 +30,10 @@ export const configurationSchema: Schema = {
             type: "number",
             minimum: 1,
             maximum: 86400
+        },
+        pollingFailureTolerance: {
+            type: "number",
+            minimum: 0,
         }
     }
 };
