@@ -77,6 +77,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         DocumentDecorations.Instance = this;
         this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
+        console.log("constructing document decorations!!!");
+    }
+
+    componentDidMount() {
+        console.log("mounting deocument deoctirioeon!!!!");
     }
 
     @action titleChanged = (event: any) => this._accumulatedTitle = event.target.value;
@@ -574,8 +579,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
-        // RichTextMenu.Instance.jumpTo(this._lastX, this._lastY - 50);
-        RichTextMenu.Instance.jumpTo(500, 300);
+        // // RichTextMenu.Instance.jumpTo(this._lastX, this._lastY - 50);
+        // console.log("jump to ");
+        // RichTextMenu.Instance.jumpTo(500, 300);
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",

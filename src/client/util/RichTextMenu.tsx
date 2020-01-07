@@ -53,6 +53,7 @@ export default class RichTextMenu extends AntimodeMenu {
     constructor(props: Readonly<{}>) {
         super(props);
         RichTextMenu.Instance = this;
+        this.Pinned = true;
     }
 
     @action
@@ -79,16 +80,6 @@ export default class RichTextMenu extends AntimodeMenu {
 
         // this.reset_mark_doms();
 
-        // // update link dropdown
-        // const linkDropdown = await this.createLinkDropdown();
-        // const newLinkDropdowndom = linkDropdown.render(this.view).dom;
-        // this._linkDropdownDom && this.tooltip.replaceChild(newLinkDropdowndom, this._linkDropdownDom);
-        // this._linkDropdownDom = newLinkDropdowndom;
-
-        // const targetTitle = await this.getTextLinkTargetTitle();
-        // // console.log(targetTitle);
-        // this.setCurrentLink(targetTitle);
-
         // update active font family and size
         const active = this.getActiveFontStylesOnSelection();
         const activeFamilies = active && active.get("families");
@@ -97,6 +88,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "default" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "default" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
 
+        // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
         this.setCurrentLink(targetTitle);
 
@@ -574,29 +566,21 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
         const href = link!.attrs.href;
-        console.log("delete link", node, link, href);
         if (href) {
-            console.log("has href");
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                 if (linkclicked) {
-                    console.log("linkclicked");
                     DocServer.GetRefField(linkclicked).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
-                            console.log("is doc");
                             LinkManager.Instance.deleteLink(linkDoc);
-                            console.log("remove the link! ", this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link);
                             this.view!.dispatch(this.view!.state.tr.removeMark(this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link));
                         }
                     });
                 }
             } else {
-                console.log("remove the link! ", this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link);
                 if (node) {
                     let extension = this.linkExtend(this.view!.state.selection.$anchor, href);
-                    console.log("remove the link", extension.from, extension.to);
                     this.view!.dispatch(this.view!.state.tr.removeMark(extension.from, extension.to, this.view!.state.schema.marks.link));
-
                 }
             }
         }
