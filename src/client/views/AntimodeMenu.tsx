@@ -62,12 +62,12 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected pointerLeave = (e: React.PointerEvent) => {
-        if (!this.Pinned) {
-            this._transition = "opacity 0.5s";
-            this._transitionDelay = "1s";
-            this._opacity = 0.2;
-            setTimeout(() => this.fadeOut(false), 3000);
-        }
+        // if (!this.Pinned) {
+        //     this._transition = "opacity 0.5s";
+        //     this._transitionDelay = "1s";
+        //     this._opacity = 0.2;
+        //     setTimeout(() => this.fadeOut(false), 3000);
+        // }
     }
 
     @action

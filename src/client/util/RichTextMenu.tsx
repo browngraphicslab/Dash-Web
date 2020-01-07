@@ -5,10 +5,10 @@ import { observer } from "mobx-react";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
 import { schema } from "./RichTextSchema";
 import { EditorView } from "prosemirror-view";
-import { EditorState, NodeSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { MenuItem, Dropdown } from "prosemirror-menu";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
@@ -16,9 +16,10 @@ import { NumCast } from "../../new_fields/Types";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { unimplementedFunction } from "../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
+import "./RichTextMenu.scss";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent);
+library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown);
 
 @observer
 export default class RichTextMenu extends AntimodeMenu {
@@ -30,6 +31,9 @@ export default class RichTextMenu extends AntimodeMenu {
     @observable private activeFontSize: string = "";
     @observable private activeFontFamily: string = "";
     @observable private activeListType: string = "";
+
+    @observable private brushIsEmpty: boolean = true;
+    @observable private brushMarks: Set<Mark> = new Set();
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -121,6 +125,13 @@ export default class RichTextMenu extends AntimodeMenu {
         return styles;
     }
 
+    getMarksInSelection(state: EditorState<any>) {
+        const found = new Set<Mark>();
+        const { from, to } = state.selection as TextSelection;
+        state.doc.nodesBetween(from, to, (node) => node.marks?.forEach(m => found.add(m)));
+        return found;
+    }
+
     destroy() {
         console.log("destroy");
     }
@@ -142,7 +153,7 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         return (
-            <button className="antimodeMenu-button" title="title" onPointerDown={onClick}>
+            <button className="antimodeMenu-button" title={title} onPointerDown={onClick}>
                 <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
             </button>
         );
@@ -259,6 +270,123 @@ export default class RichTextMenu extends AntimodeMenu {
         return true;
     }
 
+    createBrushButton() {
+        const self = this;
+        function onClick(e: React.PointerEvent) {
+            console.log("clicked button");
+            // dom.addEventListener("pointerdown", e => {
+            e.preventDefault();
+            self.view && self.view.focus();
+            //     if (dom.contains(e.target as Node)) {
+            e.stopPropagation();
+            //         command(this.view.state, this.view.dispatch, this.view);
+            //     }
+            // });
+
+            self.view && self.brush_function(self.view.state, self.view.dispatch);
+
+            // // update dropdown with marks
+            // const newBrushDropdowndom = self.createBrushDropdown().render(self.view).dom;
+            // self._brushDropdownDom && self.tooltip.replaceChild(newBrushDropdowndom, self._brushDropdownDom);
+            // self._brushDropdownDom = newBrushDropdowndom;
+        }
+
+        let label = "Stored marks: ";
+        if (this.brushMarks && this.brushMarks.size > 0) {
+            this.brushMarks.forEach((mark: Mark) => {
+                const markType = mark.type;
+                label += markType.name;
+                label += ", ";
+            });
+            label = label.substring(0, label.length - 2);
+        } else {
+            label = "No marks are currently stored";
+        }
+
+        return (
+            <div className="button-dropdown-wrapper">
+                <button className="antimodeMenu-button" title="" onPointerDown={onClick}>
+                    <FontAwesomeIcon icon="eye-dropper" size="lg" />
+                    <button className="dropdown-button"><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                </button>
+                <div className="dropdown">
+                    <p>{label}</p>
+                    <button onPointerDown={this.clearBrush}>Clear brush</button>
+                    {/* <input placeholder="Enter URL"></input> */}
+                </div>
+            </div>
+        );
+    }
+
+    @action
+    clearBrush() {
+        this.brushIsEmpty = true;
+        this.brushMarks = new Set();
+    }
+
+    @action
+    brush_function(state: EditorState<any>, dispatch: any) {
+        if (!this.view) return;
+
+        if (this.brushIsEmpty) {
+            const selected_marks = this.getMarksInSelection(this.view.state);
+            // if (this._brushdom) {
+            if (selected_marks.size >= 0) {
+                this.brushMarks = selected_marks;
+                // const newbrush = this.createBrush(true).render(this.view).dom;
+                // this.tooltip.replaceChild(newbrush, this._brushdom);
+                // this._brushdom = newbrush;
+                this.brushIsEmpty = !this.brushIsEmpty;
+                // TooltipTextMenuManager.Instance._brushIsEmpty = !TooltipTextMenuManager.Instance._brushIsEmpty;
+            }
+            // }
+        }
+        else {
+            const { from, to, $from } = this.view.state.selection;
+            // if (this._brushdom) {
+            if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
+                if (this.brushMarks && to - from > 0) {
+                    this.view.dispatch(this.view.state.tr.removeMark(from, to));
+                    Array.from(this.brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
+                        this.setMark(mark, this.view!.state, this.view!.dispatch);
+                    });
+                }
+            }
+            else {
+                // const newbrush = this.createBrush(false).render(this.view).dom;
+                // this.tooltip.replaceChild(newbrush, this._brushdom);
+                // this._brushdom = newbrush;
+                this.brushIsEmpty = !this.brushIsEmpty;
+                // TooltipTextMenuManager.Instance._brushIsEmpty = !TooltipTextMenuManager.Instance._brushIsEmpty;
+            }
+            // }
+        }
+        console.log("brush marks are ", this.brushMarks);
+    }
+
+    // createColorButton() {
+    //     const self = this;
+    //     function onClick(e: React.PointerEvent) {
+    //         console.log("clicked button");
+    //         // dom.addEventListener("pointerdown", e => {
+    //         e.preventDefault();
+    //         self.view && self.view.focus();
+    //         //     if (dom.contains(e.target as Node)) {
+    //         e.stopPropagation();
+    //         //         command(this.view.state, this.view.dispatch, this.view);
+    //         //     }
+    //         // });
+    //         self.view && command && command(self.view!.state, self.view!.dispatch, self.view);
+    //         self.view && onclick && onclick(self.view!.state, self.view!.dispatch, self.view);
+    //     }
+
+    //     return (
+    //         <button className="antimodeMenu-button" title="Set font color" onPointerDown={onClick}>
+    //             <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
+    //         </button>
+    //     );
+    // }
+
     reference_node(pos: ResolvedPos<any>): ProsNode | null {
         if (!this.view) return null;
 
@@ -354,6 +482,7 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("strikethrough", "Strikethrough", toggleMark(schema.marks.strikethrough)),
             this.createButton("superscript", "Superscript", toggleMark(schema.marks.superscript)),
             this.createButton("subscript", "Subscript", toggleMark(schema.marks.subscript)),
+            this.createBrushButton(),
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
             this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
             this.createMarksDropdown(this.activeFontFamily, fontFamilyOptions),
