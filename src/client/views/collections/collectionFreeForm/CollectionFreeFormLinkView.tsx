@@ -22,7 +22,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     _anchorDisposer: IReactionDisposer | undefined;
     @action
     componentDidMount() {
-        this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform()],
+        this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => this._opacity = 0.05), 750); // this will unhighlight the link line.
@@ -97,7 +97,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         return !aActive && !bActive ? (null) :
             <line key="linkLine" className="collectionfreeformlinkview-linkLine"
-                style={{ opacity: this._opacity }}
+                style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 x1={`${pt1[0]}`} y1={`${pt1[1]}`}
                 x2={`${pt2[0]}`} y2={`${pt2[1]}`} />;
     }
