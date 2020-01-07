@@ -95,3 +95,12 @@ select {
         color: white;
     }
 }
+
+.row-2 {
+    display: flex;
+    justify-content: space-between;
+
+    >div {
+        display: flex;
+    }
+}

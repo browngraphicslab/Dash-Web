@@ -29,7 +29,7 @@ library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSub
 @observer
 export default class RichTextMenu extends AntimodeMenu {
     static Instance: RichTextMenu;
-    public overDropdown: boolean = false; // kind of hacky way to prevent selects not being selectable
+    public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
 
     private view?: EditorView;
     private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
@@ -188,9 +188,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        function onPointerEnter() { self.overDropdown = true; }
-        function onPointerLeave() { self.overDropdown = false; }
-        return <select onChange={onChange} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>{items}</select>;
+        return <select onChange={onChange}>{items}</select>;
     }
 
     createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean }[]): JSX.Element {
@@ -213,9 +211,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        function onPointerEnter() { self.overDropdown = true; }
-        function onPointerLeave() { self.overDropdown = false; }
-        return <select onChange={e => onChange(e.target.value)} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>{items}</select>;
+        return <select onChange={e => onChange(e.target.value)}>{items}</select>;
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
@@ -311,7 +307,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
         return (
             <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick}><FontAwesomeIcon icon="eye-dropper" size="lg" /></button>
+                <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks && this.brushMarks.size > 0 ? { backgroundColor: "121212" } : {}}>
+                    <FontAwesomeIcon icon="eye-dropper" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
+                </button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 {this.showBrushDropdown ?
                     (<div className="dropdown">
@@ -652,6 +650,17 @@ export default class RichTextMenu extends AntimodeMenu {
         return ref_node;
     }
 
+    @action onPointerEnter(e: React.PointerEvent) { RichTextMenu.Instance.overMenu = true; }
+    @action onPointerLeave(e: React.PointerEvent) { RichTextMenu.Instance.overMenu = false; }
+
+    @action
+    toggleMenuPin = (e: React.MouseEvent) => {
+        this.Pinned = !this.Pinned;
+        if (!this.Pinned) {
+            this.fadeOut(true);
+        }
+    }
+
     render() {
 
         const fontSizeOptions = [
@@ -705,16 +714,28 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
         ]}</div>
 
-        const row2 = <div className="antimodeMenu-row">{[
-            this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
-            this.createMarksDropdown(this.activeFontFamily, fontFamilyOptions),
-            this.createNodesDropdown(this.activeListType, listTypeOptions),
-        ]}</div>
+        const row2 = <div className="antimodeMenu-row row-2">
+            <div>{[
+                this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
+                this.createMarksDropdown(this.activeFontFamily, fontFamilyOptions),
+                this.createNodesDropdown(this.activeListType, listTypeOptions),
+            ]}</div>
+            <div>
+                <button className="antimodeMenu-button" title="Pin menu" onClick={this.toggleMenuPin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
+                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
+                </button>
+                {this.getDragger()}
+            </div>
+        </div>
 
         const buttons = [
             row1, row2
         ];
 
-        return this.getElementWithRows(buttons, 2);
+        return (
+            <div className="richTextMenu" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                {this.getElementWithRows(buttons, 2)}
+            </div>
+        );
     }
 }

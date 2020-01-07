@@ -913,7 +913,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
 
         // jump rich text menu to this textbox
-        this._ref.current && RichTextMenu.Instance.jumpTo(this._ref.current.getBoundingClientRect().x, this._ref.current?.getBoundingClientRect().y - 105);
+        if (this._ref.current) {
+            let x = Math.min(Math.max(this._ref.current!.getBoundingClientRect().x, 0), window.innerWidth - 445);
+            let y = this._ref.current!.getBoundingClientRect().y - 105;
+            RichTextMenu.Instance.jumpTo(x, y);
+        }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
@@ -1062,7 +1066,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.doLinkOnDeselect();
 
         // move the richtextmenu offscreen
-        if (!RichTextMenu.Instance.Pinned && !RichTextMenu.Instance.overDropdown) RichTextMenu.Instance.jumpTo(-300, -300);
+        if (!RichTextMenu.Instance.Pinned && !RichTextMenu.Instance.overMenu) RichTextMenu.Instance.jumpTo(-300, -300);
     }
 
     _lastTimedMark: Mark | undefined = undefined;
