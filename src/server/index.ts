@@ -25,6 +25,7 @@ import { yellow, red } from "colors";
 import { Session } from "./Session/session";
 import { DashSessionAgent } from "./DashSession";
 
+export let sessionAgent: Session.AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -141,7 +142,6 @@ export async function launchServer() {
     await initializeServer(routeSetter);
 }
 
-export const sessionAgent = new DashSessionAgent();
 /**
  * If you're in development mode, you won't need to run a session.
  * The session spawns off new server processes each time an error is encountered, and doesn't
@@ -149,7 +149,7 @@ export const sessionAgent = new DashSessionAgent();
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
 if (process.env.RELEASE) {
-    sessionAgent.launch();
+    (sessionAgent = new DashSessionAgent()).launch();
 } else {
     launchServer();
 }

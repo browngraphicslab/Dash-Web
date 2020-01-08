@@ -19,17 +19,19 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     private readonly signature = "-Dash Server Session Manager";
 
     protected async launchMonitor() {
-        const monitor = await Session.initializeMonitorThread({
-            key: async (key, masterLog) => {
+        const monitor = new Session.Monitor({
+            key: async key => {
+                // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
+                // to kill the server via the /kill/:key route
                 const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${this.signature}`;
                 const failures = await Email.dispatchAll(this.notificationRecipients, "Server Termination Key", content);
                 if (failures) {
-                    failures.map(({ recipient, error: { message } }) => masterLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+                    failures.map(({ recipient, error: { message } }) => monitor.log(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                     return false;
                 }
                 return true;
             },
-            crash: async ({ name, message, stack }, masterLog) => {
+            crash: async ({ name, message, stack }) => {
                 const body = [
                     "You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:",
                     `name:\n${name}`,
@@ -40,7 +42,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                 const content = `${body}\n\n${this.signature}`;
                 const failures = await Email.dispatchAll(this.notificationRecipients, "Dash Web Server Crash", content);
                 if (failures) {
-                    failures.map(({ recipient, error: { message } }) => masterLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+                    failures.map(({ recipient, error: { message } }) => monitor.log(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                     return false;
                 }
                 return true;
@@ -52,7 +54,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     }
 
     protected async launchServerWorker() {
-        const worker = await Session.initializeWorkerThread(launchServer); // server initialization delegated to worker
+        const worker = new Session.ServerWorker(launchServer); // server initialization delegated to worker
         worker.addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
         return worker;
     }
