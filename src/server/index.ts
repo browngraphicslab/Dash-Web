@@ -25,6 +25,7 @@ import { yellow, red } from "colors";
 import { Session } from "./Session/session";
 import { DashSessionAgent } from "./DashSession";
 
+export const onWindows = process.platform === "win32";
 export let sessionAgent: Session.AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");

@@ -4,11 +4,10 @@ import { Search } from "../Search";
 const findInFiles = require('find-in-files');
 import * as path from 'path';
 import { pathToDirectory, Directory } from "./UploadManager";
-import { command_line } from "../ActionUtilities";
-import request = require('request-promise');
-import { red } from "colors";
+import { red, cyan, yellow } from "colors";
 import RouteSubscriber from "../RouteSubscriber";
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { onWindows } from "..";
 
 export class SearchManager extends ApiManager {
 
@@ -71,15 +70,16 @@ export namespace SolrManager {
 
     export async function SetRunning(status: boolean): Promise<boolean> {
         const args = status ? "start" : "stop -p 8983";
-        try {
-            console.log(`Solr management: trying to ${args}`);
-            console.log(execSync(`${process.platform === "win32" ? "solr.cmd" : "solr"} ${args}`, { cwd: "./solr-8.3.1/bin" }).toString());
-            return true;
-        } catch (e) {
-            console.log(red(`Solr management error: unable to ${args}`));
-            console.log(e);
-            return false;
-        }
+        console.log(`Solr management: trying to ${args}`);
+        exec(`${onWindows ? "solr.cmd" : "solr"} ${args}`, { cwd: "./solr-8.3.1/bin" }, (error, stdout, stderr) => {
+            if (error) {
+                console.log(red(error.message));
+                console.log(red(`Solr management error: unable to ${args}`));
+            }
+            console.log(cyan(stdout));
+            console.log(yellow(stderr));
+        });
+        return true;
     }
 
 }
