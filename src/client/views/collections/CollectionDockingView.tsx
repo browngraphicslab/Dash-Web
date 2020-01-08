@@ -32,6 +32,7 @@ import React = require("react");
 import { ButtonSelector } from './ParentDocumentSelector';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ComputedField } from '../../../new_fields/ScriptField';
+import { InteractionUtils } from '../../util/InteractionUtils';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -493,6 +494,28 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 this.AddTab(stack, Docs.Create.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
             }
         });
+
+        // starter code for bezel to add new pane
+        // stack.element.on("touchstart", (e: TouchEvent) => {
+        // if (e.targetTouches.length === 2) {
+        //     let pt1 = e.targetTouches.item(0);
+        //     let pt2 = e.targetTouches.item(1);
+        //     let threshold = 40 * window.devicePixelRatio;
+        //     if (pt1 && pt2 && InteractionUtils.TwoPointEuclidist(pt1, pt2) < threshold) {
+        //         let edgeThreshold = 30 * window.devicePixelRatio;
+        //         let center = InteractionUtils.CenterPoint([pt1, pt2]);
+        //         let stackRect: DOMRect = stack.element.getBoundingClientRect();
+        //         let nearLeft = center.X - stackRect.x < edgeThreshold;
+        //         let nearTop = center.Y - stackRect.y < edgeThreshold;
+        //         let nearRight = stackRect.right - center.X < edgeThreshold;
+        //         let nearBottom = stackRect.bottom - center.Y < edgeThreshold;
+        //         let ns = [nearLeft, nearTop, nearRight, nearBottom].filter(n => n);
+        //         if (ns.length === 1) {
+
+        //         }
+        //     }
+        // }
+        // });
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(async function () {
