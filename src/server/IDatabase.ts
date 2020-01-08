@@ -16,6 +16,8 @@ export interface IDatabase {
     insert(value: any, collectionName?: string): Promise<void>;
 
     getDocument(id: string, fn: (result?: Transferable) => void, collectionName?: string): void;
-    getDocuments(ids: string[], fn: (result?: Transferable[]) => void, collectionName?: string): void;
+    getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName?: string): void;
     visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName?: string): Promise<void>;
+
+    query(query: { [key: string]: any }, projection?: { [key: string]: 0 | 1 }, collectionName?: string): Promise<mongodb.Cursor>;
 }

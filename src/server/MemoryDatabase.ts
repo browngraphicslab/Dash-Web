@@ -17,8 +17,26 @@ export class MemoryDatabase implements IDatabase {
 
     public update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, _upsert?: boolean, collectionName = DocumentsCollection): Promise<void> {
         const collection = this.getCollection(collectionName);
-        collection[id] = { ...collection[id], ...value };
-        callback(null, {} as any);
+        if ("$set" in value) {
+            let currentVal = collection[id] ?? (collection[id] = {});
+            const val = value["$set"];
+            for (const key in val) {
+                const keys = key.split(".");
+                for (let i = 0; i < keys.length - 1; i++) {
+                    const k = keys[i];
+                    if (typeof currentVal[k] === "object") {
+                        currentVal = currentVal[k];
+                    } else {
+                        currentVal[k] = {};
+                        currentVal = currentVal[k];
+                    }
+                }
+                currentVal[keys[keys.length - 1]] = val[key];
+            }
+        } else {
+            collection[id] = value;
+        }
+        callback(null as any, {} as any);
         return Promise.resolve(undefined);
     }
 
@@ -29,7 +47,7 @@ export class MemoryDatabase implements IDatabase {
     public delete(query: any, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
     public delete(id: string, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
     public delete(id: any, collectionName = DocumentsCollection): Promise<mongodb.DeleteWriteOpResultObject> {
-        const i = id["_id"] ?? id;
+        const i = id.id ?? id;
         delete this.getCollection(collectionName)[i];
 
         return Promise.resolve({} as any);
@@ -41,7 +59,7 @@ export class MemoryDatabase implements IDatabase {
     }
 
     public insert(value: any, collectionName = DocumentsCollection): Promise<void> {
-        const id = value._id;
+        const id = value.id;
         this.getCollection(collectionName)[id] = value;
         return Promise.resolve();
     }
@@ -49,7 +67,7 @@ export class MemoryDatabase implements IDatabase {
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = NewDocumentsCollection): void {
         fn(this.getCollection(collectionName)[id]);
     }
-    public getDocuments(ids: string[], fn: (result?: Transferable[]) => void, collectionName = DocumentsCollection): void {
+    public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = DocumentsCollection): void {
         fn(ids.map(id => this.getCollection(collectionName)[id]));
     }
 
@@ -69,5 +87,9 @@ export class MemoryDatabase implements IDatabase {
                 ids.push(...(await fn(doc)));
             }
         }
+    }
+
+    public query(): Promise<mongodb.Cursor> {
+        throw new Error("Can't query a MemoryDatabase");
     }
 }

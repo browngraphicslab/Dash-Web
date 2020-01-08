@@ -264,7 +264,8 @@ export namespace Session {
                 serverPort: ports.server,
                 socketPort: ports.socket,
                 pollingIntervalSeconds,
-                session_key: key
+                session_key: key,
+                DB: process.env.DB
             });
             log(cyan(`spawned new server worker with process id ${activeWorker.process.pid}`));
             // an IPC message handler that executes actions on the master thread when prompted by the active worker

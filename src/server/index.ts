@@ -5,7 +5,7 @@ import * as path from 'path';
 import { Database } from './database';
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './server_initialization';
+import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
@@ -38,11 +38,13 @@ async function preliminaryFunctions() {
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
-    await log_execution({
-        startMessage: "attempting to initialize mongodb connection",
-        endMessage: "connection outcome determined",
-        action: Database.tryInitializeConnection
-    });
+    if (process.env.DB !== "MEM") {
+        await log_execution({
+            startMessage: "attempting to initialize mongodb connection",
+            endMessage: "connection outcome determined",
+            action: Database.tryInitializeConnection
+        });
+    }
 }
 
 /**

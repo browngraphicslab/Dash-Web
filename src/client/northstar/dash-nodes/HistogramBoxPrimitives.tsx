@@ -5,7 +5,7 @@ import { Utils as DashUtils, emptyFunction } from '../../../Utils';
 import { FilterModel } from "../../northstar/core/filter/FilterModel";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { ArrayUtil } from "../../northstar/utils/ArrayUtil";
-import { LABColor } from '../../northstar/utils/LABcolor';
+import { LABColor } from '../../northstar/utils/LABColor';
 import { PIXIRectangle } from "../../northstar/utils/MathUtil";
 import { StyleConstants } from "../../northstar/utils/StyleContants";
 import { HistogramBinPrimitiveCollection, HistogramBinPrimitive } from "./HistogramBinPrimitiveCollection";

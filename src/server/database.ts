@@ -6,6 +6,7 @@ import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 import { IDatabase } from './IDatabase';
+import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
 
 export namespace Database {
@@ -263,7 +264,16 @@ export namespace Database {
         }
     }
 
-    export const Instance = new Database();
+    function getDatabase() {
+        switch (process.env.DB) {
+            case "MEM":
+                return new MemoryDatabase();
+            default:
+                return new Database();
+        }
+    }
+
+    export const Instance: IDatabase = getDatabase();
 
     export namespace Auxiliary {
 
