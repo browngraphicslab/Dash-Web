@@ -97,16 +97,16 @@ export default class Repl {
             const candidates = registered.filter(({ argPatterns: { length: count } }) => count === length);
             for (const { argPatterns, action } of candidates) {
                 const parsed: string[] = [];
-                let matched = false;
+                let matched = true;
                 if (length) {
                     for (let i = 0; i < length; i++) {
                         let matches: RegExpExecArray | null;
                         if ((matches = argPatterns[i].exec(args[i])) === null) {
+                            matched = false;
                             break;
                         }
                         parsed.push(matches[0]);
                     }
-                    matched = true;
                 }
                 if (!length || matched) {
                     await action(parsed);
