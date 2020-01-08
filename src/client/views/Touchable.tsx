@@ -2,7 +2,11 @@ import * as React from 'react';
 import { action } from 'mobx';
 import { InteractionUtils } from '../util/InteractionUtils';
 
+const HOLD_DURATION = 1000;
+
 export abstract class Touchable<T = {}> extends React.Component<T> {
+    private holdTimer: NodeJS.Timeout | undefined;
+
     protected _touchDrag: boolean = false;
     protected prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
 
@@ -29,6 +33,8 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             switch (this.prevPoints.size) {
                 case 1:
                     this.handle1PointerDown(e);
+                    e.persist();
+                    this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(e), HOLD_DURATION);
                     break;
                 case 2:
                     this.handle2PointersDown(e);
@@ -45,9 +51,11 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
 
         // if we're not actually moving a lot, don't consider it as dragging yet
-        // if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
-        console.log(myTouches.length)
+        if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
+        if (this.holdTimer) {
+            clearTimeout(this.holdTimer);
+        }
         switch (myTouches.length) {
             case 1:
                 this.handle1PointerMove(e);
@@ -78,6 +86,9 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                     this.prevPoints.delete(pt.identifier);
                 }
             }
+        }
+        if (this.holdTimer) {
+            clearTimeout(this.holdTimer);
         }
         this._touchDrag = false;
         e.stopPropagation();
@@ -119,5 +130,11 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         document.addEventListener("touchmove", this.onTouch);
         document.removeEventListener("touchend", this.onTouchEnd);
         document.addEventListener("touchend", this.onTouchEnd);
+    }
+
+    handle1PointerHoldStart = (e: React.TouchEvent): any => {
+        console.log("Hold");
+        e.stopPropagation();
+        e.preventDefault();
     }
 }
