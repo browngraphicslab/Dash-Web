@@ -22,46 +22,44 @@ export namespace Session {
 
     export abstract class AppliedSessionAgent {
 
+        public killSession(graceful = true) {
+            const target = isMaster ? this.sessionMonitor : this.serverWorker;
+            target.killSession(graceful);
+        }
+
         private launched = false;
 
-        protected sessionMonitorRef: Session.Monitor | undefined;
+        private sessionMonitorRef: Session.Monitor | undefined;
         public get sessionMonitor(): Session.Monitor {
             if (!isMaster) {
                 throw new Error("Cannot access the session monitor directly from the server worker thread");
             }
             return this.sessionMonitorRef!;
         }
-        public set sessionMonitor(monitor: Session.Monitor) {
-            if (!isMaster) {
-                throw new Error("Cannot set the session monitor directly from the server worker thread");
-            }
-            this.sessionMonitorRef = monitor;
-        }
 
-        protected serverWorkerRef: Session.ServerWorker | undefined;
+        private serverWorkerRef: Session.ServerWorker | undefined;
         public get serverWorker(): Session.ServerWorker {
             if (isMaster) {
                 throw new Error("Cannot access the server worker directly from the session monitor thread");
             }
             return this.serverWorkerRef!;
         }
-        public set serverWorker(worker: Session.ServerWorker) {
-            if (isMaster) {
-                throw new Error("Cannot set the server worker directly from the session monitor thread");
-            }
-            this.serverWorkerRef = worker;
-        }
 
         public async launch(): Promise<void> {
             if (!this.launched) {
                 this.launched = true;
-                await this.launchImplementation();
+                if (isMaster) {
+                    this.sessionMonitorRef = await this.launchMonitor();
+                } else {
+                    this.serverWorkerRef = await this.launchServerWorker();
+                }
             } else {
                 throw new Error("Cannot launch a session thread more than once per process.");
             }
         }
 
-        protected abstract async launchImplementation(): Promise<void>;
+        protected abstract async launchMonitor(): Promise<Session.Monitor>;
+        protected abstract async launchServerWorker(): Promise<Session.ServerWorker>;
 
     }
 
@@ -92,11 +90,14 @@ export namespace Session {
         setPort: (port: "server" | "socket" | string, value: number, immediateRestart: boolean) => void;
         killSession: (graceful?: boolean) => never;
         addReplCommand: (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => void;
-        addChildMessageHandler: (message: string, handler: ActionHandler) => void;
+        addServerMessageListener: (message: string, handler: ActionHandler) => void;
+        removeServerMessageListener: (message: string, handler: ActionHandler) => void;
+        clearServerMessageListeners: (message: string) => void;
     }
 
     export interface ServerWorker {
-        killSession: () => void;
+        killSession: (graceful?: boolean) => void;
+        sendSessionAction: (message: string, args?: any) => void;
         addExitHandler: (handler: ExitHandler) => void;
     }
 
@@ -176,7 +177,7 @@ export namespace Session {
     export async function initializeMonitorThread(notifiers?: MonitorNotifierHooks): Promise<Monitor> {
         console.log(timestamp(), cyan("initializing session..."));
         let activeWorker: Worker;
-        const childMessageHandlers: { [message: string]: ActionHandler } = {};
+        const onMessage: { [message: string]: ActionHandler[] | undefined } = {};
 
         // read in configuration .json file only once, in the master thread
         // pass down any variables the pertinent to the child processes as environment variables
@@ -275,7 +276,7 @@ export namespace Session {
                     switch (message) {
                         case "kill":
                             log(red("an authorized user has manually ended the server session"));
-                            killSession();
+                            killSession(args.graceful);
                         case "notify_crash":
                             if (notifiers && notifiers.crash) {
                                 const { error } = args;
@@ -287,9 +288,9 @@ export namespace Session {
                             const { port, value, immediateRestart } = args;
                             setPort(port, value, immediateRestart);
                         default:
-                            const handler = childMessageHandlers[message];
-                            if (handler) {
-                                handler({ message, args });
+                            const handlers = onMessage[message];
+                            if (handlers) {
+                                handlers.forEach(handler => handler({ message, args }));
                             }
                     }
                 } else if (lifecycle) {
@@ -333,7 +334,24 @@ export namespace Session {
         // returned to allow the caller to add custom commands
         return {
             addReplCommand: repl.registerCommand,
-            addChildMessageHandler: (message: string, handler: ActionHandler) => { childMessageHandlers[message] = handler; },
+            addServerMessageListener: (message: string, handler: ActionHandler) => {
+                const handlers = onMessage[message];
+                if (handlers) {
+                    handlers.push(handler);
+                } else {
+                    onMessage[message] = [handler];
+                }
+            },
+            removeServerMessageListener: (message: string, handler: ActionHandler) => {
+                const handlers = onMessage[message];
+                if (handlers) {
+                    const index = handlers.indexOf(handler);
+                    if (index > -1) {
+                        handlers.splice(index, 1);
+                    }
+                }
+            },
+            clearServerMessageListeners: (message: string) => onMessage[message] = undefined,
             restartServer,
             killSession,
             setPort,
@@ -431,7 +449,8 @@ export namespace Session {
 
         return {
             addExitHandler: (handler: ExitHandler) => exitHandlers.push(handler),
-            killSession: () => process.send!({ action: { message: "kill" } })
+            killSession: (graceful = true) => process.send!({ action: { message: "kill", args: { graceful } } }),
+            sendSessionAction: (message: string, args?: any) => process.send!({ action: { message, args } })
         };
     }
 
