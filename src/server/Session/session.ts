@@ -464,10 +464,7 @@ export namespace Session {
          */
         private configureProcess = () => {
             // updates the local values of variables to the those sent from master
-            process.on("message", async ({ setResponsiveness, newPollingIntervalSeconds, manualExit }) => {
-                if (setResponsiveness !== undefined) {
-                    this.shouldServerBeResponsive = setResponsiveness;
-                }
+            process.on("message", async ({ newPollingIntervalSeconds, manualExit }) => {
                 if (newPollingIntervalSeconds !== undefined) {
                     this.pollingIntervalSeconds = newPollingIntervalSeconds;
                 }
