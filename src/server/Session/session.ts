@@ -29,16 +29,20 @@ export namespace Session {
 
         private launched = false;
 
-        public killSession(graceful = true) {
+        public killSession = (reason: string, graceful = true, errorCode = 0) => {
             const target = isMaster ? this.sessionMonitor : this.serverWorker;
-            target.killSession(graceful);
+            target.killSession(reason, graceful, errorCode);
         }
-
 
         private sessionMonitorRef: Session.Monitor | undefined;
         public get sessionMonitor(): Session.Monitor {
             if (!isMaster) {
-                throw new Error("Cannot access the session monitor directly from the server worker thread");
+                this.serverWorker.sendMonitorAction("kill", {
+                    graceful: false,
+                    reason: "Cannot access the session monitor directly from the server worker thread.",
+                    errorCode: 1
+                });
+                throw new Error();
             }
             return this.sessionMonitorRef!;
         }
@@ -122,10 +126,19 @@ export namespace Session {
 
         public static Create(notifiers?: Monitor.NotifierHooks) {
             if (isWorker) {
-                console.error(red("Monitor must be on the master process."));
+                process.send?.({
+                    action: {
+                        message: "kill",
+                        args: {
+                            reason: "cannot create a monitor on the worker process.",
+                            graceful: false,
+                            errorCode: 1
+                        }
+                    }
+                });
                 process.exit(1);
             } else if (++Monitor.count > 1) {
-                console.error(("Cannot create more than one monitor."));
+                console.error(red("cannot create more than one monitor."));
                 process.exit(1);
             } else {
                 return new Monitor(notifiers);
@@ -138,11 +151,12 @@ export namespace Session {
          * indefinitely, but at least allows active networking
          * requests to complete) or immediately.
          */
-        public killSession = async (graceful = true) => {
+        public killSession = async (reason: string, graceful = true, errorCode = 0) => {
             this.log(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
+            this.log(`reason: ${(red(reason))}`);
             await this.executeExitHandlers(null);
             this.tryKillActiveWorker(graceful);
-            process.exit(0);
+            process.exit(errorCode);
         }
 
         /**
@@ -262,7 +276,7 @@ export namespace Session {
             const boolean = /true|false/;
             const number = /\d+/;
             const letters = /[a-zA-Z]+/;
-            repl.registerCommand("exit", [/clean|force/], args => this.killSession(args[0] === "clean"));
+            repl.registerCommand("exit", [/clean|force/], args => this.killSession("manual exit requested by repl", args[0] === "clean", 0));
             repl.registerCommand("restart", [/clean|force/], args => this.tryKillActiveWorker(args[0] === "clean"));
             repl.registerCommand("set", [letters, "port", number, boolean], args => this.setPort(args[0], Number(args[2]), args[3] === "true"));
             repl.registerCommand("set", [/polling/, number, boolean], args => {
@@ -397,8 +411,8 @@ export namespace Session {
                     console.log(this.timestamp(), `${this.configuration.workerIdentifier} action requested (${cyan(message)})`);
                     switch (message) {
                         case "kill":
-                            this.log(red("an authorized user has manually ended the server session"));
-                            this.killSession(args.graceful);
+                            const { reason, graceful, errorCode } = args;
+                            this.killSession(reason, graceful, errorCode);
                             break;
                         case "notify_crash":
                             if (this.notifiers?.crash) {
@@ -443,9 +457,18 @@ export namespace Session {
 
         public static Create(work: Function) {
             if (isMaster) {
-                throw new Error("Worker must be launched on a worker process.");
-            } else if (++ServerWorker.count > 1 || isMaster) {
-                process.send?.({ action: { message: "kill", args: { graceful: false } } });
+                console.error(red("cannot create a worker on the monitor process."));
+                process.exit(1);
+            } else if (++ServerWorker.count > 1) {
+                process.send?.({
+                    action: {
+                        message: "kill", args: {
+                            reason: "cannot create more than one worker on a given worker process.",
+                            graceful: false,
+                            errorCode: 1
+                        }
+                    }
+                });
                 process.exit(1);
             } else {
                 return new ServerWorker(work);
@@ -463,7 +486,7 @@ export namespace Session {
          * server worker (child process). This will also kill
          * this process (child process).
          */
-        public killSession = (graceful = true) => this.sendMonitorAction("kill", { graceful });
+        public killSession = (reason: string, graceful = true, errorCode = 0) => this.sendMonitorAction("kill", { reason, graceful, errorCode });
 
         /**
          * A convenience wrapper to tell the session monitor (parent process)
@@ -514,7 +537,7 @@ export namespace Session {
         /**
          * Notify master thread (which will log update in the console) of initialization via IPC.
          */
-        private lifecycleNotification = (event: string) => process.send?.({ lifecycle: event });
+        public lifecycleNotification = (event: string) => process.send?.({ lifecycle: event });
 
         /**
          * Called whenever the process has a reason to terminate, either through an uncaught exception

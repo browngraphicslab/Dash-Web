@@ -93,7 +93,9 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ req, res }) => {
             if (req.params.key === process.env.session_key) {
                 res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                setTimeout(sessionAgent.killSession, 5000);
+                setTimeout(() => {
+                    sessionAgent.killSession("an authorized user has manually ended the server session via the /kill route", false);
+                }, 5000);
             } else {
                 res.redirect("/home");
             }
