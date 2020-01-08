@@ -141,7 +141,7 @@ export async function launchServer() {
     await initializeServer(routeSetter);
 }
 
-export const sessionAgent: Session.AppliedSessionAgent = new DashSessionAgent();
+export const sessionAgent = new DashSessionAgent();
 /**
  * If you're in development mode, you won't need to run a session.
  * The session spawns off new server processes each time an error is encountered, and doesn't
