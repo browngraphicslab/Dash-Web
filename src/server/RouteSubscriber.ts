@@ -3,7 +3,7 @@ export default class RouteSubscriber {
     private requestParameters: string[] = [];
 
     constructor(root: string) {
-        this._root = root;
+        this._root = `/${root}`;
     }
 
     add(...parameters: string[]) {

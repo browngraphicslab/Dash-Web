@@ -27,6 +27,9 @@ export const documentSchema = createSchema({
     isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     type: "string",             // enumerated type of document
+    treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
+    treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
+    preventTreeViewOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     currentTimecode: "number",   // current play back time of a temporal document (video / audio)
     summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
     maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)
@@ -45,7 +48,9 @@ export const documentSchema = createSchema({
     animateToDimensions: listSpec("number"), // layout information about the target rectangle a document is animating towards 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
     strokeWidth: "number",
-    fontSize: "string"
+    fontSize: "string",
+    LODarea: "number",          // area (width*height) where CollectionFreeFormViews switch from a label to rendering contents
+    LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
 });
 
 export const positionSchema = createSchema({

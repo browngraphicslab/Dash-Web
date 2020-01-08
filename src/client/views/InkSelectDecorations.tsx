@@ -29,10 +29,10 @@ export default class InkSelectDecorations extends Touchable {
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        let left = Number.MAX_VALUE;
-        let top = Number.MAX_VALUE;
-        let right = -Number.MAX_VALUE;
-        let bottom = -Number.MAX_VALUE;
+        const left = Number.MAX_VALUE;
+        const top = Number.MAX_VALUE;
+        const right = -Number.MAX_VALUE;
+        const bottom = -Number.MAX_VALUE;
         this._selectedInkNodes.forEach((value: PointData, key: string) => {
             // value.pathData.map(val => {
             //     left = Math.min(val.x, left);
@@ -45,7 +45,7 @@ export default class InkSelectDecorations extends Touchable {
     }
 
     render() {
-        let bounds = this.Bounds;
+        const bounds = this.Bounds;
         return <div style={{
             top: bounds.y, left: bounds.x,
             height: bounds.b - bounds.y,

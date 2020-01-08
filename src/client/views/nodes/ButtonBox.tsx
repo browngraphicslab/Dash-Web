@@ -46,15 +46,15 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
             this.dropDisposer();
         }
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let funcs: ContextMenuProps[] = [];
+        const funcs: ContextMenuProps[] = [];
         funcs.push({
             description: "Clear Script Params", event: () => {
-                let params = FieldValue(this.Document.buttonParams);
+                const params = FieldValue(this.Document.buttonParams);
                 params && params.map(p => this.props.Document[p] = undefined);
             }, icon: "trash"
         });
@@ -65,16 +65,17 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData && e.target) {
-            this.props.Document[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments.map((d, i) =>
-                d.onDragStart ? de.data.draggedDocuments[i] : d));
+        const docDragData = de.complete.docDragData;
+        if (docDragData && e.target) {
+            this.props.Document[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
+                d.onDragStart ? docDragData.draggedDocuments[i] : d));
             e.stopPropagation();
         }
     }
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
-        let params = this.Document.buttonParams;
-        let missingParams = params && params.filter(p => this.props.Document[p] === undefined);
+        const params = this.Document.buttonParams;
+        const missingParams = params && params.filter(p => this.props.Document[p] === undefined);
         params && params.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
             <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}

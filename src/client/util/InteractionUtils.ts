@@ -9,9 +9,9 @@ export namespace InteractionUtils {
     const ERASER_BUTTON = 5;
 
     export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
-        let myTouches = new Array<React.Touch>();
+        const myTouches = new Array<React.Touch>();
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
+            const pt = e.targetTouches.item(i);
             if (pt && prevPoints.has(pt.identifier)) {
                 myTouches.push(pt);
             }
@@ -40,8 +40,8 @@ export namespace InteractionUtils {
      * @param pts - n-arbitrary long list of points
      */
     export function CenterPoint(pts: React.Touch[]): { X: number, Y: number } {
-        let centerX = pts.map(pt => pt.clientX).reduce((a, b) => a + b, 0) / pts.length;
-        let centerY = pts.map(pt => pt.clientY).reduce((a, b) => a + b, 0) / pts.length;
+        const centerX = pts.map(pt => pt.clientX).reduce((a, b) => a + b, 0) / pts.length;
+        const centerY = pts.map(pt => pt.clientY).reduce((a, b) => a + b, 0) / pts.length;
         return { X: centerX, Y: centerY };
     }
 
@@ -53,9 +53,9 @@ export namespace InteractionUtils {
      * @param oldPoint2 - previous point 2
      */
     export function Pinching(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
-        let threshold = window.devicePixelRatio;
-        let oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
-        let newDist = TwoPointEuclidist(pt1, pt2);
+        const threshold = 4;
+        const oldDist = TwoPointEuclidist(oldPoint1, oldPoint2);
+        const newDist = TwoPointEuclidist(pt1, pt2);
 
         /** if they have the same sign, then we are either pinching in or out.
           * threshold it by 10 (it has to be pinching by at least threshold to be a valid pinch)
@@ -75,12 +75,12 @@ export namespace InteractionUtils {
      * @param oldPoint2 - previous point 2
      */
     export function Pinning(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
-        let threshold = 4;
+        const threshold = 4;
 
-        let pt1Dist = TwoPointEuclidist(oldPoint1, pt1);
-        let pt2Dist = TwoPointEuclidist(oldPoint2, pt2);
+        const pt1Dist = TwoPointEuclidist(oldPoint1, pt1);
+        const pt2Dist = TwoPointEuclidist(oldPoint2, pt2);
 
-        let pinching = Pinching(pt1, pt2, oldPoint1, oldPoint2);
+        const pinching = Pinching(pt1, pt2, oldPoint1, oldPoint2);
 
         if (pinching !== 0) {
             if ((pt1Dist < threshold && pt2Dist > threshold) || (pt1Dist > threshold && pt2Dist < threshold)) {
@@ -88,6 +88,20 @@ export namespace InteractionUtils {
             }
         }
         return 0;
+    }
+
+    export function IsDragging(oldTouches: Map<number, React.Touch>, newTouches: React.Touch[], leniency: number): boolean {
+        for (const touch of newTouches) {
+            if (touch) {
+                const oldTouch = oldTouches.get(touch.identifier);
+                if (oldTouch) {
+                    if (TwoPointEuclidist(touch, oldTouch) >= leniency) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // These might not be very useful anymore, but I'll leave them here for now -syip2
@@ -144,21 +158,6 @@ export namespace InteractionUtils {
         //         default:
         //             return { type: undefined };
         //     }
-        // }
-
-        // export function IsDragging(oldTouches: Map<number, React.Touch>, newTouches: TouchList, leniency: number): boolean {
-        //     for (let i = 0; i < newTouches.length; i++) {
-        //         let touch = newTouches.item(i);
-        //         if (touch) {
-        //             let oldTouch = oldTouches.get(touch.identifier);
-        //             if (oldTouch) {
-        //                 if (TwoPointEuclidist(touch, oldTouch) >= leniency) {
-        //                     return true;
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     return false;
         // }
     }
 }

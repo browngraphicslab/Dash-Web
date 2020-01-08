@@ -62,11 +62,11 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     deleteAnnotation = () => {
-        let annotation = DocListCast(this.props.extensionDoc.annotations);
-        let group = FieldValue(Cast(this.props.document.group, Doc));
+        const annotation = DocListCast(this.props.extensionDoc.annotations);
+        const group = FieldValue(Cast(this.props.document.group, Doc));
         if (group) {
             if (annotation.indexOf(group) !== -1) {
-                let newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
+                const newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
                 this.props.extensionDoc.annotations = new List<Doc>(newAnnotations);
             }
 
@@ -77,7 +77,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     pinToPres = () => {
-        let group = FieldValue(Cast(this.props.document.group, Doc));
+        const group = FieldValue(Cast(this.props.document.group, Doc));
         group && this.props.pinToPres(group);
     }
 
@@ -93,7 +93,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             e.stopPropagation();
         }
         else if (e.button === 0) {
-            let annoGroup = await Cast(this.props.document.group, Doc);
+            const annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
                 DocumentManager.Instance.FollowLink(undefined, annoGroup,
                     (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"),
@@ -105,9 +105,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
 
     addTag = (key: string, value: string): boolean => {
-        let group = FieldValue(Cast(this.props.document.group, Doc));
+        const group = FieldValue(Cast(this.props.document.group, Doc));
         if (group) {
-            let valNum = parseInt(value);
+            const valNum = parseInt(value);
             group[key] = isNaN(valNum) ? value : valNum;
             return true;
         }

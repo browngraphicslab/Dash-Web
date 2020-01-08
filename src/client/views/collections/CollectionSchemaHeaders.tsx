@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, computed, observable, trace, untracked } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
 import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -7,10 +7,8 @@ import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { ColumnType } from "./CollectionSchemaView";
-import { emptyFunction } from "../../../Utils";
-import { contains } from "typescript-collections/dist/lib/arrays";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { SchemaHeaderField, RandomPastel, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
@@ -32,7 +30,7 @@ export interface HeaderProps {
 
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
-        let icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
+        const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
             this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
         return (
             <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
@@ -139,7 +137,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     renderTypes = () => {
         if (this.props.typeConst) return <></>;
 
-        let type = this.props.columnField.type;
+        const type = this.props.columnField.type;
         return (
             <div className="collectionSchema-headerMenu-group">
                 <label>Column type:</label>
@@ -170,7 +168,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     renderSorting = () => {
-        let sort = this.props.columnField.desc;
+        const sort = this.props.columnField.desc;
         return (
             <div className="collectionSchema-headerMenu-group">
                 <label>Sort by:</label>
@@ -193,14 +191,14 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     renderColors = () => {
-        let selected = this.props.columnField.color;
+        const selected = this.props.columnField.color;
 
-        let pink = PastelSchemaPalette.get("pink2");
-        let purple = PastelSchemaPalette.get("purple2");
-        let blue = PastelSchemaPalette.get("bluegreen1");
-        let yellow = PastelSchemaPalette.get("yellow4");
-        let red = PastelSchemaPalette.get("red2");
-        let gray = "#f1efeb";
+        const pink = PastelSchemaPalette.get("pink2");
+        const purple = PastelSchemaPalette.get("purple2");
+        const blue = PastelSchemaPalette.get("bluegreen1");
+        const yellow = PastelSchemaPalette.get("yellow4");
+        const red = PastelSchemaPalette.get("red2");
+        const gray = "#f1efeb";
 
         return (
             <div className="collectionSchema-headerMenu-group">
@@ -291,8 +289,8 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     @action
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
-            let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            let exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
+            const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+            const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
                 this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
@@ -334,11 +332,11 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     renderOptions = (): JSX.Element[] | JSX.Element => {
         if (!this._isOpen) return <></>;
 
-        let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-        let exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
+        const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
-        let options = keyOptions.map(key => {
+        const options = keyOptions.map(key => {
             return <div key={key} className="key-option" onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
 

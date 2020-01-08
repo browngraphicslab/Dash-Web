@@ -12,19 +12,17 @@ export default class PDFMenu extends AntimodeMenu {
     static Instance: PDFMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
-    private _snippetButton: React.RefObject<HTMLButtonElement> = React.createRef();
 
     @observable private _keyValue: string = "";
     @observable private _valueValue: string = "";
     @observable private _added: boolean = false;
 
     @observable public Highlighting: boolean = false;
-    @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
+    @observable public Status: "pdf" | "annotation" | "" = "";
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
     public Highlight: (color: string) => Opt<Doc> = (color: string) => undefined;
     public Delete: () => void = unimplementedFunction;
-    public Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = unimplementedFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
     public PinToPres: () => void = unimplementedFunction;
     public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
@@ -80,34 +78,6 @@ export default class PDFMenu extends AntimodeMenu {
         this.Delete();
     }
 
-    snippetStart = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.snippetDrag);
-        document.addEventListener("pointermove", this.snippetDrag);
-        document.removeEventListener("pointerup", this.snippetEnd);
-        document.addEventListener("pointerup", this.snippetEnd);
-
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    snippetDrag = (e: PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!this._dragging) {
-            this._dragging = true;
-
-            this.Marquee && this.Snippet(this.Marquee);
-        }
-    }
-
-    snippetEnd = (e: PointerEvent) => {
-        this._dragging = false;
-        document.removeEventListener("pointermove", this.snippetDrag);
-        document.removeEventListener("pointerup", this.snippetEnd);
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
     @action
     keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._keyValue = e.currentTarget.value;
@@ -128,14 +98,12 @@ export default class PDFMenu extends AntimodeMenu {
     }
 
     render() {
-        let buttons = this.Status === "pdf" || this.Status === "snippet" ?
+        const buttons = this.Status === "pdf"  ?
             [
                 <button key="1" className="antimodeMenu-button" title="Click to Highlight" onClick={this.highlightClicked} style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} /></button>,
                 <button key="2" className="antimodeMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
                     <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
-                <button key="3" className="antimodeMenu-button" title="Drag to Snippetize Selection" style={{ display: this.Status === "snippet" ? "" : "none" }} onPointerDown={this.snippetStart} ref={this._snippetButton}>
-                    <FontAwesomeIcon icon="cut" size="lg" /></button>,
                 <button key="4" className="antimodeMenu-button" title="Pin Menu" onClick={this.togglePin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} /> </button>
             ] : [

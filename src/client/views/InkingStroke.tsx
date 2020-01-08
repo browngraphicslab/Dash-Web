@@ -14,7 +14,7 @@ type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
 
 export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
-    let pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+    const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
     return (
         <polyline
             points={pts}
@@ -35,25 +35,25 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
     @computed get PanelHeight() { return this.props.PanelHeight(); }
 
     render() {
-        let data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
-        let xs = data.map(p => p.X);
-        let ys = data.map(p => p.Y);
-        let left = Math.min(...xs);
-        let top = Math.min(...ys);
-        let right = Math.max(...xs);
-        let bottom = Math.max(...ys);
-        let points = CreatePolyline(data, 0, 0, this.Document.color, this.Document.strokeWidth);
-        let width = right - left;
-        let height = bottom - top;
-        let scaleX = this.PanelWidth / width;
-        let scaleY = this.PanelHeight / height;
+        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        const xs = data.map(p => p.X);
+        const ys = data.map(p => p.Y);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        const right = Math.max(...xs);
+        const bottom = Math.max(...ys);
+        const points = CreatePolyline(data, 0, 0, this.Document.color, this.Document.strokeWidth);
+        const width = right - left;
+        const height = bottom - top;
+        const scaleX = this.PanelWidth / width;
+        const scaleY = this.PanelHeight / height;
         return (
             <svg width={width} height={height} style={{
                 transformOrigin: "top left",
                 transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
                 mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
                 pointerEvents: "all"
-            }} onTouchStart={this.onTouchStart}>
+            }}>
                 {points}
             </svg>
         );

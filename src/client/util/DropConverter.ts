@@ -9,10 +9,10 @@ import { ScriptField } from "../../new_fields/ScriptField";
 
 
 function makeTemplate(doc: Doc): boolean {
-    let layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
-    let layout = StrCast(layoutDoc.layout).match(/fieldKey={"[^"]*"}/)![0];
-    let fieldKey = layout.replace('fieldKey={"', "").replace(/"}$/, "");
-    let docs = DocListCast(layoutDoc[fieldKey]);
+    const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
+    const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
+    const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
+    const docs = DocListCast(layoutDoc[fieldKey]);
     let any = false;
     docs.map(d => {
         if (!StrCast(d.title).startsWith("-")) {
@@ -28,7 +28,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
     data && data.draggedDocuments.map((doc, i) => {
         let dbox = doc;
         if (!doc.onDragStart && !doc.onClick && doc.viewType !== CollectionViewType.Linear) {
-            let layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
+            const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
             if (layoutDoc.type === DocumentType.COL) {
                 layoutDoc.isTemplateDoc = makeTemplate(layoutDoc);
             } else {

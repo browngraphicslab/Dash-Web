@@ -49,8 +49,8 @@ export class ContextMenu extends React.Component {
     @action
     onPointerUp = (e: PointerEvent) => {
         this._mouseDown = false;
-        let curX = e.clientX;
-        let curY = e.clientY;
+        const curX = e.clientX;
+        const curY = e.clientY;
         if (this._mouseX !== curX || this._mouseY !== curY) {
             this._shouldDisplay = false;
         }
@@ -208,7 +208,7 @@ export class ContextMenu extends React.Component {
         if (!this._display) {
             return null;
         }
-        let style = this._yRelativeToTop ? { left: this.pageX, top: this.pageY } :
+        const style = this._yRelativeToTop ? { left: this.pageX, top: this.pageY } :
             { left: this.pageX, bottom: this.pageY };
 
         const contents = (

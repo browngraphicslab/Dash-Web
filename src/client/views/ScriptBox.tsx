@@ -59,7 +59,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
             onFocus = this.onFocus;
             onBlur = this.onBlur;
         }
-        let params = <EditableView
+        const params = <EditableView
             contents={""}
             display={"block"}
             maxHeight={72}
@@ -96,9 +96,9 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
             }
         }
         // tslint:disable-next-line: no-unnecessary-callback-wrapper
-        let params: string[] = [];
-        let setParams = (p: string[]) => params.splice(0, params.length, ...p);
-        let scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={overlayDisposer} onSave={(text, onError) => {
+        const params: string[] = [];
+        const setParams = (p: string[]) => params.splice(0, params.length, ...p);
+        const scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={overlayDisposer} onSave={(text, onError) => {
             if (prewrapper) {
                 text = prewrapper + text + (postwrapper ? postwrapper : "");
             }
@@ -113,7 +113,15 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 return;
             }
 
-            params.length && DragManager.StartButtonDrag([], text, "a script", {}, params, (button: Doc) => { }, clientX, clientY);
+            const div = document.createElement("div");
+            div.style.width = "90";
+            div.style.height = "20";
+            div.style.background = "gray";
+            div.style.position = "absolute";
+            div.style.display = "inline-block";
+            div.style.transform = `translate(${clientX}px, ${clientY}px)`;
+            div.innerHTML = "button";
+            params.length && DragManager.StartButtonDrag([div], text, doc.title + "-instance", {}, params, (button: Doc) => { }, clientX, clientY);
 
             doc[fieldKey] = new ScriptField(script);
             overlayDisposer();

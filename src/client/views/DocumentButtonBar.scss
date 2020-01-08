@@ -17,6 +17,7 @@ $linkGap : 3px;
     transform: scale(1.05);
     cursor: pointer;
 }
+
 .documentButtonBar-linkButton-empty,
 .documentButtonBar-linkButton-nonempty {
     height: 20px;
@@ -74,6 +75,31 @@ $linkGap : 3px;
 }
 
 
-@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
-@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
-@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+@-moz-keyframes spin {
+    100% {
+        -moz-transform: rotate(360deg);
+    }
+}
+
+@-webkit-keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shadow-pulse {
+    0% {
+        box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+    }
+}

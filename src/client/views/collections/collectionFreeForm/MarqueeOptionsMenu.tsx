@@ -21,7 +21,7 @@ export default class MarqueeOptionsMenu extends AntimodeMenu {
     }
 
     render() {
-        let buttons = [
+        const buttons = [
             <button
                 className="antimodeMenu-button"
                 title="Create a Collection"

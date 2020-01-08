@@ -2,6 +2,7 @@ import { observable, action, runInAction, ObservableMap } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
+import { List } from "../../new_fields/List";
 
 export namespace SelectionManager {
 
@@ -27,18 +28,21 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.clear();
                 manager.SelectedDocuments.set(docView, true);
             }
+            Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         }
         @action
         DeselectDoc(docView: DocumentView): void {
             if (manager.SelectedDocuments.get(docView)) {
                 manager.SelectedDocuments.delete(docView);
                 docView.props.whenActiveChanged(false);
+                Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
             }
         }
         @action
         DeselectAll(): void {
             Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments.clear();
+            Doc.UserDoc().SelectedDocs = new List<Doc>([]);
         }
     }
 
@@ -78,3 +82,4 @@ export namespace SelectionManager {
         return Array.from(manager.SelectedDocuments.keys());
     }
 }
+

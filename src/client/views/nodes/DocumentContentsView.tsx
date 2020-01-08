@@ -14,6 +14,7 @@ import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
+import { DocumentBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
@@ -32,6 +33,7 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
+import { TraceMobx } from "../../../new_fields/util";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -57,6 +59,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
+        TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
         const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
@@ -83,7 +86,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     CreateBindings(): JsxBindings {
-        let list = {
+        const list = {
             ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,
@@ -92,6 +95,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        TraceMobx();
         return (this.props.renderDepth > 7 || !this.layout) ? (null) :
             <ObserverJsxParser
                 blacklistedAttrs={[]}
@@ -99,7 +103,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
-                    ColorBox, DocuLinkBox, InkingStroke
+                    ColorBox, DocuLinkBox, InkingStroke, DocumentBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

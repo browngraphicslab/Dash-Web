@@ -17,8 +17,8 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt: any = e.targetTouches.item(i);
-            // pen is also a touch, but with a radius of 0.5 (at least with the surface pens).
+            const pt: any = e.targetTouches.item(i);
+            // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
             // and this seems to be the only way of differentiating pen and touch on touch events
             if (pt.radiusX > 0.5 && pt.radiusY > 0.5) {
                 this.prevPoints.set(pt.identifier, pt);
@@ -42,10 +42,11 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     */
     @action
     protected onTouch = (e: TouchEvent): void => {
-        let myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
 
         // if we're not actually moving a lot, don't consider it as dragging yet
-        // if (!InteractionUtils.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
+        // if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
+        console.log(myTouches.length)
         this._touchDrag = true;
         switch (myTouches.length) {
             case 1:
@@ -57,7 +58,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         }
 
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i);
+            const pt = e.targetTouches.item(i);
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
                     this.prevPoints.set(pt.identifier, pt);
@@ -71,9 +72,11 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
         // remove all the touches associated with the event
         for (let i = 0; i < e.changedTouches.length; i++) {
-            let pt = e.changedTouches.item(i);
-            if (pt && this.prevPoints.has(pt.identifier)) {
-                this.prevPoints.delete(pt.identifier);
+            const pt = e.changedTouches.item(i);
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.delete(pt.identifier);
+                }
             }
         }
         this._touchDrag = false;

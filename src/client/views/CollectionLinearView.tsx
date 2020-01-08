@@ -39,7 +39,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
@@ -48,12 +48,12 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     dimension = () => NumCast(this.props.Document.height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
         return new Transform(-translateX, -translateY, 1 / scale);
     }
 
     render() {
-        let guid = Utils.GenerateGuid();
+        const guid = Utils.GenerateGuid();
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDropTarget} >
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.isExpanded)} ref={this.addMenuToggle}
@@ -62,10 +62,10 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
                 <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document.width, 25) }}>
                     {this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => {
-                        let nested = pair.layout.viewType === CollectionViewType.Linear;
-                        let dref = React.createRef<HTMLDivElement>();
-                        let nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
-                        let deltaSize = nativeWidth * .15 / 2;
+                        const nested = pair.layout.viewType === CollectionViewType.Linear;
+                        const dref = React.createRef<HTMLDivElement>();
+                        const nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
+                        const deltaSize = nativeWidth * .15 / 2;
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,
@@ -74,6 +74,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
+                                LibraryPath={this.props.LibraryPath}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}

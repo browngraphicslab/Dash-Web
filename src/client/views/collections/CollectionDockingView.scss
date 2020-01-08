@@ -25,7 +25,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    overflow: hidden;
+    // overflow: hidden;  // bcz: menus don't show up when this is on (e.g., the parentSelectorMenu)
 
     .collectionDockingView-dragAsDocument {
         touch-action: none;

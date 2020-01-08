@@ -62,15 +62,6 @@ export class FilterBox extends React.Component {
         super(props);
         FilterBox.Instance = this;
     }
-
-    componentDidMount = () => {
-        document.addEventListener("pointerdown", (e) => {
-            if (!e.defaultPrevented && e.timeStamp !== this._pointerTime) {
-                SearchBox.Instance.closeSearch();
-            }
-        });
-    }
-
     setupAccordion() {
         $('document').ready(function () {
             const acc = document.getElementsByClassName('filter-header');
@@ -79,7 +70,7 @@ export class FilterBox extends React.Component {
                 acc[i].addEventListener("click", function (this: HTMLElement) {
                     this.classList.toggle("active");
 
-                    var panel = this.nextElementSibling as HTMLElement;
+                    const panel = this.nextElementSibling as HTMLElement;
                     if (panel.style.maxHeight) {
                         panel.style.overflow = "hidden";
                         panel.style.maxHeight = "";
@@ -96,7 +87,7 @@ export class FilterBox extends React.Component {
                     }
                 });
 
-                let el = acc[i] as HTMLElement;
+                const el = acc[i] as HTMLElement;
                 el.click();
             }
         });
@@ -105,14 +96,14 @@ export class FilterBox extends React.Component {
     @action.bound
     minimizeAll() {
         $('document').ready(function () {
-            var acc = document.getElementsByClassName('filter-header');
+            const acc = document.getElementsByClassName('filter-header');
 
             // tslint:disable-next-line: prefer-for-of
             for (var i = 0; i < acc.length; i++) {
-                let classList = acc[i].classList;
+                const classList = acc[i].classList;
                 if (classList.contains("active")) {
                     acc[i].classList.toggle("active");
-                    var panel = acc[i].nextElementSibling as HTMLElement;
+                    const panel = acc[i].nextElementSibling as HTMLElement;
                     panel.style.overflow = "hidden";
                     panel.style.maxHeight = "";
                 }
@@ -128,10 +119,10 @@ export class FilterBox extends React.Component {
     }
 
     basicRequireWords(query: string): string {
-        let oldWords = query.split(" ");
-        let newWords: string[] = [];
+        const oldWords = query.split(" ");
+        const newWords: string[] = [];
         oldWords.forEach(word => {
-            let newWrd = "+" + word;
+            const newWrd = "+" + word;
             newWords.push(newWrd);
         });
         query = newWords.join(" ");
@@ -140,7 +131,7 @@ export class FilterBox extends React.Component {
     }
 
     basicFieldFilters(query: string, type: string): string {
-        let oldWords = query.split(" ");
+        const oldWords = query.split(" ");
         let mod = "";
 
         if (type === Keys.AUTHOR) {
@@ -151,9 +142,9 @@ export class FilterBox extends React.Component {
             mod = " title_t:";
         }
 
-        let newWords: string[] = [];
+        const newWords: string[] = [];
         oldWords.forEach(word => {
-            let newWrd = mod + word;
+            const newWrd = mod + word;
             newWords.push(newWrd);
         });
 
@@ -183,11 +174,11 @@ export class FilterBox extends React.Component {
     //gets all of the collections of all the docviews that are selected
     //if a collection is the only thing selected, search only in that collection (not its container)
     getCurCollections(): Doc[] {
-        let selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
-        let collections: Doc[] = [];
+        const selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
+        const collections: Doc[] = [];
 
         selectedDocs.forEach(async element => {
-            let layout: string = StrCast(element.props.Document.baseLayout);
+            const layout: string = StrCast(element.props.Document.layout);
             //checks if selected view (element) is a collection. if it is, adds to list to search through
             if (layout.indexOf("Collection") > -1) {
                 //makes sure collections aren't added more than once
@@ -229,14 +220,14 @@ export class FilterBox extends React.Component {
     }
 
     addCollectionFilter(query: string): string {
-        let collections: Doc[] = this.getCurCollections();
-        let oldWords = query.split(" ");
+        const collections: Doc[] = this.getCurCollections();
+        const oldWords = query.split(" ");
 
-        let collectionString: string[] = [];
+        const collectionString: string[] = [];
         collections.forEach(doc => {
-            let proto = doc.proto;
-            let protoId = (proto || doc)[Id];
-            let colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
+            const proto = doc.proto;
+            const protoId = (proto || doc)[Id];
+            const colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
             collectionString.push(colString);
         });
 
@@ -254,9 +245,9 @@ export class FilterBox extends React.Component {
         if (this._icons.length === 9) {
             return docs;
         }
-        let finalDocs: Doc[] = [];
+        const finalDocs: Doc[] = [];
         docs.forEach(doc => {
-            let layoutresult = Cast(doc.type, "string");
+            const layoutresult = Cast(doc.type, "string");
             if (layoutresult && this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }

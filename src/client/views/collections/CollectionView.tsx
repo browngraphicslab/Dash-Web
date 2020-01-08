@@ -32,6 +32,9 @@ import { SelectionManager } from '../../util/SelectionManager';
 import './CollectionView.scss';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
+import { TraceMobx } from '../../../new_fields/util';
+import { Utils } from '../../../Utils';
+const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
@@ -66,7 +69,7 @@ export namespace CollectionViewType {
 export interface CollectionRenderProps {
     addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
 }
@@ -84,7 +87,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
     get collectionViewType(): CollectionViewType | undefined {
-        let viewField = Cast(this.props.Document.viewType, "number");
+        const viewField = Cast(this.props.Document.viewType, "number");
         if (CollectionView._safeMode) {
             if (viewField === CollectionViewType.Freeform) {
                 return CollectionViewType.Tree;
@@ -101,7 +104,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             () => {
                 // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
                 // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
-                let chromeStatus = this.props.Document.chromeStatus;
+                const chromeStatus = this.props.Document.chromeStatus;
                 if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
                     runInAction(() => this._collapsed = true);
                 }
@@ -111,7 +114,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     componentWillUnmount = () => this._reactionDisposer && this._reactionDisposer();
 
     // bcz: Argh?  What's the height of the collection chromes??  
-    chromeHeight = () => (this.props.ChromeHeight ? this.props.ChromeHeight() : 0) + (this.props.Document.chromeStatus === "enabled" ? -60 : 0);
+    chromeHeight = () => (this.props.Document.chromeStatus === "enabled" ? -60 : 0);
 
     active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
 
@@ -119,9 +122,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        let targetDataDoc = Doc.GetProto(this.props.Document);
+        const targetDataDoc = Doc.GetProto(this.props.Document);
         Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
-        let extension = Doc.fieldExtensionDoc(targetDataDoc, this.props.fieldKey);  // set metadata about the field being rendered (ie, the set of documents) on an extension field for that field
+        const extension = Doc.fieldExtensionDoc(targetDataDoc, this.props.fieldKey);  // set metadata about the field being rendered (ie, the set of documents) on an extension field for that field
         extension && (extension.lastModified = new DateField(new Date(Date.now())));
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
@@ -129,9 +132,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
-        let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
+        const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        let value = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        const value = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 
@@ -148,7 +151,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+    moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
@@ -163,7 +166,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        let props = { ...this.props, ...renderProps, chromeCollapsed: this._collapsed, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props = { ...this.props, ...renderProps, chromeCollapsed: this._collapsed, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
@@ -186,7 +189,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        let chrome = this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
+        const chrome = this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
             <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />;
         return [chrome, this.SubViewHelper(type, renderProps)];
     }
@@ -194,8 +197,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            let existingVm = ContextMenu.Instance.findByDescription("View Modes...");
-            let subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+            const existingVm = ContextMenu.Instance.findByDescription("View Modes...");
+            const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; }, icon: "signature" });
             if (CollectionView._safeMode) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
@@ -221,28 +224,36 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
-            let existing = ContextMenu.Instance.findByDescription("Layout...");
-            let layoutItems = existing && "subitems" in existing ? existing.subitems : [];
+            const existing = ContextMenu.Instance.findByDescription("Layout...");
+            const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
 
-            let more = ContextMenu.Instance.findByDescription("More...");
-            let moreItems = more && "subitems" in more ? more.subitems : [];
+            const more = ContextMenu.Instance.findByDescription("More...");
+            const moreItems = more && "subitems" in more ? more.subitems : [];
             moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
             !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         }
     }
 
     lightbox = (images: string[]) => {
+        if (!images.length) return (null);
+        const mainPath = path.extname(images[this._curLightboxImg]);
+        const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length]);
+        const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length]);
+        const main = images[this._curLightboxImg].replace(mainPath, "_o" + mainPath);
+        const next = images[(this._curLightboxImg + 1) % images.length].replace(nextPath, "_o" + nextPath);
+        const prev = images[(this._curLightboxImg + images.length - 1) % images.length].replace(prevPath, "_o" + prevPath);
         return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
-            mainSrc={images[this._curLightboxImg]}
-            nextSrc={images[(this._curLightboxImg + 1) % images.length]}
-            prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
+            mainSrc={main}
+            nextSrc={next}
+            prevSrc={prev}
             onCloseRequest={action(() => this._isLightboxOpen = false)}
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
     render() {
+        TraceMobx();
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
             removeDocument: this.removeDocument,
@@ -258,7 +269,12 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
+                Cast(d.data, ImageField) ?
+                    (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
+                        Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
+                    :
+                    ""))}
         </div>);
     }
 }

@@ -13,14 +13,14 @@ import v5 = require("uuid/v5");
 export class CollectionFreeFormRemoteCursors extends React.Component<CollectionViewProps> {
 
     protected getCursors(): CursorField[] {
-        let doc = this.props.Document;
+        const doc = this.props.Document;
 
-        let id = CurrentUserUtils.id;
+        const id = CurrentUserUtils.id;
         if (!id) {
             return [];
         }
 
-        let cursors = Cast(doc.cursors, listSpec(CursorField));
+        const cursors = Cast(doc.cursors, listSpec(CursorField));
 
         const now = mobxUtils.now();
         // const now = Date.now();
@@ -30,7 +30,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
     private crosshairs?: HTMLCanvasElement;
     drawCrosshairs = (backgroundColor: string) => {
         if (this.crosshairs) {
-            let ctx = this.crosshairs.getContext('2d');
+            const ctx = this.crosshairs.getContext('2d');
             if (ctx) {
                 ctx.fillStyle = backgroundColor;
                 ctx.fillRect(0, 0, 20, 20);
@@ -62,8 +62,8 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
 
     get sharedCursors() {
         return this.getCursors().map(c => {
-            let m = c.data.metadata;
-            let l = c.data.position;
+            const m = c.data.metadata;
+            const l = c.data.position;
             this.drawCrosshairs("#" + v5(m.id, v5.URL).substring(0, 6).toUpperCase() + "22");
             return (
                 <div key={m.id} className="collectionFreeFormRemoteCursors-cont"
