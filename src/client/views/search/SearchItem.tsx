@@ -17,11 +17,11 @@ import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
 import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { ContextMenu } from "../ContextMenu";
-import { DocumentView } from "../nodes/DocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { ButtonSelector, ParentDocSelector } from "../collections/ParentDocumentSelector";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -188,24 +188,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
                                     layoutresult.indexOf(DocumentType.HIST) !== -1 ? faChartBar :
                                         layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
-        return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
+        return <div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
         </div>;
     }
 
     collectionRef = React.createRef<HTMLDivElement>();
-    startDocDrag = () => {
-        const doc = this.props.doc;
-        const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
-        if (isProto) {
-            return Doc.MakeDelegate(doc);
-        } else {
-            return Doc.MakeAlias(doc);
-        }
-    }
-
-    @computed
-    get linkCount() { return DocListCast(this.props.doc.links).length; }
 
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
@@ -258,43 +246,62 @@ export class SearchItem extends React.Component<SearchItemProps> {
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
+    _downX = 0;
+    _downY = 0;
+    _target: any;
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
         e.stopPropagation();
-        const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
-        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
+        this._target = e.currentTarget;
+        document.removeEventListener("pointermove", this.onPointerMoved);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMoved);
+        document.addEventListener("pointerup", this.onPointerUp);
+    }
+    onPointerMoved = (e: PointerEvent) => {
+        if (Math.abs(e.clientX - this._downX) > Utils.DRAG_THRESHOLD ||
+            Math.abs(e.clientY - this._downY) > Utils.DRAG_THRESHOLD) {
+            console.log("DRAGGIGNG");
+            document.removeEventListener("pointermove", this.onPointerMoved);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
+            DragManager.StartDocumentDrag([this._target], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
+        }
+    }
+    onPointerUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onPointerMoved);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    @computed
+    get contextButton() {
+        return <ParentDocSelector Views={DocumentManager.Instance.DocumentViews} Document={this.props.doc} addDocTab={(doc, data, where) => CollectionDockingView.AddRightSplit(doc, data)} />;
     }
 
     render() {
         const doc1 = Cast(this.props.doc.anchor1, Doc);
         const doc2 = Cast(this.props.doc.anchor2, Doc);
-        return (
-            <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-                <div className="search-item" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
-                    onClick={this.onClick}>
-                    <div className="main-search-info">
-                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" />
-                            <div className="link-container item">
-                                <div className="link-count" title={`${this.linkCount + " links"}`}>{this.linkCount}</div>
-                            </div>
-                        </div>
-                        <div className="search-title-container">
-                            <div className="search-title">{StrCast(this.props.doc.title)}</div>
-                            <div className="search-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
-                            {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="search-highlighting">`${l}`</div>)}
-                        </div>
-                        <div className="search-info" style={{ width: this._useIcons ? "15%" : "100%" }}>
-                            <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
-                                <div className="search-type" title="Click to Preview">{this.DocumentIcon()}</div>
-                                <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
-                            </div>
-                        </div>
+        return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
+            <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
+                <div className="searchItem-body" onClick={this.onClick}>
+                    <div className="searchItem-title-container">
+                        <div className="searchItem-title">{StrCast(this.props.doc.title)}</div>
+                        <div className="searchItem-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
+                        {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)}
                     </div>
                 </div>
-                <div className="searchBox-instances">
+                <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
+                    <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
+                        <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
+                        <div className="searchItem-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
+                    </div>
+                </div>
+                <div className="searchItem-context" title="Drag as document">
                     {(doc1 instanceof Doc && doc2 instanceof Doc) && this.props.doc.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
-                        <SelectorContextMenu {...this.props} />}
+                        this.contextButton}
                 </div>
             </div>
-        );
+        </div>;
     }
 } 
