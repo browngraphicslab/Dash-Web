@@ -111,6 +111,7 @@ export namespace Session {
      */
     export class Monitor {
 
+        private static count = 0;
         private exitHandlers: ExitHandler[] = [];
         private readonly notifiers: Monitor.NotifierHooks | undefined;
         private readonly configuration: Configuration;
@@ -119,14 +120,23 @@ export namespace Session {
         private key: string | undefined;
         private repl: Repl;
 
+        public static Create(notifiers: Monitor.NotifierHooks) {
+            if (++Monitor.count > 1) {
+                throw new Error("Cannot create more than one monitor");
+            } else {
+                return new Monitor(notifiers);
+            }
+        }
+
         /**
          * Kill this session and its active child
          * server process, either gracefully (may wait
          * indefinitely, but at least allows active networking
          * requests to complete) or immediately.
          */
-        public killSession = async (graceful = true): Promise<never> => {
+        public killSession = async (graceful = true) => {
             this.log(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
+            await this.executeExitHandlers(null);
             this.tryKillActiveWorker(graceful);
             process.exit(0);
         }
@@ -176,7 +186,7 @@ export namespace Session {
          */
         public clearServerMessageListeners = (message: string) => this.onMessage[message] = undefined;
 
-        constructor(notifiers?: Monitor.NotifierHooks) {
+        private constructor(notifiers?: Monitor.NotifierHooks) {
             this.notifiers = notifiers;
 
             console.log(this.timestamp(), cyan("initializing session..."));
@@ -385,6 +395,7 @@ export namespace Session {
                         case "kill":
                             this.log(red("an authorized user has manually ended the server session"));
                             this.killSession(args.graceful);
+                            break;
                         case "notify_crash":
                             if (this.notifiers?.crash) {
                                 const { error } = args;
@@ -392,9 +403,11 @@ export namespace Session {
                                 const statement = success ? green("distributed crash notification to recipients") : red("distribution of crash notification failed");
                                 this.log(statement);
                             }
+                            break;
                         case "set_port":
                             const { port, value, immediateRestart } = args;
                             this.setPort(port, value, immediateRestart);
+                            break;
                     }
                     const handlers = this.onMessage[message];
                     if (handlers) {
@@ -408,8 +421,6 @@ export namespace Session {
 
     }
 
-
-
     /**
      * Effectively, each worker repairs the connection to the server by reintroducing a consistent state
      * if its predecessor has died. It itself also polls the server heartbeat, and exits with a notification
@@ -417,6 +428,7 @@ export namespace Session {
      */
     export class ServerWorker {
 
+        private static count = 0;
         private shouldServerBeResponsive = false;
         private exitHandlers: ExitHandler[] = [];
         private pollingFailureCount = 0;
@@ -424,6 +436,14 @@ export namespace Session {
         private pollingFailureTolerance: number;
         private pollTarget: string;
         private serverPort: number;
+
+        public static Create(work: Function) {
+            if (++ServerWorker.count > 1) {
+                throw new Error("Cannot create more than one worker per thread");
+            } else {
+                return new ServerWorker(work);
+            }
+        }
 
         /**
          * Allows developers to invoke application specific logic
@@ -444,7 +464,7 @@ export namespace Session {
          */
         public sendMonitorAction = (message: string, args?: any) => process.send!({ action: { message, args } });
 
-        constructor(work: Function) {
+        private constructor(work: Function) {
             this.lifecycleNotification(green(`initializing process... (${white(`${process.execPath} ${process.execArgv.join(" ")}`)})`));
 
             const { pollingRoute, serverPort, pollingIntervalSeconds, pollingFailureTolerance } = process.env;

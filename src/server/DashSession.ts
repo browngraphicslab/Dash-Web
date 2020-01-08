@@ -19,7 +19,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     private readonly signature = "-Dash Server Session Manager";
 
     protected async launchMonitor() {
-        const monitor = new Session.Monitor({
+        const monitor = Session.Monitor.Create({
             key: async key => {
                 // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
                 // to kill the server via the /kill/:key route
@@ -54,7 +54,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     }
 
     protected async launchServerWorker() {
-        const worker = new Session.ServerWorker(launchServer); // server initialization delegated to worker
+        const worker = Session.ServerWorker.Create(launchServer); // server initialization delegated to worker
         worker.addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
         return worker;
     }
