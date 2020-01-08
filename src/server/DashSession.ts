@@ -49,7 +49,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             }
         });
         monitor.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
-        monitor.addReplCommand("solr", [/start|stop/g], args => SolrManager.SetRunning(args[0] === "start"));
+        monitor.addReplCommand("solr", [/start|stop/], args => SolrManager.SetRunning(args[0] === "start"));
         return monitor;
     }
 

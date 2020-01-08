@@ -73,7 +73,7 @@ export namespace SolrManager {
         const args = status ? "start" : "stop -p 8983";
         try {
             console.log(`Solr management: trying to ${args}`);
-            console.log(execSync(`./solr.cmd ${args}`, { cwd: "./solr-8.3.1/bin" }));
+            console.log(execSync(`${process.platform === "win32" ? "solr.cmd" : "solr"} ${args}`, { cwd: "./solr-8.3.1/bin" }).toString());
             return true;
         } catch (e) {
             console.log(red(`Solr management error: unable to ${args}`));
