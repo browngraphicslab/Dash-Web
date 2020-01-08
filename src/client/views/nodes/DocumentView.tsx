@@ -4,7 +4,7 @@ import { action, computed, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Document } from '../../../new_fields/documentSchemas';
+import { Document, PositionDocument } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
@@ -236,28 +236,167 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
-            // return if we're inking, and not selecting a button document
-            || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
-            // return if using pen or eraser
-            || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) return;
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        this._hitTemplateDrag = false;
-        // this whole section needs to move somewhere else.  We're trying to initiate a special "template" drag where
-        // this document is the template and we apply it to whatever we drop it on.
-        for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
-            if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
-                this._hitTemplateDrag = true;
+    handle1PointerDown = (e: React.TouchEvent) => {
+        if (!e.nativeEvent.cancelBubble) {
+            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            this._downX = touch.clientX;
+            this._downY = touch.clientY;
+            this._hitTemplateDrag = false;
+            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+                    this._hitTemplateDrag = true;
+                }
             }
+            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+            if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
+            console.log("down")
         }
-        if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
+    }
+
+    handle1PointerMove = (e: TouchEvent) => {
+        if ((e as any).formattedHandled) { e.stopPropagation; return; }
+        if (e.cancelBubble && this.active) {
+            document.removeEventListener("touchmove", this.onTouch);
+        }
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
+                    document.removeEventListener("touchmove", this.onTouch);
+                    document.removeEventListener("touchend", this.onTouchEnd);
+                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+                }
+            }
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+            e.preventDefault();
+
+        }
+    }
+
+    handle2PointersDown = (e: React.TouchEvent) => {
+        if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+        }
+    }
+
+    @action
+    handle2PointersMove = (e: TouchEvent) => {
+        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        const pt1 = myTouches[0];
+        const pt2 = myTouches[1];
+        const oldPoint1 = this.prevPoints.get(pt1.identifier);
+        const oldPoint2 = this.prevPoints.get(pt2.identifier);
+        const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+        if (pinching !== 0 && oldPoint1 && oldPoint2) {
+            // let dX = (Math.min(pt1.clientX, pt2.clientX) - Math.min(oldPoint1.clientX, oldPoint2.clientX));
+            // let dY = (Math.min(pt1.clientY, pt2.clientY) - Math.min(oldPoint1.clientY, oldPoint2.clientY));
+            // let dX = Math.sign(Math.abs(pt1.clientX - oldPoint1.clientX) - Math.abs(pt2.clientX - oldPoint2.clientX));
+            // let dY = Math.sign(Math.abs(pt1.clientY - oldPoint1.clientY) - Math.abs(pt2.clientY - oldPoint2.clientY));
+            // let dW = -dX;
+            // let dH = -dY;
+            const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
+            const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
+            const dX = -1 * Math.sign(dW);
+            const dY = -1 * Math.sign(dH);
+
+            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
+                const doc = PositionDocument(this.props.Document);
+                const layoutDoc = PositionDocument(Doc.Layout(this.props.Document));
+                let nwidth = layoutDoc.nativeWidth || 0;
+                let nheight = layoutDoc.nativeHeight || 0;
+                const width = (layoutDoc.width || 0);
+                const height = (layoutDoc.height || (nheight / nwidth * width));
+                const scale = this.props.ScreenToLocalTransform().Scale * this.props.ContentScaling();
+                const actualdW = Math.max(width + (dW * scale), 20);
+                const actualdH = Math.max(height + (dH * scale), 20);
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
+                const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
+                    layoutDoc.ignoreAspect = false;
+                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
+                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                }
+                if (fixedAspect && (!nwidth || !nheight)) {
+                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
+                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                }
+                if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
+                    if (Math.abs(dW) > Math.abs(dH)) {
+                        if (!fixedAspect) {
+                            layoutDoc.nativeWidth = actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0);
+                        }
+                        layoutDoc.width = actualdW;
+                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
+                        else layoutDoc.height = actualdH;
+                    }
+                    else {
+                        if (!fixedAspect) {
+                            layoutDoc.nativeHeight = actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0);
+                        }
+                        layoutDoc.height = actualdH;
+                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
+                        else layoutDoc.width = actualdW;
+                    }
+                } else {
+                    dW && (layoutDoc.width = actualdW);
+                    dH && (layoutDoc.height = actualdH);
+                    dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
+                }
+            }
+            // let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
+            // this.props.Document.width = newWidth;
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
+    onPointerDown = (e: React.PointerEvent): void => {
+        // console.log(e.button)
+        // console.log(e.nativeEvent)
+        // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
+        if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
+            if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+                e.stopPropagation();
+            }
+            return;
+        }
+        if ((!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart)) {
+            // if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
+            //     // return if we're inking, and not selecting a button document
+            //     || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
+            //     // return if using pen or eraser
+            //     || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) {
+            //     return;
+            // }
+
+            this._downX = e.clientX;
+            this._downY = e.clientY;
+            this._hitTemplateDrag = false;
+            // this whole section needs to move somewhere else.  We're trying to initiate a special "template" drag where
+            // this document is the template and we apply it to whatever we drop it on.
+            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+                    this._hitTemplateDrag = true;
+                }
+            }
+            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointerup", this.onPointerUp);
+            if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
+        }
     }
 
     onPointerMove = (e: PointerEvent): void => {
@@ -445,6 +584,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
+        // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
+        if (e.button === 0) {
+            e.preventDefault();
+            return;
+        }
         e.persist();
         e.stopPropagation();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
@@ -705,21 +849,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get ignorePointerEvents() {
         return (this.Document.isBackground && !this.isSelected()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
-    }
-
-    @action
-    handle2PointersMove = (e: TouchEvent) => {
-        const pt1 = e.targetTouches.item(0);
-        const pt2 = e.targetTouches.item(1);
-        if (pt1 && pt2 && this.prevPoints.has(pt1.identifier) && this.prevPoints.has(pt2.identifier)) {
-            const oldPoint1 = this.prevPoints.get(pt1.identifier);
-            const oldPoint2 = this.prevPoints.get(pt2.identifier);
-            const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
-            if (pinching !== 0) {
-                const newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX));
-                this.props.Document.width = newWidth;
-            }
-        }
     }
 
     render() {
