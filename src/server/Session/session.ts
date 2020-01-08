@@ -1,5 +1,5 @@
 import { red, cyan, green, yellow, magenta, blue, white } from "colors";
-import { on, fork, setupMaster, Worker, isMaster } from "cluster";
+import { on, fork, setupMaster, Worker, isMaster, isWorker } from "cluster";
 import { get } from "request-promise";
 import { Utils } from "../../Utils";
 import Repl, { ReplAction } from "../repl";
@@ -120,9 +120,13 @@ export namespace Session {
         private key: string | undefined;
         private repl: Repl;
 
-        public static Create(notifiers: Monitor.NotifierHooks) {
-            if (++Monitor.count > 1) {
-                throw new Error("Cannot create more than one monitor");
+        public static Create(notifiers?: Monitor.NotifierHooks) {
+            if (isWorker) {
+                console.error(red("Monitor must be on the master process."));
+                process.exit(1);
+            } else if (++Monitor.count > 1) {
+                console.error(("Cannot create more than one monitor."));
+                process.exit(1);
             } else {
                 return new Monitor(notifiers);
             }
@@ -438,8 +442,11 @@ export namespace Session {
         private serverPort: number;
 
         public static Create(work: Function) {
-            if (++ServerWorker.count > 1) {
-                throw new Error("Cannot create more than one worker per thread");
+            if (isMaster) {
+                throw new Error("Worker must be launched on a worker process.");
+            } else if (++ServerWorker.count > 1 || isMaster) {
+                process.send?.({ action: { message: "kill", args: { graceful: false } } });
+                process.exit(1);
             } else {
                 return new ServerWorker(work);
             }
