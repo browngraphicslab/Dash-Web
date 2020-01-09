@@ -368,14 +368,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+            if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+                e.stopPropagation();
+            }
             return;
         }
-        if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
-            e.stopPropagation();
-            return;
-        }
-        if ((!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart)) {
+        // if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
+        //     e.stopPropagation();
+        //     return;
+        // }
+        if (!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart) {
             // if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
             //     // return if we're inking, and not selecting a button document
             //     || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
