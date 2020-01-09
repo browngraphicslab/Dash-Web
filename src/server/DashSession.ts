@@ -63,9 +63,12 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
 
     protected async launchServerWorker() {
         const worker = Session.ServerWorker.Create(launchServer); // server initialization delegated to worker
-        worker.addExitHandler(() => {
+        worker.addExitHandler(reason => {
             const { _socket } = WebSocket;
-            _socket && Utils.Emit(_socket, MessageStore.ConnectionTerminated, "Manual");
+            if (_socket) {
+                const message = typeof reason === "boolean" ? (reason ? "exit" : "temporary") : "crash";
+                Utils.Emit(_socket, MessageStore.ConnectionTerminated, message);
+            }
         });
         return worker;
     }

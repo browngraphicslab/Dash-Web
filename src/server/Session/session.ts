@@ -131,7 +131,7 @@ export namespace Session {
         }
     };
 
-    export type ExitHandler = (reason: Error | null) => void | Promise<void>;
+    export type ExitHandler = (reason: Error | boolean) => void | Promise<void>;
 
     export namespace Monitor {
 
@@ -194,8 +194,8 @@ export namespace Session {
         public killSession = async (reason: string, graceful = true, errorCode = 0) => {
             this.mainLog(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
             this.mainLog(`reason: ${(red(reason))}`);
-            await this.executeExitHandlers(null);
-            this.killActiveWorker(graceful);
+            await this.executeExitHandlers(true);
+            this.killActiveWorker(graceful, true);
             process.exit(errorCode);
         }
 
@@ -341,18 +341,25 @@ export namespace Session {
          * is not specified by the configuration is given the default counterpart. If, within an object,
          * one peer is given by configuration and two are not, the one is preserved while the two are given
          * the default value.
+         * @returns the composition of all of the assigned objects, much like Object.assign(), but with more
+         * granularity in the overwriting of nested objects
          */
-        private assign = (defaultObject: any, specifiedObject: any, collector: any) => {
-            Array.from(new Set([...Object.keys(defaultObject), ...Object.keys(specifiedObject)])).map(property => {
-                let defaultValue: any, specifiedValue: any;
-                if (specifiedValue = specifiedObject[property]) {
-                    if (typeof specifiedValue === "object" && typeof (defaultValue = defaultObject[property]) === "object") {
-                        this.assign(defaultValue, specifiedValue, collector[property] = {});
+        private preciseAssign = (target: any, ...sources: any[]): any => {
+            for (const source of sources) {
+                this.preciseAssignHelper(target, source);
+            }
+            return target;
+        }
+
+        private preciseAssignHelper = (target: any, source: any) => {
+            Array.from(new Set([...Object.keys(target), ...Object.keys(source)])).map(property => {
+                let targetValue: any, sourceValue: any;
+                if (sourceValue = source[property]) {
+                    if (typeof sourceValue === "object" && typeof (targetValue = target[property]) === "object") {
+                        this.preciseAssignHelper(targetValue, sourceValue);
                     } else {
-                        collector[property] = specifiedValue;
+                        target[property] = sourceValue;
                     }
-                } else {
-                    collector[property] = defaultObject[property];
                 }
             });
         }
@@ -372,9 +379,7 @@ export namespace Session {
                 };
                 // ensure all necessary and no excess information is specified by the configuration file
                 validate(config, configurationSchema, options);
-                const results: any = {};
-                this.assign(defaultConfig, config, results);
-                config = results;
+                config = this.preciseAssign({}, defaultConfig, config);
             } catch (error) {
                 if (error instanceof ValidationError) {
                     console.log(red("\nSession configuration failed."));
@@ -384,7 +389,7 @@ export namespace Session {
                 } else if (error.code === "ENOENT" && error.path === "./session.config.json") {
                     console.log(cyan("Loading default session parameters..."));
                     console.log("Consider including a session.config.json configuration file in your project root for customization.");
-                    config = { ...defaultConfig };
+                    config = this.preciseAssign({}, defaultConfig);
                 } else {
                     console.log(red("\nSession configuration failed."));
                     console.log("The following unknown error occurred during configuration.");
@@ -429,15 +434,15 @@ export namespace Session {
             return repl;
         }
 
-        private executeExitHandlers = async (reason: Error | null) => Promise.all(this.exitHandlers.map(handler => handler(reason)));
+        private executeExitHandlers = async (reason: Error | boolean) => Promise.all(this.exitHandlers.map(handler => handler(reason)));
 
         /**
          * Attempts to kill the active worker gracefully, unless otherwise specified.
          */
-        private killActiveWorker = (graceful = true): void => {
+        private killActiveWorker = (graceful = true, isSessionEnd = false): void => {
             if (this.activeWorker && !this.activeWorker.isDead()) {
                 if (graceful) {
-                    this.activeWorker.send({ manualExit: true });
+                    this.activeWorker.send({ manualExit: { isSessionEnd } });
                 } else {
                     this.activeWorker.process.kill();
                 }
@@ -577,7 +582,7 @@ export namespace Session {
         public sendMonitorAction = (message: string, args?: any) => process.send!({ action: { message, args } });
 
         private constructor(work: Function) {
-            this.lifecycleNotification(green(`initializing process... (${white(`${process.execPath} ${process.execArgv.join(" ")}`)})`));
+            this.lifecycleNotification(green(`initializing process... ${white(`[${process.execPath} ${process.execArgv.join(" ")}]`)}`));
 
             const { pollingRoute, serverPort, pollingIntervalSeconds, pollingFailureTolerance } = process.env;
             this.serverPort = Number(serverPort);
@@ -601,21 +606,25 @@ export namespace Session {
                     this.pollingIntervalSeconds = newPollingIntervalSeconds;
                 }
                 if (manualExit !== undefined) {
-                    await this.executeExitHandlers(null);
+                    const { isSessionEnd } = manualExit;
+                    await this.executeExitHandlers(isSessionEnd);
                     process.exit(0);
                 }
             });
 
             // one reason to exit, as the process might be in an inconsistent state after such an exception
             process.on('uncaughtException', this.proactiveUnplannedExit);
-            process.on('unhandledRejection', this.proactiveUnplannedExit);
+            process.on('unhandledRejection', reason => {
+                const appropriateError = reason instanceof Error ? reason : new Error(`unhandled rejection: ${reason}`);
+                this.proactiveUnplannedExit(appropriateError);
+            });
         }
 
         /**
          * Execute the list of functions registered to be called
          * whenever the process exits.
          */
-        private executeExitHandlers = async (reason: Error | null) => Promise.all(this.exitHandlers.map(handler => handler(reason)));
+        private executeExitHandlers = async (reason: Error | boolean) => Promise.all(this.exitHandlers.map(handler => handler(reason)));
 
         /**
          * Notify master thread (which will log update in the console) of initialization via IPC.
@@ -626,14 +635,14 @@ export namespace Session {
          * Called whenever the process has a reason to terminate, either through an uncaught exception
          * in the process (potentially inconsistent state) or the server cannot be reached.
          */
-        private proactiveUnplannedExit = async (error: any): Promise<void> => {
+        private proactiveUnplannedExit = async (error: Error): Promise<void> => {
             this.shouldServerBeResponsive = false;
             // communicates via IPC to the master thread that it should dispatch a crash notification email
             this.sendMonitorAction("notify_crash", { error });
             await this.executeExitHandlers(error);
             // notify master thread (which will log update in the console) of crash event via IPC
             this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));
-            this.lifecycleNotification(red(error.message || error));
+            this.lifecycleNotification(red(error.message));
             process.exit(1);
         }
 
