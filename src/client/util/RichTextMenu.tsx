@@ -156,7 +156,7 @@ export default class RichTextMenu extends AntimodeMenu {
         if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) return;
 
         // update active marks
-        const activeMarks = this.getMarksInSelection(this.view.state);
+        const activeMarks = this.getActiveMarksOnSelection();
         this.setActiveMarkButtons(activeMarks);
 
         // update active font family and size
@@ -218,17 +218,57 @@ export default class RichTextMenu extends AntimodeMenu {
     getMarksInSelection(state: EditorState<any>) {
         const found = new Set<Mark>();
         const { from, to } = state.selection as TextSelection;
-        console.log(to - from, state.tr.storedMarks);
         state.doc.nodesBetween(from, to, (node) => node.marks.forEach(m => found.add(m)));
-        if (to - from === 0) { state.storedMarks && state.storedMarks.forEach(m => found.add(m)); }
         return found;
+    }
+
+    //finds all active marks on selection in given group
+    getActiveMarksOnSelection() {
+        if (!this.view) return;
+
+        const markGroup = [schema.marks.strong, schema.marks.em, schema.marks.underline, schema.marks.strikethrough, schema.marks.superscript, schema.marks.subscript];
+        if (this.view.state.storedMarks) return this.view.state.storedMarks.map(mark => mark.type);
+        //current selection
+        const { empty, ranges, $to } = this.view.state.selection as TextSelection;
+        const state = this.view.state;
+        let activeMarks: MarkType[] = [];
+        if (!empty) {
+            activeMarks = markGroup.filter(mark => {
+                const has = false;
+                for (let i = 0; !has && i < ranges.length; i++) {
+                    return state.doc.rangeHasMark(ranges[i].$from.pos, ranges[i].$to.pos, mark);
+                }
+                return false;
+            });
+        }
+        else {
+            const pos = this.view.state.selection.$from;
+            const ref_node: ProsNode | null = this.reference_node(pos);
+            if (ref_node !== null && ref_node !== this.view.state.doc) {
+                if (ref_node.isText) {
+                }
+                else {
+                    return [];
+                }
+                activeMarks = markGroup.filter(mark_type => {
+                    if (mark_type === state.schema.marks.pFontSize) {
+                        return ref_node.marks.some(m => m.type.name === state.schema.marks.pFontSize.name);
+                    }
+                    const mark = state.schema.mark(mark_type);
+                    return ref_node.marks.includes(mark);
+                });
+            }
+        }
+        return activeMarks;
     }
 
     destroy() {
     }
 
     @action
-    setActiveMarkButtons(activeMarks: Set<Mark>) {
+    setActiveMarkButtons(activeMarks: MarkType[] | undefined) {
+        if (!activeMarks) return;
+
         this.boldActive = false;
         this.italicsActive = false;
         this.underlineActive = false;
@@ -237,7 +277,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this.superscriptActive = false;
 
         activeMarks.forEach(mark => {
-            switch (mark.type.name) {
+            switch (mark.name) {
                 case "strong": this.boldActive = true; break;
                 case "em": this.italicsActive = true; break;
                 case "underline": this.underlineActive = true; break;
@@ -256,6 +296,7 @@ export default class RichTextMenu extends AntimodeMenu {
             self.view && self.view.focus();
             self.view && command && command(self.view!.state, self.view!.dispatch, self.view);
             self.view && onclick && onclick(self.view!.state, self.view!.dispatch, self.view);
+            self.setActiveMarkButtons(self.getActiveMarksOnSelection());
         }
 
         return (
