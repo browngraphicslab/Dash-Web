@@ -34,6 +34,12 @@ export default class RichTextMenu extends AntimodeMenu {
     private view?: EditorView;
     private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
 
+    private fontSizeOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean }[];
+    private fontFamilyOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean }[];
+    private listTypeOptions: { node: NodeType | any | null, title: string, label: string, command: any }[];
+    private fontColors: (string | undefined)[];
+    private highlightColors: (string | undefined)[];
+
     @observable private activeFontSize: string = "";
     @observable private activeFontFamily: string = "";
     @observable private activeListType: string = "";
@@ -55,6 +61,69 @@ export default class RichTextMenu extends AntimodeMenu {
         super(props);
         RichTextMenu.Instance = this;
         this._canFade = false;
+
+        this.fontSizeOptions = [
+            { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 16 }), title: "Set font size", label: "16pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 18 }), title: "Set font size", label: "18pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 20 }), title: "Set font size", label: "20pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 24 }), title: "Set font size", label: "24pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
+            { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
+            { mark: null, title: "", label: "13pt", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
+        ];
+
+        this.fontFamilyOptions = [
+            { mark: schema.marks.pFontFamily.create({ family: "Times New Roman" }), title: "Set font family", label: "Times New Roman", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Arial" }), title: "Set font family", label: "Arial", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Georgia" }), title: "Set font family", label: "Georgia", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Comic Sans MS" }), title: "Set font family", label: "Comic Sans MS", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Tahoma" }), title: "Set font family", label: "Tahoma", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Impact" }), title: "Set font family", label: "Impact", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily },
+            { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
+            // { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
+        ];
+
+        this.listTypeOptions = [
+            { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
+            { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
+            { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
+            { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
+        ];
+
+        this.fontColors = [
+            DarkPastelSchemaPalette.get("pink2"),
+            DarkPastelSchemaPalette.get("purple4"),
+            DarkPastelSchemaPalette.get("bluegreen1"),
+            DarkPastelSchemaPalette.get("yellow4"),
+            DarkPastelSchemaPalette.get("red2"),
+            DarkPastelSchemaPalette.get("bluegreen7"),
+            DarkPastelSchemaPalette.get("bluegreen5"),
+            DarkPastelSchemaPalette.get("orange1"),
+            "#757472",
+            "#000"
+        ];
+
+        this.highlightColors = [
+            PastelSchemaPalette.get("pink2"),
+            PastelSchemaPalette.get("purple4"),
+            PastelSchemaPalette.get("bluegreen1"),
+            PastelSchemaPalette.get("yellow4"),
+            PastelSchemaPalette.get("red2"),
+            PastelSchemaPalette.get("bluegreen7"),
+            PastelSchemaPalette.get("bluegreen5"),
+            PastelSchemaPalette.get("orange1"),
+            "white",
+            "transparent"
+        ];
     }
 
     @action
@@ -74,27 +143,23 @@ export default class RichTextMenu extends AntimodeMenu {
         }
         this.view = view;
         const state = view.state;
-        // DocumentDecorations.Instance.showTextBar();
         props && (this.editorProps = props);
+
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) return;
 
-        // this.reset_mark_doms();
 
         // update active font family and size
         const active = this.getActiveFontStylesOnSelection();
         const activeFamilies = active && active.get("families");
         const activeSizes = active && active.get("sizes");
 
-        console.log("update from dash, activefontsize", this.activeFontSize, activeSizes, activeSizes && activeSizes.length, activeSizes && String(activeSizes[0]));
         this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
 
         // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
         this.setCurrentLink(targetTitle);
-
-        // this.update_mark_doms();
     }
 
     setMark = (mark: Mark, state: EditorState<any>, dispatch: any) => {
@@ -134,7 +199,7 @@ export default class RichTextMenu extends AntimodeMenu {
             });
         }
 
-        let styles = new Map<String, String[]>();
+        const styles = new Map<String, String[]>();
         styles.set("families", activeFamilies);
         styles.set("sizes", activeSizes);
         return styles;
@@ -183,7 +248,6 @@ export default class RichTextMenu extends AntimodeMenu {
         function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
             e.stopPropagation();
             e.preventDefault();
-            console.log("on change marks");
             options.forEach(({ label, mark, command }) => {
                 if (e.target.value === label) {
                     self.view && mark && command(mark, self.view);
@@ -230,7 +294,6 @@ export default class RichTextMenu extends AntimodeMenu {
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
         const fontName = mark.attrs.family;
-        // if (fontName) { this.updateFontStyleDropdown(fontName); }
         if (this.editorProps) {
             const ruleProvider = this.editorProps.ruleProvider;
             const heading = NumCast(this.editorProps.Document.heading);
@@ -288,12 +351,6 @@ export default class RichTextMenu extends AntimodeMenu {
             self.view && self.view.focus();
             self.view && self.fillBrush(self.view.state, self.view.dispatch);
         }
-        function onDropdownClick(e: React.PointerEvent) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.view && self.view.focus();
-            self.toggleBrushDropdown();
-        }
 
         let label = "Stored marks: ";
         if (this.brushMarks && this.brushMarks.size > 0) {
@@ -307,20 +364,20 @@ export default class RichTextMenu extends AntimodeMenu {
             label = "No marks are currently stored";
         }
 
+        const button =
+            <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks && this.brushMarks.size > 0 ? { backgroundColor: "121212" } : {}}>
+                <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
+            </button>;
+
+        const dropdownContent =
+            <div className="dropdown">
+                <p>{label}</p>
+                <button onPointerDown={this.clearBrush}>Clear brush</button>
+                {/* <input placeholder="Enter URL"></input> */}
+            </div>;
+
         return (
-            <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks && this.brushMarks.size > 0 ? { backgroundColor: "121212" } : {}}>
-                    <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
-                </button>
-                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showBrushDropdown ?
-                    (<div className="dropdown">
-                        <p>{label}</p>
-                        <button onPointerDown={this.clearBrush}>Clear brush</button>
-                        {/* <input placeholder="Enter URL"></input> */}
-                    </div>)
-                    : <></>}
-            </div>
+            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} />
         );
     }
 
@@ -340,7 +397,6 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.brushMarks = selected_marks;
                 this.brushIsEmpty = !this.brushIsEmpty;
             }
-            // }
         }
         else {
             const { from, to, $from } = this.view.state.selection;
@@ -369,12 +425,6 @@ export default class RichTextMenu extends AntimodeMenu {
             self.view && self.view.focus();
             self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
         }
-        function onDropdownClick(e: React.PointerEvent) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.view && self.view.focus();
-            self.toggleColorDropdown();
-        }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
@@ -383,41 +433,28 @@ export default class RichTextMenu extends AntimodeMenu {
             self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
         }
 
-        const colors = [
-            DarkPastelSchemaPalette.get("pink2"),
-            DarkPastelSchemaPalette.get("purple4"),
-            DarkPastelSchemaPalette.get("bluegreen1"),
-            DarkPastelSchemaPalette.get("yellow4"),
-            DarkPastelSchemaPalette.get("red2"),
-            DarkPastelSchemaPalette.get("bluegreen7"),
-            DarkPastelSchemaPalette.get("bluegreen5"),
-            DarkPastelSchemaPalette.get("orange1"),
-            "#757472",
-            "#000"
-        ];
+        const button =
+            <button className="antimodeMenu-button color-preview-button" title="" onPointerDown={onColorClick}>
+                <FontAwesomeIcon icon="palette" size="lg" />
+                <div className="color-preview" style={{ backgroundColor: this.activeFontColor }}></div>
+            </button>;
+
+        const dropdownContent =
+            <div className="dropdown">
+                <p>Change font color:</p>
+                <div className="color-wrapper">
+                    {this.fontColors.map(color => {
+                        if (color) {
+                            return this.activeFontColor === color ?
+                                <button className="color-button active" style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button> :
+                                <button className="color-button" style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button>;
+                        }
+                    })}
+                </div>
+            </div>;
 
         return (
-            <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button color-preview-button" title="" onPointerDown={onColorClick}>
-                    <FontAwesomeIcon icon="palette" size="lg" />
-                    <div className="color-preview" style={{ backgroundColor: this.activeFontColor }}></div>
-                </button>
-                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showColorDropdown ?
-                    (<div className="dropdown">
-                        <p>Change font color:</p>
-                        <div className="color-wrapper">
-                            {colors.map(color => {
-                                if (color) {
-                                    return this.activeFontColor === color ?
-                                        <button className="color-button active" style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button> :
-                                        <button className="color-button" style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button>;
-                                }
-                            })}
-                        </div>
-                    </div>)
-                    : <></>}
-            </div>
+            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} />
         );
     }
 
@@ -441,12 +478,6 @@ export default class RichTextMenu extends AntimodeMenu {
             self.view && self.view.focus();
             self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
         }
-        function onDropdownClick(e: React.PointerEvent) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.view && self.view.focus();
-            self.toggleHighlightDropdown();
-        }
         function changeHighlight(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
@@ -455,41 +486,28 @@ export default class RichTextMenu extends AntimodeMenu {
             self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
         }
 
-        const colors = [
-            PastelSchemaPalette.get("pink2"),
-            PastelSchemaPalette.get("purple4"),
-            PastelSchemaPalette.get("bluegreen1"),
-            PastelSchemaPalette.get("yellow4"),
-            PastelSchemaPalette.get("red2"),
-            PastelSchemaPalette.get("bluegreen7"),
-            PastelSchemaPalette.get("bluegreen5"),
-            PastelSchemaPalette.get("orange1"),
-            "white",
-            "transparent"
-        ];
+        const button =
+            <button className="antimodeMenu-button color-preview-button" title="" onPointerDown={onHighlightClick}>
+                <FontAwesomeIcon icon="highlighter" size="lg" />
+                <div className="color-preview" style={{ backgroundColor: this.activeHighlightColor }}></div>
+            </button>;
+
+        const dropdownContent =
+            <div className="dropdown">
+                <p>Change highlight color:</p>
+                <div className="color-wrapper">
+                    {this.highlightColors.map(color => {
+                        if (color) {
+                            return this.activeHighlightColor === color ?
+                                <button className="color-button active" style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button> :
+                                <button className="color-button" style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button>;
+                        }
+                    })}
+                </div>
+            </div>;
 
         return (
-            <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button color-preview-button" title="" onPointerDown={onHighlightClick}>
-                    <FontAwesomeIcon icon="highlighter" size="lg" />
-                    <div className="color-preview" style={{ backgroundColor: this.activeHighlightColor }}></div>
-                </button>
-                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showHighlightDropdown ?
-                    (<div className="dropdown">
-                        <p>Change highlight color:</p>
-                        <div className="color-wrapper">
-                            {colors.map(color => {
-                                if (color) {
-                                    return this.activeHighlightColor === color ?
-                                        <button className="color-button active" style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button> :
-                                        <button className="color-button" style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button>;
-                                }
-                            })}
-                        </div>
-                    </div>)
-                    : <></>}
-            </div>
+            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} />
         );
     }
 
@@ -503,32 +521,26 @@ export default class RichTextMenu extends AntimodeMenu {
 
     createLinkButton() {
         const self = this;
-        function onDropdownClick(e: React.PointerEvent) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.view && self.view.focus();
-            self.toggleLinkDropdown();
-        }
+
         function onLinkChange(e: React.ChangeEvent<HTMLInputElement>) {
             self.setCurrentLink(e.target.value);
         }
 
         const link = this.currentLink ? this.currentLink : "";
 
+        const button = <button className="antimodeMenu-button" title=""><FontAwesomeIcon icon="link" size="lg" /></button>;
+
+        const dropdownContent =
+            <div className="dropdown link-menu">
+                <p>Linked to:</p>
+                <input value={link} placeholder="Enter URL" onChange={onLinkChange} />
+                <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "onRight")}>Apply hyperlink</button>
+                <div className="divider"></div>
+                <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
+            </div>;
+
         return (
-            <div className="button-dropdown-wrapper">
-                <button className="antimodeMenu-button" title="" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="link" size="lg" /></button>
-                <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
-                {this.showLinkDropdown ?
-                    (<div className="dropdown link-menu">
-                        <p>Linked to:</p>
-                        <input value={link} placeholder="Enter URL" onChange={onLinkChange} />
-                        <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "onRight")}>Apply hyperlink</button>
-                        <div className="divider"></div>
-                        <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
-                    </div>)
-                    : <></>}
-            </div>
+            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -598,7 +610,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             } else {
                 if (node) {
-                    let extension = this.linkExtend(this.view!.state.selection.$anchor, href);
+                    const extension = this.linkExtend(this.view!.state.selection.$anchor, href);
                     this.view!.dispatch(this.view!.state.tr.removeMark(extension.from, extension.to, this.view!.state.schema.marks.link));
                 }
             }
@@ -617,7 +629,7 @@ export default class RichTextMenu extends AntimodeMenu {
         let startPos = $start.start();
         let endPos = startPos;
         for (let i = 0; i < endIndex; i++) {
-            let size = $start.parent.child(i).nodeSize;
+            const size = $start.parent.child(i).nodeSize;
             if (i < startIndex) startPos += size;
             endPos += size;
         }
@@ -665,43 +677,6 @@ export default class RichTextMenu extends AntimodeMenu {
 
     render() {
 
-        const fontSizeOptions = [
-            { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 16 }), title: "Set font size", label: "16pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 18 }), title: "Set font size", label: "18pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 20 }), title: "Set font size", label: "20pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 24 }), title: "Set font size", label: "24pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
-            { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
-            { mark: null, title: "", label: "13pt", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
-        ];
-
-        const fontFamilyOptions = [
-            { mark: schema.marks.pFontFamily.create({ family: "Times New Roman" }), title: "Set font family", label: "Times New Roman", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Arial" }), title: "Set font family", label: "Arial", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Georgia" }), title: "Set font family", label: "Georgia", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Comic Sans MS" }), title: "Set font family", label: "Comic Sans MS", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Tahoma" }), title: "Set font family", label: "Tahoma", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Impact" }), title: "Set font family", label: "Impact", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily },
-            { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
-            // { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
-        ];
-
-        const listTypeOptions = [
-            { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
-            { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
-            { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
-            { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
-        ];
-
         const row1 = <div className="antimodeMenu-row">{[
             this.createButton("bold", "Bold", toggleMark(schema.marks.strong)),
             this.createButton("italic", "Italic", toggleMark(schema.marks.em)),
@@ -714,30 +689,85 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createLinkButton(),
             this.createBrushButton(),
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
-        ]}</div>
+        ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2">
-            <div>{[
-                this.createMarksDropdown(this.activeFontSize, fontSizeOptions),
-                this.createMarksDropdown(this.activeFontFamily, fontFamilyOptions),
-                this.createNodesDropdown(this.activeListType, listTypeOptions),
-            ]}</div>
+            <div>
+                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions),
+                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions),
+                this.createNodesDropdown(this.activeListType, this.listTypeOptions)]}
+            </div>
             <div>
                 <button className="antimodeMenu-button" title="Pin menu" onClick={this.toggleMenuPin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
                 </button>
                 {this.getDragger()}
             </div>
-        </div>
-
-        const buttons = [
-            row1, row2
-        ];
+        </div>;
 
         return (
             <div className="richTextMenu" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                {this.getElementWithRows(buttons, 2, false)}
+                {this.getElementWithRows([row1, row2], 2, false)}
             </div>
         );
+    }
+}
+
+interface ButtonDropdownProps {
+    // Document: Doc;
+    // remove: (self: ImportMetadataEntry) => void;
+    // next: () => void;
+    view?: EditorView;
+    button: JSX.Element;
+    dropdownContent: JSX.Element;
+    openDropdownOnButton?: boolean;
+}
+
+@observer
+class ButtonDropdown extends React.Component<ButtonDropdownProps> {
+
+    @observable private showDropdown: boolean = false;
+    private ref: HTMLDivElement | null = null;
+
+    componentDidMount() {
+        document.addEventListener("pointerdown", this.onBlur);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("pointerdown", this.onBlur);
+    }
+
+    @action
+    setShowDropdown(show: boolean) {
+        this.showDropdown = show;
+    }
+    @action
+    toggleDropdown() {
+        this.showDropdown = !this.showDropdown;
+    }
+
+    onDropdownClick = (e: React.PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.props.view && this.props.view.focus();
+        this.toggleDropdown();
+    }
+
+    onBlur = (e: PointerEvent) => {
+        setTimeout(() => {
+            if (this.ref !== null && !this.ref.contains(e.target as Node)) {
+                this.setShowDropdown(false);
+            }
+        }, 0);
+    }
+
+    render() {
+        return (
+            <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
+                {this.props.openDropdownOnButton ? <div onPointerDown={this.onDropdownClick}>{this.props.button}</div> : this.props.button}
+                <button className="dropdown-button antimodeMenu-button" onPointerDown={this.onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                {this.showDropdown ? this.props.dropdownContent : <></>}
+            </div>
+        )
     }
 }

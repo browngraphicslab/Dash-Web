@@ -1057,7 +1057,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         });
     }
     onBlur = (e: any) => {
-        console.log("formated blur");
         //DictationManager.Controls.stop(false);
         if (this._undoTyping) {
             this._undoTyping.end();
