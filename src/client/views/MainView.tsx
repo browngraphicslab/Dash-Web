@@ -36,7 +36,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import InkSelectDecorations from './InkSelectDecorations';
+import GestureOverlay from './GestureOverlay';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
 import { TraceMobx } from '../../new_fields/util';
@@ -510,8 +510,9 @@ export class MainView extends React.Component {
             <SharingManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
-            <InkSelectDecorations />
-            {this.mainContent}
+            <GestureOverlay>
+                {this.mainContent}
+            </GestureOverlay>
             <PreviewCursor />
             <ContextMenu />
             <PDFMenu />

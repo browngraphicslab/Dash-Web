@@ -45,6 +45,7 @@ import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
 import { List } from '../../../new_fields/List';
 import { FormattedTextBoxComment } from './FormattedTextBoxComment';
+import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -94,6 +95,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _titleRef = React.createRef<EditableView>();
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
@@ -107,6 +109,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
+        this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
 
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
@@ -365,10 +368,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+            return;
+        }
         if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
-            if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-                e.stopPropagation();
-            }
+            e.stopPropagation();
             return;
         }
         if ((!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart)) {
@@ -422,6 +426,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.removeEventListener("pointerup", this.onPointerUp);
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
         this._lastTap = Date.now();
+    }
+
+    onGesture = (e: Event, ge: GestureUtils.GestureEvent) => {
+        switch (ge.gesture) {
+            case GestureUtils.Gestures.Line:
+                ge.callbackFn && ge.callbackFn(this.props.Document);
+                e.stopPropagation();
+                break;
+        }
     }
 
     @undoBatch

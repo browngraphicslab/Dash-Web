@@ -36,7 +36,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             { fireImmediately: true }
         );
     }
-    protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
+    protected createDropAndGestureTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
             this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
@@ -55,7 +55,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     render() {
         const guid = Utils.GenerateGuid();
         return <div className="collectionLinearView-outer">
-            <div className="collectionLinearView" ref={this.createDropTarget} >
+            <div className="collectionLinearView" ref={this.createDropAndGestureTarget} >
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.isExpanded)} ref={this.addMenuToggle}
                     onChange={action((e: any) => this.props.Document.isExpanded = this.addMenuToggle.current!.checked)} />
                 <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>

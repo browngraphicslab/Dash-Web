@@ -29,7 +29,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -730,6 +730,7 @@ export namespace DocUtils {
         });
     }
 
+    @undoBatch
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;

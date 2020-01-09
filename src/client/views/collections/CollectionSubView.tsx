@@ -23,6 +23,7 @@ import { basename } from 'path';
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { Networking } from "../../Network";
+import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -47,15 +48,18 @@ export interface SubCollectionViewProps extends CollectionViewProps {
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
+        private gestureDisposer?: GestureUtils.GestureEventDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
-        protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
+        protected createDropAndGestureTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
+            this.gestureDisposer && this.gestureDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+                this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
-            this.createDropTarget(ele);
+            this.createDropAndGestureTarget(ele);
         }
 
         componentDidMount() {
@@ -127,6 +131,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     cursors.push(entry);
                 }
             }
+        }
+
+        @undoBatch
+        protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
+
         }
 
         @undoBatch
