@@ -45,6 +45,9 @@ import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
 import { List } from '../../../new_fields/List';
 import { FormattedTextBoxComment } from './FormattedTextBoxComment';
+import { RadialMenu } from './RadialMenu';
+import { RadialMenuProps } from './RadialMenuItem';
+
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -85,7 +88,6 @@ export interface DocumentViewProps {
     radialMenu?: String[];
 }
 
-
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
     private _downX: number = 0;
@@ -105,12 +107,65 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
-    constructor(props: any) {
-        super(props);
-    }
 
     handle1PointerHoldStart= (e: React.TouchEvent): any =>{
-        console.log("yeet")
+        this.onRadialMenu(e);
+
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+        document.addEventListener("touchmove", this.handle1PointerHoldMove);
+        document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    handle1PointerHoldMove = (e: TouchEvent): void => {
+        console.log("YUH")
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.addEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+        document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    handle1PointerHoldEnd = (e: TouchEvent): void => {
+        RadialMenu.Instance.closeMenu();
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    @action
+    onRadialMenu = async (event: React.TouchEvent): Promise<void> => {
+        console.log("YUH")
+        // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
+        // if (e.button === 0) {
+        //     e.preventDefault();
+        //     return;
+        // }
+        let e = event.touches[0];
+        // if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
+        //     // event.isDefaultPrevented()) {
+        //     // event.preventDefault();
+        //     return;
+        // }
+        // event.preventDefault();
+
+        let rm = RadialMenu.Instance;
+        rm.openMenu();
+
+        rm.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
+        runInAction(() => {
+            // cm.addItem({
+            //     description: "Share",
+            //     event: () => SharingManager.Instance.open(this),
+            //     icon: "external-link-alt"
+            // });
+
+            if (!this.topMost) {
+                // DocumentViews should stop propagation of this event
+            }
+            RadialMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            if (!SelectionManager.IsSelected(this, true)) {
+                SelectionManager.SelectDoc(this, false);
+            }
+        });
     }
     
     @action
@@ -371,6 +426,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
@@ -388,7 +444,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             //     || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) {
             //     return;
             // }
-
             this._downX = e.clientX;
             this._downY = e.clientY;
             this._hitTemplateDrag = false;
@@ -404,11 +459,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
+
             if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
         }
     }
 
     onPointerMove = (e: PointerEvent): void => {
+
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)

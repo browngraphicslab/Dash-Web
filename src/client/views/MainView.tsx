@@ -40,6 +40,7 @@ import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
 import { TraceMobx } from '../../new_fields/util';
+import { RadialMenu } from './nodes/RadialMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -514,6 +515,7 @@ export class MainView extends React.Component {
             {this.mainContent}
             <PreviewCursor />
             <ContextMenu />
+            <RadialMenu/>
             <PDFMenu />
             <MarqueeOptionsMenu />
             <OverlayView />

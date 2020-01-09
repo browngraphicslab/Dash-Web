@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { action } from 'mobx';
 import { InteractionUtils } from '../util/InteractionUtils';
+import { RadialMenu } from './nodes/RadialMenu';
 
 const HOLD_DURATION = 1000;
 
 export abstract class Touchable<T = {}> extends React.Component<T> {
-    private holdTimer: NodeJS.Timeout | undefined;
+    //private holdTimer: NodeJS.Timeout | undefined;
+    holdTimer: NodeJS.Timeout | undefined;
 
     protected _touchDrag: boolean = false;
     protected prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
@@ -54,6 +56,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         if (this.holdTimer) {
+            console.log("CLEAR")
             clearTimeout(this.holdTimer);
         }
         switch (myTouches.length) {
@@ -89,6 +92,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         }
         if (this.holdTimer) {
             clearTimeout(this.holdTimer);
+            console.log("clear");
         }
         this._touchDrag = false;
         e.stopPropagation();
@@ -136,5 +140,8 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         console.log("Hold");
         e.stopPropagation();
         e.preventDefault();
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
     }
+
 }
