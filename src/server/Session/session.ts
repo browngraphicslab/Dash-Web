@@ -193,7 +193,7 @@ export namespace Session {
          */
         public killSession = async (reason: string, graceful = true, errorCode = 0) => {
             this.mainLog(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
-            this.mainLog(`reason: ${(red(reason))}`);
+            this.mainLog(`session exit reason: ${(red(reason))}`);
             await this.executeExitHandlers(true);
             this.killActiveWorker(graceful, true);
             process.exit(errorCode);

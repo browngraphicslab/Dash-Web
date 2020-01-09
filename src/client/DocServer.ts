@@ -64,13 +64,14 @@ export namespace DocServer {
         }
     }
 
+    const instructions = "This page will automatically refresh after this alert is closed. Expect to reconnect after about 30 seconds.";
     function alertUser(connectionTerminationReason: string) {
         switch (connectionTerminationReason) {
             case "crash":
-                alert("Dash has temporarily crashed. Administrators have been notified and the server is restarting itself. Please refresh your page in a few seconds, and expect to reconnect after about 30 seconds.");
+                alert(`Dash has temporarily crashed. Administrators have been notified and the server is restarting itself. ${instructions}`);
                 break;
             case "temporary":
-                alert("An administrator has chosen to restart the server. Please refresh your page in a few seconds, and expect to reconnect after about 30 seconds.");
+                alert(`An administrator has chosen to restart the server. ${instructions}`);
                 break;
             case "exit":
                 alert("An administrator has chosen to kill the server. Do not expect to reconnect until administrators start the server.");
@@ -78,6 +79,7 @@ export namespace DocServer {
             default:
                 console.log(`Received an unknown ConnectionTerminated message: ${connectionTerminationReason}`);
         }
+        window.location.reload();
     }
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
