@@ -208,7 +208,7 @@ export default class RichTextMenu extends AntimodeMenu {
     getMarksInSelection(state: EditorState<any>) {
         const found = new Set<Mark>();
         const { from, to } = state.selection as TextSelection;
-        state.doc.nodesBetween(from, to, (node) => node.marks ?.forEach(m => found.add(m)));
+        state.doc.nodesBetween(from, to, (node) => node.marks.forEach(m => found.add(m)));
         return found;
     }
 
@@ -768,6 +768,6 @@ class ButtonDropdown extends React.Component<ButtonDropdownProps> {
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={this.onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 {this.showDropdown ? this.props.dropdownContent : <></>}
             </div>
-        )
+        );
     }
 }
