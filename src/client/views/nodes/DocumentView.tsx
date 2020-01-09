@@ -125,7 +125,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     handle1PointerHoldMove = (event: TouchEvent): void => {
         let e=event.touches[0];
-        Math.abs(e.pageX-this._firstX)>175 ||Math.abs(e.pageY-this._firstY)>175? this.handleRelease():null;
+        Math.abs(e.pageX-this._firstX)>150 ||Math.abs(e.pageY-this._firstY)>150? this.handleRelease():null;
         document.removeEventListener("touchmove", this.handle1PointerHoldMove);
         document.addEventListener("touchmove", this.handle1PointerHoldMove);
         document.removeEventListener("touchend", this.handle1PointerHoldEnd);
@@ -162,8 +162,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         let rm = RadialMenu.Instance;
         rm.openMenu();
+        const one = RadialMenu.Instance.findByDescription("one...");
+        const two = RadialMenu.Instance.findByDescription("two...");
+        const three = RadialMenu.Instance.findByDescription("three...");
+        const four= RadialMenu.Instance.findByDescription("four...");
+        const five= RadialMenu.Instance.findByDescription("five...");
+        const six= RadialMenu.Instance.findByDescription("six...");
+        const seven= RadialMenu.Instance.findByDescription("seven...");
 
-        rm.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
+
+        !one?rm.addItem({ description: "one", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+        !two?rm.addItem({ description: "two", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+        !three?rm.addItem({ description: "three", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+        !four?rm.addItem({ description: "four", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+        !five?rm.addItem({ description: "five", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+        !six?rm.addItem({ description: "six", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+        !seven?rm.addItem({ description: "seven", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" }):null;
+
         runInAction(() => {
             // cm.addItem({
             //     description: "Share",
