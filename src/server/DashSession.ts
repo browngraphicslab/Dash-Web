@@ -1,8 +1,7 @@
 import { Session } from "./Session/session";
 import { Email } from "./ActionUtilities";
-import { red, yellow, cyan } from "colors";
-import { SolrManager } from "./ApiManagers/SearchManager";
-import { exec } from "child_process";
+import { red, yellow } from "colors";
+import { get } from "request-promise";
 import { Utils } from "../Utils";
 import { WebSocket } from "./Websocket/Websocket";
 import { MessageStore } from "./Message";
@@ -26,7 +25,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                 const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${this.signature}`;
                 const failures = await Email.dispatchAll(this.notificationRecipients, "Server Termination Key", content);
                 if (failures) {
-                    failures.map(({ recipient, error: { message } }) => monitor.log(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+                    failures.map(({ recipient, error: { message } }) => monitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                     return false;
                 }
                 return true;
@@ -42,21 +41,23 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                 const content = `${body}\n\n${this.signature}`;
                 const failures = await Email.dispatchAll(this.notificationRecipients, "Dash Web Server Crash", content);
                 if (failures) {
-                    failures.map(({ recipient, error: { message } }) => monitor.log(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+                    failures.map(({ recipient, error: { message } }) => monitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                     return false;
                 }
                 return true;
             }
         });
-        monitor.addReplCommand("pull", [], () => exec("git pull", (error, stdout, stderr) => {
-            if (error) {
-                monitor.log(red("unable to pull from version control"));
-                monitor.log(red(error.message));
+        monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
+        monitor.addReplCommand("solr", [/start|stop/], async args => {
+            const command = args[0] === "start" ? "start" : "stop -p 8983";
+            await monitor.exec(command, { cwd: "./solr-8.3.1/bin" });
+            try {
+                await get("http://localhost:8983");
+                return true;
+            } catch {
+                return false;
             }
-            stdout.split("\n").forEach(line => line.length && monitor.execLog(cyan(line)));
-            stderr.split("\n").forEach(line => line.length && monitor.execLog(yellow(line)));
-        }));
-        monitor.addReplCommand("solr", [/start|stop/], args => SolrManager.SetRunning(args[0] === "start"));
+        });
         return monitor;
     }
 

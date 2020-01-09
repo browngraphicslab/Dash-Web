@@ -109,8 +109,13 @@ export default class Repl {
                     }
                 }
                 if (!length || matched) {
-                    await action(parsed);
-                    this.valid(`${command} ${parsed.join(" ")}`);
+                    const result = action(parsed);
+                    const resolve = () => this.valid(`${command} ${parsed.join(" ")}`);
+                    if (result instanceof Promise) {
+                        result.then(resolve);
+                    } else {
+                        resolve();
+                    }
                     return;
                 }
             }

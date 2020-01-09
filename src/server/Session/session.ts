@@ -6,6 +6,7 @@ import Repl, { ReplAction } from "../repl";
 import { readFileSync } from "fs";
 import { validate, ValidationError } from "jsonschema";
 import { configurationSchema } from "./session_config_schema";
+import { exec, ExecOptions } from "child_process";
 
 /**
  * This namespace relies on NodeJS's cluster module, which allows a parent (master) process to share
@@ -191,8 +192,8 @@ export namespace Session {
          * requests to complete) or immediately.
          */
         public killSession = async (reason: string, graceful = true, errorCode = 0) => {
-            this.log(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
-            this.log(`reason: ${(red(reason))}`);
+            this.mainLog(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
+            this.mainLog(`reason: ${(red(reason))}`);
             await this.executeExitHandlers(null);
             this.tryKillActiveWorker(graceful);
             process.exit(errorCode);
@@ -210,6 +211,26 @@ export namespace Session {
          */
         public addReplCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
             this.repl.registerCommand(basename, argPatterns, action);
+        }
+
+        public exec = (command: string, options?: ExecOptions) => {
+            return new Promise<void>(resolve => {
+                exec(command, { ...options, encoding: "utf8" }, (error, stdout, stderr) => {
+                    if (error) {
+                        this.execLog(red(`unable to execute ${white(command)}`));
+                        error.message.split("\n").forEach(line => line.length && this.execLog(red(`(error) ${line}`)));
+                    } else {
+                        let outLines: string[], errorLines: string[];
+                        if ((outLines = stdout.split("\n").filter(line => line.length)).length) {
+                            outLines.forEach(line => line.length && this.execLog(cyan(`(stdout) ${line}`)));
+                        }
+                        if ((errorLines = stderr.split("\n").filter(line => line.length)).length) {
+                            errorLines.forEach(line => line.length && this.execLog(yellow(`(stderr) ${line}`)));
+                        }
+                    }
+                    resolve();
+                });
+            });
         }
 
         /**
@@ -259,9 +280,9 @@ export namespace Session {
             // to be caught in a try catch, and is inconsequential, so it is ignored
             process.on("uncaughtException", ({ message, stack }): void => {
                 if (message !== "Channel closed") {
-                    this.log(red(message));
+                    this.mainLog(red(message));
                     if (stack) {
-                        this.log(`uncaught exception\n${red(stack)}`);
+                        this.mainLog(`uncaught exception\n${red(stack)}`);
                     }
                 }
             });
@@ -269,7 +290,7 @@ export namespace Session {
             // a helpful cluster event called on the master thread each time a child process exits
             on("exit", ({ process: { pid } }, code, signal) => {
                 const prompt = `server worker with process id ${pid} has exited with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.`;
-                this.log(cyan(prompt));
+                this.mainLog(cyan(prompt));
                 // to make this a robust, continuous session, every time a child process dies, we immediately spawn a new one
                 this.spawn();
             });
@@ -287,14 +308,14 @@ export namespace Session {
         /**
          * A formatted, identified and timestamped log in color
          */
-        public log = (...optionalParams: any[]) => {
+        public mainLog = (...optionalParams: any[]) => {
             console.log(this.timestamp(), this.config.identifiers.master.text, ...optionalParams);
         }
 
         /**
          * A formatted, identified and timestamped log in color for non-
          */
-        public execLog = (...optionalParams: any[]) => {
+        private execLog = (...optionalParams: any[]) => {
             console.log(this.timestamp(), this.config.identifiers.exec.text, ...optionalParams);
         }
 
@@ -310,7 +331,7 @@ export namespace Session {
                 this.key = Utils.GenerateGuid();
                 const success = await this.notifiers.key(this.key);
                 const statement = success ? green("distributed session key to recipients") : red("distribution of session key failed");
-                this.log(statement);
+                this.mainLog(statement);
             }
         }
 
@@ -394,7 +415,7 @@ export namespace Session {
             repl.registerCommand("set", [/polling/, number, boolean], args => {
                 const newPollingIntervalSeconds = Math.floor(Number(args[2]));
                 if (newPollingIntervalSeconds < 0) {
-                    this.log(red("the polling interval must be a non-negative integer"));
+                    this.mainLog(red("the polling interval must be a non-negative integer"));
                 } else {
                     if (newPollingIntervalSeconds !== this.config.polling.intervalSeconds) {
                         this.config.polling.intervalSeconds = newPollingIntervalSeconds;
@@ -413,11 +434,12 @@ export namespace Session {
          * Attempts to kill the active worker gracefully, unless otherwise specified.
          */
         private tryKillActiveWorker = (graceful = true): boolean => {
-            if (!this.activeWorker?.isDead()) {
+            if (this.activeWorker && !this.activeWorker.isDead()) {
+                this.mainLog(cyan(`${graceful ? "graceful" : "immediate"}ly killing the active server worker`));
                 if (graceful) {
-                    this.activeWorker?.send({ manualExit: true });
+                    this.activeWorker.send({ manualExit: true });
                 } else {
-                    this.activeWorker?.process.kill();
+                    this.activeWorker.process.kill();
                 }
                 return true;
             }
@@ -438,7 +460,7 @@ export namespace Session {
                     this.tryKillActiveWorker();
                 }
             } else {
-                this.log(red(`${port} is an invalid port number`));
+                this.mainLog(red(`${port} is an invalid port number`));
             }
         }
 
@@ -464,7 +486,7 @@ export namespace Session {
                 pollingIntervalSeconds: intervalSeconds,
                 session_key: this.key
             });
-            this.log(cyan(`spawned new server worker with process id ${this.activeWorker.process.pid}`));
+            this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker.process.pid}`));
             // an IPC message handler that executes actions on the master thread when prompted by the active worker
             this.activeWorker.on("message", async ({ lifecycle, action }) => {
                 if (action) {
@@ -480,7 +502,7 @@ export namespace Session {
                                 const { error } = args;
                                 const success = await this.notifiers.crash(error);
                                 const statement = success ? green("distributed crash notification to recipients") : red("distribution of crash notification failed");
-                                this.log(statement);
+                                this.mainLog(statement);
                             }
                             break;
                         case "set_port":
@@ -492,7 +514,8 @@ export namespace Session {
                     if (handlers) {
                         handlers.forEach(handler => handler({ message, args }));
                     }
-                } else if (lifecycle) {
+                }
+                if (lifecycle) {
                     console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${lifecycle})`);
                 }
             });
