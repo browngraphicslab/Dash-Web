@@ -154,8 +154,6 @@ export default class RichTextMenu extends AntimodeMenu {
         const activeFamilies = active && active.get("families");
         const activeSizes = active && active.get("sizes");
 
-        console.log("active families", activeFamilies);
-        console.log("other active families", this.activeFontFamilyOnSelection());
         this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
 
@@ -185,25 +183,9 @@ export default class RichTextMenu extends AntimodeMenu {
         }
     }
 
-    activeFontFamilyOnSelection() {
-        if (!this.view) return;
-
-        //current selection
-        const state = this.view.state;
-        const activeFamilies: string[] = [];
-        const pos = this.view.state.selection.$from;
-        const ref_node: ProsNode | null = this.reference_node(pos);
-        if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
-            ref_node.marks.forEach(m => m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family));
-        }
-        return activeFamilies;
-    }
-
     // finds font sizes and families in selection
     getActiveFontStylesOnSelection() {
         if (!this.view) return;
-
-        console.log("\nget active font styles");
 
         const activeFamilies: string[] = [];
         const activeSizes: string[] = [];
@@ -212,7 +194,6 @@ export default class RichTextMenu extends AntimodeMenu {
         const ref_node = this.reference_node(pos);
         if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
             ref_node.marks.forEach(m => {
-                console.log("attribute", m.attrs);
                 m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family);
                 m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "pt");
             });

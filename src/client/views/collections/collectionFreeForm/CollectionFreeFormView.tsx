@@ -41,6 +41,8 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { computedFn } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
+import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
+import { LinkManager } from "../../../util/LinkManager";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
@@ -270,7 +272,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return clusterColor;
     }
 
-    @observable private _points: { x: number, y: number }[] = [];
+    @observable private _points: { X: number, Y: number }[] = [];
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -286,7 +288,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 e.stopPropagation();
                 e.preventDefault();
                 const point = this.getTransform().transformPoint(e.pageX, e.pageY);
-                this._points.push({ x: point[0], y: point[1] });
+                this._points.push({ X: point[0], Y: point[1] });
             }
             // if not using a pen and in no ink mode
             else if (InkingControl.Instance.selectedTool === InkTool.None) {
@@ -325,6 +327,28 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const pt = e.targetTouches.item(0);
         if (pt) {
             this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+            if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+                document.removeEventListener("touchmove", this.onTouch);
+                document.addEventListener("touchmove", this.onTouch);
+                document.removeEventListener("touchend", this.onTouchEnd);
+                document.addEventListener("touchend", this.onTouchEnd);
+                if (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const point = this.getTransform().transformPoint(pt.pageX, pt.pageY);
+                    this._points.push({ X: point[0], Y: point[1] });
+                }
+                else if (InkingControl.Instance.selectedTool === InkTool.None) {
+                    this._lastX = pt.pageX;
+                    this._lastY = pt.pageY;
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+                else {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }
         }
     }
 
@@ -334,10 +358,65 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         if (this._points.length > 1) {
             const B = this.svgBounds;
-            const points = this._points.map(p => ({ x: p.x - B.left, y: p.y - B.top }));
-            const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
-            this.addDocument(inkDoc);
-            this._points = [];
+            const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
+
+            const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
+            let actionPerformed = false;
+            if (result && result.Score > 0.7) {
+                switch (result.Name) {
+                    case GestureUtils.Gestures.Box:
+                        const bounds = { x: Math.min(...this._points.map(p => p.X)), r: Math.max(...this._points.map(p => p.X)), y: Math.min(...this._points.map(p => p.Y)), b: Math.max(...this._points.map(p => p.Y)) };
+                        const sel = this.getActiveDocuments().filter(doc => {
+                            const l = NumCast(doc.x);
+                            const r = l + doc[WidthSym]();
+                            const t = NumCast(doc.y);
+                            const b = t + doc[HeightSym]();
+                            const pass = !(bounds.x > r || bounds.r < l || bounds.y > b || bounds.b < t);
+                            if (pass) {
+                                doc.x = l - B.left - B.width / 2;
+                                doc.y = t - B.top - B.height / 2;
+                            }
+                            return pass;
+                        });
+                        this.addDocument(Docs.Create.FreeformDocument(sel, { x: B.left, y: B.top, width: B.width, height: B.height, panX: 0, panY: 0 }));
+                        sel.forEach(d => this.props.removeDocument(d));
+                        actionPerformed = true;
+                        break;
+                    case GestureUtils.Gestures.Line:
+                        const ep1 = this._points[0];
+                        const ep2 = this._points[this._points.length - 1];
+                        let d1: Doc | undefined;
+                        let d2: Doc | undefined;
+                        this.getActiveDocuments().map(doc => {
+                            const l = NumCast(doc.x);
+                            const r = l + doc[WidthSym]();
+                            const t = NumCast(doc.y);
+                            const b = t + doc[HeightSym]();
+                            if (!d1 && l < ep1.X && r > ep1.X && t < ep1.Y && b > ep1.Y) {
+                                d1 = doc;
+                            }
+                            else if (!d2 && l < ep2.X && r > ep2.X && t < ep2.Y && b > ep2.Y) {
+                                d2 = doc;
+                            }
+                        });
+                        if (d1 && d2) {
+                            if (!LinkManager.Instance.doesLinkExist(d1, d2)) {
+                                DocUtils.MakeLink({ doc: d1 }, { doc: d2 });
+                                actionPerformed = true;
+                            }
+                        }
+                        break;
+                }
+                if (actionPerformed) {
+                    this._points = [];
+                }
+            }
+
+            if (!actionPerformed) {
+                const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
+                this.addDocument(inkDoc);
+                this._points = [];
+            }
         }
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -396,7 +475,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const selectedTool = InkingControl.Instance.selectedTool;
             if (selectedTool === InkTool.Highlighter || selectedTool === InkTool.Pen || InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 const point = this.getTransform().transformPoint(e.clientX, e.clientY);
-                this._points.push({ x: point[0], y: point[1] });
+                this._points.push({ X: point[0], Y: point[1] });
             }
             else if (selectedTool === InkTool.None) {
                 if (this._hitCluster && this.tryDragCluster(e)) {
@@ -416,7 +495,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     handle1PointerMove = (e: TouchEvent) => {
         // panning a workspace
         if (!e.cancelBubble) {
-            const pt = e.targetTouches.item(0);
+            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            const pt = myTouches[0];
             if (pt) {
                 if (InkingControl.Instance.selectedTool === InkTool.None) {
                     if (this._hitCluster && this.tryDragCluster(e)) {
@@ -430,7 +510,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
                 else if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
                     const point = this.getTransform().transformPoint(pt.clientX, pt.clientY);
-                    this._points.push({ x: point[0], y: point[1] });
+                    this._points.push({ X: point[0], Y: point[1] });
                 }
             }
             e.stopPropagation();
@@ -441,9 +521,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     handle2PointersMove = (e: TouchEvent) => {
         // pinch zooming
         if (!e.cancelBubble) {
-            const pt1: Touch | null = e.targetTouches.item(0);
-            const pt2: Touch | null = e.targetTouches.item(1);
-            if (!pt1 || !pt2) return;
+            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            const pt1 = myTouches[0];
+            const pt2 = myTouches[1];
 
             if (this.prevPoints.size === 2) {
                 const oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -462,8 +542,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         const rawDelta = (dir * (d1 + d2));
 
                         // this floors and ceils the delta value to prevent jitteriness
-                        const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 16);
-                        this.zoom(centerX, centerY, delta);
+                        const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 8);
+                        this.zoom(centerX, centerY, delta * window.devicePixelRatio);
                         this.prevPoints.set(pt1.identifier, pt1);
                         this.prevPoints.set(pt2.identifier, pt2);
                     }
@@ -478,20 +558,28 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                 }
             }
+            e.stopPropagation();
+            e.preventDefault();
         }
-        e.stopPropagation();
-        e.preventDefault();
     }
 
+    @action
     handle2PointersDown = (e: React.TouchEvent) => {
-        const pt1: React.Touch | null = e.targetTouches.item(0);
-        const pt2: React.Touch | null = e.targetTouches.item(1);
-        if (!pt1 || !pt2) return;
+        if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
+            const pt1: React.Touch | null = e.targetTouches.item(0);
+            const pt2: React.Touch | null = e.targetTouches.item(1);
+            if (!pt1 || !pt2) return;
 
-        const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
-        const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-        this._lastX = centerX;
-        this._lastY = centerY;
+            const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+            const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+            this._lastX = centerX;
+            this._lastY = centerY;
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+            e.stopPropagation();
+        }
     }
 
     cleanUpInteractions = () => {
@@ -855,8 +943,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get svgBounds() {
-        const xs = this._points.map(p => p.x);
-        const ys = this._points.map(p => p.y);
+        const xs = this._points.map(p => p.X);
+        const ys = this._points.map(p => p.Y);
         const right = Math.max(...xs);
         const left = Math.min(...xs);
         const bottom = Math.max(...ys);
@@ -872,7 +960,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const B = this.svgBounds;
 
         return (
-            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)` }}>
+            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, position: "absolute", zIndex: 30000 }}>
                 {CreatePolyline(this._points, B.left, B.top)}
             </svg>
         );
@@ -950,7 +1038,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return <div className={freeformclass} style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className={freeformclass} style={{ touchAction: "none", borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children()}
         </div>;
     }

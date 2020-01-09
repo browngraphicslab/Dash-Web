@@ -111,8 +111,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         return true;
     });
 
-    bind("Mod-s", TooltipTextMenu.insertSummarizer);
-
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         const ref = state.selection;
         const range = ref.$from.blockRange(ref.$to);

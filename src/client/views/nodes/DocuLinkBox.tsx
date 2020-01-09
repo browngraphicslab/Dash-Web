@@ -68,25 +68,11 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
 
     render() {
-        const anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
-        let anchorScale = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO ? 0.33 : 1;
-        let y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
-        let x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
+        const x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
+        const y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         const c = StrCast(this.props.Document.backgroundColor, "lightblue");
         const anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
-
-        // really hacky stuff to make the link box display at the top right of hypertext link in a formatted text box.  somehow, this should get moved into the hyperlink itself...
-        const other = window.document.getElementById((this.props.Document[anchor] as Doc)[Id]);
-        if (other) {
-            (this.props.Document[this.props.fieldKey] as Doc)?.data; // ugh .. assumes that 'data' is the field used to store the text
-            setTimeout(() => {
-                let m = other.getBoundingClientRect();
-                let mp = this.props.ScreenToLocalTransform().transformPoint(m.right - 5, m.top + 5);
-                this.props.Document[this.props.fieldKey + "_x"] = mp[0] / this.props.PanelWidth() * 100;
-                this.props.Document[this.props.fieldKey + "_y"] = mp[1] / this.props.PanelHeight() * 100;
-            }, 0);
-            anchorScale = 0.15;
-        }
+        const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .15;
 
         const timecode = this.props.Document[anchor + "Timecode"];
         const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");

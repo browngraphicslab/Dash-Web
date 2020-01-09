@@ -4,6 +4,9 @@
         "server": 1050,
         "socket": 4321
     },
-    "pollingRoute": "/serverHeartbeat",
-    "pollingIntervalSeconds": 15
+    "polling": {
+        "route": "/serverHeartbeat",
+        "intervalSeconds": 15,
+        "failureTolerance": 0
+    }
 }

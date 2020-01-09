@@ -353,7 +353,8 @@ export class SearchBox extends React.Component {
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
-                    height: this.resFull ? "auto" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
+                    height: this.resFull ? "auto" : this.resultHeight,
+                    overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this.resultsRef}>
                     {this._visibleElements}
                 </div>

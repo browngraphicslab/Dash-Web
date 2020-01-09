@@ -22,7 +22,7 @@ import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
 import { timeMap } from './ApiManagers/UserManager';
 import { blue, yellow } from 'colors';
-var cors = require('cors');
+import * as cors from "cors";
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -33,13 +33,11 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
 
     app.use(express.static(publicDirectory, {
-        setHeaders: (res, path) => {
-            res.setHeader("Access-Control-Allow-Origin", "*");
-        }
+        setHeaders: res => res.setHeader("Access-Control-Allow-Origin", "*")
     }));
     app.use("/images", express.static(publicDirectory));
     const corsOptions = {
-        origin: function (origin: any, callback: any) {
+        origin: function (_origin: any, callback: any) {
             callback(null, true);
         }
     };
