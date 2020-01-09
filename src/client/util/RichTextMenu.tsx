@@ -714,9 +714,6 @@ export default class RichTextMenu extends AntimodeMenu {
 }
 
 interface ButtonDropdownProps {
-    // Document: Doc;
-    // remove: (self: ImportMetadataEntry) => void;
-    // next: () => void;
     view?: EditorView;
     button: JSX.Element;
     dropdownContent: JSX.Element;
