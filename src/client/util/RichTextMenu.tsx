@@ -8,7 +8,7 @@ import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller, faSleigh } from "@fortawesome/free-solid-svg-icons";
 import { MenuItem, Dropdown } from "prosemirror-menu";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
@@ -39,6 +39,13 @@ export default class RichTextMenu extends AntimodeMenu {
     private listTypeOptions: { node: NodeType | any | null, title: string, label: string, command: any, style?: {} }[];
     private fontColors: (string | undefined)[];
     private highlightColors: (string | undefined)[];
+
+    @observable private boldActive: boolean = false;
+    @observable private italicsActive: boolean = false;
+    @observable private underlineActive: boolean = false;
+    @observable private strikethroughActive: boolean = false;
+    @observable private subscriptActive: boolean = false;
+    @observable private superscriptActive: boolean = false;
 
     @observable private activeFontSize: string = "";
     @observable private activeFontFamily: string = "";
@@ -148,6 +155,9 @@ export default class RichTextMenu extends AntimodeMenu {
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) return;
 
+        // update active marks
+        const activeMarks = this.getMarksInSelection(this.view.state);
+        this.setActiveMarkButtons(activeMarks);
 
         // update active font family and size
         const active = this.getActiveFontStylesOnSelection();
@@ -208,14 +218,37 @@ export default class RichTextMenu extends AntimodeMenu {
     getMarksInSelection(state: EditorState<any>) {
         const found = new Set<Mark>();
         const { from, to } = state.selection as TextSelection;
+        console.log(to - from, state.tr.storedMarks);
         state.doc.nodesBetween(from, to, (node) => node.marks.forEach(m => found.add(m)));
+        if (to - from === 0) { state.storedMarks && state.storedMarks.forEach(m => found.add(m)); }
         return found;
     }
 
     destroy() {
     }
 
-    createButton(faIcon: string, title: string, command?: any, onclick?: any) {
+    @action
+    setActiveMarkButtons(activeMarks: Set<Mark>) {
+        this.boldActive = false;
+        this.italicsActive = false;
+        this.underlineActive = false;
+        this.strikethroughActive = false;
+        this.subscriptActive = false;
+        this.superscriptActive = false;
+
+        activeMarks.forEach(mark => {
+            switch (mark.type.name) {
+                case "strong": this.boldActive = true; break;
+                case "em": this.italicsActive = true; break;
+                case "underline": this.underlineActive = true; break;
+                case "strikethrough": this.strikethroughActive = true; break;
+                case "subscript": this.subscriptActive = true; break;
+                case "superscript": this.superscriptActive = true; break;
+            }
+        });
+    }
+
+    createButton(faIcon: string, title: string, isActive: boolean = false, command?: any, onclick?: any) {
         const self = this;
         function onClick(e: React.PointerEvent) {
             e.preventDefault();
@@ -226,7 +259,7 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         return (
-            <button className="antimodeMenu-button" title={title} onPointerDown={onClick}>
+            <button className={"antimodeMenu-button" + (isActive ? " active" : "")} title={title} onPointerDown={onClick}>
                 <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
             </button>
         );
@@ -528,7 +561,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const link = this.currentLink ? this.currentLink : "";
 
-        const button = <button className="antimodeMenu-button" title=""><FontAwesomeIcon icon="link" size="lg" /></button>;
+        const button = <FontAwesomeIcon icon="link" size="lg" />
 
         const dropdownContent =
             <div className="dropdown link-menu">
@@ -678,12 +711,12 @@ export default class RichTextMenu extends AntimodeMenu {
     render() {
 
         const row1 = <div className="antimodeMenu-row">{[
-            this.createButton("bold", "Bold", toggleMark(schema.marks.strong)),
-            this.createButton("italic", "Italic", toggleMark(schema.marks.em)),
-            this.createButton("underline", "Underline", toggleMark(schema.marks.underline)),
-            this.createButton("strikethrough", "Strikethrough", toggleMark(schema.marks.strikethrough)),
-            this.createButton("superscript", "Superscript", toggleMark(schema.marks.superscript)),
-            this.createButton("subscript", "Subscript", toggleMark(schema.marks.subscript)),
+            this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
@@ -761,8 +794,18 @@ class ButtonDropdown extends React.Component<ButtonDropdownProps> {
     render() {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
-                {this.props.openDropdownOnButton ? <div onPointerDown={this.onDropdownClick}>{this.props.button}</div> : this.props.button}
-                <button className="dropdown-button antimodeMenu-button" onPointerDown={this.onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
+                {this.props.openDropdownOnButton ?
+                    <button className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
+                        {this.props.button}
+                        <FontAwesomeIcon icon="caret-down" size="sm" />
+                    </button> :
+                    <>
+                        {this.props.button}
+                        <button className="dropdown-button antimodeMenu-button" onPointerDown={this.onDropdownClick}>
+                            <FontAwesomeIcon icon="caret-down" size="sm" />
+                        </button>
+                    </>}
+
                 {this.showDropdown ? this.props.dropdownContent : <></>}
             </div>
         );

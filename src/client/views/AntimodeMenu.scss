@@ -21,6 +21,10 @@
         background-color: transparent;
         width: 35px;
         height: 35px;
+
+        &.active {
+            background-color: #121212;
+        }
     }
 
     .antimodeMenu-button:hover {

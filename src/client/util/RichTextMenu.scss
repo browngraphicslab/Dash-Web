@@ -9,6 +9,16 @@
         padding-right: 5px;
     }
 
+    .dropdown-button-combined {
+        width: 50px;
+        display: flex;
+        justify-content: space-between;
+
+        svg:nth-child(2) {
+            margin-top: 2px;
+        }
+    }
+
     .dropdown {
         position: absolute;
         top: 35px;
