@@ -93,7 +93,7 @@ export class TooltipTextMenu {
             { mark: schema.marks.subscript, dom: svgIcon("subscript", "Subscript", "M496 448h-16V304a16 16 0 0 0-16-16h-48a16 16 0 0 0-14.29 8.83l-16 32A16 16 0 0 0 400 352h16v96h-16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h96a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zM336 64h-67a16 16 0 0 0-13.14 6.87l-79.9 115-79.9-115A16 16 0 0 0 83 64H16A16 16 0 0 0 0 80v48a16 16 0 0 0 16 16h33.48l77.81 112-77.81 112H16a16 16 0 0 0-16 16v48a16 16 0 0 0 16 16h67a16 16 0 0 0 13.14-6.87l79.9-115 79.9 115A16 16 0 0 0 269 448h67a16 16 0 0 0 16-16v-48a16 16 0 0 0-16-16h-33.48l-77.81-112 77.81-112H336a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16z") },
         ];
 
-        basicItems.map(({ dom, mark }) => this.basicTools?.appendChild(dom.cloneNode(true)));
+        basicItems.map(({ dom, mark }) => this.basicTools ?.appendChild(dom.cloneNode(true)));
         basicItems.concat(items).forEach(({ dom, mark }) => {
             this.tooltip.appendChild(dom);
             this._marksToDoms.set(mark, dom);
@@ -474,7 +474,7 @@ export class TooltipTextMenu {
                 const node = self.view.state.selection.$from.nodeAfter;
                 const link = node && node.marks.find(m => m.type === self.view.state.schema.marks.link);
                 const href = link!.attrs.href;
-                if (href?.indexOf(Utils.prepend("/doc/")) === 0) {
+                if (href ?.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     linkclicked && DocServer.GetRefField(linkclicked).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
@@ -500,7 +500,7 @@ export class TooltipTextMenu {
         const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, targetId: targetDocId });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
             addMark(this.view.state.selection.from, this.view.state.selection.to, link));
-        return this.view.state.selection.$from.nodeAfter?.text || "";
+        return this.view.state.selection.$from.nodeAfter ?.text || "";
     }
 
     // SUMMARIZER TOOL
@@ -510,7 +510,7 @@ export class TooltipTextMenu {
             const tr = state.tr.addMark(state.selection.from, state.selection.to, mark);
             const content = tr.selection.content();
             const newNode = state.schema.nodes.summary.create({ visibility: false, text: content, textslice: content.toJSON() });
-            dispatch?.(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
+            dispatch ?.(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         }
     }
 
@@ -737,7 +737,7 @@ export class TooltipTextMenu {
             // get marks in the selection
             const selected_marks = new Set<Mark>();
             const { from, to } = state.selection as TextSelection;
-            state.doc.nodesBetween(from, to, (node) => node.marks?.forEach(m => selected_marks.add(m)));
+            state.doc.nodesBetween(from, to, (node) => node.marks ?.forEach(m => selected_marks.add(m)));
 
             if (this._brushdom && selected_marks.size >= 0) {
                 TooltipTextMenuManager.Instance._brushMarks = selected_marks;
@@ -849,7 +849,7 @@ export class TooltipTextMenu {
     static setMark = (mark: Mark, state: EditorState<any>, dispatch: any) => {
         if (mark) {
             const node = (state.selection as NodeSelection).node;
-            if (node?.type === schema.nodes.ordered_list) {
+            if (node ?.type === schema.nodes.ordered_list) {
                 let attrs = node.attrs;
                 if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, setFontFamily: mark.attrs.family };
                 if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, setFontSize: mark.attrs.fontSize };
