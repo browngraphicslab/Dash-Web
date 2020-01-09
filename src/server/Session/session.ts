@@ -195,7 +195,7 @@ export namespace Session {
             this.mainLog(cyan(`exiting session ${graceful ? "clean" : "immediate"}ly`));
             this.mainLog(`reason: ${(red(reason))}`);
             await this.executeExitHandlers(null);
-            this.tryKillActiveWorker(graceful);
+            this.killActiveWorker(graceful);
             process.exit(errorCode);
         }
 
@@ -273,7 +273,8 @@ export namespace Session {
 
             this.initializeSessionKey();
             // determines whether or not we see the compilation / initialization / runtime output of each child server process
-            setupMaster({ silent: !this.config.showServerOutput });
+            const output = this.config.showServerOutput ? "inherit" : "ignore";
+            setupMaster({ stdio: ["ignore", output, output, "ipc"] });
 
             // handle exceptions in the master thread - there shouldn't be many of these
             // the IPC (inter process communication) channel closed exception can't seem
@@ -410,7 +411,7 @@ export namespace Session {
             const number = /\d+/;
             const letters = /[a-zA-Z]+/;
             repl.registerCommand("exit", [/clean|force/], args => this.killSession("manual exit requested by repl", args[0] === "clean", 0));
-            repl.registerCommand("restart", [/clean|force/], args => this.tryKillActiveWorker(args[0] === "clean"));
+            repl.registerCommand("restart", [/clean|force/], args => this.killActiveWorker(args[0] === "clean"));
             repl.registerCommand("set", [letters, "port", number, boolean], args => this.setPort(args[0], Number(args[2]), args[3] === "true"));
             repl.registerCommand("set", [/polling/, number, boolean], args => {
                 const newPollingIntervalSeconds = Math.floor(Number(args[2]));
@@ -433,17 +434,14 @@ export namespace Session {
         /**
          * Attempts to kill the active worker gracefully, unless otherwise specified.
          */
-        private tryKillActiveWorker = (graceful = true): boolean => {
+        private killActiveWorker = (graceful = true): void => {
             if (this.activeWorker && !this.activeWorker.isDead()) {
-                this.mainLog(cyan(`${graceful ? "graceful" : "immediate"}ly killing the active server worker`));
                 if (graceful) {
                     this.activeWorker.send({ manualExit: true });
                 } else {
                     this.activeWorker.process.kill();
                 }
-                return true;
             }
-            return false;
         }
 
         /**
@@ -457,7 +455,7 @@ export namespace Session {
             if (value > 1023 && value < 65536) {
                 this.config.ports[port] = value;
                 if (immediateRestart) {
-                    this.tryKillActiveWorker();
+                    this.killActiveWorker();
                 }
             } else {
                 this.mainLog(red(`${port} is an invalid port number`));
@@ -477,7 +475,7 @@ export namespace Session {
                 },
                 ports
             } = this.config;
-            this.tryKillActiveWorker();
+            this.killActiveWorker();
             this.activeWorker = fork({
                 pollingRoute: route,
                 pollingFailureTolerance: failureTolerance,
@@ -610,6 +608,7 @@ export namespace Session {
 
             // one reason to exit, as the process might be in an inconsistent state after such an exception
             process.on('uncaughtException', this.proactiveUnplannedExit);
+            process.on('unhandledRejection', this.proactiveUnplannedExit);
         }
 
         /**
@@ -627,14 +626,14 @@ export namespace Session {
          * Called whenever the process has a reason to terminate, either through an uncaught exception
          * in the process (potentially inconsistent state) or the server cannot be reached.
          */
-        private proactiveUnplannedExit = async (error: Error): Promise<void> => {
+        private proactiveUnplannedExit = async (error: any): Promise<void> => {
             this.shouldServerBeResponsive = false;
             // communicates via IPC to the master thread that it should dispatch a crash notification email
             this.sendMonitorAction("notify_crash", { error });
             await this.executeExitHandlers(error);
             // notify master thread (which will log update in the console) of crash event via IPC
             this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));
-            this.lifecycleNotification(red(error.message));
+            this.lifecycleNotification(red(error.message || error));
             process.exit(1);
         }
 

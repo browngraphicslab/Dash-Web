@@ -1,11 +1,11 @@
 import { Session } from "./Session/session";
 import { Email } from "./ActionUtilities";
-import { red, yellow } from "colors";
+import { red, yellow, green } from "colors";
 import { get } from "request-promise";
 import { Utils } from "../Utils";
 import { WebSocket } from "./Websocket/Websocket";
 import { MessageStore } from "./Message";
-import { launchServer } from ".";
+import { launchServer, onWindows } from ".";
 
 /**
 * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -49,13 +49,13 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
         });
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop/], async args => {
-            const command = args[0] === "start" ? "start" : "stop -p 8983";
+            const command = `${onWindows ? "solr.cmd" : "solr"} ${args[0] === "start" ? "start" : "stop -p 8983"}`;
             await monitor.exec(command, { cwd: "./solr-8.3.1/bin" });
             try {
                 await get("http://localhost:8983");
-                return true;
+                monitor.mainLog(green("successfully connected to 8983 after running solr initialization"));
             } catch {
-                return false;
+                monitor.mainLog(red("unable to connect at 8983 after running solr initialization"));
             }
         });
         return monitor;
@@ -63,7 +63,10 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
 
     protected async launchServerWorker() {
         const worker = Session.ServerWorker.Create(launchServer); // server initialization delegated to worker
-        worker.addExitHandler(() => Utils.Emit(WebSocket._socket, MessageStore.ConnectionTerminated, "Manual"));
+        worker.addExitHandler(() => {
+            const { _socket } = WebSocket;
+            _socket && Utils.Emit(_socket, MessageStore.ConnectionTerminated, "Manual");
+        });
         return worker;
     }
 
