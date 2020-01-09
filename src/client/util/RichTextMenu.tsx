@@ -34,9 +34,9 @@ export default class RichTextMenu extends AntimodeMenu {
     private view?: EditorView;
     private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
 
-    private fontSizeOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean }[];
-    private fontFamilyOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean }[];
-    private listTypeOptions: { node: NodeType | any | null, title: string, label: string, command: any }[];
+    private fontSizeOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean, style?: {} }[];
+    private fontFamilyOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean, style?: {} }[];
+    private listTypeOptions: { node: NodeType | any | null, title: string, label: string, command: any, style?: {} }[];
     private fontColors: (string | undefined)[];
     private highlightColors: (string | undefined)[];
 
@@ -81,13 +81,13 @@ export default class RichTextMenu extends AntimodeMenu {
         ];
 
         this.fontFamilyOptions = [
-            { mark: schema.marks.pFontFamily.create({ family: "Times New Roman" }), title: "Set font family", label: "Times New Roman", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Arial" }), title: "Set font family", label: "Arial", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Georgia" }), title: "Set font family", label: "Georgia", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Comic Sans MS" }), title: "Set font family", label: "Comic Sans MS", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Tahoma" }), title: "Set font family", label: "Tahoma", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Impact" }), title: "Set font family", label: "Impact", command: this.changeFontFamily },
-            { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily },
+            { mark: schema.marks.pFontFamily.create({ family: "Times New Roman" }), title: "Set font family", label: "Times New Roman", command: this.changeFontFamily, style: { fontFamily: "Times New Roman" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Arial" }), title: "Set font family", label: "Arial", command: this.changeFontFamily, style: { fontFamily: "Arial" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Georgia" }), title: "Set font family", label: "Georgia", command: this.changeFontFamily, style: { fontFamily: "Georgia" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Comic Sans MS" }), title: "Set font family", label: "Comic Sans MS", command: this.changeFontFamily, style: { fontFamily: "Comic Sans MS" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Tahoma" }), title: "Set font family", label: "Tahoma", command: this.changeFontFamily, style: { fontFamily: "Tahoma" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Impact" }), title: "Set font family", label: "Impact", command: this.changeFontFamily, style: { fontFamily: "Impact" } },
+            { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily, style: { fontFamily: "Crimson Text" } },
             { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
             // { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
         ];
@@ -154,6 +154,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const activeFamilies = active && active.get("families");
         const activeSizes = active && active.get("sizes");
 
+        console.log("active families", activeFamilies);
         this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
 
@@ -232,16 +233,16 @@ export default class RichTextMenu extends AntimodeMenu {
         );
     }
 
-    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean }[]): JSX.Element {
-        const items = options.map(({ title, label, hidden }) => {
+    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[]): JSX.Element {
+        const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
-                    <option value={label} title={title} selected hidden>{label}</option> :
-                    <option value={label} title={title} hidden>{label}</option>;
+                    <option value={label} title={title} style={style ? style : {}} selected hidden>{label}</option> :
+                    <option value={label} title={title} style={style ? style : {}} hidden>{label}</option>;
             }
             return label === activeOption ?
-                <option value={label} title={title} selected>{label}</option> :
-                <option value={label} title={title}>{label}</option>;
+                <option value={label} title={title} style={style ? style : {}} selected>{label}</option> :
+                <option value={label} title={title} style={style ? style : {}}>{label}</option>;
         });
 
         const self = this;
@@ -257,16 +258,16 @@ export default class RichTextMenu extends AntimodeMenu {
         return <select onChange={onChange}>{items}</select>;
     }
 
-    createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean }[]): JSX.Element {
-        const items = options.map(({ title, label, hidden }) => {
+    createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[]): JSX.Element {
+        const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
-                    <option value={label} title={title} selected hidden>{label}</option> :
-                    <option value={label} title={title} hidden>{label}</option>;
+                    <option value={label} title={title} style={style ? style : {}} selected hidden>{label}</option> :
+                    <option value={label} title={title} style={style ? style : {}} hidden>{label}</option>;
             }
             return label === activeOption ?
-                <option value={label} title={title} selected>{label}</option> :
-                <option value={label} title={title}>{label}</option>;
+                <option value={label} title={title} style={style ? style : {}} selected>{label}</option> :
+                <option value={label} title={title} style={style ? style : {}}>{label}</option>;
         });
 
         const self = this;
