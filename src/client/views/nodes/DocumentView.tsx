@@ -107,9 +107,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
+    private _firstX:number=0;
+    private _firstY:number=0;
 
+    
     handle1PointerHoldStart= (e: React.TouchEvent): any =>{
         this.onRadialMenu(e);
+        let page =e.touches[0];
+        this._firstX=page.pageX;
+        this._firstY=page.pageY;
 
         document.removeEventListener("touchmove", this.onTouch);
         document.removeEventListener("touchend", this.onTouchEnd);
@@ -117,12 +123,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.addEventListener("touchend", this.handle1PointerHoldEnd);
     }
 
-    handle1PointerHoldMove = (e: TouchEvent): void => {
-        console.log("YUH")
+    handle1PointerHoldMove = (event: TouchEvent): void => {
+        let e=event.touches[0];
+        Math.abs(e.pageX-this._firstX)>175 ||Math.abs(e.pageY-this._firstY)>175? this.handleRelease():null;
         document.removeEventListener("touchmove", this.handle1PointerHoldMove);
         document.addEventListener("touchmove", this.handle1PointerHoldMove);
         document.removeEventListener("touchend", this.handle1PointerHoldEnd);
         document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    handleRelease(){
+        RadialMenu.Instance.closeMenu()
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
     }
 
     handle1PointerHoldEnd = (e: TouchEvent): void => {
@@ -300,130 +313,130 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    handle1PointerDown = (e: React.TouchEvent) => {
-        if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
-            this._downX = touch.clientX;
-            this._downY = touch.clientY;
-            this._hitTemplateDrag = false;
-            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
-                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
-                    this._hitTemplateDrag = true;
-                }
-            }
-            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
-            if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
-            console.log("down")
-        }
-    }
+    // handle1PointerDown = (e: React.TouchEvent) => {
+    //     if (!e.nativeEvent.cancelBubble) {
+    //         const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+    //         this._downX = touch.clientX;
+    //         this._downY = touch.clientY;
+    //         this._hitTemplateDrag = false;
+    //         for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+    //             if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+    //                 this._hitTemplateDrag = true;
+    //             }
+    //         }
+    //         if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
+    //         document.removeEventListener("touchmove", this.onTouch);
+    //         document.addEventListener("touchmove", this.onTouch);
+    //         document.removeEventListener("touchend", this.onTouchEnd);
+    //         document.addEventListener("touchend", this.onTouchEnd);
+    //         if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
+    //         console.log("down")
+    //     }
+    // }
 
-    handle1PointerMove = (e: TouchEvent) => {
-        if ((e as any).formattedHandled) { e.stopPropagation; return; }
-        if (e.cancelBubble && this.active) {
-            document.removeEventListener("touchmove", this.onTouch);
-        }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
-            if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
-                    document.removeEventListener("touchmove", this.onTouch);
-                    document.removeEventListener("touchend", this.onTouchEnd);
-                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
-                }
-            }
-            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
-            e.preventDefault();
+    // handle1PointerMove = (e: TouchEvent) => {
+    //     if ((e as any).formattedHandled) { e.stopPropagation; return; }
+    //     if (e.cancelBubble && this.active) {
+    //         document.removeEventListener("touchmove", this.onTouch);
+    //     }
+    //     else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+    //         const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+    //         if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
+    //             if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
+    //                 document.removeEventListener("touchmove", this.onTouch);
+    //                 document.removeEventListener("touchend", this.onTouchEnd);
+    //                 this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+    //             }
+    //         }
+    //         e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+    //         e.preventDefault();
 
-        }
-    }
+    //     }
+    // }
 
-    handle2PointersDown = (e: React.TouchEvent) => {
-        if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
-            e.stopPropagation();
-            e.preventDefault();
+    // handle2PointersDown = (e: React.TouchEvent) => {
+    //     if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
+    //         e.stopPropagation();
+    //         e.preventDefault();
 
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
-        }
-    }
+    //         document.removeEventListener("touchmove", this.onTouch);
+    //         document.addEventListener("touchmove", this.onTouch);
+    //         document.removeEventListener("touchend", this.onTouchEnd);
+    //         document.addEventListener("touchend", this.onTouchEnd);
+    //     }
+    // }
 
-    @action
-    handle2PointersMove = (e: TouchEvent) => {
-        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
-        const pt1 = myTouches[0];
-        const pt2 = myTouches[1];
-        const oldPoint1 = this.prevPoints.get(pt1.identifier);
-        const oldPoint2 = this.prevPoints.get(pt2.identifier);
-        const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
-        if (pinching !== 0 && oldPoint1 && oldPoint2) {
-            // let dX = (Math.min(pt1.clientX, pt2.clientX) - Math.min(oldPoint1.clientX, oldPoint2.clientX));
-            // let dY = (Math.min(pt1.clientY, pt2.clientY) - Math.min(oldPoint1.clientY, oldPoint2.clientY));
-            // let dX = Math.sign(Math.abs(pt1.clientX - oldPoint1.clientX) - Math.abs(pt2.clientX - oldPoint2.clientX));
-            // let dY = Math.sign(Math.abs(pt1.clientY - oldPoint1.clientY) - Math.abs(pt2.clientY - oldPoint2.clientY));
-            // let dW = -dX;
-            // let dH = -dY;
-            const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
-            const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
-            const dX = -1 * Math.sign(dW);
-            const dY = -1 * Math.sign(dH);
+    // @action
+    // handle2PointersMove = (e: TouchEvent) => {
+    //     const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+    //     const pt1 = myTouches[0];
+    //     const pt2 = myTouches[1];
+    //     const oldPoint1 = this.prevPoints.get(pt1.identifier);
+    //     const oldPoint2 = this.prevPoints.get(pt2.identifier);
+    //     const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+    //     if (pinching !== 0 && oldPoint1 && oldPoint2) {
+    //         // let dX = (Math.min(pt1.clientX, pt2.clientX) - Math.min(oldPoint1.clientX, oldPoint2.clientX));
+    //         // let dY = (Math.min(pt1.clientY, pt2.clientY) - Math.min(oldPoint1.clientY, oldPoint2.clientY));
+    //         // let dX = Math.sign(Math.abs(pt1.clientX - oldPoint1.clientX) - Math.abs(pt2.clientX - oldPoint2.clientX));
+    //         // let dY = Math.sign(Math.abs(pt1.clientY - oldPoint1.clientY) - Math.abs(pt2.clientY - oldPoint2.clientY));
+    //         // let dW = -dX;
+    //         // let dH = -dY;
+    //         const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
+    //         const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
+    //         const dX = -1 * Math.sign(dW);
+    //         const dY = -1 * Math.sign(dH);
 
-            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = PositionDocument(this.props.Document);
-                const layoutDoc = PositionDocument(Doc.Layout(this.props.Document));
-                let nwidth = layoutDoc.nativeWidth || 0;
-                let nheight = layoutDoc.nativeHeight || 0;
-                const width = (layoutDoc.width || 0);
-                const height = (layoutDoc.height || (nheight / nwidth * width));
-                const scale = this.props.ScreenToLocalTransform().Scale * this.props.ContentScaling();
-                const actualdW = Math.max(width + (dW * scale), 20);
-                const actualdH = Math.max(height + (dH * scale), 20);
-                doc.x = (doc.x || 0) + dX * (actualdW - width);
-                doc.y = (doc.y || 0) + dY * (actualdH - height);
-                const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
-                if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
-                    layoutDoc.ignoreAspect = false;
-                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
-                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
-                }
-                if (fixedAspect && (!nwidth || !nheight)) {
-                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
-                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
-                }
-                if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
-                    if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) {
-                            layoutDoc.nativeWidth = actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0);
-                        }
-                        layoutDoc.width = actualdW;
-                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
-                        else layoutDoc.height = actualdH;
-                    }
-                    else {
-                        if (!fixedAspect) {
-                            layoutDoc.nativeHeight = actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0);
-                        }
-                        layoutDoc.height = actualdH;
-                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
-                        else layoutDoc.width = actualdW;
-                    }
-                } else {
-                    dW && (layoutDoc.width = actualdW);
-                    dH && (layoutDoc.height = actualdH);
-                    dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
-                }
-            }
-            // let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
-            // this.props.Document.width = newWidth;
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }
+    //         if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
+    //             const doc = PositionDocument(this.props.Document);
+    //             const layoutDoc = PositionDocument(Doc.Layout(this.props.Document));
+    //             let nwidth = layoutDoc.nativeWidth || 0;
+    //             let nheight = layoutDoc.nativeHeight || 0;
+    //             const width = (layoutDoc.width || 0);
+    //             const height = (layoutDoc.height || (nheight / nwidth * width));
+    //             const scale = this.props.ScreenToLocalTransform().Scale * this.props.ContentScaling();
+    //             const actualdW = Math.max(width + (dW * scale), 20);
+    //             const actualdH = Math.max(height + (dH * scale), 20);
+    //             doc.x = (doc.x || 0) + dX * (actualdW - width);
+    //             doc.y = (doc.y || 0) + dY * (actualdH - height);
+    //             const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
+    //             if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
+    //                 layoutDoc.ignoreAspect = false;
+    //                 layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
+    //                 layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+    //             }
+    //             if (fixedAspect && (!nwidth || !nheight)) {
+    //                 layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
+    //                 layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+    //             }
+    //             if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
+    //                 if (Math.abs(dW) > Math.abs(dH)) {
+    //                     if (!fixedAspect) {
+    //                         layoutDoc.nativeWidth = actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0);
+    //                     }
+    //                     layoutDoc.width = actualdW;
+    //                     if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
+    //                     else layoutDoc.height = actualdH;
+    //                 }
+    //                 else {
+    //                     if (!fixedAspect) {
+    //                         layoutDoc.nativeHeight = actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0);
+    //                     }
+    //                     layoutDoc.height = actualdH;
+    //                     if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
+    //                     else layoutDoc.width = actualdW;
+    //                 }
+    //             } else {
+    //                 dW && (layoutDoc.width = actualdW);
+    //                 dH && (layoutDoc.height = actualdH);
+    //                 dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
+    //             }
+    //         }
+    //         // let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
+    //         // this.props.Document.width = newWidth;
+    //         e.stopPropagation();
+    //         e.preventDefault();
+    //     }
+    // }
 
     onPointerDown = (e: React.PointerEvent): void => {
 
