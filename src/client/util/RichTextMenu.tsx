@@ -54,6 +54,7 @@ export default class RichTextMenu extends AntimodeMenu {
     constructor(props: Readonly<{}>) {
         super(props);
         RichTextMenu.Instance = this;
+        this._canFade = false;
     }
 
     @action
@@ -734,7 +735,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         return (
             <div className="richTextMenu" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                {this.getElementWithRows(buttons, 2)}
+                {this.getElementWithRows(buttons, 2, false)}
             </div>
         );
     }

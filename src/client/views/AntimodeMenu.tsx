@@ -18,6 +18,7 @@ export default abstract class AntimodeMenu extends React.Component {
     @observable protected _opacity: number = 1;
     @observable protected _transition: string = "opacity 0.5s";
     @observable protected _transitionDelay: string = "";
+    @observable protected _canFade: boolean = true;
 
     @observable public Pinned: boolean = false;
 
@@ -43,7 +44,7 @@ export default abstract class AntimodeMenu extends React.Component {
      * Called when you want the menu to disappear
      */
     public fadeOut = (forceOut: boolean) => {
-        if (!this.Pinned) {
+        if (!this.Pinned && this._canFade) {
             if (this._opacity === 0.2) {
                 this._transition = "opacity 0.1s";
                 this._transitionDelay = "";
@@ -62,12 +63,12 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected pointerLeave = (e: React.PointerEvent) => {
-        // if (!this.Pinned) {
-        //     this._transition = "opacity 0.5s";
-        //     this._transitionDelay = "1s";
-        //     this._opacity = 0.2;
-        //     setTimeout(() => this.fadeOut(false), 3000);
-        // }
+        if (!this.Pinned && this._canFade) {
+            this._transition = "opacity 0.5s";
+            this._transitionDelay = "1s";
+            this._opacity = 0.2;
+            setTimeout(() => this.fadeOut(false), 3000);
+        }
     }
 
     @action
@@ -100,6 +101,12 @@ export default abstract class AntimodeMenu extends React.Component {
         this._left = e.pageX - this._offsetX;
         this._top = e.pageY - this._offsetY;
 
+        // assumes dragger is on right
+        // let width = this._mainCont.current!.getBoundingClientRect().width;
+        // let height = this._mainCont.current!.getBoundingClientRect().width;
+        // this._left = Math.max(width, e.pageX - this._offsetX);
+        // this._top = Math.min(height, e.pageY - this._offsetY);
+
         e.stopPropagation();
         e.preventDefault();
     }
@@ -130,12 +137,12 @@ export default abstract class AntimodeMenu extends React.Component {
         );
     }
 
-    protected getElementWithRows(rows: JSX.Element[], numRows: number) {
+    protected getElementWithRows(rows: JSX.Element[], numRows: number, hasDragger: boolean = true) {
         return (
             <div className="antimodeMenu-cont with-rows" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
                 style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay, height: 35 * numRows + "px" }}>
                 {rows}
-                {/* <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} /> */}
+                {hasDragger ? <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} /> : <></>}
             </div>
         );
     }
