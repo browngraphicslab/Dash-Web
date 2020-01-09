@@ -15,6 +15,11 @@ import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 
+
+
+/**
+ * Useful static functions that you can use. Mostly for logic, but you can also add UI logic here also 
+ */
 export namespace KeyframeFunc {
     export enum KeyframeType {
         fade = "fade",
@@ -134,6 +139,30 @@ interface IProps {
     checkCallBack: (visible: boolean) => void;
 }
 
+
+/**
+ * 
+ * This class handles the green region stuff
+ * Key facts:
+ * 
+ * Structure looks like this
+ * 
+ * region as a whole
+ *  <------------------------------REGION------------------------------->
+ * 
+ * region broken down 
+ * 
+ *  <|---------|############ MAIN CONTENT #################|-----------|>      .....followed by void.........
+ *  (start)                                             (Fade 2)
+ *            (fade 1)                                              (finish)
+ * 
+ * 
+ * As you can see, this is different from After Effect and Premiere Pro, but this is how TAG worked. 
+ * If you want to checkout TAG, it's in the lockers, and the password is the usual lab door password. It's the blue laptop.  
+ * If you want to know the exact location of the computer, message me. 
+ * 
+ * @author Andrew Kim 
+ */
 @observer
 export class Keyframe extends React.Component<IProps> {
 
@@ -363,6 +392,10 @@ export class Keyframe extends React.Component<IProps> {
         this.props.node.backgroundColor = "#000000";
     }
 
+
+    /**
+     * custom keyframe context menu items (when clicking on the keyframe circle)
+     */
     @action
     makeKeyframeMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
@@ -396,6 +429,9 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
     }
 
+    /**
+     * context menu for region (anywhere on the green region). 
+     */
     @action
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Add Ease", () => {
@@ -481,6 +517,10 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
     }
 
+
+    /**
+     * checking if input is correct (might have to use external module)
+     */
     @action
     checkInput = (val: any) => {
         return typeof (val === "number");
@@ -495,6 +535,9 @@ export class Keyframe extends React.Component<IProps> {
         });
     }
 
+    /**
+     * hovering effect when hovered (hidden div darkens)
+     */
     @action
     onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault();
@@ -504,6 +547,9 @@ export class Keyframe extends React.Component<IProps> {
         Doc.BrushDoc(this.props.node);
     }
 
+    /**
+     * hovering effect when hovered out (hidden div becomes invisible)
+     */
     @action
     onContainerOut = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault();
@@ -520,6 +566,9 @@ export class Keyframe extends React.Component<IProps> {
     private _type: string = "";
 
 
+    /**
+     * Need to fix this. skip
+     */
     @action
     onContainerDown = (kf: Doc, type: string) => {
         let listenerCreated = false;
@@ -544,6 +593,9 @@ export class Keyframe extends React.Component<IProps> {
         });
     }
 
+    /**
+     * for custom draw interpolation. Need to be refactored
+     */
     @action
     onReactionListen = () => {
         if (this._reac && this._plotList && this._interpolationKeyframe) {
@@ -589,6 +641,13 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
+    ///////////////////////UI STUFF /////////////////////////
+
+
+    /**
+     * drawing keyframe. Handles both keyframe with a circle (one that you create by double clicking) and one without circle (fades)
+     * this probably needs biggest change, since everyone expected all keyframes to have a circle (and draggable)
+     */
     @action
     drawKeyframes = () => {
         let keyframeDivs: JSX.Element[] = [];
@@ -616,6 +675,9 @@ export class Keyframe extends React.Component<IProps> {
         return keyframeDivs;
     }
 
+    /**
+     * drawing the hidden divs that partition different intervals within a region. 
+     */
     @action
     drawKeyframeDividers = () => {
         let keyframeDividers: JSX.Element[] = [];
@@ -645,6 +707,9 @@ export class Keyframe extends React.Component<IProps> {
         return keyframeDividers;
     }
 
+    /**
+     * rendering that green region
+     */
     render() {
         return (
             <div>

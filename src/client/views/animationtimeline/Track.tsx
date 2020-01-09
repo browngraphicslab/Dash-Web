@@ -62,9 +62,11 @@ export class Track extends React.Component<IProps> {
 
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
 
+    ////////// life cycle functions///////////////
     componentWillMount() {
         runInAction(() => {
-            if (!this.props.node.regions) this.props.node.regions = new List<Doc>();
+            if (!this.props.node.regions) this.props.node.regions = new List<Doc>(); //if there is no region, then create new doc to store stuff
+            //these two lines are exactly same from timeline.tsx 
             let relativeHeight = window.innerHeight / 14;
             this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //for responsiveness
         });
@@ -80,6 +82,9 @@ export class Track extends React.Component<IProps> {
         });
     }
 
+    /**
+     * mainly for disposing reactions
+     */
     componentWillUnmount() {
         runInAction(() => {
             //disposing reactions 
@@ -87,7 +92,11 @@ export class Track extends React.Component<IProps> {
             if (this._timelineVisibleReaction) this._timelineVisibleReaction();
         });
     }
+    ////////////////////////////////
 
+    /**
+     * keyframe save logic. Needs to be changed so it's more efficient
+     */
     @action
     saveKeyframe = async (ref: Doc, regiondata: Doc) => {
         let keyframes: List<Doc> = (Cast(regiondata.keyframes, listSpec(Doc)) as List<Doc>);
@@ -119,6 +128,9 @@ export class Track extends React.Component<IProps> {
         this._isOnKeyframe = false;
     }
 
+    /**
+     * reverting back to previous state before editing on AT
+     */
     @action
     revertState = () => {
         let copyDoc = Doc.MakeCopy(this.props.node, true);
@@ -128,6 +140,10 @@ export class Track extends React.Component<IProps> {
         this._storedState = newState;
     }
 
+    /**
+     * Reaction when scrubber bar changes
+     * made into function so it's easier to dispose later
+    */
     @action
     currentBarXReaction = () => {
         return reaction(() => this.props.currentBarX, async () => {
@@ -141,6 +157,10 @@ export class Track extends React.Component<IProps> {
             }
         });
     }
+
+    /**
+     * when timeline is visible, reaction is ran so states are reverted
+     */
     @action
     timelineVisibleReaction = () => {
         return reaction(() => {
@@ -163,13 +183,9 @@ export class Track extends React.Component<IProps> {
         });
     }
 
-    @action 
-    /**
-     * Simple loop through all the regions to update the keyframes. Only applies to timelineVisibleReaction
+    /**w
+     * when scrubber position changes. Need to edit the logic
      */
-    updateAllRegions = () => {
-        
-    }
     @action
     timeChange = async (time: number) => {
         if (this._isOnKeyframe && this._onKeyframe && this._onRegionData) {
@@ -191,6 +207,10 @@ export class Track extends React.Component<IProps> {
         }
     }
 
+    /**
+     * applying changes (when saving the keyframe) 
+     * need to change the logic here
+     */
     @action
     private applyKeys = async (kf: Doc) => {
         let kfNode = await Cast(kf.key, Doc) as Doc;
@@ -212,6 +232,9 @@ export class Track extends React.Component<IProps> {
 
 
 
+    /**
+     * changing the filter here 
+     */
     @action
     private filterKeys = (keys: string[]): string[] => {
         return keys.reduce((acc: string[], key: string) => {
@@ -220,6 +243,10 @@ export class Track extends React.Component<IProps> {
         }, []);
     }
 
+
+    /**
+     *  calculating current keyframe, if the scrubber is right on the keyframe
+     */
     @action
     calcCurrent = async (region: Doc) => {
         let currentkf: (Doc | undefined) = undefined;
@@ -231,6 +258,10 @@ export class Track extends React.Component<IProps> {
     }
 
 
+    /**
+     * interpolation. definetely needs to be changed. (currently involves custom linear splicing interpolations). 
+     * Too complex right now. Also need to apply quadratic spline later on (for smoothness, instead applying "gains")
+     */
     @action
     interpolate = async (left: Doc, right: Doc, regiondata: Doc) => {
         let leftNode = left.key as Doc;
@@ -290,6 +321,10 @@ export class Track extends React.Component<IProps> {
         });
     }
 
+    /**
+     * finds region that corresponds to specific time (is there a region at this time?)
+     * linear O(n) (maybe possible to optimize this with other Data structures?)
+     */
     @action
     findRegion = async (time: number) => {
         let foundRegion: (Doc | undefined) = undefined;
@@ -303,6 +338,10 @@ export class Track extends React.Component<IProps> {
         return foundRegion;
     }
 
+
+    /**
+     * double click on track. Signalling keyframe creation. Problem with phantom regions
+     */
     @action
     onInnerDoubleClick = (e: React.MouseEvent) => {
         let inner = this._inner.current!;
@@ -311,6 +350,10 @@ export class Track extends React.Component<IProps> {
         this.forceUpdate();
     }
 
+
+    /**
+     * creates a region (KEYFRAME.TSX stuff). 
+     */
     createRegion = (position: number) => {
         let regiondata = KeyframeFunc.defaultKeyframe();
         regiondata.position = position;
@@ -325,6 +368,11 @@ export class Track extends React.Component<IProps> {
         }
 
     }
+
+
+    /**
+     * UI sstuff here. Not really much to change
+     */
     render() {
         return (
             <div className="track-container">

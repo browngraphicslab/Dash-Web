@@ -15,9 +15,32 @@ import { FieldViewProps } from "../nodes/FieldView";
 import { KeyframeFunc } from "./Keyframe";
 import { Utils } from "../../../Utils";
 
+
+/**
+ * Timeline class controls most of timeline functions besides individual keyframe and track mechanism. Main functions are 
+ * zooming, panning, currentBarX (scrubber movement). Most of the UI stuff is also handled here. You shouldn't really make 
+ * any logical changes here. Most work is needed on UI. 
+ * 
+ * The hierarchy works this way: 
+ * 
+ *              Timeline.tsx --> Track.tsx --> Keyframe.tsx 
+                      |                              |
+                      |                   TimelineMenu.tsx (timeline's custom contextmenu)
+                      |
+                      |
+                TimelineOverview.tsx (youtube like dragging thing is play mode, complex dragging thing in editing mode)
+
+
+    Most style changes are in SCSS file. 
+    If you have any questions, email me or text me. 
+    @author Andrew Kim 
+ */
+
+
 @observer
 export class Timeline extends React.Component<FieldViewProps> {
-    
+
+
     //readonly constants
     private readonly DEFAULT_TICK_SPACING: number = 50;
     private readonly MAX_TITLE_HEIGHT = 75; 
@@ -70,38 +93,35 @@ export class Timeline extends React.Component<FieldViewProps> {
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
     }
 
-    /**
-     * 
-     */
+    /////////lifecycle functions////////////
     componentWillMount() {
-        let relativeHeight = window.innerHeight / 14; 
-        this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; 
-        this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; 
-        this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; 
+        let relativeHeight = window.innerHeight / 14; //sets height to arbitrary size, relative to innerHeight
+        this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //check if relHeight is less than Maxheight. Else, just set relheight to max
+        this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; //offset
+        this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; //twice the titleheight + offset
     }
 
     componentDidMount() {
         runInAction(() => {
-            if (!this.props.Document.AnimationLength) {
-                this.props.Document.AnimationLength = this._time;
+            if (!this.props.Document.AnimationLength) { //if animation length did not exist
+                this.props.Document.AnimationLength = this._time; //set it to default time
             } else {
-                this._time = NumCast(this.props.Document.AnimationLength);
-                console.log(this._time);
+                this._time = NumCast(this.props.Document.AnimationLength); //else, set time to animationlength stored from before
             }
-            this._totalLength = this._tickSpacing * (this._time / this._tickIncrement);
-            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width;
-            this._visibleStart = this._infoContainer.current!.scrollLeft;
-            this.props.Document.isATOn = !this.props.Document.isATOn;
+            this._totalLength = this._tickSpacing * (this._time / this._tickIncrement); //the entire length of the timeline div (actual div part itself)
+            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
+            this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
+            this.props.Document.isATOn = !this.props.Document.isATOn; //turns the boolean on, saying AT (animation timeline) is on
             this.toggleHandle();
         });
     }
 
     componentWillUnmount() {
         runInAction(() => {
-            console.log(this._time);
-            this.props.Document.AnimationLength = this._time;
+            this.props.Document.AnimationLength = this._time; //save animation length
         });
     }
+    /////////////////////////////////////////////////
 
     /**
      * React Functional Component
@@ -116,7 +136,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         return ticks;
     }
 
-
+    /**
+     * changes the scrubber to actual pixel position
+     */
     @action
     changeCurrentBarX = (pixel: number) => {
         pixel <= 0 ? this._currentBarX = 0 : pixel >= this._totalLength ? this._currentBarX = this._totalLength : this._currentBarX = pixel;
@@ -130,6 +152,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         this.play();
     }
 
+    /**
+     * when playbutton is clicked
+     */
     @action
     play = () => {
         if (this._isPlaying) {
@@ -177,7 +202,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
-    
+    /**
+     * scrubber down 
+     */
     @action
     onScrubberDown = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -188,16 +215,22 @@ export class Timeline extends React.Component<FieldViewProps> {
         });
     }
 
+    /**
+     * when there is any scrubber movement
+     */
     @action
     onScrubberMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
         let scrubberbox = this._infoContainer.current!;
         let left = scrubberbox.getBoundingClientRect().left;
-        let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
-        this.changeCurrentBarX(offsetX + this._visibleStart);
+        let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale; 
+        this.changeCurrentBarX(offsetX + this._visibleStart); //changes scrubber to clicked scrubber position
     }
 
+    /**
+     * when panning the timeline (in editing mode)
+     */
     @action
     onPanDown = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -223,6 +256,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * when moving the timeline (in editing mode)
+     */
     @action
     onPanMove = (e: PointerEvent) => {
         e.preventDefault();
@@ -243,6 +279,8 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
 
     }
+
+
     @action
     movePanX = (pixel: number) => {
         let infoContainer = this._infoContainer.current!;
@@ -250,6 +288,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         this._visibleStart = infoContainer.scrollLeft;
     }
 
+    /**
+     * resizing timeline (in editing mode) (the hamburger drag icon)
+     */
     @action
     onResizeDown = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -274,6 +315,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * for displaying time to standard min:sec
+     */
     @action
     toReadTime = (time: number): string => {
         const inSeconds = time / 1000;
@@ -286,6 +330,11 @@ export class Timeline extends React.Component<FieldViewProps> {
         return `${min}:${sec}`;
     }
 
+
+    /**
+     * context menu function. 
+     * opens the timeline or closes the timeline. 
+     */
     timelineContextMenu = (e: MouseEvent): void => {
         ContextMenu.Instance.addItem({
             description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
@@ -295,6 +344,10 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
+    /**
+     * timeline zoom function 
+     * use mouse middle button to zoom in/out the timeline
+     */
     @action
     onWheelZoom = (e: React.WheelEvent) => {
         e.preventDefault();
@@ -311,6 +364,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         this.changeCurrentBarX(currCurrent);
     }
 
+    /**
+     * zooming mechanism (increment and spacing changes)
+     */
     @action
     zoom = (dir: boolean) => {
         let spacingChange = this._tickSpacing;
@@ -340,6 +396,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * tool box includes the toggle buttons at the top of the timeline (both editing mode and play mode)
+     */
     private timelineToolBox = (scale: number) => {
         let size = 40 * scale; //50 is default
         return (
@@ -359,6 +418,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         );
     }
 
+    /**
+     * manual time input (kinda broken right now)
+     */
     @action
     private onTimeInput = (e: React.KeyboardEvent) => {
         if (e.keyCode === 13) {
@@ -369,6 +431,10 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
+
+    /**
+     * when the user decides to click the toggle button (either user wants to enter editing mode or play mode)
+     */
     @action
     private toggleChecked = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -376,6 +442,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         this.toggleHandle();
     }
 
+    /**
+     * turns on the toggle button (the purple slide button that changes from editing mode and play mode
+     */
     private toggleHandle = () => {
         let roundToggle = this._roundToggleRef.current!;
         let roundToggleContainer = this._roundToggleContainerRef.current!;
@@ -410,7 +479,9 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
-
+    /**
+     * check mark thing that needs to be fixed. Do not edit this, because it most likely change.
+     */
     @action
     private checkCallBack = (visible: boolean) => {
         this._checkVisible = visible;
@@ -421,12 +492,10 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
-
-
-
-
-
-
+    /**
+     * if you have any question here, just shoot me an email or text. 
+     * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
+     */
     render() {
         return (
             <div>
