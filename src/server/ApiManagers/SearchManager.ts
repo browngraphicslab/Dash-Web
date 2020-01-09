@@ -8,6 +8,7 @@ import { red, cyan, yellow } from "colors";
 import RouteSubscriber from "../RouteSubscriber";
 import { exec } from "child_process";
 import { onWindows } from "..";
+import { get } from "request-promise";
 
 export class SearchManager extends ApiManager {
 
@@ -68,18 +69,25 @@ export class SearchManager extends ApiManager {
 
 export namespace SolrManager {
 
+    const command = onWindows ? "solr.cmd" : "solr";
+
     export async function SetRunning(status: boolean): Promise<boolean> {
         const args = status ? "start" : "stop -p 8983";
-        console.log(`Solr management: trying to ${args}`);
-        exec(`${onWindows ? "solr.cmd" : "solr"} ${args}`, { cwd: "./solr-8.3.1/bin" }, (error, stdout, stderr) => {
+        console.log(`solr management: trying to ${args}`);
+        exec(`${command} ${args}`, { cwd: "./solr-8.3.1/bin" }, (error, stdout, stderr) => {
             if (error) {
+                console.log(red(`solr management error: unable to ${args} server`));
                 console.log(red(error.message));
-                console.log(red(`Solr management error: unable to ${args}`));
             }
             console.log(cyan(stdout));
             console.log(yellow(stderr));
         });
-        return true;
+        try {
+            await get("http://localhost:8983");
+            return true;
+        } catch {
+            return false;
+        }
     }
 
 }

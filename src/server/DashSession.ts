@@ -1,8 +1,8 @@
 import { Session } from "./Session/session";
 import { Email } from "./ActionUtilities";
-import { red, yellow } from "colors";
+import { red, yellow, cyan } from "colors";
 import { SolrManager } from "./ApiManagers/SearchManager";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import { Utils } from "../Utils";
 import { WebSocket } from "./Websocket/Websocket";
 import { MessageStore } from "./Message";
@@ -48,7 +48,14 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                 return true;
             }
         });
-        monitor.addReplCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+        monitor.addReplCommand("pull", [], () => exec("git pull", (error, stdout, stderr) => {
+            if (error) {
+                monitor.log(red("unable to pull from version control"));
+                monitor.log(red(error.message));
+            }
+            stdout.split("\n").forEach(line => line.length && monitor.execLog(cyan(line)));
+            stderr.split("\n").forEach(line => line.length && monitor.execLog(yellow(line)));
+        }));
         monitor.addReplCommand("solr", [/start|stop/], args => SolrManager.SetRunning(args[0] === "start"));
         return monitor;
     }

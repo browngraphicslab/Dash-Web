@@ -1,4 +1,4 @@
-import { red, cyan, green, yellow, magenta, blue, white } from "colors";
+import { red, cyan, green, yellow, magenta, blue, white, Color, grey, gray, black } from "colors";
 import { on, fork, setupMaster, Worker, isMaster, isWorker } from "cluster";
 import { get } from "request-promise";
 import { Utils } from "../../Utils";
@@ -19,6 +19,20 @@ import { configurationSchema } from "./session_config_schema";
  * in which initializeWorker() is invoked.
  */
 export namespace Session {
+
+    type ColorLabel = "yellow" | "red" | "cyan" | "green" | "blue" | "magenta" | "grey" | "gray" | "white" | "black";
+    const colorMapping: Map<ColorLabel, Color> = new Map([
+        ["yellow", yellow],
+        ["red", red],
+        ["cyan", cyan],
+        ["green", green],
+        ["blue", blue],
+        ["magenta", magenta],
+        ["grey", grey],
+        ["gray", gray],
+        ["white", white],
+        ["black", black]
+    ]);
 
     export abstract class AppliedSessionAgent {
 
@@ -70,25 +84,50 @@ export namespace Session {
 
     }
 
-    interface Configuration {
-        showServerOutput: boolean;
-        masterIdentifier: string;
-        workerIdentifier: string;
-        ports: { [description: string]: number };
-        pollingRoute: string;
-        pollingIntervalSeconds: number;
-        pollingFailureTolerance: number;
-        [key: string]: any;
+    interface Identifier {
+        text: string;
+        color: ColorLabel;
     }
 
-    const defaultConfiguration: Configuration = {
+    interface Identifiers {
+        master: Identifier;
+        worker: Identifier;
+        exec: Identifier;
+    }
+
+    interface Configuration {
+        showServerOutput: boolean;
+        identifiers: Identifiers;
+        ports: { [description: string]: number };
+        polling: {
+            route: string;
+            intervalSeconds: number;
+            failureTolerance: number;
+        };
+    }
+
+    const defaultConfig: Configuration = {
         showServerOutput: false,
-        masterIdentifier: yellow("__monitor__:"),
-        workerIdentifier: magenta("__server__:"),
+        identifiers: {
+            master: {
+                text: "__monitor__",
+                color: "yellow"
+            },
+            worker: {
+                text: "__server__",
+                color: "magenta"
+            },
+            exec: {
+                text: "__exec__",
+                color: "green"
+            }
+        },
         ports: { server: 3000 },
-        pollingRoute: "/",
-        pollingIntervalSeconds: 30,
-        pollingFailureTolerance: 0
+        polling: {
+            route: "/",
+            intervalSeconds: 30,
+            failureTolerance: 0
+        }
     };
 
     export type ExitHandler = (reason: Error | null) => void | Promise<void>;
@@ -118,7 +157,7 @@ export namespace Session {
         private static count = 0;
         private exitHandlers: ExitHandler[] = [];
         private readonly notifiers: Monitor.NotifierHooks | undefined;
-        private readonly configuration: Configuration;
+        private readonly config: Configuration;
         private onMessage: { [message: string]: Monitor.ServerMessageHandler[] | undefined } = {};
         private activeWorker: Worker | undefined;
         private key: string | undefined;
@@ -209,10 +248,11 @@ export namespace Session {
 
             console.log(this.timestamp(), cyan("initializing session..."));
 
-            this.configuration = this.loadAndValidateConfiguration();
+            this.config = this.loadAndValidateConfiguration();
+
             this.initializeSessionKey();
             // determines whether or not we see the compilation / initialization / runtime output of each child server process
-            setupMaster({ silent: !this.configuration.showServerOutput });
+            setupMaster({ silent: !this.config.showServerOutput });
 
             // handle exceptions in the master thread - there shouldn't be many of these
             // the IPC (inter process communication) channel closed exception can't seem
@@ -238,7 +278,6 @@ export namespace Session {
             this.spawn();
         }
 
-
         /**
          * Generates a blue UTC string associated with the time
          * of invocation.
@@ -249,7 +288,14 @@ export namespace Session {
          * A formatted, identified and timestamped log in color
          */
         public log = (...optionalParams: any[]) => {
-            console.log(this.timestamp(), this.configuration.masterIdentifier, ...optionalParams);
+            console.log(this.timestamp(), this.config.identifiers.master.text, ...optionalParams);
+        }
+
+        /**
+         * A formatted, identified and timestamped log in color for non-
+         */
+        public execLog = (...optionalParams: any[]) => {
+            console.log(this.timestamp(), this.config.identifiers.exec.text, ...optionalParams);
         }
 
         /**
@@ -269,10 +315,76 @@ export namespace Session {
         }
 
         /**
+         * At any arbitrary layer of nesting within the configuration objects, any single value that
+         * is not specified by the configuration is given the default counterpart. If, within an object,
+         * one peer is given by configuration and two are not, the one is preserved while the two are given
+         * the default value.
+         */
+        private assign = (defaultObject: any, specifiedObject: any, collector: any) => {
+            Array.from(new Set([...Object.keys(defaultObject), ...Object.keys(specifiedObject)])).map(property => {
+                let defaultValue: any, specifiedValue: any;
+                if (specifiedValue = specifiedObject[property]) {
+                    if (typeof specifiedValue === "object" && typeof (defaultValue = defaultObject[property]) === "object") {
+                        this.assign(defaultValue, specifiedValue, collector[property] = {});
+                    } else {
+                        collector[property] = specifiedValue;
+                    }
+                } else {
+                    collector[property] = defaultObject[property];
+                }
+            });
+        }
+
+        /**
+         * Reads in configuration .json file only once, in the master thread
+         * and pass down any variables the pertinent to the child processes as environment variables.
+         */
+        private loadAndValidateConfiguration = (): Configuration => {
+            let config: Configuration;
+            try {
+                console.log(this.timestamp(), cyan("validating configuration..."));
+                config = JSON.parse(readFileSync('./session.config.json', 'utf8'));
+                const options = {
+                    throwError: true,
+                    allowUnknownAttributes: false
+                };
+                // ensure all necessary and no excess information is specified by the configuration file
+                validate(config, configurationSchema, options);
+                const results: any = {};
+                this.assign(defaultConfig, config, results);
+                config = results;
+            } catch (error) {
+                if (error instanceof ValidationError) {
+                    console.log(red("\nSession configuration failed."));
+                    console.log("The given session.config.json configuration file is invalid.");
+                    console.log(`${error.instance}: ${error.stack}`);
+                    process.exit(0);
+                } else if (error.code === "ENOENT" && error.path === "./session.config.json") {
+                    console.log(cyan("Loading default session parameters..."));
+                    console.log("Consider including a session.config.json configuration file in your project root for customization.");
+                    config = { ...defaultConfig };
+                } else {
+                    console.log(red("\nSession configuration failed."));
+                    console.log("The following unknown error occurred during configuration.");
+                    console.log(error.stack);
+                    process.exit(0);
+                }
+            } finally {
+                const { identifiers } = config!;
+                Object.keys(identifiers).forEach(key => {
+                    const resolved = key as keyof Identifiers;
+                    const { text, color } = identifiers[resolved];
+                    identifiers[resolved].text = (colorMapping.get(color) || white)(`${text}:`);
+                });
+                return config!;
+            }
+        }
+
+        /**
          * Builds the repl that allows the following commands to be typed into stdin of the master thread.
          */
         private initializeRepl = (): Repl => {
-            const repl = new Repl({ identifier: () => `${this.timestamp()} ${this.configuration.masterIdentifier}` });
+            const repl = new Repl({ identifier: () => `${this.timestamp()} ${this.config.identifiers.master.text}` });
             const boolean = /true|false/;
             const number = /\d+/;
             const letters = /[a-zA-Z]+/;
@@ -284,8 +396,8 @@ export namespace Session {
                 if (newPollingIntervalSeconds < 0) {
                     this.log(red("the polling interval must be a non-negative integer"));
                 } else {
-                    if (newPollingIntervalSeconds !== this.configuration.pollingIntervalSeconds) {
-                        this.configuration.pollingIntervalSeconds = newPollingIntervalSeconds;
+                    if (newPollingIntervalSeconds !== this.config.polling.intervalSeconds) {
+                        this.config.polling.intervalSeconds = newPollingIntervalSeconds;
                         if (args[3] === "true") {
                             this.activeWorker?.send({ newPollingIntervalSeconds });
                         }
@@ -294,59 +406,6 @@ export namespace Session {
             });
             return repl;
         }
-
-        /**
-         * Reads in configuration .json file only once, in the master thread
-         * and pass down any variables the pertinent to the child processes as environment variables.
-         */
-        private loadAndValidateConfiguration = (): Configuration => {
-            try {
-                console.log(this.timestamp(), cyan("validating configuration..."));
-                const configuration: Configuration = JSON.parse(readFileSync('./session.config.json', 'utf8'));
-                const options = {
-                    throwError: true,
-                    allowUnknownAttributes: false
-                };
-                // ensure all necessary and no excess information is specified by the configuration file
-                validate(configuration, configurationSchema, options);
-                let formatMaster = true;
-                let formatWorker = true;
-                Object.keys(defaultConfiguration).forEach(property => {
-                    if (!configuration[property]) {
-                        if (property === "masterIdentifier") {
-                            formatMaster = false;
-                        } else if (property === "workerIdentifier") {
-                            formatWorker = false;
-                        }
-                        configuration[property] = defaultConfiguration[property];
-                    }
-                });
-                if (formatMaster) {
-                    configuration.masterIdentifier = yellow(configuration.masterIdentifier + ":");
-                }
-                if (formatWorker) {
-                    configuration.workerIdentifier = magenta(configuration.workerIdentifier + ":");
-                }
-                return configuration;
-            } catch (error) {
-                if (error instanceof ValidationError) {
-                    console.log(red("\nSession configuration failed."));
-                    console.log("The given session.config.json configuration file is invalid.");
-                    console.log(`${error.instance}: ${error.stack}`);
-                    process.exit(0);
-                } else if (error.code === "ENOENT" && error.path === "./session.config.json") {
-                    console.log(cyan("Loading default session parameters..."));
-                    console.log("Consider including a session.config.json configuration file in your project root for customization.");
-                    return defaultConfiguration;
-                } else {
-                    console.log(red("\nSession configuration failed."));
-                    console.log("The following unknown error occurred during configuration.");
-                    console.log(error.stack);
-                    process.exit(0);
-                }
-            }
-        }
-
 
         private executeExitHandlers = async (reason: Error | null) => Promise.all(this.exitHandlers.map(handler => handler(reason)));
 
@@ -374,7 +433,7 @@ export namespace Session {
          */
         private setPort = (port: "server" | "socket" | string, value: number, immediateRestart: boolean): void => {
             if (value > 1023 && value < 65536) {
-                this.configuration.ports[port] = value;
+                this.config.ports[port] = value;
                 if (immediateRestart) {
                     this.tryKillActiveWorker();
                 }
@@ -389,18 +448,20 @@ export namespace Session {
          */
         private spawn = (): void => {
             const {
-                pollingRoute,
-                pollingFailureTolerance,
-                pollingIntervalSeconds,
+                polling: {
+                    route,
+                    failureTolerance,
+                    intervalSeconds
+                },
                 ports
-            } = this.configuration;
+            } = this.config;
             this.tryKillActiveWorker();
             this.activeWorker = fork({
-                pollingRoute,
-                pollingFailureTolerance,
+                pollingRoute: route,
+                pollingFailureTolerance: failureTolerance,
                 serverPort: ports.server,
                 socketPort: ports.socket,
-                pollingIntervalSeconds,
+                pollingIntervalSeconds: intervalSeconds,
                 session_key: this.key
             });
             this.log(cyan(`spawned new server worker with process id ${this.activeWorker.process.pid}`));
@@ -408,7 +469,7 @@ export namespace Session {
             this.activeWorker.on("message", async ({ lifecycle, action }) => {
                 if (action) {
                     const { message, args } = action as Monitor.Action;
-                    console.log(this.timestamp(), `${this.configuration.workerIdentifier} action requested (${cyan(message)})`);
+                    console.log(this.timestamp(), `${this.config.identifiers.worker.text} action requested (${cyan(message)})`);
                     switch (message) {
                         case "kill":
                             const { reason, graceful, errorCode } = args;
@@ -432,7 +493,7 @@ export namespace Session {
                         handlers.forEach(handler => handler({ message, args }));
                     }
                 } else if (lifecycle) {
-                    console.log(this.timestamp(), `${this.configuration.workerIdentifier} lifecycle phase (${lifecycle})`);
+                    console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${lifecycle})`);
                 }
             });
         }
