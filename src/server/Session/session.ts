@@ -660,7 +660,6 @@ export namespace Session {
                             this.lifecycleNotification(green(`listening on ${this.serverPort}...`));
                         }
                         this.shouldServerBeResponsive = true;
-                        resolve();
                     } catch (error) {
                         // if we expect the server to be unavailable, i.e. during compilation,
                         // the listening variable is false, activeExit will return early and the child
@@ -672,6 +671,8 @@ export namespace Session {
                                 this.lifecycleNotification(yellow(`the server has encountered ${this.pollingFailureCount} of ${this.pollingFailureTolerance} tolerable failures`));
                             }
                         }
+                    } finally {
+                        resolve();
                     }
                 }, 1000 * this.pollingIntervalSeconds);
             });
