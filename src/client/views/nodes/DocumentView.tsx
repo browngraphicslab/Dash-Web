@@ -82,6 +82,7 @@ export interface DocumentViewProps {
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
+    radialMenu?: String[];
 }
 
 
@@ -104,6 +105,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
+    constructor(props: any) {
+        super(props);
+    }
+
+    handle1PointerHoldStart= (e: React.TouchEvent): any =>{
+        console.log("yeet")
+    }
+    
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
