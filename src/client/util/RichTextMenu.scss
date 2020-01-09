@@ -21,6 +21,7 @@
         min-width: 150px;
         padding: 5px;
         font-size: 12px;
+        z-index: 10001;
 
         button {
             background-color: #323232;
@@ -28,10 +29,14 @@
             border-radius: 1px;
             padding: 6px;
             margin: 5px 0;
-            font-size: 12px;
+            font-size: 10px;
 
             &:hover {
                 background-color: black;
+            }
+
+            &:last-child {
+                margin-bottom: 0;
             }
         }
     }

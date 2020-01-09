@@ -8,7 +8,7 @@ import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller } from "@fortawesome/free-solid-svg-icons";
 import { MenuItem, Dropdown } from "prosemirror-menu";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
@@ -24,7 +24,7 @@ import { SelectionManager } from "./SelectionManager";
 import { LinkManager } from "./LinkManager";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink);
+library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
 
 @observer
 export default class RichTextMenu extends AntimodeMenu {
@@ -86,8 +86,9 @@ export default class RichTextMenu extends AntimodeMenu {
         const activeFamilies = active && active.get("families");
         const activeSizes = active && active.get("sizes");
 
-        this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "default" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
-        this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "default" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
+        console.log("update from dash, activefontsize", this.activeFontSize, activeSizes, activeSizes && activeSizes.length, activeSizes && String(activeSizes[0]));
+        this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
+        this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
 
         // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
@@ -99,7 +100,7 @@ export default class RichTextMenu extends AntimodeMenu {
     setMark = (mark: Mark, state: EditorState<any>, dispatch: any) => {
         if (mark) {
             const node = (state.selection as NodeSelection).node;
-            if (node?.type === schema.nodes.ordered_list) {
+            if (node ?.type === schema.nodes.ordered_list) {
                 let attrs = node.attrs;
                 if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, setFontFamily: mark.attrs.family };
                 if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, setFontSize: mark.attrs.fontSize };
@@ -142,7 +143,7 @@ export default class RichTextMenu extends AntimodeMenu {
     getMarksInSelection(state: EditorState<any>) {
         const found = new Set<Mark>();
         const { from, to } = state.selection as TextSelection;
-        state.doc.nodesBetween(from, to, (node) => node.marks?.forEach(m => found.add(m)));
+        state.doc.nodesBetween(from, to, (node) => node.marks ?.forEach(m => found.add(m)));
         return found;
     }
 
@@ -309,7 +310,7 @@ export default class RichTextMenu extends AntimodeMenu {
         return (
             <div className="button-dropdown-wrapper">
                 <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks && this.brushMarks.size > 0 ? { backgroundColor: "121212" } : {}}>
-                    <FontAwesomeIcon icon="eye-dropper" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
+                    <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
                 </button>
                 <button className="dropdown-button antimodeMenu-button" onPointerDown={onDropdownClick}><FontAwesomeIcon icon="caret-down" size="sm" /></button>
                 {this.showBrushDropdown ?
@@ -679,7 +680,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
             { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
-            { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
+            { mark: null, title: "", label: "13pt", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
         ];
 
         const fontFamilyOptions = [
@@ -691,7 +692,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { mark: schema.marks.pFontFamily.create({ family: "Impact" }), title: "Set font family", label: "Impact", command: this.changeFontFamily },
             { mark: schema.marks.pFontFamily.create({ family: "Crimson Text" }), title: "Set font family", label: "Crimson Text", command: this.changeFontFamily },
             { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
-            { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
+            // { mark: null, title: "", label: "default", command: unimplementedFunction, hidden: true },
         ];
 
         const listTypeOptions = [

@@ -22,6 +22,9 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @observable public Pinned: boolean = false;
 
+    get width() { return this._mainCont.current ? this._mainCont.current.getBoundingClientRect().width : 0; }
+    get height() { return this._mainCont.current ? this._mainCont.current.getBoundingClientRect().height : 0; }
+
     @action
     /**
      * @param x
@@ -44,7 +47,7 @@ export default abstract class AntimodeMenu extends React.Component {
      * Called when you want the menu to disappear
      */
     public fadeOut = (forceOut: boolean) => {
-        if (!this.Pinned && this._canFade) {
+        if (!this.Pinned) {
             if (this._opacity === 0.2) {
                 this._transition = "opacity 0.1s";
                 this._transitionDelay = "";
@@ -89,8 +92,8 @@ export default abstract class AntimodeMenu extends React.Component {
         document.removeEventListener("pointerup", this.dragEnd);
         document.addEventListener("pointerup", this.dragEnd);
 
-        this._offsetX = this._mainCont.current!.getBoundingClientRect().width - e.nativeEvent.offsetX;
-        this._offsetY = e.nativeEvent.offsetY;
+        this._offsetX = e.pageX - this._mainCont.current!.getBoundingClientRect().left;
+        this._offsetY = e.pageY - this._mainCont.current!.getBoundingClientRect().top;
 
         e.stopPropagation();
         e.preventDefault();
@@ -98,14 +101,14 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected dragging = (e: PointerEvent) => {
-        this._left = e.pageX - this._offsetX;
-        this._top = e.pageY - this._offsetY;
+        const width = this._mainCont.current!.getBoundingClientRect().width;
+        const height = this._mainCont.current!.getBoundingClientRect().height;
 
-        // assumes dragger is on right
-        // let width = this._mainCont.current!.getBoundingClientRect().width;
-        // let height = this._mainCont.current!.getBoundingClientRect().width;
-        // this._left = Math.max(width, e.pageX - this._offsetX);
-        // this._top = Math.min(height, e.pageY - this._offsetY);
+        const left = e.pageX - this._offsetX;
+        const top = e.pageY - this._offsetY;
+
+        this._left = Math.min(Math.max(left, 0), window.innerWidth - width);
+        this._top = Math.min(Math.max(top, 0), window.innerHeight - height);
 
         e.stopPropagation();
         e.preventDefault();
