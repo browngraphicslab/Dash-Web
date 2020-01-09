@@ -54,8 +54,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 } else {
                     setTimeout(() => {
                         (this.props.A.props.Document[(this.props.A.props as any).fieldKey] as Doc);
-                        let m = targetBhyperlink.getBoundingClientRect();
-                        let mp = this.props.A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
+                        const m = targetBhyperlink.getBoundingClientRect();
+                        const mp = this.props.A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
                         this.props.A.props.Document[afield + "_x"] = mp[0] / this.props.A.props.PanelWidth() * 100;
                         this.props.A.props.Document[afield + "_y"] = mp[1] / this.props.A.props.PanelHeight() * 100;
                     }, 0);
@@ -66,8 +66,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 } else {
                     setTimeout(() => {
                         (this.props.B.props.Document[(this.props.B.props as any).fieldKey] as Doc);
-                        let m = targetAhyperlink.getBoundingClientRect();
-                        let mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
+                        const m = targetAhyperlink.getBoundingClientRect();
+                        const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
                         this.props.B.props.Document[afield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
                         this.props.B.props.Document[afield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
                     }, 0);
@@ -93,8 +93,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
-        let aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        let bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
+        const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
+        const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         return !aActive && !bActive ? (null) :
             <line key="linkLine" className="collectionfreeformlinkview-linkLine"
                 style={{ opacity: this._opacity, strokeDasharray: "2 2" }}

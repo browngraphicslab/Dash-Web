@@ -253,7 +253,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("touchend", this.onTouchEnd);
             document.addEventListener("touchend", this.onTouchEnd);
             if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
-            console.log("down")
         }
     }
 
