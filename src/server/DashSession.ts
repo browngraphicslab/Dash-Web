@@ -1,6 +1,6 @@
 import { Session } from "./Session/session";
 import { Email, pathFromRoot } from "./ActionUtilities";
-import { red, yellow, green } from "colors";
+import { red, yellow, green, cyan } from "colors";
 import { get } from "request-promise";
 import { Utils } from "../Utils";
 import { WebSocket } from "./Websocket/Websocket";
@@ -98,7 +98,8 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                     path: zipPath
                 }
             ]);
-            monitor.mainLog(`${error ? "successfully dispatched" : "failed to dispatch"} ${zipName} to ${recipient}`);
+            monitor.mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(recipient)}`);
+            error && monitor.mainLog(red(error.message));
         });
         return monitor;
     }
