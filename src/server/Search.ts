@@ -1,4 +1,5 @@
 import * as rp from 'request-promise';
+import { red } from 'colors';
 
 const pathTo = (relative: string) => `http://localhost:8983/solr/dash/${relative}`;
 
@@ -43,7 +44,7 @@ export namespace Search {
 
     export async function clear() {
         try {
-            return rp.post(pathTo("update"), {
+            await rp.post(pathTo("update"), {
                 body: {
                     delete: {
                         query: "*:*"
@@ -51,7 +52,10 @@ export namespace Search {
                 },
                 json: true
             });
-        } catch { }
+        } catch (e) {
+            console.log(red("Unable to clear search..."));
+            console.log(red(e.message));
+        }
     }
 
     export async function deleteDocuments(docs: string[]) {

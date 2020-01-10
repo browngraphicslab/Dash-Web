@@ -1,39 +1,67 @@
 import { Schema } from "jsonschema";
 
+const colorPattern = /black|red|green|yellow|blue|magenta|cyan|white|gray|grey/;
+
+const identifierProperties: Schema = {
+    type: "object",
+    properties: {
+        text: {
+            type: "string",
+            minLength: 1
+        },
+        color: {
+            type: "string",
+            pattern: colorPattern
+        }
+    }
+};
+
+const portProperties: Schema = {
+    type: "number",
+    minimum: 1024,
+    maximum: 65535
+};
+
 export const configurationSchema: Schema = {
     id: "/configuration",
     type: "object",
     properties: {
+        showServerOutput: { type: "boolean" },
         ports: {
             type: "object",
             properties: {
-                server: { type: "number", minimum: 1024, maximum: 65535 },
-                socket: { type: "number", minimum: 1024, maximum: 65535 }
+                server: portProperties,
+                socket: portProperties
             },
             required: ["server"],
             additionalProperties: true
         },
-        pollingRoute: {
-            type: "string",
-            pattern: /\/[a-zA-Z]*/g
+        identifiers: {
+            type: "object",
+            properties: {
+                master: identifierProperties,
+                worker: identifierProperties,
+                exec: identifierProperties
+            }
         },
-        masterIdentifier: {
-            type: "string",
-            minLength: 1
+        polling: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                intervalSeconds: {
+                    type: "number",
+                    minimum: 1,
+                    maximum: 86400
+                },
+                route: {
+                    type: "string",
+                    pattern: /\/[a-zA-Z]*/g
+                },
+                failureTolerance: {
+                    type: "number",
+                    minimum: 0,
+                }
+            }
         },
-        workerIdentifier: {
-            type: "string",
-            minLength: 1
-        },
-        showServerOutput: { type: "boolean" },
-        pollingIntervalSeconds: {
-            type: "number",
-            minimum: 1,
-            maximum: 86400
-        },
-        pollingFailureTolerance: {
-            type: "number",
-            minimum: 0,
-        }
     }
 };

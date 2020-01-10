@@ -47,6 +47,8 @@ import { AudioBox } from './AudioBox';
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
+import RichTextMenu from '../../util/RichTextMenu';
+import { DocumentDecorations } from '../DocumentDecorations';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -904,11 +906,18 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.tryUpdateHeight();
 
         // see if we need to preserve the insertion point
-        const prosediv = this.ProseRef?.children?.[0] as any;
-        const keeplocation = prosediv?.keeplocation;
+        const prosediv = this.ProseRef ?.children ?.[0] as any;
+        const keeplocation = prosediv ?.keeplocation;
         prosediv && (prosediv.keeplocation = undefined);
-        const pos = this._editorView?.state.selection.$from.pos || 1;
-        keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
+        const pos = this._editorView ?.state.selection.$from.pos || 1;
+        keeplocation && setTimeout(() => this._editorView ?.dispatch(this._editorView ?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
+
+        // jump rich text menu to this textbox
+        if (this._ref.current) {
+            const x = Math.min(Math.max(this._ref.current!.getBoundingClientRect().left, 0), window.innerWidth - RichTextMenu.Instance.width);
+            const y = this._ref.current!.getBoundingClientRect().top - RichTextMenu.Instance.height - 50;
+            RichTextMenu.Instance.jumpTo(x, y);
+        }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
@@ -924,7 +933,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if ((this._editorView!.root as any).getSelection().isCollapsed) { // this is a hack to allow the cursor to be placed at the end of a document when the document ends in an inline dash comment.  Apparently Chrome on Windows has a bug/feature which breaks this when clicking after the end of the text.
             const pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
             const node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
-            if (pcords && node?.type === this._editorView!.state.schema.nodes.dashComment) {
+            if (pcords && node ?.type === this._editorView!.state.schema.nodes.dashComment) {
                 this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pcords.pos + 2)));
                 e.preventDefault();
             }
@@ -987,7 +996,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 for (let off = 1; off < 100; off++) {
                     const pos = this._editorView!.posAtCoords({ left: x + off, top: y });
                     const node = pos && this._editorView!.state.doc.nodeAt(pos.pos);
-                    if (node?.type === schema.nodes.list_item) {
+                    if (node ?.type === schema.nodes.list_item) {
                         list_node = node;
                         break;
                     }
@@ -1032,7 +1041,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                // return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                RichTextMenu.Instance.changeView(newView);
+                return RichTextMenu.Instance;
             }
         });
     }
@@ -1052,6 +1063,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._undoTyping = undefined;
         }
         this.doLinkOnDeselect();
+
+        // move the richtextmenu offscreen
+        if (!RichTextMenu.Instance.Pinned && !RichTextMenu.Instance.overMenu) RichTextMenu.Instance.jumpTo(-300, -300);
     }
 
     _lastTimedMark: Mark | undefined = undefined;
@@ -1073,7 +1087,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         if (e.key === "Escape") {
             this._editorView!.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
-            (document.activeElement as any).blur?.();
+            (document.activeElement as any).blur ?.();
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
@@ -1095,7 +1109,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     @action
     tryUpdateHeight(limitHeight?: number) {
-        let scrollHeight = this._ref.current?.scrollHeight;
+        let scrollHeight = this._ref.current ?.scrollHeight;
         if (!this.layoutDoc.animateToPos && this.layoutDoc.autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             if (limitHeight && scrollHeight > limitHeight) {
@@ -1121,7 +1135,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+            // TODO: ftong --> update from dash in richtextmenu
+            RichTextMenu.Instance.updateFromDash(this._editorView!, undefined, this.props);
+            // FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }
@@ -1145,7 +1161,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseUp={this.onMouseUp}
-                onTouchStart={this.onTouchStart}
                 onWheel={this.onPointerWheel}
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
@@ -1156,7 +1171,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} /> :
                     <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
-                        style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc?.backgroundColor, "transparent")}` }}>
+                        style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc ?.backgroundColor, "transparent")}` }}>
                         <CollectionFreeFormView {...this.props}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={() => this.sidebarWidth}

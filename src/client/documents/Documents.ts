@@ -429,7 +429,7 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { x: number, y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
             doc.color = color;
             doc.strokeWidth = strokeWidth;

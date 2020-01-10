@@ -64,6 +64,24 @@ export namespace DocServer {
         }
     }
 
+    const instructions = "This page will automatically refresh after this alert is closed. Expect to reconnect after about 30 seconds.";
+    function alertUser(connectionTerminationReason: string) {
+        switch (connectionTerminationReason) {
+            case "crash":
+                alert(`Dash has temporarily crashed. Administrators have been notified and the server is restarting itself. ${instructions}`);
+                break;
+            case "temporary":
+                alert(`An administrator has chosen to restart the server. ${instructions}`);
+                break;
+            case "exit":
+                alert("An administrator has chosen to kill the server. Do not expect to reconnect until administrators start the server.");
+                break;
+            default:
+                console.log(`Received an unknown ConnectionTerminated message: ${connectionTerminationReason}`);
+        }
+        window.location.reload();
+    }
+
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;
@@ -82,7 +100,7 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
-        Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, () => alert("Your connection to the server has been terminated."));
+        Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, alertUser);
     }
 
     function errorFunc(): never {

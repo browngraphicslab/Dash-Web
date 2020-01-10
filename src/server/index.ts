@@ -24,7 +24,10 @@ import { Logger } from "./ProcessFactory";
 import { yellow, red } from "colors";
 import { Session } from "./Session/session";
 import { DashSessionAgent } from "./DashSession";
+import SessionManager from "./ApiManagers/SessionManager";
 
+export const onWindows = process.platform === "win32";
+export let sessionAgent: Session.AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -58,6 +61,7 @@ async function preliminaryFunctions() {
  */
 function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: RouteManager) {
     const managers = [
+        new SessionManager(),
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
@@ -86,19 +90,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: "/serverHeartbeat",
         secureHandler: ({ res }) => res.send(true)
-    });
-
-    addSupervisedRoute({
-        method: Method.GET,
-        subscription: new RouteSubscriber("kill").add("key"),
-        secureHandler: ({ req, res }) => {
-            if (req.params.key === process.env.session_key) {
-                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                sessionAgent.serverWorker.killSession();
-            } else {
-                res.redirect("/home");
-            }
-        }
     });
 
     const serve: PublicHandler = ({ req, res }) => {
@@ -143,7 +134,6 @@ export async function launchServer() {
     await initializeServer(routeSetter);
 }
 
-export const sessionAgent = new DashSessionAgent();
 /**
  * If you're in development mode, you won't need to run a session.
  * The session spawns off new server processes each time an error is encountered, and doesn't
@@ -151,7 +141,7 @@ export const sessionAgent = new DashSessionAgent();
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
 if (process.env.RELEASE) {
-    sessionAgent.launch();
+    (sessionAgent = new DashSessionAgent()).launch();
 } else {
     launchServer();
 }

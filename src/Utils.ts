@@ -4,7 +4,6 @@ import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 
 export namespace Utils {
-
     export const DRAG_THRESHOLD = 4;
 
     export function GenerateGuid(): string {

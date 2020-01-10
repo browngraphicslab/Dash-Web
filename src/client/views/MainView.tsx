@@ -40,6 +40,7 @@ import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
 import { TraceMobx } from '../../new_fields/util';
+import RichTextMenu from '../util/RichTextMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -386,7 +387,7 @@ export class MainView extends React.Component {
                     getScale={returnOne}>
                 </DocumentView>
             </div>
-            <div style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "auto" }}>
+            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "visible" }}>
                 <DocumentView
                     Document={sidebarContent}
                     DataDoc={undefined}
@@ -516,6 +517,7 @@ export class MainView extends React.Component {
             <ContextMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
+            <RichTextMenu />
             <OverlayView />
         </div >);
     }
