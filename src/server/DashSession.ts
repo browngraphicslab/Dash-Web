@@ -91,7 +91,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             zip.pipe(output);
             zip.directory(`${backupsDirectory}/${target}/Dash`, false);
             await zip.finalize();
-            monitor.mainLog(`zip finalized with size ${statSync(zipPath).size}, saved to ${zipPath}`);
+            monitor.mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
             const instructions = [
                 `Instructions:\n\nDownload this attachment, open your downloads folder and find this file (${zipName}).`,
                 `Right click on the zip file and select 'Extract to ${target}\\'.`,
