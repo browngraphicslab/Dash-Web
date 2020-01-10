@@ -5,6 +5,7 @@ export const DocumentsCollection = 'documents';
 export const NewDocumentsCollection = 'newDocuments';
 export interface IDatabase {
     update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert?: boolean, collectionName?: string): Promise<void>;
+    updateMany(query: any, update: any, collectionName?: string): Promise<mongodb.WriteOpResult>;
 
     replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert?: boolean, collectionName?: string): void;
 

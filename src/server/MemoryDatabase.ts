@@ -40,6 +40,10 @@ export class MemoryDatabase implements IDatabase {
         return Promise.resolve(undefined);
     }
 
+    public updateMany(query: any, update: any, collectionName = NewDocumentsCollection): Promise<mongodb.WriteOpResult> {
+        throw new Error("Can't updateMany a MemoryDatabase");
+    }
+
     public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert?: boolean, collectionName = DocumentsCollection): void {
         this.update(id, value, callback, upsert, collectionName);
     }
