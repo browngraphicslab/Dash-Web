@@ -20,6 +20,13 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     private readonly notificationRecipients = ["samuel_wilkins@brown.edu"];
     private readonly signature = "-Dash Server Session Manager";
     private readonly releaseDesktop = pathFromRoot("../../Desktop");
+    private _instructions: string | undefined;
+    private get instructions() {
+        if (!this._instructions) {
+            this._instructions = readFileSync(resolve(__dirname, "./remote_debug_instructions.txt"), { encoding: "utf8" });
+        }
+        return this._instructions;
+    }
 
     protected async launchMonitor() {
         const monitor = Session.Monitor.Create(this.notifiers);
@@ -43,7 +50,11 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
             // to kill the server via the /kill/:key route
             const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${this.signature}`;
-            const failures = await Email.dispatchAll(this.notificationRecipients, "Dash Release Session Admin Authentication Key", content);
+            const failures = await Email.dispatchAll({
+                to: this.notificationRecipients,
+                subject: "Dash Release Session Admin Authentication Key",
+                content
+            });
             if (failures) {
                 failures.map(({ recipient, error: { message } }) => this.sessionMonitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                 return false;
@@ -59,7 +70,11 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                 "The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.",
             ].join("\n\n");
             const content = `${body}\n\n${this.signature}`;
-            const failures = await Email.dispatchAll(this.notificationRecipients, "Dash Web Server Crash", content);
+            const failures = await Email.dispatchAll({
+                to: this.notificationRecipients,
+                subject: "Dash Web Server Crash",
+                content
+            });
             if (failures) {
                 failures.map(({ recipient, error: { message } }) => this.sessionMonitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                 return false;
@@ -95,23 +110,30 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
 
     private backup = async () => this.sessionMonitor.exec("backup.bat", { cwd: this.releaseDesktop });
 
-    private async dispatchZippedDebugBackup(mode: string, recipient: string) {
+    private async dispatchZippedDebugBackup(mode: string, to: string) {
         const { mainLog } = this.sessionMonitor;
         try {
+            // if desired, complete an immediate backup to send
             if (mode === "active") {
                 await this.backup();
+                mainLog("backup complete");
             }
-            mainLog("backup complete");
+
+            // ensure the directory for compressed backups exists
             const backupsDirectory = `${this.releaseDesktop}/backups`;
             const compressedDirectory = `${this.releaseDesktop}/compressed`;
             if (!existsSync(compressedDirectory)) {
                 mkdirSync(compressedDirectory);
             }
+
+            // sort all backups by their modified time, and choose the most recent one
             const target = readdirSync(backupsDirectory).map(filename => ({
                 modifiedTime: statSync(`${backupsDirectory}/${filename}`).mtimeMs,
                 filename
             })).sort((a, b) => b.modifiedTime - a.modifiedTime)[0].filename;
             mainLog(`targeting ${target}...`);
+
+            // create a zip file and to it, write the contents of the backup directory
             const zipName = `${target}.zip`;
             const zipPath = `${compressedDirectory}/${zipName}`;
             const output = createWriteStream(zipPath);
@@ -120,15 +142,20 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             zip.directory(`${backupsDirectory}/${target}/Dash`, false);
             await zip.finalize();
             mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
-            let instructions = readFileSync(resolve(__dirname, "./remote_debug_instructions.txt"), { encoding: "utf8" });
-            instructions = instructions.replace(/__zipname__/, zipName).replace(/__target__/, target).replace(/__signature__/, this.signature);
-            const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, instructions, [
-                {
-                    filename: zipName,
-                    path: zipPath
-                }
-            ]);
-            mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(recipient)}`);
+
+            // dispatch the email to the recipient, containing the finalized zip file
+            const error = await Email.dispatch({
+                to,
+                subject: `Remote debug: compressed backup of ${target}...`,
+                content: this.instructions // prepare the body of the email with instructions on restoring the local database
+                    .replace(/__zipname__/, zipName)
+                    .replace(/__target__/, target)
+                    .replace(/__signature__/, this.signature),
+                attachments: [{ filename: zipName, path: zipPath }]
+            });
+
+            // indicate success or failure
+            mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(to)}`);
             error && mainLog(red(error.message));
         } catch (error) {
             mainLog(red("unable to dispatch zipped backup..."));

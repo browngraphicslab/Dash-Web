@@ -119,16 +119,24 @@ export namespace Email {
         }
     });
 
+    export interface DispatchOptions<T extends string | string[]> {
+        to: T;
+        subject: string;
+        content: string;
+        attachments?: Mail.Attachment | Mail.Attachment[];
+    }
+
     export interface DispatchFailure {
         recipient: string;
         error: Error;
     }
 
-    export async function dispatchAll(recipients: string[], subject: string, content: string) {
+    export async function dispatchAll({ to, subject, content, attachments }: DispatchOptions<string[]>) {
         const failures: DispatchFailure[] = [];
-        await Promise.all(recipients.map(async (recipient: string) => {
+        await Promise.all(to.map(async recipient => {
             let error: Error | null;
-            if ((error = await Email.dispatch(recipient, subject, content)) !== null) {
+            const resolved = attachments ? "length" in attachments ? attachments : [attachments] : undefined;
+            if ((error = await Email.dispatch({ to: recipient, subject, content, attachments: resolved })) !== null) {
                 failures.push({
                     recipient,
                     error
@@ -138,17 +146,15 @@ export namespace Email {
         return failures.length ? failures : undefined;
     }
 
-    export async function dispatch(recipient: string, subject: string, content: string, attachments?: Mail.Attachment[]): Promise<Error | null> {
+    export async function dispatch({ to, subject, content, attachments }: DispatchOptions<string>): Promise<Error | null> {
         const mailOptions = {
-            to: recipient,
+            to,
             from: 'brownptcdash@gmail.com',
             subject,
-            text: `Hello ${recipient.split("@")[0]},\n\n${content}`,
+            text: `Hello ${to.split("@")[0]},\n\n${content}`,
             attachments
         } as MailOptions;
-        return new Promise<Error | null>(resolve => {
-            smtpTransport.sendMail(mailOptions, resolve);
-        });
+        return new Promise<Error | null>(resolve => smtpTransport.sendMail(mailOptions, resolve));
     }
 
 }

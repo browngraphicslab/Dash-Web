@@ -19,7 +19,7 @@ export default class SessionManager extends ApiManager {
             if (password !== process.env.session_key) {
                 return _permission_denied(res, permissionError);
             }
-            handler(core);
+            return handler(core);
         };
     }
 
@@ -28,11 +28,15 @@ export default class SessionManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: this.secureSubscriber("debug", "mode", "recipient"),
-            secureHandler: this.authorizedAction(({ req, res }) => {
+            secureHandler: this.authorizedAction(async ({ req, res }) => {
                 const { mode, recipient } = req.params;
                 if (["passive", "active"].includes(mode)) {
-                    sessionAgent.serverWorker.sendMonitorAction("debug", { mode, recipient });
-                    res.send(`Your request was successful: the server is ${mode === "active" ? "creating and compressing a new" : "retrieving and compressing the most recent"} back up. It will be sent to ${recipient}.`);
+                    const response = await sessionAgent.serverWorker.sendMonitorAction("debug", { mode, recipient }, true);
+                    if (response instanceof Error) {
+                        res.send(response);
+                    } else {
+                        res.send(`Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
+                    }
                 } else {
                     res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
                 }
@@ -42,9 +46,13 @@ export default class SessionManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
-            secureHandler: this.authorizedAction(({ res }) => {
-                sessionAgent.serverWorker.sendMonitorAction("backup");
-                res.send(`Your request was successful: the server is creating a new back up.`);
+            secureHandler: this.authorizedAction(async ({ res }) => {
+                const response = await sessionAgent.serverWorker.sendMonitorAction("backup");
+                if (response instanceof Error) {
+                    res.send(response);
+                } else {
+                    res.send("Your request was successful: the server successfully created a new back up.");
+                }
             })
         });
 
