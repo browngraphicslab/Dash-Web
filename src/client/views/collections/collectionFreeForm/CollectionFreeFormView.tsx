@@ -772,7 +772,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
-            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), this.viewDefsToJSX);
+            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doFreeformLayout(poolData: ObservableMap<string, any>) {
@@ -987,6 +987,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             </CollectionFreeFormViewPannableContents>
         </MarqueeView>;
     }
+    @computed get contentScaling() {
+        let hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
+        let wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
+        return wscale < hscale ? wscale : hscale;
+    }
     render() {
         TraceMobx();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
@@ -998,9 +1003,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         if (!this.extensionDoc) return (null);
         // let lodarea = this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale;
-        return <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
-            style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
-            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>
+        return <div className={"collectionfreeformview-container"}
+            ref={this.createDropTarget}
+            onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}
+            style={{
+                pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+                transform: this.contentScaling ? `scale(${this.contentScaling})` : "",
+                transformOrigin: this.contentScaling ? "left top" : "",
+                width: this.contentScaling ? `${100 / this.contentScaling}%` : "",
+                height: this.contentScaling ? `${100 / this.contentScaling}%` : this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
+            }}>
             {!this.Document.LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />

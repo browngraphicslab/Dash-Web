@@ -217,7 +217,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             `(${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "true";
 
-        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(fullScript, { doc: Doc.name });
+        const docFilter = StrCast(this.props.CollectionView.props.Document.docFilter);
+        const finalScript = docFilter && !fullScript.startsWith("(())") ? `${fullScript} ${docFilter ? "&&" : ""} (${docFilter})` :
+            docFilter ? docFilter : fullScript;
+
+        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(finalScript, { doc: Doc.name });
     }
 
     @action

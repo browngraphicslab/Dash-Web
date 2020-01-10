@@ -176,7 +176,7 @@
         "nodemailer": "^5.1.1",
         "nodemon": "^1.18.10",
         "normalize.css": "^8.0.1",
-        "npm": "^6.13.4",
+        "npm": "^6.13.6",
         "p-limit": "^2.2.0",
         "passport": "^0.4.0",
         "passport-google-oauth20": "^2.0.0",

@@ -14,13 +14,13 @@ function makeTemplate(doc: Doc): boolean {
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
     const docs = DocListCast(layoutDoc[fieldKey]);
     let any = false;
-    docs.map(d => {
+    docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
             any = true;
-            return Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
+            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
+        } else if (d.type === DocumentType.COL) {
+            any = makeTemplate(d) || any;
         }
-        if (d.type === DocumentType.COL) return makeTemplate(d);
-        return false;
     });
     return any;
 }
