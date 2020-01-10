@@ -6,6 +6,7 @@ import * as rimraf from "rimraf";
 import { yellow, Color } from 'colors';
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
+import Mail = require('nodemailer/lib/mailer');
 
 const projectRoot = path.resolve(__dirname, "../../");
 export function pathFromRoot(relative?: string) {
@@ -137,12 +138,13 @@ export namespace Email {
         return failures.length ? failures : undefined;
     }
 
-    export async function dispatch(recipient: string, subject: string, content: string): Promise<Error | null> {
+    export async function dispatch(recipient: string, subject: string, content: string, attachments?: Mail.Attachment[]): Promise<Error | null> {
         const mailOptions = {
             to: recipient,
             from: 'brownptcdash@gmail.com',
             subject,
-            text: `Hello ${recipient.split("@")[0]},\n\n${content}`
+            text: `Hello ${recipient.split("@")[0]},\n\n${content}`,
+            attachments
         } as MailOptions;
         return new Promise<Error | null>(resolve => {
             smtpTransport.sendMail(mailOptions, resolve);

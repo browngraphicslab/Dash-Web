@@ -1,11 +1,13 @@
 import { Session } from "./Session/session";
-import { Email } from "./ActionUtilities";
+import { Email, pathFromRoot } from "./ActionUtilities";
 import { red, yellow, green } from "colors";
 import { get } from "request-promise";
 import { Utils } from "../Utils";
 import { WebSocket } from "./Websocket/Websocket";
 import { MessageStore } from "./Message";
 import { launchServer, onWindows } from ".";
+import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream } from "fs";
+import * as Archiver from "archiver";
 
 /**
 * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -48,15 +50,55 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             }
         });
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
-        monitor.addReplCommand("solr", [/start|stop/], async args => {
-            const command = `${onWindows ? "solr.cmd" : "solr"} ${args[0] === "start" ? "start" : "stop -p 8983"}`;
-            await monitor.exec(command, { cwd: "./solr-8.3.1/bin" });
-            try {
-                await get("http://localhost:8983");
-                monitor.mainLog(green("successfully connected to 8983 after running solr initialization"));
-            } catch {
-                monitor.mainLog(red("unable to connect at 8983 after running solr initialization"));
+        monitor.addReplCommand("solr", [/start|stop|index/], async args => {
+            const action = args[0];
+            if (action === "index") {
+                monitor.exec("npx ts-node ./updateSearch.ts", { cwd: pathFromRoot("./src/server") });
+            } else {
+                const command = `${onWindows ? "solr.cmd" : "solr"} ${args[0] === "start" ? "start" : "stop -p 8983"}`;
+                await monitor.exec(command, { cwd: "./solr-8.3.1/bin" });
+                try {
+                    await get("http://localhost:8983");
+                    monitor.mainLog(green("successfully connected to 8983 after running solr initialization"));
+                } catch {
+                    monitor.mainLog(red("unable to connect at 8983 after running solr initialization"));
+                }
             }
+        });
+        const releaseDesktop = pathFromRoot("../../Desktop");
+        const backup = () => monitor.exec("./backup.bat", { cwd: releaseDesktop });
+        monitor.addReplCommand("backup", [], backup);
+        monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async args => {
+            const [mode, recipient] = args;
+            if (mode === "active") {
+                await backup();
+            }
+            monitor.mainLog("backup complete");
+            const backupsDirectory = `${releaseDesktop}/backups`;
+            const compressedDirectory = `${releaseDesktop}/compressed`;
+            if (!existsSync(compressedDirectory)) {
+                mkdirSync(compressedDirectory);
+            }
+            const target = readdirSync(backupsDirectory).map(filename => ({
+                modifiedTime: statSync(`${backupsDirectory}/${filename}`).mtimeMs,
+                filename
+            })).sort((a, b) => b.modifiedTime - a.modifiedTime)[0].filename;
+            monitor.mainLog(`targeting ${target}...`);
+            const zipName = `${target}.zip`;
+            const zipPath = `${compressedDirectory}/${zipName}`;
+            const output = createWriteStream(zipPath);
+            const zip = Archiver('zip');
+            zip.pipe(output);
+            zip.directory(`${backupsDirectory}/${target}/Dash`, false);
+            await zip.finalize();
+            monitor.mainLog(`zip finalized, saved to ${zipPath}`);
+            const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, "mongorestore, etc.", [
+                {
+                    filename: zipName,
+                    path: zipPath
+                }
+            ]);
+            monitor.mainLog(`${error ? "successfully dispatched" : "failed to dispatch"} ${zipName} to ${recipient}`);
         });
         return monitor;
     }
