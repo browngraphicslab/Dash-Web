@@ -52,8 +52,8 @@ export default class SessionManager extends ApiManager {
             method: Method.GET,
             subscription: this.secureSubscriber("kill"),
             secureHandler: this.authorizedAction(({ res }) => {
-                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                sessionAgent.killSession("an authorized user has manually ended the server session via the /kill route", true);
+                res.send("Your request was successful: the server and its session have been killed.");
+                sessionAgent.killSession("an authorized user has manually ended the server session via the /kill route");
             })
         });
 
