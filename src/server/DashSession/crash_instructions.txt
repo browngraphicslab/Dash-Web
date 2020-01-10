@@ -1,0 +1,14 @@
+You, as a Dash Administrator, are being notified of a server crash event. Here's what we know:
+
+name:
+__name__
+
+message:
+__message__
+
+stack:
+__stack__
+
+The server is already restarting itself, but if you're concerned, use the Remote Desktop Connection to monitor progress.
+
+__signature__

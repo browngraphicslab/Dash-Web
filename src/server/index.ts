@@ -22,7 +22,7 @@ import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
-import { DashSessionAgent } from "./DashSessionAgent";
+import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
 import { AppliedSessionAgent } from "./session/agents/applied_session_agent";
 

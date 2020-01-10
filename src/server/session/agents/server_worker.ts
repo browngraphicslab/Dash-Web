@@ -3,6 +3,7 @@ import { isMaster } from "cluster";
 import { IPC } from "../utilities/ipc";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
+import { Monitor } from "./monitor";
 
 /**
  * Effectively, each worker repairs the connection to the server by reintroducing a consistent state
@@ -19,6 +20,7 @@ export class ServerWorker {
     private pollingFailureTolerance: number;
     private pollTarget: string;
     private serverPort: number;
+    private isInitialized = false;
 
     public static Create(work: Function) {
         if (isMaster) {
@@ -136,6 +138,8 @@ export class ServerWorker {
                     if (!this.shouldServerBeResponsive) {
                         // notify monitor thread that the server is up and running
                         this.lifecycleNotification(green(`listening on ${this.serverPort}...`));
+                        this.sendMonitorAction(Monitor.IntrinsicEvents.ServerRunning, { firstTime: !this.isInitialized });
+                        this.isInitialized = true;
                     }
                     this.shouldServerBeResponsive = true;
                 } catch (error) {

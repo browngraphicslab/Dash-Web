@@ -1,6 +1,6 @@
 import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
-import Repl, { ReplAction } from "../../repl";
+import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
 import { IPC } from "../utilities/ipc";
 import { red, cyan, white, yellow, blue, green } from "colors";
@@ -9,39 +9,24 @@ import { Utils } from "../../../Utils";
 import { validate, ValidationError } from "jsonschema";
 import { Utilities } from "../utilities/utilities";
 import { readFileSync } from "fs";
-
-export namespace Monitor {
-
-    export interface NotifierHooks {
-        key?: (key: string) => (boolean | Promise<boolean>);
-        crash?: (error: Error) => (boolean | Promise<boolean>);
-    }
-
-    export interface Action {
-        message: string;
-        args: any;
-    }
-
-    export type ServerMessageHandler = (action: Action) => void | Promise<void>;
-
-}
+import { EventEmitter } from "events";
 
 /**
  * Validates and reads the configuration file, accordingly builds a child process factory
  * and spawns off an initial process that will respawn as predecessors die.
  */
-export class Monitor {
+export class Monitor extends EventEmitter {
 
     private static count = 0;
+    private finalized = false;
     private exitHandlers: ExitHandler[] = [];
-    private readonly notifiers: Monitor.NotifierHooks | undefined;
     private readonly config: Configuration;
     private onMessage: { [message: string]: Monitor.ServerMessageHandler[] | undefined } = {};
     private activeWorker: Worker | undefined;
     private key: string | undefined;
     private repl: Repl;
 
-    public static Create(notifiers?: Monitor.NotifierHooks) {
+    public static Create() {
         if (isWorker) {
             IPC.dispatchMessage(process, {
                 action: {
@@ -58,7 +43,7 @@ export class Monitor {
             console.error(red("cannot create more than one monitor."));
             process.exit(1);
         } else {
-            return new Monitor(notifiers);
+            return new Monitor();
         }
     }
 
@@ -141,14 +126,12 @@ export class Monitor {
      */
     public clearServerMessageListeners = (message: string) => this.onMessage[message] = undefined;
 
-    private constructor(notifiers?: Monitor.NotifierHooks) {
-        this.notifiers = notifiers;
+    private constructor() {
+        super();
 
         console.log(this.timestamp(), cyan("initializing session..."));
-
         this.config = this.loadAndValidateConfiguration();
 
-        this.initializeSessionKey();
         // determines whether or not we see the compilation / initialization / runtime output of each child server process
         const output = this.config.showServerOutput ? "inherit" : "ignore";
         setupMaster({ stdio: ["ignore", output, output, "ipc"] });
@@ -174,6 +157,14 @@ export class Monitor {
         });
 
         this.repl = this.initializeRepl();
+    }
+
+    public finalize = (): void => {
+        if (this.finalized) {
+            throw new Error("Session monitor is already finalized");
+        }
+        this.finalized = true;
+        this.emit(Monitor.IntrinsicEvents.KeyGenerated, this.key = Utils.GenerateGuid());
         this.spawn();
     }
 
@@ -195,22 +186,6 @@ export class Monitor {
      */
     private execLog = (...optionalParams: any[]) => {
         console.log(this.timestamp(), this.config.identifiers.exec.text, ...optionalParams);
-    }
-
-    /**
-     * If the caller has indicated an interest
-     * in being notified of this feature, creates
-     * a GUID for this session that can, for example,
-     * be used as authentication for killing the server
-     * (checked externally).
-     */
-    private initializeSessionKey = async (): Promise<void> => {
-        if (this.notifiers?.key) {
-            this.key = Utils.GenerateGuid();
-            const success = await this.notifiers.key(this.key);
-            const statement = success ? green("distributed session key to recipients") : red("distribution of session key failed");
-            this.mainLog(statement);
-        }
     }
 
     /**
@@ -351,12 +326,10 @@ export class Monitor {
                         this.killSession(reason, graceful, errorCode);
                         break;
                     case "notify_crash":
-                        if (this.notifiers?.crash) {
-                            const { error } = args;
-                            const success = await this.notifiers.crash(error);
-                            const statement = success ? green("distributed crash notification to recipients") : red("distribution of crash notification failed");
-                            this.mainLog(statement);
-                        }
+                        this.emit(Monitor.IntrinsicEvents.CrashDetected, args.error);
+                        break;
+                    case Monitor.IntrinsicEvents.ServerRunning:
+                        this.emit(Monitor.IntrinsicEvents.ServerRunning, args.firstTime);
                         break;
                     case "set_port":
                         const { port, value, immediateRestart } = args;
@@ -372,6 +345,23 @@ export class Monitor {
                 console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${lifecycle})`);
             }
         });
+    }
+
+}
+
+export namespace Monitor {
+
+    export interface Action {
+        message: string;
+        args: any;
+    }
+
+    export type ServerMessageHandler = (action: Action) => void | Promise<void>;
+
+    export enum IntrinsicEvents {
+        KeyGenerated = "key_generated",
+        CrashDetected = "crash_detected",
+        ServerRunning = "server_running"
     }
 
 }
