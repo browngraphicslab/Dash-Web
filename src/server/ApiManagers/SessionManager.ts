@@ -20,7 +20,6 @@ export default class SessionManager extends ApiManager {
                 return _permission_denied(res, permissionError);
             }
             handler(core);
-            res.redirect("/home");
         };
     }
 
@@ -29,10 +28,13 @@ export default class SessionManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: this.secureSubscriber("debug", "mode", "recipient"),
-            secureHandler: this.authorizedAction(({ req }) => {
+            secureHandler: this.authorizedAction(({ req, res }) => {
                 const { mode, recipient } = req.params;
                 if (["passive", "active"].includes(mode)) {
                     sessionAgent.serverWorker.sendMonitorAction("debug", { mode, recipient });
+                    res.send(`Your request was successful: the server is ${mode === "active" ? "creating and compressing a new" : "retrieving and compressing the most recent"} back up. It will be sent to ${recipient}.`);
+                } else {
+                    res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
                 }
             })
         });
@@ -40,7 +42,10 @@ export default class SessionManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
-            secureHandler: this.authorizedAction(() => sessionAgent.serverWorker.sendMonitorAction("backup"))
+            secureHandler: this.authorizedAction(({ res }) => {
+                sessionAgent.serverWorker.sendMonitorAction("backup");
+                res.send(`Your request was successful: the server is creating a new back up.`);
+            })
         });
 
         register({
