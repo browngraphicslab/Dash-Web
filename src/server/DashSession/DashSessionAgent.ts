@@ -54,7 +54,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
     private _remoteDebugInstructions: string | undefined;
     private generateDebugInstructions = (zipName: string, target: string) => {
         if (!this._remoteDebugInstructions) {
-            this._remoteDebugInstructions = readFileSync(resolve(__dirname, "./remote_debug_instructions.txt"), { encoding: "utf8" });
+            this._remoteDebugInstructions = readFileSync(resolve(__dirname, "./templates/remote_debug_instructions.txt"), { encoding: "utf8" });
         }
         return this._remoteDebugInstructions
             .replace(/__zipname__/, zipName)
@@ -68,7 +68,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
     private _crashInstructions: string | undefined;
     private generateCrashInstructions({ name, message, stack }: Error) {
         if (!this._crashInstructions) {
-            this._crashInstructions = readFileSync(resolve(__dirname, "./crash_instructions.txt"), { encoding: "utf8" });
+            this._crashInstructions = readFileSync(resolve(__dirname, "./templates/crash_instructions.txt"), { encoding: "utf8" });
         }
         return this._crashInstructions
             .replace(/__name__/, name || "[no error name found]")
