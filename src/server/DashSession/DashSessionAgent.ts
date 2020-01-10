@@ -19,7 +19,6 @@ import { ServerWorker } from "../session/agents/server_worker";
  */
 export class DashSessionAgent extends AppliedSessionAgent {
 
-    private readonly notificationRecipients = ["brownptcdash@gmail.com"];
     private readonly signature = "-Dash Server Session Manager";
     private readonly releaseDesktop = pathFromRoot("../../Desktop");
 
@@ -83,14 +82,15 @@ export class DashSessionAgent extends AppliedSessionAgent {
      */
     private dispatchSessionPassword = async (key: string) => {
         const { mainLog } = this.sessionMonitor;
+        const { notificationRecipient } = DashSessionAgent;
         mainLog(green("dispatching session key..."));
-        const failures = await Email.dispatchAll({
-            to: this.notificationRecipients,
+        const error = await Email.dispatch({
+            to: notificationRecipient,
             subject: "Dash Release Session Admin Authentication Key",
             content: `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${this.signature}`
         });
-        if (failures) {
-            failures.map(({ recipient, error: { message } }) => this.sessionMonitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+        if (error) {
+            this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
             mainLog(red("distribution of session key experienced errors"));
         } else {
             mainLog(green("successfully distributed session key to recipients"));
@@ -102,13 +102,14 @@ export class DashSessionAgent extends AppliedSessionAgent {
      */
     private dispatchCrashReport = async (crashCause: Error) => {
         const { mainLog } = this.sessionMonitor;
-        const failures = await Email.dispatchAll({
-            to: this.notificationRecipients,
+        const { notificationRecipient } = DashSessionAgent;
+        const error = await Email.dispatch({
+            to: notificationRecipient,
             subject: "Dash Web Server Crash",
             content: this.generateCrashInstructions(crashCause)
         });
-        if (failures) {
-            failures.map(({ recipient, error: { message } }) => this.sessionMonitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
+        if (error) {
+            this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
             mainLog(red("distribution of crash notification experienced errors"));
         } else {
             mainLog(green("successfully distributed crash notification to recipients"));
@@ -209,5 +210,11 @@ export class DashSessionAgent extends AppliedSessionAgent {
             mainLog(red(error.message));
         }
     }
+
+}
+
+export namespace DashSessionAgent {
+
+    export const notificationRecipient = "brownptcdash@gmail.com";
 
 }
