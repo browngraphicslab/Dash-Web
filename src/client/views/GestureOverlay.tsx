@@ -43,9 +43,43 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerMove = (e: PointerEvent) => {
-        this._points.push({ X: e.clientX, Y: e.clientY });
-        e.stopPropagation();
-        e.preventDefault();
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+            this._points.push({ X: e.clientX, Y: e.clientY });
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
+    handleLineGesture = (): boolean => {
+        let actionPerformed = false;
+        const B = this.svgBounds;
+        const ep1 = this._points[0];
+        const ep2 = this._points[this._points.length - 1];
+
+        const target1 = document.elementFromPoint(ep1.X, ep1.Y);
+        const target2 = document.elementFromPoint(ep2.X, ep2.Y);
+        const callback = (doc: Doc) => {
+            if (!this._d1) {
+                this._d1 = doc;
+            }
+            else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
+                DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
+                actionPerformed = true;
+            }
+        }
+        const ge = new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+            {
+                bubbles: true,
+                detail: {
+                    points: this._points,
+                    gesture: GestureUtils.Gestures.Line,
+                    bounds: B,
+                    callbackFn: callback
+                }
+            });
+        target1?.dispatchEvent(ge);
+        target2?.dispatchEvent(ge);
+        return actionPerformed;
     }
 
     @action
@@ -72,31 +106,10 @@ export default class GestureOverlay extends Touchable {
                         actionPerformed = true;
                         break;
                     case GestureUtils.Gestures.Line:
-                        const ep1 = this._points[0];
-                        const ep2 = this._points[this._points.length - 1];
-                        const target1 = document.elementFromPoint(ep1.X, ep1.Y);
-                        const target2 = document.elementFromPoint(ep2.X, ep2.Y);
-                        const callback = (doc: Doc) => {
-                            if (!this._d1) {
-                                this._d1 = doc;
-                            }
-                            else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
-                                DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
-                                actionPerformed = true;
-                            }
-                        }
-                        const ge = new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
-                            {
-                                bubbles: true,
-                                detail: {
-                                    points: this._points,
-                                    gesture: GestureUtils.Gestures.Line,
-                                    bounds: B,
-                                    callbackFn: callback
-                                }
-                            })
-                        target1?.dispatchEvent(ge);
-                        target2?.dispatchEvent(ge);
+                        actionPerformed = this.handleLineGesture();
+                        break;
+                    case GestureUtils.Gestures.Scribble:
+                        console.log("scribble");
                         break;
                 }
                 if (actionPerformed) {

@@ -44,6 +44,7 @@ import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { LinkManager } from "../../../util/LinkManager";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import Palette from "../../Palette";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -442,6 +443,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (this.props.active(true)) {
                 e.stopPropagation();
             }
+            return;
+        }
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
             return;
         }
         if (!e.cancelBubble) {
@@ -844,6 +848,53 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], inkData);
     }
 
+    private thumbIdentifier?: number;
+    private hand?: React.Touch[];
+
+    @action
+    handleHandDown = (e: React.TouchEvent) => {
+        const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        this.hand = fingers;
+        const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+        this.thumbIdentifier = thumb?.identifier;
+        const others = fingers.filter(f => f !== thumb);
+        const minX = Math.min(...others.map(f => f.clientX));
+        const minY = Math.min(...others.map(f => f.clientY));
+        const t = this.getTransform().transformPoint(minX, minY);
+        const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
+        this._palette = <Palette x={t[0]} y={t[1]} thumb={th} />;
+
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchmove", this.handleHandMove);
+        document.addEventListener("touchmove", this.handleHandMove);
+        document.removeEventListener("touchend", this.handleHandUp);
+        document.addEventListener("touchend", this.handleHandUp);
+    }
+
+    @action
+    handleHandMove = (e: TouchEvent) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const pt = e.changedTouches.item(i);
+            if (pt?.identifier === this.thumbIdentifier) {
+            }
+        }
+    }
+
+    @action
+    handleHandUp = (e: TouchEvent) => {
+        console.log(e.changedTouches.length);
+        this.onTouchEnd(e);
+        if (this.prevPoints.size < 3) {
+            if (this.hand) {
+                for (const h of this.hand) {
+                    this.prevPoints.has(h.identifier) && this.prevPoints.delete(h.identifier);
+                }
+            }
+            this._palette = undefined;
+            document.removeEventListener("touchend", this.handleHandUp);
+        }
+    }
+
     onContextMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
 
@@ -907,9 +958,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ];
     }
 
+    @observable private _palette?: JSX.Element;
+
     children = () => {
         const eles: JSX.Element[] = [];
         this.extensionDoc && (eles.push(...this.childViews()));
+        this._palette && (eles.push(this._palette));
         // this.currentStroke && (eles.push(this.currentStroke));
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;

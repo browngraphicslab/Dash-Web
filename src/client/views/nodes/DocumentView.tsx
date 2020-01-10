@@ -256,7 +256,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("touchend", this.onTouchEnd);
             document.addEventListener("touchend", this.onTouchEnd);
             if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
-            console.log("down")
         }
     }
 
@@ -327,6 +326,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
                 if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
                     layoutDoc.ignoreAspect = false;
+
                     layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
                     layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
                 }
@@ -357,8 +357,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
                 }
             }
-            // let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
-            // this.props.Document.width = newWidth;
             e.stopPropagation();
             e.preventDefault();
         }
@@ -374,19 +372,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             return;
         }
-        // if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
-        //     e.stopPropagation();
-        //     return;
-        // }
         if (!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart) {
-            // if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
-            //     // return if we're inking, and not selecting a button document
-            //     || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
-            //     // return if using pen or eraser
-            //     || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) {
-            //     return;
-            // }
-
             this._downX = e.clientX;
             this._downY = e.clientY;
             this._hitTemplateDrag = false;
@@ -408,6 +394,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onPointerMove = (e: PointerEvent): void => {
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }

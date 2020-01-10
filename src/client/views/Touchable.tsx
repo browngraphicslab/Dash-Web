@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { action } from 'mobx';
 import { InteractionUtils } from '../util/InteractionUtils';
+import { SelectionManager } from '../util/SelectionManager';
 
 const HOLD_DURATION = 1000;
 
@@ -34,10 +35,18 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 case 1:
                     this.handle1PointerDown(e);
                     e.persist();
+                    if (this.holdTimer) {
+                        clearTimeout(this.holdTimer)
+                        this.holdTimer = undefined;
+                    }
                     this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(e), HOLD_DURATION);
+                    console.log(this.holdTimer);
                     break;
                 case 2:
                     this.handle2PointersDown(e);
+                    break;
+                case 5:
+                    this.handleHandDown(e);
                     break;
             }
         }
@@ -54,7 +63,9 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         if (this.holdTimer) {
+            console.log("clear");
             clearTimeout(this.holdTimer);
+            this.holdTimer = undefined;
         }
         switch (myTouches.length) {
             case 1:
@@ -88,7 +99,9 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             }
         }
         if (this.holdTimer) {
+            console.log("clear");
             clearTimeout(this.holdTimer);
+            this.holdTimer = undefined;
         }
         this._touchDrag = false;
         e.stopPropagation();
@@ -134,6 +147,11 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
     handle1PointerHoldStart = (e: React.TouchEvent): any => {
         console.log("Hold");
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    handleHandDown = (e: React.TouchEvent) => {
         e.stopPropagation();
         e.preventDefault();
     }

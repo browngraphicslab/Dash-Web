@@ -121,6 +121,7 @@
         "async": "^2.6.2",
         "babel-runtime": "^6.26.0",
         "bcrypt-nodejs": "0.0.3",
+        "bentley-ottman-sweepline": "^0.1.4",
         "bluebird": "^3.5.3",
         "body-parser": "^1.18.3",
         "bootstrap": "^4.3.1",

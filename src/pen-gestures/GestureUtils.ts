@@ -37,7 +37,8 @@ export namespace GestureUtils {
     export enum Gestures {
         Box = "box",
         Line = "line",
-        Stroke = "stroke"
+        Stroke = "stroke",
+        Scribble = "scribble"
     }
 
     export const GestureRecognizer = new NDollarRecognizer(false);
