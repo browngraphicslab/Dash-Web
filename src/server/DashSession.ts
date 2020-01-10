@@ -95,7 +95,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             const instructions = [
                 `Instructions:\n\nDownload this attachment, open your downloads folder and find this file (${zipName}).`,
                 `Right click on the zip file and select 'Extract to ${target}\\'.`,
-                "Open up the command line, and remembe that you can get the path to any file or directory by literally dragging it from the file system and dropping it onto the terminal.",
+                "Open up the command line, and remember that you can get the path to any file or directory by literally dragging it from the file system and dropping it onto the terminal.",
                 "Unless it's in your path, you'll want to navigate to the mongodb bin directory, given for Windows: cd '/c/Program Files/MongoDB/Server/[your version goes here]/bin'. Then run the following command:\n",
                 "mongorestore --gzip [/path/to/directory/you/just/unzipped] --db Dash.\n",
                 "Assuming everything runs well, this will mirror your local database with that of the server.",
