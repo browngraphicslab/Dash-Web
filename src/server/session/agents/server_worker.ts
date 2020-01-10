@@ -118,7 +118,7 @@ export class ServerWorker {
     private proactiveUnplannedExit = async (error: Error): Promise<void> => {
         this.shouldServerBeResponsive = false;
         // communicates via IPC to the master thread that it should dispatch a crash notification email
-        this.sendMonitorAction("notify_crash", { error });
+        this.sendMonitorAction(`notify_${Monitor.IntrinsicEvents.CrashDetected}`, { error });
         await this.executeExitHandlers(error);
         // notify master thread (which will log update in the console) of crash event via IPC
         this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));
@@ -138,7 +138,7 @@ export class ServerWorker {
                     if (!this.shouldServerBeResponsive) {
                         // notify monitor thread that the server is up and running
                         this.lifecycleNotification(green(`listening on ${this.serverPort}...`));
-                        this.sendMonitorAction(Monitor.IntrinsicEvents.ServerRunning, { firstTime: !this.isInitialized });
+                        this.sendMonitorAction(`notify_${Monitor.IntrinsicEvents.ServerRunning}`, { firstTime: !this.isInitialized });
                         this.isInitialized = true;
                     }
                     this.shouldServerBeResponsive = true;

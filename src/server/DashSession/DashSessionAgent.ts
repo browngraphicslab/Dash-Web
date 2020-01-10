@@ -33,8 +33,8 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
         monitor.addServerMessageListener("backup", this.backup);
         monitor.addServerMessageListener("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
-        monitor.on(Monitor.IntrinsicEvents.KeyGenerated, this.dispatchSessionPassword);
-        monitor.on(Monitor.IntrinsicEvents.CrashDetected, this.dispatchCrashReport);
+        monitor.onKeyGenerated(this.dispatchSessionPassword);
+        monitor.onCrashDetected(this.dispatchCrashReport);
     }
 
     /**

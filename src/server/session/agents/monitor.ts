@@ -48,6 +48,10 @@ export class Monitor extends EventEmitter {
         }
     }
 
+    public onCrashDetected = (listener: (...args: any[]) => void) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener);
+    public onKeyGenerated = (listener: (...args: any[]) => void) => this.on(Monitor.IntrinsicEvents.KeyGenerated, listener);
+    public onServerRunning = (listener: (...args: any[]) => void) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener);
+
     /**
      * Kill this session and its active child
      * server process, either gracefully (may wait
@@ -317,30 +321,19 @@ export class Monitor extends EventEmitter {
         });
         Monitor.childIPCManager = new PromisifiedIPCManager(this.activeWorker);
         this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker?.process.pid}`));
+
+        this.addServerMessageListener("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode));
+        this.addServerMessageListener(`notify_${Monitor.IntrinsicEvents.CrashDetected}`, ({ args: { error } }) => this.emit(Monitor.IntrinsicEvents.CrashDetected, error));
+        this.addServerMessageListener(`notify_${Monitor.IntrinsicEvents.ServerRunning}`, ({ args: { firstTime } }) => this.emit(Monitor.IntrinsicEvents.ServerRunning, firstTime));
+
         // an IPC message handler that executes actions on the master thread when prompted by the active worker
         Monitor.childIPCManager.addMessagesHandler(async ({ lifecycle, action }) => {
             if (action) {
                 const { message, args } = action as Monitor.Action;
                 console.log(this.timestamp(), `${this.config.identifiers.worker.text} action requested (${cyan(message)})`);
-                switch (message) {
-                    case "kill":
-                        const { reason, graceful, errorCode } = args;
-                        this.killSession(reason, graceful, errorCode);
-                        break;
-                    case "notify_crash":
-                        this.emit(Monitor.IntrinsicEvents.CrashDetected, args.error);
-                        break;
-                    case Monitor.IntrinsicEvents.ServerRunning:
-                        this.emit(Monitor.IntrinsicEvents.ServerRunning, args.firstTime);
-                        break;
-                    case "set_port":
-                        const { port, value, immediateRestart } = args;
-                        this.setPort(port, value, immediateRestart);
-                        break;
-                }
                 const handlers = this.onMessage[message];
                 if (handlers) {
-                    handlers.forEach(handler => handler({ message, args }));
+                    await Promise.all(handlers.map(handler => handler({ message, args })));
                 }
             }
             if (lifecycle) {
@@ -358,7 +351,7 @@ export namespace Monitor {
         args: any;
     }
 
-    export type ServerMessageHandler = (action: Action) => void | Promise<void>;
+    export type ServerMessageHandler = (action: Action) => any | Promise<any>;
 
     export enum IntrinsicEvents {
         KeyGenerated = "key_generated",
