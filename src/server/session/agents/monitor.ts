@@ -2,8 +2,8 @@ import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
 import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
-import { IPC } from "../utilities/ipc";
-import { red, cyan, white, yellow, blue, green } from "colors";
+import { PromisifiedIPCManager, suffix } from "../utilities/ipc";
+import { red, cyan, white, yellow, blue } from "colors";
 import { exec, ExecOptions } from "child_process";
 import { Utils } from "../../../Utils";
 import { validate, ValidationError } from "jsonschema";
@@ -16,7 +16,8 @@ import { EventEmitter } from "events";
  * and spawns off an initial process that will respawn as predecessors die.
  */
 export class Monitor extends EventEmitter {
-
+    private static readonly localIPCManager = new PromisifiedIPCManager(process);
+    private static childIPCManager: PromisifiedIPCManager;
     private static count = 0;
     private finalized = false;
     private exitHandlers: ExitHandler[] = [];
@@ -28,7 +29,7 @@ export class Monitor extends EventEmitter {
 
     public static Create() {
         if (isWorker) {
-            IPC.dispatchMessage(process, {
+            this.localIPCManager.emit({
                 action: {
                     message: "kill",
                     args: {
@@ -250,7 +251,7 @@ export class Monitor extends EventEmitter {
                 if (newPollingIntervalSeconds !== this.config.polling.intervalSeconds) {
                     this.config.polling.intervalSeconds = newPollingIntervalSeconds;
                     if (args[2] === "true") {
-                        return IPC.dispatchMessage(this.activeWorker!, { newPollingIntervalSeconds }, true);
+                        return Monitor.localIPCManager.emit({ newPollingIntervalSeconds }, true);
                     }
                 }
             }
@@ -266,7 +267,7 @@ export class Monitor extends EventEmitter {
     private killActiveWorker = (graceful = true, isSessionEnd = false): void => {
         if (this.activeWorker && !this.activeWorker.isDead()) {
             if (graceful) {
-                IPC.dispatchMessage(this.activeWorker, { manualExit: { isSessionEnd } });
+                Monitor.childIPCManager.emit({ manualExit: { isSessionEnd } });
             } else {
                 this.activeWorker.process.kill();
             }
@@ -312,11 +313,12 @@ export class Monitor extends EventEmitter {
             socketPort: ports.socket,
             pollingIntervalSeconds: intervalSeconds,
             session_key: this.key,
-            ipc_suffix: IPC.suffix
+            ipc_suffix: suffix
         });
+        Monitor.childIPCManager = new PromisifiedIPCManager(this.activeWorker);
         this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker?.process.pid}`));
         // an IPC message handler that executes actions on the master thread when prompted by the active worker
-        IPC.addMessagesHandler(this.activeWorker!, async ({ lifecycle, action }) => {
+        Monitor.childIPCManager.addMessagesHandler(async ({ lifecycle, action }) => {
             if (action) {
                 const { message, args } = action as Monitor.Action;
                 console.log(this.timestamp(), `${this.config.identifiers.worker.text} action requested (${cyan(message)})`);

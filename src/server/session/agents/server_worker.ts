@@ -1,6 +1,6 @@
 import { ExitHandler } from "./applied_session_agent";
 import { isMaster } from "cluster";
-import { IPC } from "../utilities/ipc";
+import { PromisifiedIPCManager } from "../utilities/ipc";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
 import { Monitor } from "./monitor";
@@ -11,7 +11,7 @@ import { Monitor } from "./monitor";
  * email if the server encounters an uncaught exception or if the server cannot be reached.
  */
 export class ServerWorker {
-
+    private static localIPCManager = new PromisifiedIPCManager(process);
     private static count = 0;
     private shouldServerBeResponsive = false;
     private exitHandlers: ExitHandler[] = [];
@@ -27,7 +27,7 @@ export class ServerWorker {
             console.error(red("cannot create a worker on the monitor process."));
             process.exit(1);
         } else if (++ServerWorker.count > 1) {
-            IPC.dispatchMessage(process, {
+            ServerWorker.localIPCManager.emit({
                 action: {
                     message: "kill", args: {
                         reason: "cannot create more than one worker on a given worker process.",
@@ -59,7 +59,7 @@ export class ServerWorker {
      * A convenience wrapper to tell the session monitor (parent process)
      * to carry out the action with the specified message and arguments.
      */
-    public sendMonitorAction = (message: string, args?: any, expectResponse = false) => IPC.dispatchMessage(process, { action: { message, args } }, expectResponse);
+    public sendMonitorAction = (message: string, args?: any, expectResponse = false) => ServerWorker.localIPCManager.emit({ action: { message, args } }, expectResponse);
 
     private constructor(work: Function) {
         this.lifecycleNotification(green(`initializing process... ${white(`[${process.execPath} ${process.execArgv.join(" ")}]`)}`));
@@ -81,7 +81,7 @@ export class ServerWorker {
      */
     private configureProcess = () => {
         // updates the local values of variables to the those sent from master
-        IPC.addMessagesHandler(process, async ({ newPollingIntervalSeconds, manualExit }) => {
+        ServerWorker.localIPCManager.addMessagesHandler(async ({ newPollingIntervalSeconds, manualExit }) => {
             if (newPollingIntervalSeconds !== undefined) {
                 this.pollingIntervalSeconds = newPollingIntervalSeconds;
             }
@@ -109,7 +109,7 @@ export class ServerWorker {
     /**
      * Notify master thread (which will log update in the console) of initialization via IPC.
      */
-    public lifecycleNotification = (event: string) => IPC.dispatchMessage(process, { lifecycle: event });
+    public lifecycleNotification = (event: string) => ServerWorker.localIPCManager.emit({ lifecycle: event });
 
     /**
      * Called whenever the process has a reason to terminate, either through an uncaught exception
