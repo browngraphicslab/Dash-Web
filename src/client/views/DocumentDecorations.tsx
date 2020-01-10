@@ -26,6 +26,8 @@ import { IconBox } from "./nodes/IconBox";
 import React = require("react");
 import { DocumentType } from '../documents/DocumentTypes';
 import { ScriptField } from '../../new_fields/ScriptField';
+import { render } from 'react-dom';
+import RichTextMenu from '../util/RichTextMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -590,6 +592,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 opacity: this._opacity
             }}>
                 {minimizeIcon}
+
+                {/* <RichTextMenu /> */}
 
                 {this._edtingTitle ?
                     <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._accumulatedTitle} onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
