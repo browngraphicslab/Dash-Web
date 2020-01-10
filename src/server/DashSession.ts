@@ -66,7 +66,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             }
         });
         const releaseDesktop = pathFromRoot("../../Desktop");
-        const backup = () => monitor.exec("./backup.bat", { cwd: releaseDesktop });
+        const backup = () => monitor.exec("backup.bat", { cwd: releaseDesktop });
         monitor.addReplCommand("backup", [], backup);
         monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async args => {
             const [mode, recipient] = args;
