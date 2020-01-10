@@ -1,4 +1,3 @@
-import { Session } from "./Session/session";
 import { Email, pathFromRoot } from "./ActionUtilities";
 import { red, yellow, green, cyan } from "colors";
 import { get } from "request-promise";
@@ -9,13 +8,16 @@ import { launchServer, onWindows } from ".";
 import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream, readFileSync } from "fs";
 import * as Archiver from "archiver";
 import { resolve } from "path";
+import { AppliedSessionAgent, ExitHandler } from "./session/agents/applied_session_agent";
+import { Monitor } from "./session/agents/monitor";
+import { ServerWorker } from "./session/agents/server_worker";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
  * Otherwise, we must be on a worker thread that was spawned *by* the monitor (master) thread, and thus
  * our job should be to run the server.
  */
-export class DashSessionAgent extends Session.AppliedSessionAgent {
+export class DashSessionAgent extends AppliedSessionAgent {
 
     private readonly notificationRecipients = ["samuel_wilkins@brown.edu"];
     private readonly signature = "-Dash Server Session Manager";
@@ -29,7 +31,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     }
 
     protected async launchMonitor() {
-        const monitor = Session.Monitor.Create(this.notifiers);
+        const monitor = Monitor.Create(this.notifiers);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
         monitor.addReplCommand("backup", [], this.backup);
@@ -40,12 +42,12 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
     }
 
     protected async launchServerWorker() {
-        const worker = Session.ServerWorker.Create(launchServer); // server initialization delegated to worker
+        const worker = ServerWorker.Create(launchServer); // server initialization delegated to worker
         worker.addExitHandler(this.notifyClient);
         return worker;
     }
 
-    private readonly notifiers: Session.Monitor.NotifierHooks = {
+    private readonly notifiers: Monitor.NotifierHooks = {
         key: async key => {
             // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
             // to kill the server via the /kill/:key route
@@ -100,7 +102,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
         }
     }
 
-    private notifyClient: Session.ExitHandler = reason => {
+    private notifyClient: ExitHandler = reason => {
         const { _socket } = WebSocket;
         if (_socket) {
             const message = typeof reason === "boolean" ? (reason ? "exit" : "temporary") : "crash";

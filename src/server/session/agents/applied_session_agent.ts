@@ -1,0 +1,55 @@
+import { isMaster } from "cluster";
+import { Monitor } from "./monitor";
+import { ServerWorker } from "./server_worker";
+
+export type ExitHandler = (reason: Error | boolean) => void | Promise<void>;
+
+export abstract class AppliedSessionAgent {
+
+    // the following two methods allow the developer to create a custom
+    // session and use the built in customization options for each thread
+    protected abstract async launchMonitor(): Promise<Monitor>;
+    protected abstract async launchServerWorker(): Promise<ServerWorker>;
+
+    private launched = false;
+
+    public killSession = (reason: string, graceful = true, errorCode = 0) => {
+        const target = isMaster ? this.sessionMonitor : this.serverWorker;
+        target.killSession(reason, graceful, errorCode);
+    }
+
+    private sessionMonitorRef: Monitor | undefined;
+    public get sessionMonitor(): Monitor {
+        if (!isMaster) {
+            this.serverWorker.sendMonitorAction("kill", {
+                graceful: false,
+                reason: "Cannot access the session monitor directly from the server worker thread.",
+                errorCode: 1
+            });
+            throw new Error();
+        }
+        return this.sessionMonitorRef!;
+    }
+
+    private serverWorkerRef: ServerWorker | undefined;
+    public get serverWorker(): ServerWorker {
+        if (isMaster) {
+            throw new Error("Cannot access the server worker directly from the session monitor thread");
+        }
+        return this.serverWorkerRef!;
+    }
+
+    public async launch(): Promise<void> {
+        if (!this.launched) {
+            this.launched = true;
+            if (isMaster) {
+                this.sessionMonitorRef = await this.launchMonitor();
+            } else {
+                this.serverWorkerRef = await this.launchServerWorker();
+            }
+        } else {
+            throw new Error("Cannot launch a session thread more than once per process.");
+        }
+    }
+
+}

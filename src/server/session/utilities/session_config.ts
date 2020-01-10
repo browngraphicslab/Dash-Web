@@ -1,4 +1,5 @@
 import { Schema } from "jsonschema";
+import { yellow, red, cyan, green, blue, magenta, Color, grey, gray, white, black } from "colors";
 
 const colorPattern = /black|red|green|yellow|blue|magenta|cyan|white|gray|grey/;
 
@@ -63,5 +64,66 @@ export const configurationSchema: Schema = {
                 }
             }
         },
+    }
+};
+
+type ColorLabel = "yellow" | "red" | "cyan" | "green" | "blue" | "magenta" | "grey" | "gray" | "white" | "black";
+
+export const colorMapping: Map<ColorLabel, Color> = new Map([
+    ["yellow", yellow],
+    ["red", red],
+    ["cyan", cyan],
+    ["green", green],
+    ["blue", blue],
+    ["magenta", magenta],
+    ["grey", grey],
+    ["gray", gray],
+    ["white", white],
+    ["black", black]
+]);
+
+interface Identifier {
+    text: string;
+    color: ColorLabel;
+}
+
+export interface Identifiers {
+    master: Identifier;
+    worker: Identifier;
+    exec: Identifier;
+}
+
+export interface Configuration {
+    showServerOutput: boolean;
+    identifiers: Identifiers;
+    ports: { [description: string]: number };
+    polling: {
+        route: string;
+        intervalSeconds: number;
+        failureTolerance: number;
+    };
+}
+
+export const defaultConfig: Configuration = {
+    showServerOutput: false,
+    identifiers: {
+        master: {
+            text: "__monitor__",
+            color: "yellow"
+        },
+        worker: {
+            text: "__server__",
+            color: "magenta"
+        },
+        exec: {
+            text: "__exec__",
+            color: "green"
+        }
+    },
+    ports: { server: 3000 },
+    polling: {
+        route: "/",
+        intervalSeconds: 30,
+        failureTolerance: 0
     }
 };
