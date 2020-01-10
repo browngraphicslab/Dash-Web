@@ -91,8 +91,18 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             zip.pipe(output);
             zip.directory(`${backupsDirectory}/${target}/Dash`, false);
             await zip.finalize();
-            monitor.mainLog(`zip finalized, saved to ${zipPath}`);
-            const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, "mongorestore, etc.", [
+            monitor.mainLog(`zip finalized with size ${statSync(zipPath).size}, saved to ${zipPath}`);
+            const instructions = [
+                `Instructions:\n\nDownload this attachment, open your downloads folder and find this file (${zipName}).`,
+                `Right click on the zip file and select 'Extract to ${target}/'.`,
+                "From the mongodb bin directory (unless it's in your path), run the following command:\n",
+                "mongorestore --gzip [/path/to/directory/you/just/unzipped] --db Dash.\n",
+                "You can get that path by literally dragging the directory from the file system and dropping it onto the terminal.",
+                "Assuming everything runs well, this will mirror your local database with that of the server.",
+                "Now, just start the server locally and debug.\n",
+                this.signature
+            ].join("\n");
+            const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, instructions, [
                 {
                     filename: zipName,
                     path: zipPath
