@@ -8,8 +8,8 @@ export abstract class AppliedSessionAgent {
 
     // the following two methods allow the developer to create a custom
     // session and use the built in customization options for each thread
-    protected abstract async launchMonitor(): Promise<Monitor>;
-    protected abstract async launchServerWorker(): Promise<ServerWorker>;
+    protected abstract async initializeMonitor(monitor: Monitor): Promise<void>;
+    protected abstract async initializeServerWorker(): Promise<ServerWorker>;
 
     private launched = false;
 
@@ -43,9 +43,10 @@ export abstract class AppliedSessionAgent {
         if (!this.launched) {
             this.launched = true;
             if (isMaster) {
-                this.sessionMonitorRef = await this.launchMonitor();
+                await this.initializeMonitor(this.sessionMonitorRef = Monitor.Create());
+                this.sessionMonitorRef.finalize();
             } else {
-                this.serverWorkerRef = await this.launchServerWorker();
+                this.serverWorkerRef = await this.initializeServerWorker();
             }
         } else {
             throw new Error("Cannot launch a session thread more than once per process.");

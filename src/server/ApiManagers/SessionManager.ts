@@ -2,6 +2,7 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied, AuthorizedCore, SecureHandler } from "../RouteManager";
 import RouteSubscriber from "../RouteSubscriber";
 import { sessionAgent } from "..";
+import { DashSessionAgent } from "../DashSession/DashSessionAgent";
 
 const permissionError = "You are not authorized!";
 
@@ -27,10 +28,11 @@ export default class SessionManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: this.secureSubscriber("debug", "mode", "recipient"),
+            subscription: this.secureSubscriber("debug", "mode", "recipient?"),
             secureHandler: this.authorizedAction(async ({ req, res }) => {
-                const { mode, recipient } = req.params;
+                const { mode } = req.params;
                 if (["passive", "active"].includes(mode)) {
+                    const recipient = req.params.recipient || DashSessionAgent.notificationRecipient;
                     const response = await sessionAgent.serverWorker.sendMonitorAction("debug", { mode, recipient }, true);
                     if (response instanceof Error) {
                         res.send(response);
