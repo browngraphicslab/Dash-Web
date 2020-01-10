@@ -34,13 +34,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
 
     protected async launchServerWorker() {
         const worker = Session.ServerWorker.Create(launchServer); // server initialization delegated to worker
-        worker.addExitHandler(reason => {
-            const { _socket } = WebSocket;
-            if (_socket) {
-                const message = typeof reason === "boolean" ? (reason ? "exit" : "temporary") : "crash";
-                Utils.Emit(_socket, MessageStore.ConnectionTerminated, message);
-            }
-        });
+        worker.addExitHandler(this.notifyClient);
         return worker;
     }
 
@@ -49,7 +43,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             // this sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
             // to kill the server via the /kill/:key route
             const content = `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${this.signature}`;
-            const failures = await Email.dispatchAll(this.notificationRecipients, "Server Termination Key", content);
+            const failures = await Email.dispatchAll(this.notificationRecipients, "Dash Release Session Admin Authentication Key", content);
             if (failures) {
                 failures.map(({ recipient, error: { message } }) => this.sessionMonitor.mainLog(red(`dispatch failure @ ${recipient} (${yellow(message)})`)));
                 return false;
@@ -88,6 +82,14 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             } catch {
                 mainLog(red("unable to connect at 8983 after running solr initialization"));
             }
+        }
+    }
+
+    private notifyClient: Session.ExitHandler = reason => {
+        const { _socket } = WebSocket;
+        if (_socket) {
+            const message = typeof reason === "boolean" ? (reason ? "exit" : "temporary") : "crash";
+            Utils.Emit(_socket, MessageStore.ConnectionTerminated, message);
         }
     }
 
