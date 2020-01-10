@@ -14,7 +14,8 @@ export interface CoreArguments {
     isRelease: boolean;
 }
 
-export type SecureHandler = (core: CoreArguments & { user: DashUserModel }) => any | Promise<any>;
+export type AuthorizedCore = CoreArguments & { user: DashUserModel };
+export type SecureHandler = (core: AuthorizedCore) => any | Promise<any>;
 export type PublicHandler = (core: CoreArguments) => any | Promise<any>;
 export type ErrorHandler = (core: CoreArguments & { error: any }) => any | Promise<any>;
 

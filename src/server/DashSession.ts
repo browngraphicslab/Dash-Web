@@ -19,7 +19,7 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
 
     private readonly notificationRecipients = ["samuel_wilkins@brown.edu"];
     private readonly signature = "-Dash Server Session Manager";
-
+    private readonly releaseDesktop = pathFromRoot("../../Desktop");
 
     protected async launchMonitor() {
         const monitor = Session.Monitor.Create({
@@ -67,44 +67,10 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
                 }
             }
         });
-        const releaseDesktop = pathFromRoot("../../Desktop");
-        const backup = () => monitor.exec("backup.bat", { cwd: releaseDesktop });
-        monitor.addReplCommand("backup", [], backup);
-        monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async args => {
-            const [mode, recipient] = args;
-            if (mode === "active") {
-                await backup();
-            }
-            monitor.mainLog("backup complete");
-            const backupsDirectory = `${releaseDesktop}/backups`;
-            const compressedDirectory = `${releaseDesktop}/compressed`;
-            if (!existsSync(compressedDirectory)) {
-                mkdirSync(compressedDirectory);
-            }
-            const target = readdirSync(backupsDirectory).map(filename => ({
-                modifiedTime: statSync(`${backupsDirectory}/${filename}`).mtimeMs,
-                filename
-            })).sort((a, b) => b.modifiedTime - a.modifiedTime)[0].filename;
-            monitor.mainLog(`targeting ${target}...`);
-            const zipName = `${target}.zip`;
-            const zipPath = `${compressedDirectory}/${zipName}`;
-            const output = createWriteStream(zipPath);
-            const zip = Archiver('zip');
-            zip.pipe(output);
-            zip.directory(`${backupsDirectory}/${target}/Dash`, false);
-            await zip.finalize();
-            monitor.mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
-            let instructions = readFileSync(resolve(__dirname, "./remote_debug_instructions.txt"), { encoding: "utf8" });
-            instructions = instructions.replace(/__zipname__/, zipName).replace(/__target__/, target).replace(/__signature__/, this.signature);
-            const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, instructions, [
-                {
-                    filename: zipName,
-                    path: zipPath
-                }
-            ]);
-            monitor.mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(recipient)}`);
-            error && monitor.mainLog(red(error.message));
-        });
+        monitor.addReplCommand("backup", [], this.backup);
+        monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.addServerMessageListener("backup", this.backup);
+        monitor.addServerMessageListener("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
         return monitor;
     }
 
@@ -118,6 +84,45 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             }
         });
         return worker;
+    }
+
+    public async backup() {
+        return this.sessionMonitor.exec("backup.bat", { cwd: this.releaseDesktop });
+    }
+
+    public async dispatchZippedDebugBackup(mode: string, recipient: string) {
+        if (mode === "active") {
+            await this.backup();
+        }
+        this.sessionMonitor.mainLog("backup complete");
+        const backupsDirectory = `${this.releaseDesktop}/backups`;
+        const compressedDirectory = `${this.releaseDesktop}/compressed`;
+        if (!existsSync(compressedDirectory)) {
+            mkdirSync(compressedDirectory);
+        }
+        const target = readdirSync(backupsDirectory).map(filename => ({
+            modifiedTime: statSync(`${backupsDirectory}/${filename}`).mtimeMs,
+            filename
+        })).sort((a, b) => b.modifiedTime - a.modifiedTime)[0].filename;
+        this.sessionMonitor.mainLog(`targeting ${target}...`);
+        const zipName = `${target}.zip`;
+        const zipPath = `${compressedDirectory}/${zipName}`;
+        const output = createWriteStream(zipPath);
+        const zip = Archiver('zip');
+        zip.pipe(output);
+        zip.directory(`${backupsDirectory}/${target}/Dash`, false);
+        await zip.finalize();
+        this.sessionMonitor.mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
+        let instructions = readFileSync(resolve(__dirname, "./remote_debug_instructions.txt"), { encoding: "utf8" });
+        instructions = instructions.replace(/__zipname__/, zipName).replace(/__target__/, target).replace(/__signature__/, this.signature);
+        const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, instructions, [
+            {
+                filename: zipName,
+                path: zipPath
+            }
+        ]);
+        this.sessionMonitor.mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(recipient)}`);
+        error && this.sessionMonitor.mainLog(red(error.message));
     }
 
 }
