@@ -188,7 +188,7 @@ export class RadialMenu extends React.Component {
             return null;
         }
         const style = this._yRelativeToTop ? { left: this._mouseX-150, top: this._mouseY-150 } :
-            { left: this._mouseX-150, bottom: this._mouseY+150 };
+            { left: this._mouseX-150, top: this._mouseY-150 };
 
         const contents = (
             <>

@@ -146,7 +146,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onRadialMenu = async (event: React.TouchEvent): Promise<void> => {
-        console.log("YUH")
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         // if (e.button === 0) {
         //     e.preventDefault();
@@ -166,18 +165,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const two = RadialMenu.Instance.findByDescription("two...");
         const three = RadialMenu.Instance.findByDescription("three...");
         const four= RadialMenu.Instance.findByDescription("four...");
-        const five= RadialMenu.Instance.findByDescription("five...");
-        const six= RadialMenu.Instance.findByDescription("six...");
-        const seven= RadialMenu.Instance.findByDescription("seven...");
+        // const five= RadialMenu.Instance.findByDescription("five...");
+        // const six= RadialMenu.Instance.findByDescription("six...");
+        // const seven= RadialMenu.Instance.findByDescription("seven...");
 
 
         !one?rm.addItem({ description: "one", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
         !two?rm.addItem({ description: "two", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1  }):null;
         !three?rm.addItem({ description: "three", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1  }):null;
         !four?rm.addItem({ description: "four", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
-        !five?rm.addItem({ description: "five", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
-        !six?rm.addItem({ description: "six", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" ,selected:-1}):null;
-        !seven?rm.addItem({ description: "seven", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" ,selected:-1}):null;
+        // !five?rm.addItem({ description: "five", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
+        // !six?rm.addItem({ description: "six", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" ,selected:-1}):null;
+        // !seven?rm.addItem({ description: "seven", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" ,selected:-1}):null;
 
         runInAction(() => {
             // cm.addItem({
