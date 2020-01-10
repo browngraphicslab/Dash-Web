@@ -6,18 +6,20 @@ import { Utils } from "../Utils";
 import { WebSocket } from "./Websocket/Websocket";
 import { MessageStore } from "./Message";
 import { launchServer, onWindows } from ".";
-import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream } from "fs";
+import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream, readFileSync } from "fs";
 import * as Archiver from "archiver";
+import { resolve } from "path";
 
 /**
-* If we're the monitor (master) thread, we should launch the monitor logic for the session.
-* Otherwise, we must be on a worker thread that was spawned *by* the monitor (master) thread, and thus
-* our job should be to run the server.
-*/
+ * If we're the monitor (master) thread, we should launch the monitor logic for the session.
+ * Otherwise, we must be on a worker thread that was spawned *by* the monitor (master) thread, and thus
+ * our job should be to run the server.
+ */
 export class DashSessionAgent extends Session.AppliedSessionAgent {
 
     private readonly notificationRecipients = ["samuel_wilkins@brown.edu"];
     private readonly signature = "-Dash Server Session Manager";
+
 
     protected async launchMonitor() {
         const monitor = Session.Monitor.Create({
@@ -92,16 +94,8 @@ export class DashSessionAgent extends Session.AppliedSessionAgent {
             zip.directory(`${backupsDirectory}/${target}/Dash`, false);
             await zip.finalize();
             monitor.mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
-            const instructions = [
-                `Instructions:\n\nDownload this attachment, open your downloads folder and find this file (${zipName}).`,
-                `Right click on the zip file and select 'Extract to ${target}\\'.`,
-                "Open up the command line, and remember that you can get the path to any file or directory by literally dragging it from the file system and dropping it onto the terminal.",
-                "Unless it's in your path, you'll want to navigate to the mongodb bin directory, given for Windows: cd '/c/Program Files/MongoDB/Server/[your version goes here]/bin'. Then run the following command:\n",
-                "mongorestore --gzip [/path/to/directory/you/just/unzipped] --db Dash.\n",
-                "Assuming everything runs well, this will mirror your local database with that of the server.",
-                "Now, just start the server locally and debug.\n",
-                this.signature
-            ].join("\n");
+            let instructions = readFileSync(resolve(__dirname, "./remote_debug_instructions.txt"), { encoding: "utf8" });
+            instructions = instructions.replace(/__zipname__/, zipName).replace(/__target__/, target).replace(/__signature__/, this.signature);
             const error = await Email.dispatch(recipient, `Compressed backup of ${target}...`, instructions, [
                 {
                     filename: zipName,
