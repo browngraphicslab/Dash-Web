@@ -11,7 +11,7 @@ import { resolve } from "path";
 import { AppliedSessionAgent, ExitHandler } from "../session/agents/applied_session_agent";
 import { Monitor } from "../session/agents/monitor";
 import { ServerWorker } from "../session/agents/server_worker";
-import { Message } from "../session/utilities/ipc";
+import { MessageHandler } from "../session/utilities/ipc";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -34,8 +34,8 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("backup", [], this.backup);
         monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
         monitor.on("backup", this.backup);
-        monitor.on("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
-        monitor.hooks.crashDetected(this.dispatchCrashReport);
+        monitor.on("debug", ({ mode, recipient }) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
     }
 
     /**
@@ -101,7 +101,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
     /**
      * This sends an email with the generated crash report.
      */
-    private dispatchCrashReport = async ({ args: { error: crashCause } }: Message) => {
+    private dispatchCrashReport: MessageHandler<{ error: Error }> = async ({ error: crashCause }) => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         const error = await Email.dispatch({

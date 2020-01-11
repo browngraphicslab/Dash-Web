@@ -8,16 +8,16 @@ const permissionError = "You are not authorized!";
 
 export default class SessionManager extends ApiManager {
 
-    private secureSubscriber = (root: string, ...params: string[]) => new RouteSubscriber(root).add("password", ...params);
+    private secureSubscriber = (root: string, ...params: string[]) => new RouteSubscriber(root).add("sessionKey", ...params);
 
     private authorizedAction = (handler: SecureHandler) => {
         return (core: AuthorizedCore) => {
             const { req, res, isRelease } = core;
-            const { password } = req.params;
+            const { sessionKey } = req.params;
             if (!isRelease) {
                 return res.send("This can be run only on the release server.");
             }
-            if (password !== process.env.session_key) {
+            if (sessionKey !== process.env.session_key) {
                 return _permission_denied(res, permissionError);
             }
             return handler(core);
@@ -33,7 +33,7 @@ export default class SessionManager extends ApiManager {
                 const { mode } = req.params;
                 if (["passive", "active"].includes(mode)) {
                     const recipient = req.params.recipient || DashSessionAgent.notificationRecipient;
-                    const response = await sessionAgent.serverWorker.emitToMonitor("debug", { mode, recipient }, true);
+                    const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { mode, recipient });
                     if (response instanceof Error) {
                         res.send(response);
                     } else {

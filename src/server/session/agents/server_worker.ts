@@ -1,7 +1,7 @@
 import { ExitHandler } from "./applied_session_agent";
 import { isMaster } from "cluster";
-import { PromisifiedIPCManager, Message } from "../utilities/ipc";
-import MessageRouter from "./message_router";
+import { PromisifiedIPCManager, Message, MessageHandler } from "../utilities/ipc";
+import ProcessMessageRouter from "./process_message_router";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
 import { Monitor } from "./monitor";
@@ -11,8 +11,7 @@ import { Monitor } from "./monitor";
  * if its predecessor has died. It itself also polls the server heartbeat, and exits with a notification
  * email if the server encounters an uncaught exception or if the server cannot be reached.
  */
-export class ServerWorker extends MessageRouter {
-    private static IPCManager = new PromisifiedIPCManager(process);
+export class ServerWorker extends ProcessMessageRouter {
     private static count = 0;
     private shouldServerBeResponsive = false;
     private exitHandlers: ExitHandler[] = [];
@@ -56,10 +55,13 @@ export class ServerWorker extends MessageRouter {
      * A convenience wrapper to tell the session monitor (parent process)
      * to carry out the action with the specified message and arguments.
      */
-    public emitToMonitor = (name: string, args?: any, awaitResponse = false) => ServerWorker.IPCManager.emit(name, args, awaitResponse);
+    public emitToMonitor = (name: string, args?: any) => ServerWorker.IPCManager.emit(name, args);
+
+    public emitToMonitorPromise = (name: string, args?: any) => ServerWorker.IPCManager.emitPromise(name, args);
 
     private constructor(work: Function) {
         super();
+        ServerWorker.IPCManager = new PromisifiedIPCManager(process);
         this.lifecycleNotification(green(`initializing process... ${white(`[${process.execPath} ${process.execArgv.join(" ")}]`)}`));
 
         const { pollingRoute, serverPort, pollingIntervalSeconds, pollingFailureTolerance } = process.env;
@@ -80,11 +82,11 @@ export class ServerWorker extends MessageRouter {
     private configureProcess = () => {
         ServerWorker.IPCManager.setRouter(this.route);
         // updates the local values of variables to the those sent from master
-        this.on("updatePollingInterval", ({ args }: Message<{ newPollingIntervalSeconds: number }>) => {
-            this.pollingIntervalSeconds = args.newPollingIntervalSeconds;
+        this.on("updatePollingInterval", ({ newPollingIntervalSeconds }) => {
+            this.pollingIntervalSeconds = newPollingIntervalSeconds;
             return new Promise<void>(resolve => setTimeout(resolve, 1000 * 10));
         });
-        this.on("manualExit", async ({ args: { isSessionEnd } }: Message<{ isSessionEnd: boolean }>) => {
+        this.on("manualExit", async ({ isSessionEnd }) => {
             await this.executeExitHandlers(isSessionEnd);
             process.exit(0);
         });

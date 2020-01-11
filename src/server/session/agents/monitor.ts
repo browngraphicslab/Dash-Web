@@ -8,14 +8,13 @@ import { exec, ExecOptions } from "child_process";
 import { validate, ValidationError } from "jsonschema";
 import { Utilities } from "../utilities/utilities";
 import { readFileSync } from "fs";
-import MessageRouter from "./message_router";
+import ProcessMessageRouter from "./process_message_router";
 
 /**
  * Validates and reads the configuration file, accordingly builds a child process factory
  * and spawns off an initial process that will respawn as predecessors die.
  */
-export class Monitor extends MessageRouter {
-    private static IPCManager: PromisifiedIPCManager;
+export class Monitor extends ProcessMessageRouter {
     private static count = 0;
     private finalized = false;
     private exitHandlers: ExitHandler[] = [];
@@ -84,9 +83,9 @@ export class Monitor extends MessageRouter {
         this.spawn();
     }
 
-    public readonly hooks = Object.freeze({
-        crashDetected: (listener: MessageHandler<{ error: Error }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
-        serverRunning: (listener: MessageHandler<{ isFirstTime: boolean }>) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener)
+    public readonly coreHooks = Object.freeze({
+        onCrashDetected: (listener: MessageHandler<{ error: Error }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
+        onServerRunning: (listener: MessageHandler<{ isFirstTime: boolean }>) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener)
     });
 
     /**
@@ -219,7 +218,7 @@ export class Monitor extends MessageRouter {
                 if (newPollingIntervalSeconds !== this.config.polling.intervalSeconds) {
                     this.config.polling.intervalSeconds = newPollingIntervalSeconds;
                     if (args[2] === "true") {
-                        return Monitor.IPCManager.emit("updatePollingInterval", { newPollingIntervalSeconds }, true);
+                        return Monitor.IPCManager.emitPromise("updatePollingInterval", { newPollingIntervalSeconds });
                     }
                 }
             }
@@ -286,8 +285,8 @@ export class Monitor extends MessageRouter {
         Monitor.IPCManager = IPC(this.activeWorker);
         this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker?.process.pid}`));
 
-        this.on("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode), true);
-        this.on("lifecycle", ({ args: { event } }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
+        this.on("kill", ({ reason, graceful, errorCode }) => this.killSession(reason, graceful, errorCode), true);
+        this.on("lifecycle", ({ event }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
 
         Monitor.IPCManager.setRouter(this.route);
     }

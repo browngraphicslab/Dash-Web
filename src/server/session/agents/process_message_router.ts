@@ -1,7 +1,8 @@
-import { MessageHandler, Message } from "../utilities/ipc";
+import { MessageHandler, PromisifiedIPCManager } from "../utilities/ipc";
 
-export default abstract class MessageRouter {
+export default abstract class ProcessMessageRouter {
 
+    protected static IPCManager: PromisifiedIPCManager;
     private onMessage: { [name: string]: MessageHandler[] | undefined } = {};
 
     /**
@@ -38,7 +39,7 @@ export default abstract class MessageRouter {
     protected route: MessageHandler = async ({ name, args }) => {
         const handlers = this.onMessage[name];
         if (handlers) {
-            await Promise.all(handlers.map(handler => handler({ name, args })));
+            await Promise.all(handlers.map(handler => handler(args)));
         }
     }
 
