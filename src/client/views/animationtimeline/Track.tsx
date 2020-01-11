@@ -1,6 +1,6 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun } from "mobx";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun , toJS} from "mobx";
 import "./Track.scss";
 import { Doc, DocListCastAsync, DocListCast, Field } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
@@ -57,6 +57,19 @@ export class Track extends React.Component<IProps> {
         "type", 
         "zIndex"
     ];
+
+    private whiteList = [
+        "data", 
+        "height", 
+        "opacity", 
+        "width", 
+        "x", 
+        "y"
+    ]
+
+    @observable private whitelist = [
+
+    ]; 
     private readonly MAX_TITLE_HEIGHT = 75; 
     private _trackHeight = 0;
 
@@ -79,6 +92,7 @@ export class Track extends React.Component<IProps> {
             if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
+            this.autoCreateKeyframe(); 
         });
     }
 
@@ -127,6 +141,26 @@ export class Track extends React.Component<IProps> {
         this._onKeyframe = undefined;
         this._onRegionData = undefined;
         this._isOnKeyframe = false;
+    }
+
+    /**
+     * autocreates keyframe
+     */
+    @action 
+    autoCreateKeyframe = async () => {
+        return reaction(() => [this.props.node.data, this.props.node.height, this.props.node.width, this.props.node.x, this.props.node.y, this.props.node.opacity], async changed => {            
+            console.log("RAN!"); 
+            //convert scrubber pos(pixel) to time
+            let time = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement); 
+            //check for region 
+            let region:(Doc | undefined) = await this.findRegion(time); 
+            if (region !== undefined){ //if region at scrub time exist
+                if (DocListCast(region!.keyframes).find(kf => {return kf.time === time}) === undefined ){
+                   console.log("change has occured");
+                } 
+            }
+            
+        });
     }
 
     /**
