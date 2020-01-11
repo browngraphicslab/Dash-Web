@@ -8,6 +8,17 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
+    export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
+        const myTouches = new Array<React.Touch>();
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            const pt = e.targetTouches.item(i);
+            if (pt && prevPoints.has(pt.identifier)) {
+                myTouches.push(pt);
+            }
+        }
+        return myTouches;
+    }
+
     export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2
@@ -79,6 +90,20 @@ export namespace InteractionUtils {
         return 0;
     }
 
+    export function IsDragging(oldTouches: Map<number, React.Touch>, newTouches: React.Touch[], leniency: number): boolean {
+        for (const touch of newTouches) {
+            if (touch) {
+                const oldTouch = oldTouches.get(touch.identifier);
+                if (oldTouch) {
+                    if (TwoPointEuclidist(touch, oldTouch) >= leniency) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     // These might not be very useful anymore, but I'll leave them here for now -syip2
     {
 
@@ -133,21 +158,6 @@ export namespace InteractionUtils {
         //         default:
         //             return { type: undefined };
         //     }
-        // }
-
-        // export function IsDragging(oldTouches: Map<number, React.Touch>, newTouches: TouchList, leniency: number): boolean {
-        //     for (let i = 0; i < newTouches.length; i++) {
-        //         let touch = newTouches.item(i);
-        //         if (touch) {
-        //             let oldTouch = oldTouches.get(touch.identifier);
-        //             if (oldTouch) {
-        //                 if (TwoPointEuclidist(touch, oldTouch) >= leniency) {
-        //                     return true;
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     return false;
         // }
     }
 }

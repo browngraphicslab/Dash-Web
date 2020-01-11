@@ -11,7 +11,7 @@ import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { MetadataEntryMenu } from "../MetadataEntryMenu";
 import { DocumentView } from "../nodes/DocumentView";
@@ -86,11 +86,11 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
                 <SelectorContextMenu {...this.props} />
             </div>
         );
-        return <div title="Drag(create link) Tap(view links)" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
-            <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
+        return <div title="Tap to View Contexts/Metadata" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={flyout}>
                 <span className="parentDocumentSelector-button" >
-                    <p>^</p>
+                    <FontAwesomeIcon icon={faChevronCircleUp} size={"lg"} />
                 </span>
             </Flyout>
         </div>;
@@ -124,7 +124,7 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
             </div>
         );
         return <span title="Tap for menu" onPointerDown={e => e.stopPropagation()} className="buttonSelector">
-            <Flyout anchorPoint={anchorPoints.RIGHT_TOP} content={flyout} stylesheet={this.customStylesheet}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={faEdit} size={"sm"} />
             </Flyout>
         </span>;

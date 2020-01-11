@@ -4,6 +4,7 @@ declare module 'googlephotos';
 declare module 'react-image-lightbox-with-rotate';
 declare module 'kill-port';
 declare module 'ipc-event-emitter';
+declare module 'cors';
 
 declare module '@react-pdf/renderer' {
     import * as React from 'react';

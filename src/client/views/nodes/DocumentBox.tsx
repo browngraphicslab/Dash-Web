@@ -106,8 +106,6 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
                 focus={this.props.focus}
                 active={this.props.active}
                 whenActiveChanged={this.props.whenActiveChanged}
-                setPreviewScript={emptyFunction}
-                previewScript={undefined}
             />}
         </div>;
     }

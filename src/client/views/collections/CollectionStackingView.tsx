@@ -187,9 +187,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}
-            setPreviewScript={emptyFunction}
-            previewScript={undefined}>
+            pinToPres={this.props.pinToPres}>
         </ContentFittingDocumentView>;
     }
     getDocHeight(d?: Doc) {

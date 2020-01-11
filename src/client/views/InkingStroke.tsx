@@ -13,8 +13,8 @@ import React = require("react");
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
 
-export function CreatePolyline(points: { x: number, y: number }[], left: number, top: number, color?: string, width?: number) {
-    const pts = points.reduce((acc: string, pt: { x: number, y: number }) => acc + `${pt.x - left},${pt.y - top} `, "");
+export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
+    const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
     return (
         <polyline
             points={pts}
@@ -36,8 +36,8 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
 
     render() {
         const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
-        const xs = data.map(p => p.x);
-        const ys = data.map(p => p.y);
+        const xs = data.map(p => p.X);
+        const ys = data.map(p => p.Y);
         const left = Math.min(...xs);
         const top = Math.min(...ys);
         const right = Math.max(...xs);
@@ -53,7 +53,7 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
                 transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
                 mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
                 pointerEvents: "all"
-            }} onTouchStart={this.onTouchStart}>
+            }}>
                 {points}
             </svg>
         );

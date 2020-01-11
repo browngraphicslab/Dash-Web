@@ -1,6 +1,6 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Utils } from '../../../Utils';
@@ -12,6 +12,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { DocumentType } from "../../documents/DocumentTypes";
 import { documentSchema } from "../../../new_fields/documentSchemas";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 type DocLinkSchema = makeInterface<[typeof documentSchema]>;
 const DocLinkDocument = makeInterface(documentSchema);
@@ -67,18 +68,18 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
 
     render() {
-        const anchorDoc = Cast(this.props.Document[this.props.fieldKey], Doc);
-        const hasAnchor = anchorDoc instanceof Doc && anchorDoc.type === DocumentType.PDFANNO;
-        const y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         const x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
+        const y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
         const c = StrCast(this.props.Document.backgroundColor, "lightblue");
         const anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
+        const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .15;
+
         const timecode = this.props.Document[anchor + "Timecode"];
         const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
         return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle}
             ref={this._ref} style={{
                 background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
-                transform: `scale(${hasAnchor ? 0.333 : 1 / this.props.ContentScaling()})`
+                transform: `scale(${anchorScale / this.props.ContentScaling()})`
             }} />;
     }
 }

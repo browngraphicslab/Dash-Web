@@ -180,7 +180,6 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                     pinToPres={returnFalse}
                     PanelWidth={() => this.props.PanelWidth() - 20}
                     PanelHeight={() => 100}
-                    setPreviewScript={emptyFunction}
                     getTransform={Transform.Identity}
                     active={this.props.active}
                     moveDocument={this.props.moveDocument!}

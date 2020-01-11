@@ -20,6 +20,7 @@ import React = require("react");
 import { DocumentView } from './nodes/DocumentView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import { Id } from '../../new_fields/FieldSymbols';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -117,8 +118,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                         proto.sourceContext = this.view0.props.ContainingCollectionDoc;
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
-                        const text = FormattedTextBox.ToolTipTextMenu.makeLink(linkDoc, anchor2Title, e.ctrlKey ? "onRight" : "inTab");
                         if (linkDoc.anchor2 instanceof Doc) {
+                            const text = FormattedTextBox.ToolTipTextMenu.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", linkDoc.anchor2[Id]);
                             proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
                         }
                     }

@@ -1,13 +1,12 @@
 {
     "showServerOutput": false,
-    "recipients": [
-        "samuel_wilkins@brown.edu"
-    ],
-    "serverPort": 1050,
-    "socketPort": 4321,
-    "heartbeatRoute": "/serverHeartbeat",
-    "pollingIntervalSeconds": 15,
-    "masterIdentifier": "__master__",
-    "workerIdentifier": "__worker__",
-    "signature": "Best,\nServer Session Manager"
+    "ports": {
+        "server": 1050,
+        "socket": 4321
+    },
+    "polling": {
+        "route": "/serverHeartbeat",
+        "intervalSeconds": 15,
+        "failureTolerance": 0
+    }
 }

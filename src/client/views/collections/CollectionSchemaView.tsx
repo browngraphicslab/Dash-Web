@@ -157,8 +157,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 whenActiveChanged={this.props.whenActiveChanged}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
-                setPreviewScript={this.setPreviewScript}
-                previewScript={this.previewScript}
             />
         </div>;
     }

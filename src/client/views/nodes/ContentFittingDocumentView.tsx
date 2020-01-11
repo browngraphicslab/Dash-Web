@@ -39,8 +39,6 @@ interface ContentFittingDocumentViewProps {
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
-    setPreviewScript: (script: string) => void;
-    previewScript?: string;
 }
 
 @observer

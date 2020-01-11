@@ -22,6 +22,7 @@ import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
 import { timeMap } from './ApiManagers/UserManager';
 import { blue, yellow } from 'colors';
+import * as cors from "cors";
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -31,9 +32,16 @@ export let disconnect: Function;
 export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
 
-    app.use(express.static(publicDirectory));
+    app.use(express.static(publicDirectory, {
+        setHeaders: res => res.setHeader("Access-Control-Allow-Origin", "*")
+    }));
     app.use("/images", express.static(publicDirectory));
-
+    const corsOptions = {
+        origin: function (_origin: any, callback: any) {
+            callback(null, true);
+        }
+    };
+    app.use(cors(corsOptions));
     app.use("*", ({ user, originalUrl }, res, next) => {
         if (user && !originalUrl.includes("Heartbeat")) {
             const userEmail = (user as any).email;
@@ -57,7 +65,7 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     routeSetter(new RouteManager(app, isRelease));
 
-    const serverPort = Number(process.env.serverPort);
+    const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
     const server = app.listen(serverPort, () => {
         logPort("server", Number(serverPort));
         console.log();
@@ -78,7 +86,7 @@ function buildWithMiddleware(server: express.Express) {
             resave: true,
             cookie: { maxAge: week },
             saveUninitialized: true,
-            store: new MongoStore({ url: Database.url })
+            store: process.env.DB === "MEM" ? new session.MemoryStore() : new MongoStore({ url: Database.url })
         }),
         flash(),
         expressFlash(),

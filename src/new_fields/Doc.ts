@@ -10,7 +10,7 @@ import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
@@ -760,4 +760,10 @@ Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = 
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
+});
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, type: string, contains: boolean = true) {
+    const scriptText = `${contains ? "" : "!"}(((doc.${key} && (doc.${key} as ${type})${type === "string" ? ".includes" : "<="}(${value}))) ||
+    ((doc.data_ext && doc.data_ext.${key}) && (doc.data_ext.${key} as ${type})${type === "string" ? ".includes" : "<="}(${value}))))`;
+    container.docFilter = scriptText;
+    container.viewSpecScript = ScriptField.MakeFunction(scriptText, { doc: Doc.name });
 });

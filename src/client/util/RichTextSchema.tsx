@@ -274,6 +274,8 @@ export const marks: { [index: string]: MarkSpec } = {
     link: {
         attrs: {
             href: {},
+            targetId: { default: "" },
+            showPreview: { default: true },
             location: { default: null },
             title: { default: null },
             docref: { default: false } // flags whether the linked text comes from a document within Dash.  If so, an attribution label is appended after the text
@@ -281,13 +283,13 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title") };
+                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title"), targetId: dom.getAttribute("id") };
             }
         }],
         toDOM(node: any) {
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs, title: `${node.attrs.title}` }, 0];
+                ["a", { ...node.attrs, id: node.attrs.targetId, title: `${node.attrs.title}` }, 0];
         }
     },
 

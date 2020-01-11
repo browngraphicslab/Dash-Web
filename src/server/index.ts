@@ -3,10 +3,9 @@ import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
 import { Database } from './database';
-const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './Initialization';
+import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
@@ -23,10 +22,12 @@ import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
-import { Session } from "./Session/session";
-import { isMaster } from "cluster";
-import { execSync } from "child_process";
+import { DashSessionAgent } from "./DashSession/DashSessionAgent";
+import SessionManager from "./ApiManagers/SessionManager";
+import { AppliedSessionAgent } from "./session/agents/applied_session_agent";
 
+export const onWindows = process.platform === "win32";
+export let sessionAgent: AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -40,11 +41,13 @@ async function preliminaryFunctions() {
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
-    await log_execution({
-        startMessage: "attempting to initialize mongodb connection",
-        endMessage: "connection outcome determined",
-        action: Database.tryInitializeConnection
-    });
+    if (process.env.DB !== "MEM") {
+        await log_execution({
+            startMessage: "attempting to initialize mongodb connection",
+            endMessage: "connection outcome determined",
+            action: Database.tryInitializeConnection
+        });
+    }
 }
 
 /**
@@ -58,6 +61,7 @@ async function preliminaryFunctions() {
  */
 function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: RouteManager) {
     const managers = [
+        new SessionManager(),
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
@@ -88,20 +92,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ res }) => res.send(true)
     });
 
-    addSupervisedRoute({
-        method: Method.GET,
-        subscription: new RouteSubscriber("kill").add("key"),
-        secureHandler: ({ req, res }) => {
-            if (req.params.key === process.env.session_key) {
-                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                // setTimeout(() => process.send!({ action: { message: "kill" } }), 1000 * 5);
-                process.send!({ action: { message: "kill" } });
-            } else {
-                res.redirect("/home");
-            }
-        }
-    });
-
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
@@ -130,19 +120,28 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 }
 
 /**
- * Thread dependent session initialization
+ * This function can be used in two different ways. If not in release mode,
+ * this is simply the logic that is invoked to start the server. In release mode,
+ * however, this becomes the logic invoked by a single worker thread spawned by
+ * the main monitor (master) thread.
  */
-if (isMaster) {
-    Session.initializeMonitorThread().then(({ registerCommand }) => {
-        registerCommand("pull", [], () => execSync("git pull", { stdio: ["ignore", "inherit", "inherit"] }));
+export async function launchServer() {
+    await log_execution({
+        startMessage: "\nstarting execution of preliminary functions",
+        endMessage: "completed preliminary functions\n",
+        action: preliminaryFunctions
     });
+    await initializeServer(routeSetter);
+}
+
+/**
+ * If you're in development mode, you won't need to run a session.
+ * The session spawns off new server processes each time an error is encountered, and doesn't
+ * log the output of the server process, so it's not ideal for development.
+ * So, the 'else' clause is exactly what we've always run when executing npm start.
+ */
+if (process.env.RELEASE) {
+    (sessionAgent = new DashSessionAgent()).launch();
 } else {
-    Session.initializeWorkerThread(async () => {
-        await log_execution({
-            startMessage: "\nstarting execution of preliminary functions",
-            endMessage: "completed preliminary functions\n",
-            action: preliminaryFunctions
-        });
-        await initializeServer(routeSetter);
-    });
+    launchServer();
 }
