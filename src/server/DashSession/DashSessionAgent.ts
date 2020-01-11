@@ -8,10 +8,7 @@ import { launchServer, onWindows } from "..";
 import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream, readFileSync } from "fs";
 import * as Archiver from "archiver";
 import { resolve } from "path";
-import { AppliedSessionAgent, ExitHandler } from "../session/agents/applied_session_agent";
-import { Monitor } from "../session/agents/monitor";
-import { ServerWorker } from "../session/agents/server_worker";
-import { MessageHandler } from "../session/agents/promisified_ipc_manager";
+import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
