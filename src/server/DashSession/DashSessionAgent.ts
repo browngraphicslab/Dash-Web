@@ -88,7 +88,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
         const error = await Email.dispatch({
             to: notificationRecipient,
             subject: "Dash Release Session Admin Authentication Key",
-            content: `Here's the key for this session (started @ ${new Date().toUTCString()}):\n\n${sessionKey}.\n\n${this.signature}`
+            content: `Here's the key for this session (started @ ${new Date().toUTCString()}):\n\n${sessionKey}\n\n${this.signature}`
         });
         if (error) {
             this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
