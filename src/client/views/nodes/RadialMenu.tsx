@@ -87,11 +87,15 @@ export class RadialMenu extends React.Component {
     componentDidMount = () => {
         document.addEventListener("pointerdown", this.onPointerDown);
         document.addEventListener("pointerup", this.onPointerUp);
-
+        this.previewcircle();
         this._reactionDisposer = reaction(
             () => this._shouldDisplay,
             () => this._shouldDisplay && !this._mouseDown && runInAction(() => this._display = true)
         );
+    }
+
+    componentDidUpdate = () =>{
+        this.previewcircle();
     }
 
     @observable private _pageX: number = 0;
@@ -183,6 +187,33 @@ export class RadialMenu extends React.Component {
         this._items = [];
     }
 
+
+    previewcircle(){
+        if (document.getElementById("newCanvas")!==null){
+        var c : any= document.getElementById("newCanvas");
+        if (c.getContext){
+        var ctx = c.getContext("2d");
+        ctx.beginPath();
+        ctx.arc(150, 150, 50, 0,  2 * Math.PI);
+        ctx.fillStyle="white";
+        ctx.fill()
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        let description ="";
+        if (this._closest!==-1){
+            description = this._items[this._closest].description;
+        }
+        if (description.length>15){
+            description= description.slice(0,12);
+            description += "...";
+        }
+        ctx.fillText(description, 150, 150, 90);
+        }
+    }
+    }
+    
+
     render() {
         if (!this._display) {
             return null;
@@ -208,6 +239,7 @@ export class RadialMenu extends React.Component {
         return (
 
                     <div className="radialMenu-cont" style={style}>
+                        <canvas id="newCanvas" style={{position:"absolute"}}height="300" width="300"> Your browser does not support the HTML5 canvas tag.</canvas>
                         {contents}
                     </div>
 

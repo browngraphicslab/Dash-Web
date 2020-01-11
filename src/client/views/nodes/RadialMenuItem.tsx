@@ -59,7 +59,7 @@ export class RadialMenuItem extends React.Component<RadialMenuProps & { selected
                 color = "#c2c2c5";
                 break;
             case 0:
-                color = "white";
+                color = "#f1efeb";
                 break;
             case 2:
                 color = "lightgray";

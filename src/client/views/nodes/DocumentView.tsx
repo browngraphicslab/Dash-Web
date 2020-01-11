@@ -170,7 +170,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // const seven= RadialMenu.Instance.findByDescription("seven...");
 
 
-        !one?rm.addItem({ description: "one", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
+        !one?rm.addItem({ description: "one one one one one one one one one", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
         !two?rm.addItem({ description: "two", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1  }):null;
         !three?rm.addItem({ description: "three", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1  }):null;
         !four?rm.addItem({ description: "four", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
