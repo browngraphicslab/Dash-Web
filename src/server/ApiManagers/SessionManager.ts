@@ -2,24 +2,25 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied, AuthorizedCore, SecureHandler } from "../RouteManager";
 import RouteSubscriber from "../RouteSubscriber";
 import { sessionAgent } from "..";
+import { DashSessionAgent } from "../DashSession/DashSessionAgent";
 
 const permissionError = "You are not authorized!";
 
 export default class SessionManager extends ApiManager {
 
-    private secureSubscriber = (root: string, ...params: string[]) => new RouteSubscriber(root).add("password", ...params);
+    private secureSubscriber = (root: string, ...params: string[]) => new RouteSubscriber(root).add("sessionKey", ...params);
 
     private authorizedAction = (handler: SecureHandler) => {
         return (core: AuthorizedCore) => {
             const { req, res, isRelease } = core;
-            const { password } = req.params;
+            const { sessionKey } = req.params;
             if (!isRelease) {
                 return res.send("This can be run only on the release server.");
             }
-            if (password !== process.env.session_key) {
+            if (sessionKey !== process.env.session_key) {
                 return _permission_denied(res, permissionError);
             }
-            handler(core);
+            return handler(core);
         };
     }
 
@@ -27,14 +28,21 @@ export default class SessionManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: this.secureSubscriber("debug", "mode", "recipient"),
-            secureHandler: this.authorizedAction(({ req, res }) => {
+            subscription: this.secureSubscriber("debug", "mode?", "recipient?"),
+            secureHandler: this.authorizedAction(async ({ req, res }) => {
                 const { mode, recipient } = req.params;
-                if (["passive", "active"].includes(mode)) {
-                    sessionAgent.serverWorker.sendMonitorAction("debug", { mode, recipient });
-                    res.send(`Your request was successful: the server is ${mode === "active" ? "creating and compressing a new" : "retrieving and compressing the most recent"} back up. It will be sent to ${recipient}.`);
-                } else {
+                if (mode && !["passive", "active"].includes(mode)) {
                     res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
+                } else {
+                    const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", {
+                        mode: mode || "active",
+                        recipient: recipient || DashSessionAgent.notificationRecipient
+                    });
+                    if (response instanceof Error) {
+                        res.send(response);
+                    } else {
+                        res.send(`Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
+                    }
                 }
             })
         });
@@ -42,9 +50,13 @@ export default class SessionManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
-            secureHandler: this.authorizedAction(({ res }) => {
-                sessionAgent.serverWorker.sendMonitorAction("backup");
-                res.send(`Your request was successful: the server is creating a new back up.`);
+            secureHandler: this.authorizedAction(async ({ res }) => {
+                const response = await sessionAgent.serverWorker.emitToMonitor("backup");
+                if (response instanceof Error) {
+                    res.send(response);
+                } else {
+                    res.send("Your request was successful: the server successfully created a new back up.");
+                }
             })
         });
 

@@ -8,7 +8,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
 import { emptyFunction, Utils, returnFalse, emptyPath } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -359,15 +359,24 @@ class TreeView extends React.Component<TreeViewProps> {
                     active={this.props.active}
                     whenActiveChanged={emptyFunction}
                     addDocTab={this.props.addDocTab}
-                    pinToPres={this.props.pinToPres}
-                    setPreviewScript={emptyFunction} />
+                    pinToPres={this.props.pinToPres} />
             </div>;
         }
     }
 
+    @action
+    bulletClick = (e: React.MouseEvent) => {
+        if (this.props.document.onClick) {
+            ScriptCast(this.props.document.onClick).script.run({ this: this.props.document.isTemplateField && this.props.dataDoc ? this.props.dataDoc : this.props.document }, console.log);
+        } else {
+            this.treeViewOpen = !this.treeViewOpen;
+        }
+        e.stopPropagation();
+    }
+
     @computed
     get renderBullet() {
-        return <div className="bullet" title="view inline" onClick={action((e: React.MouseEvent) => { this.treeViewOpen = !this.treeViewOpen; e.stopPropagation(); })} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
+        return <div className="bullet" title="view inline" onClick={this.bulletClick} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
             {<FontAwesomeIcon icon={!this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down")} />}
         </div>;
     }

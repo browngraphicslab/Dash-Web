@@ -103,6 +103,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 height: this.height,
                 zIndex: this.Document.zIndex || 0,
             }} >
+
             <DocumentView {...this.props}
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
@@ -111,6 +112,16 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
             />
+            {/* <ContentFittingDocumentView {...this.props}
+                //dragDivName={"collectionFreeFormDocumentView-container"}
+                //ContentScaling={this.contentScaling}
+                getTransform={this.getTransform}
+                active={returnFalse}
+                focus={(doc: Doc) => this.props.focus(doc, false)}
+                // backgroundColor={this.clusterColorFunc}
+                PanelWidth={this.finalPanelWidth}
+                PanelHeight={this.finalPanelHeight}
+            /> */}
         </div>;
     }
 }

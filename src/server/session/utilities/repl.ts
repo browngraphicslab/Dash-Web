@@ -54,7 +54,7 @@ export default class Repl {
         }
     }
 
-    private success = (command: string) => `${this.resolvedIdentifier()} completed execution of ${white(command)}`;
+    private success = (command: string) => `${this.resolvedIdentifier()} completed local execution of ${white(command)}`;
 
     public registerCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
         const existing = this.commandMap.get(basename);

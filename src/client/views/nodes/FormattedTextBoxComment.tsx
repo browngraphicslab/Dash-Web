@@ -183,7 +183,6 @@ export class FormattedTextBoxComment {
                                     moveDocument={returnFalse}
                                     getTransform={Transform.Identity}
                                     active={returnFalse}
-                                    setPreviewScript={returnEmptyString}
                                     addDocument={returnFalse}
                                     removeDocument={returnFalse}
                                     ruleProvider={undefined}
