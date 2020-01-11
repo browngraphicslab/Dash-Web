@@ -504,8 +504,8 @@ export class Timeline extends React.Component<FieldViewProps> {
                         <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
                             <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
                                 {this.drawTicks()}
-                                <div key="timeline_scrubber" className="scrubber" onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
-                                    <div key="timeline_scrubberhead" className="scrubberhead"></div>
+                                <div key="timeline_scrubber" className="scrubber" style={{ transform: `translate(${this._currentBarX}px)` }}>
+                                    <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
                                 </div>
                                 <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
                                     {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} check={this._check} checkCallBack={this.checkCallBack} />)}

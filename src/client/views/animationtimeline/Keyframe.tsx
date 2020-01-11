@@ -22,6 +22,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
  */
 export namespace KeyframeFunc {
     export enum KeyframeType {
+        end = "end",
         fade = "fade",
         default = "default",
     }
@@ -194,8 +195,8 @@ export class Keyframe extends React.Component<IProps> {
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
             let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
             let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
-            let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-            let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
+            let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.end)!;
+            let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.end)!;
             (fadeIn.key! as Doc).opacity = 1;
             (fadeOut.key! as Doc).opacity = 1;
             (start.key! as Doc).opacity = 0.1;
@@ -206,7 +207,6 @@ export class Keyframe extends React.Component<IProps> {
 
     @action
     makeKeyData = async (kfpos: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        const batch = UndoManager.StartBatch("makeKeyData");
         let doclist = (await DocListCastAsync(this.regiondata.keyframes))!;
         let existingkf: (Doc | undefined) = undefined;
         doclist.forEach(TK => {
@@ -218,19 +218,11 @@ export class Keyframe extends React.Component<IProps> {
         TK.key = Doc.MakeCopy(this.props.node, true);
         TK.type = type;
         this.regiondata.keyframes!.push(TK);
-
-        // myObservable++;
-        // UndoManager.AddEvent({
-        //     undo: action(() => myObservable--),
-        //     redo: action(() => myObservable++)
-        // });
-
         let interpolationFunctions = new Doc();
         interpolationFunctions.interpolationX = new List<number>([0, 1]);
         interpolationFunctions.interpolationY = new List<number>([0, 100]);
         interpolationFunctions.pathX = new List<number>();
         interpolationFunctions.pathY = new List<number>();
-
         this.regiondata.functions!.push(interpolationFunctions);
         let found: boolean = false;
         this.regiondata.keyframes!.forEach(compkf => {
@@ -244,7 +236,6 @@ export class Keyframe extends React.Component<IProps> {
                 return;
             }
         });
-        batch.end();
         return TK;
     }
 
@@ -384,15 +375,6 @@ export class Keyframe extends React.Component<IProps> {
         this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(NumCast(kf.time!), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement));
     }
 
-
-    @action
-    onKeyframeOver = (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.props.node.backgroundColor = "#000000";
-    }
-
-
     /**
      * custom keyframe context menu items (when clicking on the keyframe circle)
      */
@@ -412,7 +394,6 @@ export class Keyframe extends React.Component<IProps> {
             }),
             TimelineMenu.Instance.addItem("input", "Move", (val) => {
                 runInAction(() => {
-                    if (this.checkInput(val)) {
                         let cannotMove: boolean = false;
                         let kfIndex: number = this.keyframes.indexOf(kf);
                         if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
@@ -422,7 +403,6 @@ export class Keyframe extends React.Component<IProps> {
                             this.keyframes[kfIndex].time = parseInt(val, 10);
                             this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
                         }
-                    }
                 });
             });
         TimelineMenu.Instance.addMenu("Keyframe");
@@ -448,7 +428,6 @@ export class Keyframe extends React.Component<IProps> {
             }),
             TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
                 runInAction(() => {
-                    if (this.checkInput(val)) {
                         let cannotMove: boolean = false;
                         if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position) {
                             cannotMove = true;
@@ -457,73 +436,57 @@ export class Keyframe extends React.Component<IProps> {
                             this.regiondata.fadeIn = parseInt(val, 10);
                             this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
                         }
-                    }
                 });
             }),
             TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {
                 runInAction(() => {
-                    if (this.checkInput(val)) {
-                        let cannotMove: boolean = false;
-                        if (val < 0 || val > this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[this.keyframes.length - 3].time)) {
-                            cannotMove = true;
-                        }
-                        if (!cannotMove) {
-                            this.regiondata.fadeOut = parseInt(val, 10);
-                            this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - val;
-                        }
+                    let cannotMove: boolean = false;
+                    if (val < 0 || val > this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[this.keyframes.length - 3].time)) {
+                        cannotMove = true;
+                    }
+                    if (!cannotMove) {
+                        this.regiondata.fadeOut = parseInt(val, 10);
+                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - val;
                     }
                 });
             }),
             TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {
                 runInAction(() => {
-                    if (this.checkInput(val)) {
-                        let prevPosition = this.regiondata.position;
-                        let cannotMove: boolean = false;
-                        DocListCast(this.regions).forEach(region => {
-                            if (NumCast(region.position) !== this.regiondata.position) {
-                                if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration)))) {
-                                    cannotMove = true;
-                                }
+                    let prevPosition = this.regiondata.position;
+                    let cannotMove: boolean = false;
+                    DocListCast(this.regions).forEach(region => {
+                        if (NumCast(region.position) !== this.regiondata.position) {
+                            if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration)))) {
+                                cannotMove = true;
                             }
-                        });
-                        if (!cannotMove) {
-                            this.regiondata.position = parseInt(val, 10);
-                            this.updateKeyframes(this.regiondata.position - prevPosition);
                         }
+                    });
+                    if (!cannotMove) {
+                        this.regiondata.position = parseInt(val, 10);
+                        this.updateKeyframes(this.regiondata.position - prevPosition);
                     }
                 });
             }),
             TimelineMenu.Instance.addItem("input", `duration: ${this.regiondata.duration}ms`, (val) => {
                 runInAction(() => {
-                    if (this.checkInput(val)) {
-                        let cannotMove: boolean = false;
-                        DocListCast(this.regions).forEach(region => {
-                            if (NumCast(region.position) !== this.regiondata.position) {
-                                val += this.regiondata.position;
-                                if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration))) {
-                                    cannotMove = true;
-                                }
+                    let cannotMove: boolean = false;
+                    DocListCast(this.regions).forEach(region => {
+                        if (NumCast(region.position) !== this.regiondata.position) {
+                            val += this.regiondata.position;
+                            if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration))) {
+                                cannotMove = true;
                             }
-                        });
-                        if (!cannotMove) {
-                            this.regiondata.duration = parseInt(val, 10);
-                            this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration;
-                            this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
                         }
+                    });
+                    if (!cannotMove) {
+                        this.regiondata.duration = parseInt(val, 10);
+                        this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration;
+                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
                     }
                 });
             }),
             TimelineMenu.Instance.addMenu("Region");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
-    }
-
-
-    /**
-     * checking if input is correct (might have to use external module)
-     */
-    @action
-    checkInput = (val: any) => {
-        return typeof (val === "number");
     }
 
     @action
@@ -652,7 +615,7 @@ export class Keyframe extends React.Component<IProps> {
     drawKeyframes = () => {
         let keyframeDivs: JSX.Element[] = [];
         DocListCast(this.regiondata.keyframes).forEach(kf => {
-            if (kf.type as KeyframeFunc.KeyframeType === KeyframeFunc.KeyframeType.default) {
+            if (kf.type as KeyframeFunc.KeyframeType !== KeyframeFunc.KeyframeType.end) {
                 keyframeDivs.push(
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>
@@ -663,8 +626,7 @@ export class Keyframe extends React.Component<IProps> {
                         }} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); }}></div>
                     </div>
                 );
-            }
-            else {
+            } else {
                 keyframeDivs.push(
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>

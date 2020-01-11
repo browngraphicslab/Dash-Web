@@ -96,6 +96,7 @@ export class Track extends React.Component<IProps> {
 
     /**
      * keyframe save logic. Needs to be changed so it's more efficient
+     * 
      */
     @action
     saveKeyframe = async (ref: Doc, regiondata: Doc) => {
@@ -354,19 +355,20 @@ export class Track extends React.Component<IProps> {
     /**
      * creates a region (KEYFRAME.TSX stuff). 
      */
-    createRegion = (position: number) => {
-        let regiondata = KeyframeFunc.defaultKeyframe();
-        regiondata.position = position;
-        let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
-
-        if (rightRegion && rightRegion.position - regiondata.position <= 4000) {
-            regiondata.duration = rightRegion.position - regiondata.position;
+    createRegion = async (time: number) => {
+        if (await this.findRegion(time) === undefined){  //check if there is a region where double clicking (prevents phantom regions)
+            let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
+            regiondata.position = time; //set position
+            let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
+    
+            if (rightRegion && rightRegion.position - regiondata.position <= 4000) { //edge case when there is less than default 4000 duration space between this and right region
+                regiondata.duration = rightRegion.position - regiondata.position;
+            }
+            if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))) {
+                this.regions.push(regiondata);
+                return regiondata;
+            }
         }
-        if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))) {
-            this.regions.push(regiondata);
-            return regiondata;
-        }
-
     }
 
 

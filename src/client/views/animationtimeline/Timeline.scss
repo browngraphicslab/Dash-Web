@@ -109,6 +109,7 @@
             position: absolute;
             z-index: 1001;
             background-color: black;
+            pointer-events: none;
 
             .scrubberhead {
                 top: -30px;
@@ -119,6 +120,7 @@
                 border: 5px solid black;
                 left: -15px;
                 position: absolute;
+                pointer-events: all;
             }
         }
 
