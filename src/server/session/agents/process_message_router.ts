@@ -1,4 +1,4 @@
-import { MessageHandler, PromisifiedIPCManager } from "../utilities/ipc";
+import { MessageHandler, PromisifiedIPCManager } from "./promisified_ipc_manager";
 
 export default abstract class ProcessMessageRouter {
 

@@ -1,6 +1,6 @@
 import { ExitHandler } from "./applied_session_agent";
 import { isMaster } from "cluster";
-import { PromisifiedIPCManager, Message, MessageHandler } from "../utilities/ipc";
+import { PromisifiedIPCManager } from "./promisified_ipc_manager";
 import ProcessMessageRouter from "./process_message_router";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
@@ -61,7 +61,7 @@ export class ServerWorker extends ProcessMessageRouter {
 
     private constructor(work: Function) {
         super();
-        ServerWorker.IPCManager = new PromisifiedIPCManager(process);
+        ServerWorker.IPCManager = new PromisifiedIPCManager(process, this.route);
         this.lifecycleNotification(green(`initializing process... ${white(`[${process.execPath} ${process.execArgv.join(" ")}]`)}`));
 
         const { pollingRoute, serverPort, pollingIntervalSeconds, pollingFailureTolerance } = process.env;
@@ -80,12 +80,8 @@ export class ServerWorker extends ProcessMessageRouter {
      * server process.
      */
     private configureProcess = () => {
-        ServerWorker.IPCManager.setRouter(this.route);
         // updates the local values of variables to the those sent from master
-        this.on("updatePollingInterval", ({ newPollingIntervalSeconds }) => {
-            this.pollingIntervalSeconds = newPollingIntervalSeconds;
-            return new Promise<void>(resolve => setTimeout(resolve, 1000 * 10));
-        });
+        this.on("updatePollingInterval", ({ newPollingIntervalSeconds }) => this.pollingIntervalSeconds = newPollingIntervalSeconds);
         this.on("manualExit", async ({ isSessionEnd }) => {
             await this.executeExitHandlers(isSessionEnd);
             process.exit(0);

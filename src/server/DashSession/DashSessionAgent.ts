@@ -11,7 +11,7 @@ import { resolve } from "path";
 import { AppliedSessionAgent, ExitHandler } from "../session/agents/applied_session_agent";
 import { Monitor } from "../session/agents/monitor";
 import { ServerWorker } from "../session/agents/server_worker";
-import { MessageHandler } from "../session/utilities/ipc";
+import { MessageHandler } from "../session/agents/promisified_ipc_manager";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -110,7 +110,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
             content: this.generateCrashInstructions(crashCause)
         });
         if (error) {
-            this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
+            this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} ${yellow(`(${error.message})`)}`));
             mainLog(red("distribution of crash notification experienced errors"));
         } else {
             mainLog(green("successfully distributed crash notification to recipients"));

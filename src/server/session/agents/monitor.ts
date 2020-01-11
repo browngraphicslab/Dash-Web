@@ -2,13 +2,14 @@ import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
 import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
-import { PromisifiedIPCManager, suffix, IPC, MessageHandler } from "../utilities/ipc";
+import { IPC_Promisify, MessageHandler } from "./promisified_ipc_manager";
 import { red, cyan, white, yellow, blue } from "colors";
 import { exec, ExecOptions } from "child_process";
 import { validate, ValidationError } from "jsonschema";
 import { Utilities } from "../utilities/utilities";
 import { readFileSync } from "fs";
 import ProcessMessageRouter from "./process_message_router";
+import { ServerWorker } from "./server_worker";
 
 /**
  * Validates and reads the configuration file, accordingly builds a child process factory
@@ -25,7 +26,7 @@ export class Monitor extends ProcessMessageRouter {
 
     public static Create(sessionKey: string) {
         if (isWorker) {
-            IPC(process).emit("kill", {
+            ServerWorker.IPCManager.emit("kill", {
                 reason: "cannot create a monitor on the worker process.",
                 graceful: false,
                 errorCode: 1
@@ -210,7 +211,7 @@ export class Monitor extends ProcessMessageRouter {
         repl.registerCommand("exit", [/clean|force/], args => this.killSession("manual exit requested by repl", args[0] === "clean", 0));
         repl.registerCommand("restart", [/clean|force/], args => this.killActiveWorker(args[0] === "clean"));
         repl.registerCommand("set", [letters, "port", number, boolean], args => this.setPort(args[0], Number(args[2]), args[3] === "true"));
-        repl.registerCommand("set", [/polling/, number, boolean], async args => {
+        repl.registerCommand("set", [/polling/, number, boolean], args => {
             const newPollingIntervalSeconds = Math.floor(Number(args[1]));
             if (newPollingIntervalSeconds < 0) {
                 this.mainLog(red("the polling interval must be a non-negative integer"));
@@ -218,7 +219,7 @@ export class Monitor extends ProcessMessageRouter {
                 if (newPollingIntervalSeconds !== this.config.polling.intervalSeconds) {
                     this.config.polling.intervalSeconds = newPollingIntervalSeconds;
                     if (args[2] === "true") {
-                        return Monitor.IPCManager.emitPromise("updatePollingInterval", { newPollingIntervalSeconds });
+                        Monitor.IPCManager.emit("updatePollingInterval", { newPollingIntervalSeconds });
                     }
                 }
             }
@@ -279,16 +280,13 @@ export class Monitor extends ProcessMessageRouter {
             serverPort: ports.server,
             socketPort: ports.socket,
             pollingIntervalSeconds: intervalSeconds,
-            session_key: this.key,
-            ipc_suffix: suffix
+            session_key: this.key
         });
-        Monitor.IPCManager = IPC(this.activeWorker);
+        Monitor.IPCManager = IPC_Promisify(this.activeWorker, this.route);
         this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker?.process.pid}`));
 
         this.on("kill", ({ reason, graceful, errorCode }) => this.killSession(reason, graceful, errorCode), true);
         this.on("lifecycle", ({ event }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
-
-        Monitor.IPCManager.setRouter(this.route);
     }
 
 }

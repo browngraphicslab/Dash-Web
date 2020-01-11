@@ -30,13 +30,14 @@ export default class SessionManager extends ApiManager {
             method: Method.GET,
             subscription: this.secureSubscriber("debug", "mode?", "recipient?"),
             secureHandler: this.authorizedAction(async ({ req, res }) => {
-                let { mode } = req.params;
+                const { mode, recipient } = req.params;
                 if (mode && !["passive", "active"].includes(mode)) {
                     res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
                 } else {
-                    !mode && (mode = "active");
-                    const recipient = req.params.recipient || DashSessionAgent.notificationRecipient;
-                    const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { mode, recipient });
+                    const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", {
+                        mode: mode || "active",
+                        recipient: recipient || DashSessionAgent.notificationRecipient
+                    });
                     if (response instanceof Error) {
                         res.send(response);
                     } else {
