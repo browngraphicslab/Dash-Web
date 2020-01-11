@@ -23,20 +23,19 @@ export class PromisifiedIPCManager {
         this.target = target;
     }
 
-    public emit = async (name: string, args?: any, expectResponse = false): Promise<Error | undefined> => {
+    public emit = async (name: string, args?: any, awaitResponse = false): Promise<Error | undefined> => {
         if (!this.target.send) {
             return new Error("Cannot dispatch when send is undefined.");
         }
-        if (expectResponse) {
+        if (awaitResponse) {
             return new Promise(resolve => {
                 const messageId = Utils.GenerateGuid();
                 const metadata: any = {};
                 metadata[this.ipc_id] = messageId;
                 const responseHandler: MessageHandler<InternalMessage> = ({ args, metadata }) => {
                     if (metadata[this.is_response] && metadata[this.ipc_id] === messageId) {
-                        const { error } = args;
                         this.target.removeListener("message", responseHandler);
-                        resolve(error);
+                        resolve(args.error as Error | undefined);
                     }
                 };
                 this.target.addListener("message", responseHandler);

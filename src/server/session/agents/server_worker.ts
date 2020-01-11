@@ -56,7 +56,7 @@ export class ServerWorker extends MessageRouter {
      * A convenience wrapper to tell the session monitor (parent process)
      * to carry out the action with the specified message and arguments.
      */
-    public emitToMonitor = (name: string, args?: any, expectResponse = false) => ServerWorker.IPCManager.emit(name, args, expectResponse);
+    public emitToMonitor = (name: string, args?: any, awaitResponse = false) => ServerWorker.IPCManager.emit(name, args, awaitResponse);
 
     private constructor(work: Function) {
         super();
