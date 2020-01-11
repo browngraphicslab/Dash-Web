@@ -122,6 +122,7 @@ export class Monitor extends MessageRouter {
         });
 
         this.repl = this.initializeRepl();
+        Monitor.IPCManager.setRouter(this.route);
     }
 
     public finalize = (): void => {
@@ -283,8 +284,6 @@ export class Monitor extends MessageRouter {
 
         this.addMessageListener("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode), true);
         this.addMessageListener("lifecycle", ({ args: { event } }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
-
-        Monitor.IPCManager.setRouter(this.route);
     }
 
 }
