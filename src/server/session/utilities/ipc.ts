@@ -1,16 +1,22 @@
 import { isMaster } from "cluster";
 import { Utils } from "../../../Utils";
 
+export function IPC(target: IPCTarget) {
+    return new PromisifiedIPCManager(target);
+}
+
 export type IPCTarget = NodeJS.EventEmitter & { send?: Function };
 export type Router = (message: Message) => void | Promise<void>;
 
 export const suffix = isMaster ? Utils.GenerateGuid() : process.env.ipc_suffix;
 
+type InternalMessage<T = any> = Message<T> & { metadata: any };
+
 export interface Message<T = any> {
     name: string;
     args: T;
 }
-type InternalMessage<T = any> = Message<T> & { metadata: any };
+
 export type MessageHandler<T = any> = (message: T) => any | Promise<any>;
 
 export class PromisifiedIPCManager {
@@ -51,18 +57,10 @@ export class PromisifiedIPCManager {
                 }
                 if (metadata && this.target.send) {
                     metadata[this.is_response] = true;
-                    this.target.send({
-                        name,
-                        args: { error },
-                        metadata
-                    });
+                    this.target.send({ name, args: { error }, metadata });
                 }
             }
         });
     }
 
-}
-
-export function IPC(target: IPCTarget) {
-    return new PromisifiedIPCManager(target);
 }
