@@ -11,7 +11,7 @@ import { Monitor } from "./monitor";
  * email if the server encounters an uncaught exception or if the server cannot be reached.
  */
 export class ServerWorker {
-    private static localIPCManager = new PromisifiedIPCManager(process);
+    private static IPCManager = new PromisifiedIPCManager(process);
     private static count = 0;
     private shouldServerBeResponsive = false;
     private exitHandlers: ExitHandler[] = [];
@@ -27,14 +27,10 @@ export class ServerWorker {
             console.error(red("cannot create a worker on the monitor process."));
             process.exit(1);
         } else if (++ServerWorker.count > 1) {
-            ServerWorker.localIPCManager.emit({
-                action: {
-                    message: "kill", args: {
-                        reason: "cannot create more than one worker on a given worker process.",
-                        graceful: false,
-                        errorCode: 1
-                    }
-                }
+            ServerWorker.IPCManager.emit("kill", {
+                reason: "cannot create more than one worker on a given worker process.",
+                graceful: false,
+                errorCode: 1
             });
             process.exit(1);
         } else {
@@ -53,13 +49,13 @@ export class ServerWorker {
      * server worker (child process). This will also kill
      * this process (child process).
      */
-    public killSession = (reason: string, graceful = true, errorCode = 0) => this.sendMonitorAction("kill", { reason, graceful, errorCode });
+    public killSession = (reason: string, graceful = true, errorCode = 0) => this.emitToMonitor("kill", { reason, graceful, errorCode });
 
     /**
      * A convenience wrapper to tell the session monitor (parent process)
      * to carry out the action with the specified message and arguments.
      */
-    public sendMonitorAction = (message: string, args?: any, expectResponse = false) => ServerWorker.localIPCManager.emit({ action: { message, args } }, expectResponse);
+    public emitToMonitor = (name: string, args?: any, expectResponse = false) => ServerWorker.IPCManager.emit(name, args, expectResponse);
 
     private constructor(work: Function) {
         this.lifecycleNotification(green(`initializing process... ${white(`[${process.execPath} ${process.execArgv.join(" ")}]`)}`));
@@ -81,15 +77,11 @@ export class ServerWorker {
      */
     private configureProcess = () => {
         // updates the local values of variables to the those sent from master
-        ServerWorker.localIPCManager.addMessagesHandler(async ({ newPollingIntervalSeconds, manualExit }) => {
-            if (newPollingIntervalSeconds !== undefined) {
-                this.pollingIntervalSeconds = newPollingIntervalSeconds;
-            }
-            if (manualExit !== undefined) {
-                const { isSessionEnd } = manualExit;
-                await this.executeExitHandlers(isSessionEnd);
-                process.exit(0);
-            }
+        const { addMessageListener } = ServerWorker.IPCManager;
+        addMessageListener("updatePollingInterval", ({ args }) => this.pollingIntervalSeconds = args.newPollingIntervalSeconds);
+        addMessageListener("manualExit", async ({ args: { isSessionEnd } }) => {
+            await this.executeExitHandlers(isSessionEnd);
+            process.exit(0);
         });
 
         // one reason to exit, as the process might be in an inconsistent state after such an exception
@@ -109,7 +101,7 @@ export class ServerWorker {
     /**
      * Notify master thread (which will log update in the console) of initialization via IPC.
      */
-    public lifecycleNotification = (event: string) => ServerWorker.localIPCManager.emit({ lifecycle: event });
+    public lifecycleNotification = (event: string) => ServerWorker.IPCManager.emit("lifecycle", { event });
 
     /**
      * Called whenever the process has a reason to terminate, either through an uncaught exception
@@ -118,7 +110,7 @@ export class ServerWorker {
     private proactiveUnplannedExit = async (error: Error): Promise<void> => {
         this.shouldServerBeResponsive = false;
         // communicates via IPC to the master thread that it should dispatch a crash notification email
-        this.sendMonitorAction(`notify_${Monitor.IntrinsicEvents.CrashDetected}`, { error });
+        this.emitToMonitor(`notify_${Monitor.IntrinsicEvents.CrashDetected}`, { error });
         await this.executeExitHandlers(error);
         // notify master thread (which will log update in the console) of crash event via IPC
         this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));
@@ -138,7 +130,7 @@ export class ServerWorker {
                     if (!this.shouldServerBeResponsive) {
                         // notify monitor thread that the server is up and running
                         this.lifecycleNotification(green(`listening on ${this.serverPort}...`));
-                        this.sendMonitorAction(`notify_${Monitor.IntrinsicEvents.ServerRunning}`, { firstTime: !this.isInitialized });
+                        this.emitToMonitor(`notify_${Monitor.IntrinsicEvents.ServerRunning}`, { firstTime: !this.isInitialized });
                         this.isInitialized = true;
                     }
                     this.shouldServerBeResponsive = true;
