@@ -28,10 +28,13 @@ export default class SessionManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: this.secureSubscriber("debug", "mode", "recipient?"),
+            subscription: this.secureSubscriber("debug", "mode?", "recipient?"),
             secureHandler: this.authorizedAction(async ({ req, res }) => {
-                const { mode } = req.params;
-                if (["passive", "active"].includes(mode)) {
+                let { mode } = req.params;
+                if (mode && !["passive", "active"].includes(mode)) {
+                    res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
+                } else {
+                    !mode && (mode = "active");
                     const recipient = req.params.recipient || DashSessionAgent.notificationRecipient;
                     const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { mode, recipient });
                     if (response instanceof Error) {
@@ -39,8 +42,6 @@ export default class SessionManager extends ApiManager {
                     } else {
                         res.send(`Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
                     }
-                } else {
-                    res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
                 }
             })
         });
