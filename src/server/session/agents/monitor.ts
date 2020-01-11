@@ -2,20 +2,19 @@ import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
 import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
-import { PromisifiedIPCManager, suffix, IPC, Message } from "../utilities/ipc";
+import { PromisifiedIPCManager, suffix, IPC, MessageHandler, Message } from "../utilities/ipc";
 import { red, cyan, white, yellow, blue } from "colors";
 import { exec, ExecOptions } from "child_process";
-import { Utils } from "../../../Utils";
 import { validate, ValidationError } from "jsonschema";
 import { Utilities } from "../utilities/utilities";
 import { readFileSync } from "fs";
-import { EventEmitter } from "events";
+import MessageRouter from "./message_router";
 
 /**
  * Validates and reads the configuration file, accordingly builds a child process factory
  * and spawns off an initial process that will respawn as predecessors die.
  */
-export class Monitor extends EventEmitter {
+export class Monitor extends MessageRouter {
     private static IPCManager: PromisifiedIPCManager;
     private static count = 0;
     private finalized = false;
@@ -25,7 +24,7 @@ export class Monitor extends EventEmitter {
     private key: string | undefined;
     private repl: Repl;
 
-    public static Create() {
+    public static Create(sessionKey: string) {
         if (isWorker) {
             IPC(process).emit("kill", {
                 reason: "cannot create a monitor on the worker process.",
@@ -37,13 +36,12 @@ export class Monitor extends EventEmitter {
             console.error(red("cannot create more than one monitor."));
             process.exit(1);
         } else {
-            return new Monitor();
+            return new Monitor(sessionKey);
         }
     }
 
-    public onCrashDetected = (listener: (...args: any[]) => void) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener);
-    public onKeyGenerated = (listener: (...args: any[]) => void) => this.on(Monitor.IntrinsicEvents.KeyGenerated, listener);
-    public onServerRunning = (listener: (...args: any[]) => void) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener);
+    public onCrashDetected = (listener: MessageHandler) => this.addMessageListener(Monitor.IntrinsicEvents.CrashDetected, listener);
+    public onServerRunning = (listener: MessageHandler) => this.addMessageListener(Monitor.IntrinsicEvents.ServerRunning, listener);
 
     /**
      * Kill this session and its active child
@@ -93,10 +91,10 @@ export class Monitor extends EventEmitter {
         });
     }
 
-    private constructor() {
+    private constructor(sessionKey: string) {
         super();
-
         console.log(this.timestamp(), cyan("initializing session..."));
+        this.key = sessionKey;
         this.config = this.loadAndValidateConfiguration();
 
         // determines whether or not we see the compilation / initialization / runtime output of each child server process
@@ -131,7 +129,6 @@ export class Monitor extends EventEmitter {
             throw new Error("Session monitor is already finalized");
         }
         this.finalized = true;
-        this.emit(Monitor.IntrinsicEvents.KeyGenerated, this.key = Utils.GenerateGuid());
         this.spawn();
     }
 
@@ -284,11 +281,10 @@ export class Monitor extends EventEmitter {
         Monitor.IPCManager = IPC(this.activeWorker);
         this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker?.process.pid}`));
 
-        const { addMessageListener } = Monitor.IPCManager;
-        addMessageListener("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode));
-        addMessageListener(`notify_${Monitor.IntrinsicEvents.CrashDetected}`, ({ args: { error } }) => this.emit(Monitor.IntrinsicEvents.CrashDetected, error));
-        addMessageListener(`notify_${Monitor.IntrinsicEvents.ServerRunning}`, ({ args: { firstTime } }) => this.emit(Monitor.IntrinsicEvents.ServerRunning, firstTime));
-        addMessageListener("lifecycle", ({ args: { event } }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`));
+        this.addMessageListener("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode), true);
+        this.addMessageListener("lifecycle", ({ args: { event } }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
+
+        Monitor.IPCManager.setRouter(this.route);
     }
 
 }

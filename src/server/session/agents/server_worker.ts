@@ -1,6 +1,7 @@
 import { ExitHandler } from "./applied_session_agent";
 import { isMaster } from "cluster";
 import { PromisifiedIPCManager } from "../utilities/ipc";
+import MessageRouter from "./message_router";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
 import { Monitor } from "./monitor";
@@ -10,7 +11,7 @@ import { Monitor } from "./monitor";
  * if its predecessor has died. It itself also polls the server heartbeat, and exits with a notification
  * email if the server encounters an uncaught exception or if the server cannot be reached.
  */
-export class ServerWorker {
+export class ServerWorker extends MessageRouter {
     private static IPCManager = new PromisifiedIPCManager(process);
     private static count = 0;
     private shouldServerBeResponsive = false;
@@ -58,6 +59,7 @@ export class ServerWorker {
     public emitToMonitor = (name: string, args?: any, expectResponse = false) => ServerWorker.IPCManager.emit(name, args, expectResponse);
 
     private constructor(work: Function) {
+        super();
         this.lifecycleNotification(green(`initializing process... ${white(`[${process.execPath} ${process.execArgv.join(" ")}]`)}`));
 
         const { pollingRoute, serverPort, pollingIntervalSeconds, pollingFailureTolerance } = process.env;
@@ -76,10 +78,13 @@ export class ServerWorker {
      * server process.
      */
     private configureProcess = () => {
+        ServerWorker.IPCManager.setRouter(this.route);
         // updates the local values of variables to the those sent from master
-        const { addMessageListener } = ServerWorker.IPCManager;
-        addMessageListener("updatePollingInterval", ({ args }) => this.pollingIntervalSeconds = args.newPollingIntervalSeconds);
-        addMessageListener("manualExit", async ({ args: { isSessionEnd } }) => {
+        this.addMessageListener("updatePollingInterval", ({ args }) => {
+            this.pollingIntervalSeconds = args.newPollingIntervalSeconds;
+            return new Promise<void>(resolve => setTimeout(resolve, 1000 * 10));
+        });
+        this.addMessageListener("manualExit", async ({ args: { isSessionEnd } }) => {
             await this.executeExitHandlers(isSessionEnd);
             process.exit(0);
         });
@@ -110,7 +115,7 @@ export class ServerWorker {
     private proactiveUnplannedExit = async (error: Error): Promise<void> => {
         this.shouldServerBeResponsive = false;
         // communicates via IPC to the master thread that it should dispatch a crash notification email
-        this.emitToMonitor(`notify_${Monitor.IntrinsicEvents.CrashDetected}`, { error });
+        this.emitToMonitor(Monitor.IntrinsicEvents.CrashDetected, { error });
         await this.executeExitHandlers(error);
         // notify master thread (which will log update in the console) of crash event via IPC
         this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));
@@ -130,7 +135,7 @@ export class ServerWorker {
                     if (!this.shouldServerBeResponsive) {
                         // notify monitor thread that the server is up and running
                         this.lifecycleNotification(green(`listening on ${this.serverPort}...`));
-                        this.emitToMonitor(`notify_${Monitor.IntrinsicEvents.ServerRunning}`, { firstTime: !this.isInitialized });
+                        this.emitToMonitor(Monitor.IntrinsicEvents.ServerRunning, { firstTime: !this.isInitialized });
                         this.isInitialized = true;
                     }
                     this.shouldServerBeResponsive = true;

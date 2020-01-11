@@ -11,6 +11,7 @@ import { resolve } from "path";
 import { AppliedSessionAgent, ExitHandler } from "../session/agents/applied_session_agent";
 import { Monitor } from "../session/agents/monitor";
 import { ServerWorker } from "../session/agents/server_worker";
+import { Message } from "../session/utilities/ipc";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -26,14 +27,14 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when the single master thread is initialized.
      * Installs event hooks, repl commands and additional IPC listeners.
      */
-    protected async initializeMonitor(monitor: Monitor) {
+    protected async initializeMonitor(monitor: Monitor, sessionKey: string) {
+        await this.dispatchSessionPassword(sessionKey);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
         monitor.addReplCommand("backup", [], this.backup);
         monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
-        monitor.addServerMessageListener("backup", this.backup);
-        monitor.addServerMessageListener("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
-        monitor.onKeyGenerated(this.dispatchSessionPassword);
+        monitor.addMessageListener("backup", this.backup);
+        monitor.addMessageListener("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
         monitor.onCrashDetected(this.dispatchCrashReport);
     }
 
@@ -80,14 +81,14 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * This sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
      * to kill the server via the /kill/:key route.
      */
-    private dispatchSessionPassword = async (key: string) => {
+    private dispatchSessionPassword = async (sessionKey: string) => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         mainLog(green("dispatching session key..."));
         const error = await Email.dispatch({
             to: notificationRecipient,
             subject: "Dash Release Session Admin Authentication Key",
-            content: `The key for this session (started @ ${new Date().toUTCString()}) is ${key}.\n\n${this.signature}`
+            content: `The key for this session (started @ ${new Date().toUTCString()}) is ${sessionKey}.\n\n${this.signature}`
         });
         if (error) {
             this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
@@ -100,7 +101,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
     /**
      * This sends an email with the generated crash report.
      */
-    private dispatchCrashReport = async (crashCause: Error) => {
+    private dispatchCrashReport = async ({ args: { error: crashCause } }: Message) => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         const error = await Email.dispatch({

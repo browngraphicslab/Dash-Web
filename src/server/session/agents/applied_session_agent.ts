@@ -1,6 +1,7 @@
 import { isMaster } from "cluster";
 import { Monitor } from "./monitor";
 import { ServerWorker } from "./server_worker";
+import { Utils } from "../../../Utils";
 
 export type ExitHandler = (reason: Error | boolean) => void | Promise<void>;
 
@@ -8,7 +9,7 @@ export abstract class AppliedSessionAgent {
 
     // the following two methods allow the developer to create a custom
     // session and use the built in customization options for each thread
-    protected abstract async initializeMonitor(monitor: Monitor): Promise<void>;
+    protected abstract async initializeMonitor(monitor: Monitor, key: string): Promise<void>;
     protected abstract async initializeServerWorker(): Promise<ServerWorker>;
 
     private launched = false;
@@ -21,7 +22,7 @@ export abstract class AppliedSessionAgent {
     private sessionMonitorRef: Monitor | undefined;
     public get sessionMonitor(): Monitor {
         if (!isMaster) {
-            this.serverWorker.sendMonitorAction("kill", {
+            this.serverWorker.emitToMonitor("kill", {
                 graceful: false,
                 reason: "Cannot access the session monitor directly from the server worker thread.",
                 errorCode: 1
@@ -43,7 +44,8 @@ export abstract class AppliedSessionAgent {
         if (!this.launched) {
             this.launched = true;
             if (isMaster) {
-                await this.initializeMonitor(this.sessionMonitorRef = Monitor.Create());
+                const sessionKey = Utils.GenerateGuid();
+                await this.initializeMonitor(this.sessionMonitorRef = Monitor.Create(sessionKey), sessionKey);
                 this.sessionMonitorRef.finalize();
             } else {
                 this.serverWorkerRef = await this.initializeServerWorker();

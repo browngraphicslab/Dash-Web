@@ -33,7 +33,7 @@ export default class SessionManager extends ApiManager {
                 const { mode } = req.params;
                 if (["passive", "active"].includes(mode)) {
                     const recipient = req.params.recipient || DashSessionAgent.notificationRecipient;
-                    const response = await sessionAgent.serverWorker.sendMonitorAction("debug", { mode, recipient }, true);
+                    const response = await sessionAgent.serverWorker.emitToMonitor("debug", { mode, recipient }, true);
                     if (response instanceof Error) {
                         res.send(response);
                     } else {
@@ -49,7 +49,7 @@ export default class SessionManager extends ApiManager {
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
             secureHandler: this.authorizedAction(async ({ res }) => {
-                const response = await sessionAgent.serverWorker.sendMonitorAction("backup");
+                const response = await sessionAgent.serverWorker.emitToMonitor("backup");
                 if (response instanceof Error) {
                     res.send(response);
                 } else {
