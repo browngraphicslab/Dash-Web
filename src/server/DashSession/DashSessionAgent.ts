@@ -33,9 +33,9 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
         monitor.addReplCommand("backup", [], this.backup);
         monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
-        monitor.addMessageListener("backup", this.backup);
-        monitor.addMessageListener("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
-        monitor.onCrashDetected(this.dispatchCrashReport);
+        monitor.on("backup", this.backup);
+        monitor.on("debug", ({ args: { mode, recipient } }) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.hooks.crashDetected(this.dispatchCrashReport);
     }
 
     /**

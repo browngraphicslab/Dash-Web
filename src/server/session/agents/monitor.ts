@@ -2,7 +2,7 @@ import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
 import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
-import { PromisifiedIPCManager, suffix, IPC, MessageHandler, Message } from "../utilities/ipc";
+import { PromisifiedIPCManager, suffix, IPC, MessageHandler } from "../utilities/ipc";
 import { red, cyan, white, yellow, blue } from "colors";
 import { exec, ExecOptions } from "child_process";
 import { validate, ValidationError } from "jsonschema";
@@ -40,8 +40,54 @@ export class Monitor extends MessageRouter {
         }
     }
 
-    public onCrashDetected = (listener: MessageHandler) => this.addMessageListener(Monitor.IntrinsicEvents.CrashDetected, listener);
-    public onServerRunning = (listener: MessageHandler) => this.addMessageListener(Monitor.IntrinsicEvents.ServerRunning, listener);
+    private constructor(sessionKey: string) {
+        super();
+        this.config = this.loadAndValidateConfiguration();
+        this.initialize(sessionKey);
+        this.repl = this.initializeRepl();
+    }
+
+    private initialize = (sessionKey: string) => {
+        console.log(this.timestamp(), cyan("initializing session..."));
+        this.key = sessionKey;
+
+        // determines whether or not we see the compilation / initialization / runtime output of each child server process
+        const output = this.config.showServerOutput ? "inherit" : "ignore";
+        setupMaster({ stdio: ["ignore", output, output, "ipc"] });
+
+        // handle exceptions in the master thread - there shouldn't be many of these
+        // the IPC (inter process communication) channel closed exception can't seem
+        // to be caught in a try catch, and is inconsequential, so it is ignored
+        process.on("uncaughtException", ({ message, stack }): void => {
+            if (message !== "Channel closed") {
+                this.mainLog(red(message));
+                if (stack) {
+                    this.mainLog(`uncaught exception\n${red(stack)}`);
+                }
+            }
+        });
+
+        // a helpful cluster event called on the master thread each time a child process exits
+        on("exit", ({ process: { pid } }, code, signal) => {
+            const prompt = `server worker with process id ${pid} has exited with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.`;
+            this.mainLog(cyan(prompt));
+            // to make this a robust, continuous session, every time a child process dies, we immediately spawn a new one
+            this.spawn();
+        });
+    }
+
+    public finalize = (): void => {
+        if (this.finalized) {
+            throw new Error("Session monitor is already finalized");
+        }
+        this.finalized = true;
+        this.spawn();
+    }
+
+    public readonly hooks = Object.freeze({
+        crashDetected: (listener: MessageHandler<{ error: Error }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
+        serverRunning: (listener: MessageHandler<{ isFirstTime: boolean }>) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener)
+    });
 
     /**
      * Kill this session and its active child
@@ -89,48 +135,6 @@ export class Monitor extends MessageRouter {
                 resolve();
             });
         });
-    }
-
-    private constructor(sessionKey: string) {
-        super();
-        console.log(this.timestamp(), cyan("initializing session..."));
-        this.key = sessionKey;
-        this.config = this.loadAndValidateConfiguration();
-
-        // determines whether or not we see the compilation / initialization / runtime output of each child server process
-        const output = this.config.showServerOutput ? "inherit" : "ignore";
-        setupMaster({ stdio: ["ignore", output, output, "ipc"] });
-
-        // handle exceptions in the master thread - there shouldn't be many of these
-        // the IPC (inter process communication) channel closed exception can't seem
-        // to be caught in a try catch, and is inconsequential, so it is ignored
-        process.on("uncaughtException", ({ message, stack }): void => {
-            if (message !== "Channel closed") {
-                this.mainLog(red(message));
-                if (stack) {
-                    this.mainLog(`uncaught exception\n${red(stack)}`);
-                }
-            }
-        });
-
-        // a helpful cluster event called on the master thread each time a child process exits
-        on("exit", ({ process: { pid } }, code, signal) => {
-            const prompt = `server worker with process id ${pid} has exited with code ${code}${signal === null ? "" : `, having encountered signal ${signal}`}.`;
-            this.mainLog(cyan(prompt));
-            // to make this a robust, continuous session, every time a child process dies, we immediately spawn a new one
-            this.spawn();
-        });
-
-        this.repl = this.initializeRepl();
-        Monitor.IPCManager.setRouter(this.route);
-    }
-
-    public finalize = (): void => {
-        if (this.finalized) {
-            throw new Error("Session monitor is already finalized");
-        }
-        this.finalized = true;
-        this.spawn();
     }
 
     /**
@@ -282,8 +286,10 @@ export class Monitor extends MessageRouter {
         Monitor.IPCManager = IPC(this.activeWorker);
         this.mainLog(cyan(`spawned new server worker with process id ${this.activeWorker?.process.pid}`));
 
-        this.addMessageListener("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode), true);
-        this.addMessageListener("lifecycle", ({ args: { event } }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
+        this.on("kill", ({ args: { reason, graceful, errorCode } }) => this.killSession(reason, graceful, errorCode), true);
+        this.on("lifecycle", ({ args: { event } }) => console.log(this.timestamp(), `${this.config.identifiers.worker.text} lifecycle phase (${event})`), true);
+
+        Monitor.IPCManager.setRouter(this.route);
     }
 
 }

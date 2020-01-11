@@ -6,13 +6,12 @@ export type Router = (message: Message) => void | Promise<void>;
 
 export const suffix = isMaster ? Utils.GenerateGuid() : process.env.ipc_suffix;
 
-export interface Message {
+export interface Message<T = any> {
     name: string;
-    args?: any;
+    args: T;
 }
-type InternalMessage = Message & { metadata: any };
-
-export type MessageHandler<T extends Message = Message> = (message: T) => any | Promise<any>;
+type InternalMessage<T = any> = Message<T> & { metadata: any };
+export type MessageHandler<A = any, T extends Message<A> = Message<A>> = (message: T) => any | Promise<any>;
 
 export class PromisifiedIPCManager {
     private readonly target: IPCTarget;
@@ -32,10 +31,10 @@ export class PromisifiedIPCManager {
                 const messageId = Utils.GenerateGuid();
                 const metadata: any = {};
                 metadata[this.ipc_id] = messageId;
-                const responseHandler: MessageHandler<InternalMessage> = ({ args, metadata }) => {
+                const responseHandler: MessageHandler<any, InternalMessage> = ({ metadata, args }) => {
                     if (metadata[this.is_response] && metadata[this.ipc_id] === messageId) {
                         this.target.removeListener("message", responseHandler);
-                        resolve(args.error as Error | undefined);
+                        resolve(args?.error as Error | undefined);
                     }
                 };
                 this.target.addListener("message", responseHandler);

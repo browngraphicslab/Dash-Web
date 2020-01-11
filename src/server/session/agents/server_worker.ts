@@ -1,6 +1,6 @@
 import { ExitHandler } from "./applied_session_agent";
 import { isMaster } from "cluster";
-import { PromisifiedIPCManager } from "../utilities/ipc";
+import { PromisifiedIPCManager, Message } from "../utilities/ipc";
 import MessageRouter from "./message_router";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
@@ -80,11 +80,11 @@ export class ServerWorker extends MessageRouter {
     private configureProcess = () => {
         ServerWorker.IPCManager.setRouter(this.route);
         // updates the local values of variables to the those sent from master
-        this.addMessageListener("updatePollingInterval", ({ args }) => {
+        this.on("updatePollingInterval", ({ args }: Message<{ newPollingIntervalSeconds: number }>) => {
             this.pollingIntervalSeconds = args.newPollingIntervalSeconds;
             return new Promise<void>(resolve => setTimeout(resolve, 1000 * 10));
         });
-        this.addMessageListener("manualExit", async ({ args: { isSessionEnd } }) => {
+        this.on("manualExit", async ({ args: { isSessionEnd } }: Message<{ isSessionEnd: boolean }>) => {
             await this.executeExitHandlers(isSessionEnd);
             process.exit(0);
         });
@@ -135,7 +135,7 @@ export class ServerWorker extends MessageRouter {
                     if (!this.shouldServerBeResponsive) {
                         // notify monitor thread that the server is up and running
                         this.lifecycleNotification(green(`listening on ${this.serverPort}...`));
-                        this.emitToMonitor(Monitor.IntrinsicEvents.ServerRunning, { firstTime: !this.isInitialized });
+                        this.emitToMonitor(Monitor.IntrinsicEvents.ServerRunning, { isFirstTime: !this.isInitialized });
                         this.isInitialized = true;
                     }
                     this.shouldServerBeResponsive = true;

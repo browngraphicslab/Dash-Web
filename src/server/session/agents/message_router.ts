@@ -8,7 +8,7 @@ export default abstract class MessageRouter {
      * Add a listener at this message. When the monitor process
      * receives a message, it will invoke all registered functions.
      */
-    public addMessageListener = (name: string, handler: MessageHandler, exclusive = false) => {
+    public on = (name: string, handler: MessageHandler, exclusive = false) => {
         const handlers = this.onMessage[name];
         if (exclusive || !handlers) {
             this.onMessage[name] = [handler];
@@ -20,7 +20,7 @@ export default abstract class MessageRouter {
     /**
      * Unregister a given listener at this message.
      */
-    public removeMessageListener = (name: string, handler: MessageHandler) => {
+    public off = (name: string, handler: MessageHandler) => {
         const handlers = this.onMessage[name];
         if (handlers) {
             const index = handlers.indexOf(handler);
