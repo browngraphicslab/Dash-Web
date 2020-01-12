@@ -30,9 +30,9 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
         monitor.addReplCommand("backup", [], this.backup);
-        monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
         monitor.on("backup", this.backup);
-        monitor.on("debug", async ({ mode, recipient }) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
     }
 
@@ -164,14 +164,12 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * @param mode specifies whether or not to make a new backup before exporting
      * @param to the recipient of the email
      */
-    private async dispatchZippedDebugBackup(mode: string, to: string): Promise<void> {
+    private async dispatchZippedDebugBackup(to: string): Promise<void> {
         const { mainLog } = this.sessionMonitor;
         try {
             // if desired, complete an immediate backup to send
-            if (mode === "active") {
-                await this.backup();
-                mainLog("backup complete");
-            }
+            await this.backup();
+            mainLog("backup complete");
 
             const backupsDirectory = `${this.releaseDesktop}/backups`;
 
@@ -201,6 +199,9 @@ export class DashSessionAgent extends AppliedSessionAgent {
                 attachments: [{ filename: zipName, path: zipPath }]
             });
 
+            // since this is intended to be a zero-footprint operation, clean up 
+            // by unlinking both the backup generated earlier in the function and the compressed zip file.
+            // to generate a persistent backup, just run backup.
             unlinkSync(zipPath);
             rimraf.sync(targetPath);
 

@@ -28,16 +28,11 @@ export default class SessionManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: this.secureSubscriber("debug", "mode?", "recipient?"),
+            subscription: this.secureSubscriber("debug", "to?"),
             secureHandler: this.authorizedAction(async ({ req: { params }, res }) => {
-                const mode = params.mode || "active";
-                const recipient = params.recipient || DashSessionAgent.notificationRecipient;
-                if (!["passive", "active"].includes(mode)) {
-                    res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
-                } else {
-                    const { error } = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { mode, recipient });
-                    res.send(error ? error.message : `Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
-                }
+                const to = params.to || DashSessionAgent.notificationRecipient;
+                const { error } = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { to });
+                res.send(error ? error.message : `Your request was successful: the server captured and compressed (but did not save) a new back up. It was sent to ${to}.`);
             })
         });
 
