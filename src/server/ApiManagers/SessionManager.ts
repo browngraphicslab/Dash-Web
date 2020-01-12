@@ -31,7 +31,7 @@ export default class SessionManager extends ApiManager {
             subscription: this.secureSubscriber("debug", "to?"),
             secureHandler: this.authorizedAction(async ({ req: { params }, res }) => {
                 const to = params.to || DashSessionAgent.notificationRecipient;
-                const { error } = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { to });
+                const { error } = await sessionAgent.serverWorker.emit("debug", { to });
                 res.send(error ? error.message : `Your request was successful: the server captured and compressed (but did not save) a new back up. It was sent to ${to}.`);
             })
         });
@@ -40,7 +40,7 @@ export default class SessionManager extends ApiManager {
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
             secureHandler: this.authorizedAction(async ({ res }) => {
-                const { error } = await sessionAgent.serverWorker.emitToMonitorPromise("backup");
+                const { error } = await sessionAgent.serverWorker.emit("backup");
                 res.send(error ? error.message : "Your request was successful: the server successfully created a new back up.");
             })
         });
