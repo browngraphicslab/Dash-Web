@@ -5,10 +5,11 @@ import { Utils } from "../../Utils";
 import { WebSocket } from "../Websocket/Websocket";
 import { MessageStore } from "../Message";
 import { launchServer, onWindows } from "..";
-import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream, readFileSync } from "fs";
+import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } from "fs";
 import * as Archiver from "archiver";
 import { resolve } from "path";
 import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
+import rimraf = require("rimraf");
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -168,12 +169,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
                 mainLog("backup complete");
             }
 
-            // ensure the directory for compressed backups exists
             const backupsDirectory = `${this.releaseDesktop}/backups`;
-            const compressedDirectory = `${this.releaseDesktop}/compressed`;
-            if (!existsSync(compressedDirectory)) {
-                mkdirSync(compressedDirectory);
-            }
 
             // sort all backups by their modified time, and choose the most recent one
             const target = readdirSync(backupsDirectory).map(filename => ({
@@ -184,7 +180,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
 
             // create a zip file and to it, write the contents of the backup directory
             const zipName = `${target}.zip`;
-            const zipPath = `${compressedDirectory}/${zipName}`;
+            const zipPath = `${this.releaseDesktop}/${zipName}`;
             const output = createWriteStream(zipPath);
             const zip = Archiver('zip');
             zip.pipe(output);
@@ -199,6 +195,8 @@ export class DashSessionAgent extends AppliedSessionAgent {
                 content: this.generateDebugInstructions(zipName, target),
                 attachments: [{ filename: zipName, path: zipPath }]
             });
+
+            unlinkSync(zipPath);
 
             // indicate success or failure
             mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(to)}`);
