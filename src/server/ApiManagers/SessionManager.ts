@@ -35,12 +35,8 @@ export default class SessionManager extends ApiManager {
                 if (!["passive", "active"].includes(mode)) {
                     res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
                 } else {
-                    const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { mode, recipient });
-                    if (response instanceof Error) {
-                        res.send(response);
-                    } else {
-                        res.send(`Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
-                    }
+                    const { error } = await sessionAgent.serverWorker.emitToMonitorPromise("debug", { mode, recipient });
+                    res.send(error ? error.message : `Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
                 }
             })
         });
@@ -49,12 +45,8 @@ export default class SessionManager extends ApiManager {
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
             secureHandler: this.authorizedAction(async ({ res }) => {
-                const response = await sessionAgent.serverWorker.emitToMonitor("backup");
-                if (response instanceof Error) {
-                    res.send(response);
-                } else {
-                    res.send("Your request was successful: the server successfully created a new back up.");
-                }
+                const { error } = await sessionAgent.serverWorker.emitToMonitorPromise("backup");
+                res.send(error ? error.message : "Your request was successful: the server successfully created a new back up.");
             })
         });
 
