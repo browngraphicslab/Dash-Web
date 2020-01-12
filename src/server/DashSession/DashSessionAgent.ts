@@ -9,7 +9,6 @@ import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } fr
 import * as Archiver from "archiver";
 import { resolve } from "path";
 import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
-import rimraf = require("rimraf");
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
