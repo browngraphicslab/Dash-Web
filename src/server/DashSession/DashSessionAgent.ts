@@ -24,14 +24,14 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when the single master thread is initialized.
      * Installs event hooks, repl commands and additional IPC listeners.
      */
-    protected async initializeMonitor(monitor: Monitor, sessionKey: string) {
+    protected async initializeMonitor(monitor: Monitor, sessionKey: string): Promise<void> {
         await this.dispatchSessionPassword(sessionKey);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
         monitor.addReplCommand("backup", [], this.backup);
         monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
         monitor.on("backup", this.backup);
-        monitor.on("debug", ({ mode, recipient }) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.on("debug", async ({ mode, recipient }) => this.dispatchZippedDebugBackup(mode, recipient));
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
     }
 
@@ -39,7 +39,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when a server worker thread is initialized.
      * Installs logic to be executed when the server worker dies.
      */
-    protected async initializeServerWorker() {
+    protected async initializeServerWorker(): Promise<ServerWorker> {
         const worker = ServerWorker.Create(launchServer); // server initialization delegated to worker
         worker.addExitHandler(this.notifyClient);
         return worker;
@@ -49,7 +49,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Prepares the body of the email with instructions on restoring the transmitted remote database backup locally.
      */
     private _remoteDebugInstructions: string | undefined;
-    private generateDebugInstructions = (zipName: string, target: string) => {
+    private generateDebugInstructions = (zipName: string, target: string): string => {
         if (!this._remoteDebugInstructions) {
             this._remoteDebugInstructions = readFileSync(resolve(__dirname, "./templates/remote_debug_instructions.txt"), { encoding: "utf8" });
         }
@@ -63,7 +63,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Prepares the body of the email with information regarding a crash event.
      */
     private _crashInstructions: string | undefined;
-    private generateCrashInstructions({ name, message, stack }: Error) {
+    private generateCrashInstructions({ name, message, stack }: Error): string {
         if (!this._crashInstructions) {
             this._crashInstructions = readFileSync(resolve(__dirname, "./templates/crash_instructions.txt"), { encoding: "utf8" });
         }
@@ -78,14 +78,18 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * This sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
      * to kill the server via the /kill/:key route.
      */
-    private dispatchSessionPassword = async (sessionKey: string) => {
+    private dispatchSessionPassword = async (sessionKey: string): Promise<void> => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         mainLog(green("dispatching session key..."));
         const error = await Email.dispatch({
             to: notificationRecipient,
             subject: "Dash Release Session Admin Authentication Key",
-            content: `Here's the key for this session (started @ ${new Date().toUTCString()}):\n\n${sessionKey}\n\n${this.signature}`
+            content: [
+                `Here's the key for this session (started @ ${new Date().toUTCString()}):`,
+                sessionKey,
+                this.signature
+            ].join("\n\n")
         });
         if (error) {
             this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
@@ -118,7 +122,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Logic for interfacing with Solr. Either starts it, 
      * stops it, or rebuilds its indicies.
      */
-    private executeSolrCommand = async (args: string[]) => {
+    private executeSolrCommand = async (args: string[]): Promise<void> => {
         const { exec, mainLog } = this.sessionMonitor;
         const action = args[0];
         if (action === "index") {
@@ -151,7 +155,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Performs a backup of the database, saved to the desktop subdirectory.
      * This should work as is only on our specific release server.
      */
-    private backup = async () => this.sessionMonitor.exec("backup.bat", { cwd: this.releaseDesktop });
+    private backup = async (): Promise<void> => this.sessionMonitor.exec("backup.bat", { cwd: this.releaseDesktop });
 
     /**
      * Compress either a brand new backup or the most recent backup and send it
@@ -159,7 +163,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * @param mode specifies whether or not to make a new backup before exporting
      * @param to the recipient of the email
      */
-    private async dispatchZippedDebugBackup(mode: string, to: string) {
+    private async dispatchZippedDebugBackup(mode: string, to: string): Promise<void> {
         const { mainLog } = this.sessionMonitor;
         try {
             // if desired, complete an immediate backup to send
