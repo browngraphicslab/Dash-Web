@@ -7,8 +7,26 @@ import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { Cast } from '../../new_fields/Types';
 import { Scripting } from './Scripting';
+import { PrefetchProxy } from '../../new_fields/Proxy';
+
+// Either map:
+//     a column name to itself,
+//     a column name to another name,
+//     a column index to a name,
+export type NamedColumnSpec = { tableName: string, name?: string };
+export type IndexColumnSpec = { index: number, name: string };
+export type TableColumnSpec = NamedColumnSpec | IndexColumnSpec;
 
 export namespace ApiUtils {
+
+    export function getColumnIdentifier(columnSpec: TableColumnSpec): number | string {
+        return "index" in columnSpec ? columnSpec.index : columnSpec.tableName;
+    }
+
+    export function getColumnName(columnSpec: TableColumnSpec): string {
+        return columnSpec.name ?? (columnSpec as any).tableName;
+    }
+
     export async function fetchHtml(url: string): Promise<Opt<Document>> {
         const res = await rp.get(Utils.CorsProxy(url));
         if (typeof res !== "string") {
@@ -34,25 +52,36 @@ export namespace ApiUtils {
 
     export interface ParseTableOptions {
         primaryKey: string;
-        columns?: string[];
+        hasHeaderRow: boolean;
+        columns?: TableColumnSpec[];
         //rowFunc?: (row: { [column: string]: string }) => boolean;
     }
 
     export function parseTable(table: HTMLTableElement, options: ParseTableOptions): Doc {
-        const { primaryKey, columns } = options;
-        const headerRow = table.rows[0].cells;
+        const { primaryKey, columns, hasHeaderRow } = options;
         const includedColumns: { index: number, name: string }[] = [];
-        const columnSet = new Set(columns);
-        let numUnnamed = 0;
-        for (let i = 0; i < headerRow.length; i++) {
-            const name = headerRow[i].textContent ?? `column_${numUnnamed++}`;
-            if (!columns || columnSet.has(name)) {
-                includedColumns.push({ name, index: i });
+        const columnSet: { [key: string]: string } = {};
+        columns && columns.forEach(col => {
+            if ("tableName" in col) {
+                columnSet[col.tableName] = getColumnName(col);
+            } else {
+                includedColumns.push(col);
+            }
+        })
+        if (hasHeaderRow) {
+            const headerRow = table.rows[0].cells;
+            let numUnnamed = 0;
+            for (let i = 0; i < headerRow.length; i++) {
+                const name = headerRow[i].textContent ?? `column_${numUnnamed++}`;
+                if (!columns || columnSet[name]) {
+                    includedColumns.push({ name: columnSet[name] ?? name, index: i });
+                }
             }
         }
 
         const docs: Doc[] = [];
-        for (let i = 1; i < table.rows.length; i++) {
+        const startIndex = hasHeaderRow ? 1 : 0;
+        for (let i = startIndex; i < table.rows.length; i++) {
             const row = table.rows[i];
             let rowObj: { [column: string]: string } = {};
             for (const column of includedColumns) {
@@ -65,8 +94,13 @@ export namespace ApiUtils {
         }
         const collection = Docs.Create.SchemaDocument([new SchemaHeaderField(primaryKey), ...includedColumns.filter(col => col.name !== primaryKey).map(col => new SchemaHeaderField(col.name))], docs, {});
         collection.primaryKey = primaryKey;
+        collection.hasHeaderRow = hasHeaderRow;
         if (columns) {
-            collection.activeColumns = new List(columns);
+            collection.activeColumns = new List(columns.map(col => {
+                const doc = new Doc();
+                Doc.assign(doc, col);
+                return new PrefetchProxy(doc);
+            }));
         }
         return collection;
     }
@@ -79,8 +113,12 @@ export namespace ApiUtils {
             doc.data = list;
         }
         const primaryKey = Cast(doc.primaryKey, "string");
-        const columns = Cast(doc.activeColumns, listSpec("string"));
+        const columns = Cast(doc.activeColumns, listSpec(Doc));
+        const hasHeaderRow = Cast(doc.hasHeaderRow, "boolean");
         if (!primaryKey) {
+            return false;
+        }
+        if (hasHeaderRow === undefined) {
             return false;
         }
         const docMap: { [key: string]: Doc } = {};
@@ -91,18 +129,45 @@ export namespace ApiUtils {
                 docMap[key] = doc;
             }
         }
-        const headerRow = table.rows[0].cells;
         const includedColumns: { index: number, name: string }[] = [];
-        const columnSet = new Set(columns);
-        let numUnnamed = 0;
-        for (let i = 0; i < headerRow.length; i++) {
-            const name = headerRow[i].textContent ?? `column_${numUnnamed++}`;
-            if ((!columns || columnSet.has(name)) || name === primaryKey) {
-                includedColumns.push({ name, index: i });
+        const columnSet: { [key: string]: string } = {};
+        columns && columns.forEach(colDoc => {
+            if (!(colDoc instanceof Doc)) return;
+            const name = Cast(colDoc.name, "string");
+            const tableName = Cast(colDoc.tableName, "string");
+            const index = Cast(colDoc.index, "number");
+            if (tableName === undefined && (index === undefined || name === undefined)) {
+                return;
+            }
+            const col: any = {};
+            if (name !== undefined) {
+                col.name = name;
+            }
+            if (tableName !== undefined) {
+                col.tableName = tableName;
+            }
+            if (index !== undefined) {
+                col.index = index;
+            }
+            if ("tableName" in col) {
+                columnSet[col.tableName] = getColumnName(col);
+            } else {
+                includedColumns.push(col);
+            }
+        })
+        if (hasHeaderRow) {
+            let numUnnamed = 0;
+            const headerRow = table.rows[0].cells;
+            for (let i = 0; i < headerRow.length; i++) {
+                const name = headerRow[i].textContent ?? `column_${numUnnamed++}`;
+                if ((!columns || columnSet[name]) || name === primaryKey) {
+                    includedColumns.push({ name: columnSet[name] ?? name, index: i });
+                }
             }
         }
 
-        for (let i = 1; i < table.rows.length; i++) {
+        const startIndex = hasHeaderRow ? 1 : 0;
+        for (let i = startIndex; i < table.rows.length; i++) {
             const row = table.rows[i];
             let rowObj: { [column: string]: string } = {};
             for (const column of includedColumns) {
