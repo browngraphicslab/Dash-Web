@@ -9,6 +9,7 @@ import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } fr
 import * as Archiver from "archiver";
 import { resolve } from "path";
 import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
+import rimraf = require("rimraf");
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -184,10 +185,11 @@ export class DashSessionAgent extends AppliedSessionAgent {
             // create a zip file and to it, write the contents of the backup directory
             const zipName = `${target}.zip`;
             const zipPath = `${this.releaseDesktop}/${zipName}`;
+            const targetPath = `${backupsDirectory}/${target}`;
             const output = createWriteStream(zipPath);
             const zip = Archiver('zip');
             zip.pipe(output);
-            zip.directory(`${backupsDirectory}/${target}/Dash`, false);
+            zip.directory(`${targetPath}/Dash`, false);
             await zip.finalize();
             mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
 
@@ -200,6 +202,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
             });
 
             unlinkSync(zipPath);
+            rimraf.sync(targetPath);
 
             // indicate success or failure
             mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(to)}`);
