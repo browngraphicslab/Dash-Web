@@ -46,6 +46,9 @@ import { TraceMobx } from '../../../new_fields/util';
 import { List } from '../../../new_fields/List';
 import { FormattedTextBoxComment } from './FormattedTextBoxComment';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
+import { RadialMenu } from './RadialMenu';
+import { RadialMenuProps } from './RadialMenuItem';
+
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -85,8 +88,8 @@ export interface DocumentViewProps {
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
+    radialMenu?: String[];
 }
-
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
@@ -109,6 +112,66 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
+
+    private _firstX: number = 0;
+    private _firstY: number = 0;
+
+
+    // handle1PointerHoldStart = (e: React.TouchEvent): any => {
+    //     this.onRadialMenu(e);
+    //     const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+    //     this._firstX = pt.pageX;
+    //     this._firstY = pt.pageY;
+    //     e.stopPropagation();
+    //     e.preventDefault();
+
+    //     document.removeEventListener("touchmove", this.onTouch);
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
+
+    handle1PointerHoldMove = (e: TouchEvent): void => {
+        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+        if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+            this.handleRelease();
+        }
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.addEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+        document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    handleRelease() {
+        RadialMenu.Instance.closeMenu();
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    handle1PointerHoldEnd = (e: TouchEvent): void => {
+        RadialMenu.Instance.closeMenu();
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    @action
+    onRadialMenu = (e: React.TouchEvent): void => {
+        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+
+        RadialMenu.Instance.openMenu();
+
+        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
+
+        RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
+        if (!SelectionManager.IsSelected(this, true)) {
+            SelectionManager.SelectDoc(this, false);
+        }
+        e.stopPropagation();
+    }
 
     @action
     componentDidMount() {
@@ -399,11 +462,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
+
             if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
         }
     }
 
     onPointerMove = (e: PointerEvent): void => {
+
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
