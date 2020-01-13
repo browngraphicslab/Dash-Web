@@ -5,13 +5,11 @@ import { Utils } from "../../Utils";
 import { WebSocket } from "../Websocket/Websocket";
 import { MessageStore } from "../Message";
 import { launchServer, onWindows } from "..";
-import { existsSync, mkdirSync, readdirSync, statSync, createWriteStream, readFileSync } from "fs";
+import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } from "fs";
 import * as Archiver from "archiver";
 import { resolve } from "path";
-import { AppliedSessionAgent, ExitHandler } from "../session/agents/applied_session_agent";
-import { Monitor } from "../session/agents/monitor";
-import { ServerWorker } from "../session/agents/server_worker";
-import { MessageHandler } from "../session/agents/promisified_ipc_manager";
+import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
+import rimraf = require("rimraf");
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -27,14 +25,14 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when the single master thread is initialized.
      * Installs event hooks, repl commands and additional IPC listeners.
      */
-    protected async initializeMonitor(monitor: Monitor, sessionKey: string) {
+    protected async initializeMonitor(monitor: Monitor, sessionKey: string): Promise<void> {
         await this.dispatchSessionPassword(sessionKey);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
         monitor.addReplCommand("backup", [], this.backup);
-        monitor.addReplCommand("debug", [/active|passive/, /\S+\@\S+/], async ([mode, recipient]) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
         monitor.on("backup", this.backup);
-        monitor.on("debug", ({ mode, recipient }) => this.dispatchZippedDebugBackup(mode, recipient));
+        monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
     }
 
@@ -42,7 +40,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when a server worker thread is initialized.
      * Installs logic to be executed when the server worker dies.
      */
-    protected async initializeServerWorker() {
+    protected async initializeServerWorker(): Promise<ServerWorker> {
         const worker = ServerWorker.Create(launchServer); // server initialization delegated to worker
         worker.addExitHandler(this.notifyClient);
         return worker;
@@ -52,7 +50,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Prepares the body of the email with instructions on restoring the transmitted remote database backup locally.
      */
     private _remoteDebugInstructions: string | undefined;
-    private generateDebugInstructions = (zipName: string, target: string) => {
+    private generateDebugInstructions = (zipName: string, target: string): string => {
         if (!this._remoteDebugInstructions) {
             this._remoteDebugInstructions = readFileSync(resolve(__dirname, "./templates/remote_debug_instructions.txt"), { encoding: "utf8" });
         }
@@ -66,7 +64,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Prepares the body of the email with information regarding a crash event.
      */
     private _crashInstructions: string | undefined;
-    private generateCrashInstructions({ name, message, stack }: Error) {
+    private generateCrashInstructions({ name, message, stack }: Error): string {
         if (!this._crashInstructions) {
             this._crashInstructions = readFileSync(resolve(__dirname, "./templates/crash_instructions.txt"), { encoding: "utf8" });
         }
@@ -81,14 +79,18 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * This sends a pseudorandomly generated guid to the configuration's recipients, allowing them alone
      * to kill the server via the /kill/:key route.
      */
-    private dispatchSessionPassword = async (sessionKey: string) => {
+    private dispatchSessionPassword = async (sessionKey: string): Promise<void> => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         mainLog(green("dispatching session key..."));
         const error = await Email.dispatch({
             to: notificationRecipient,
             subject: "Dash Release Session Admin Authentication Key",
-            content: `Here's the key for this session (started @ ${new Date().toUTCString()}):\n\n${sessionKey}.\n\n${this.signature}`
+            content: [
+                `Here's the key for this session (started @ ${new Date().toUTCString()}):`,
+                sessionKey,
+                this.signature
+            ].join("\n\n")
         });
         if (error) {
             this.sessionMonitor.mainLog(red(`dispatch failure @ ${notificationRecipient} (${yellow(error.message)})`));
@@ -121,7 +123,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Logic for interfacing with Solr. Either starts it, 
      * stops it, or rebuilds its indicies.
      */
-    private executeSolrCommand = async (args: string[]) => {
+    private executeSolrCommand = async (args: string[]): Promise<void> => {
         const { exec, mainLog } = this.sessionMonitor;
         const action = args[0];
         if (action === "index") {
@@ -154,7 +156,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Performs a backup of the database, saved to the desktop subdirectory.
      * This should work as is only on our specific release server.
      */
-    private backup = async () => this.sessionMonitor.exec("backup.bat", { cwd: this.releaseDesktop });
+    private backup = async (): Promise<void> => this.sessionMonitor.exec("backup.bat", { cwd: this.releaseDesktop });
 
     /**
      * Compress either a brand new backup or the most recent backup and send it
@@ -162,21 +164,14 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * @param mode specifies whether or not to make a new backup before exporting
      * @param to the recipient of the email
      */
-    private async dispatchZippedDebugBackup(mode: string, to: string) {
+    private async dispatchZippedDebugBackup(to: string): Promise<void> {
         const { mainLog } = this.sessionMonitor;
         try {
             // if desired, complete an immediate backup to send
-            if (mode === "active") {
-                await this.backup();
-                mainLog("backup complete");
-            }
+            await this.backup();
+            mainLog("backup complete");
 
-            // ensure the directory for compressed backups exists
             const backupsDirectory = `${this.releaseDesktop}/backups`;
-            const compressedDirectory = `${this.releaseDesktop}/compressed`;
-            if (!existsSync(compressedDirectory)) {
-                mkdirSync(compressedDirectory);
-            }
 
             // sort all backups by their modified time, and choose the most recent one
             const target = readdirSync(backupsDirectory).map(filename => ({
@@ -187,11 +182,12 @@ export class DashSessionAgent extends AppliedSessionAgent {
 
             // create a zip file and to it, write the contents of the backup directory
             const zipName = `${target}.zip`;
-            const zipPath = `${compressedDirectory}/${zipName}`;
+            const zipPath = `${this.releaseDesktop}/${zipName}`;
+            const targetPath = `${backupsDirectory}/${target}`;
             const output = createWriteStream(zipPath);
             const zip = Archiver('zip');
             zip.pipe(output);
-            zip.directory(`${backupsDirectory}/${target}/Dash`, false);
+            zip.directory(`${targetPath}/Dash`, false);
             await zip.finalize();
             mainLog(`zip finalized with size ${statSync(zipPath).size} bytes, saved to ${zipPath}`);
 
@@ -202,6 +198,12 @@ export class DashSessionAgent extends AppliedSessionAgent {
                 content: this.generateDebugInstructions(zipName, target),
                 attachments: [{ filename: zipName, path: zipPath }]
             });
+
+            // since this is intended to be a zero-footprint operation, clean up 
+            // by unlinking both the backup generated earlier in the function and the compressed zip file.
+            // to generate a persistent backup, just run backup.
+            unlinkSync(zipPath);
+            rimraf.sync(targetPath);
 
             // indicate success or failure
             mainLog(`${error === null ? green("successfully dispatched") : red("failed to dispatch")} ${zipName} to ${cyan(to)}`);

@@ -28,22 +28,11 @@ export default class SessionManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: this.secureSubscriber("debug", "mode?", "recipient?"),
-            secureHandler: this.authorizedAction(async ({ req, res }) => {
-                const { mode, recipient } = req.params;
-                if (mode && !["passive", "active"].includes(mode)) {
-                    res.send(`Your request failed. '${mode}' is not a valid mode: please choose either 'active' or 'passive'`);
-                } else {
-                    const response = await sessionAgent.serverWorker.emitToMonitorPromise("debug", {
-                        mode: mode || "active",
-                        recipient: recipient || DashSessionAgent.notificationRecipient
-                    });
-                    if (response instanceof Error) {
-                        res.send(response);
-                    } else {
-                        res.send(`Your request was successful: the server ${mode === "active" ? "created and compressed a new" : "retrieved and compressed the most recent"} back up. It was sent to ${recipient}.`);
-                    }
-                }
+            subscription: this.secureSubscriber("debug", "to?"),
+            secureHandler: this.authorizedAction(async ({ req: { params }, res }) => {
+                const to = params.to || DashSessionAgent.notificationRecipient;
+                const { error } = await sessionAgent.serverWorker.emit("debug", { to });
+                res.send(error ? error.message : `Your request was successful: the server captured and compressed (but did not save) a new back up. It was sent to ${to}.`);
             })
         });
 
@@ -51,12 +40,8 @@ export default class SessionManager extends ApiManager {
             method: Method.GET,
             subscription: this.secureSubscriber("backup"),
             secureHandler: this.authorizedAction(async ({ res }) => {
-                const response = await sessionAgent.serverWorker.emitToMonitor("backup");
-                if (response instanceof Error) {
-                    res.send(response);
-                } else {
-                    res.send("Your request was successful: the server successfully created a new back up.");
-                }
+                const { error } = await sessionAgent.serverWorker.emit("backup");
+                res.send(error ? error.message : "Your request was successful: the server successfully created a new back up.");
             })
         });
 
