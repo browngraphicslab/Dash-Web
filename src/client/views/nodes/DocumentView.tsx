@@ -107,33 +107,38 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
 
-    private _firstX:number=0;
-    private _firstY:number=0;
+    private _firstX: number = 0;
+    private _firstY: number = 0;
 
-    
-    handle1PointerHoldStart= (e: React.TouchEvent): any =>{
+
+    handle1PointerHoldStart = (e: React.TouchEvent): any => {
         this.onRadialMenu(e);
-        let page =e.touches[0];
-        this._firstX=page.pageX;
-        this._firstY=page.pageY;
+        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+        this._firstX = pt.pageX;
+        this._firstY = pt.pageY;
+        e.stopPropagation();
+        e.preventDefault();
 
         document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
-        document.addEventListener("touchmove", this.handle1PointerHoldMove);
-        document.addEventListener("touchend", this.handle1PointerHoldEnd);
-    }
-
-    handle1PointerHoldMove = (event: TouchEvent): void => {
-        let e=event.touches[0];
-        Math.abs(e.pageX-this._firstX)>150 ||Math.abs(e.pageY-this._firstY)>150? this.handleRelease():null;
         document.removeEventListener("touchmove", this.handle1PointerHoldMove);
         document.addEventListener("touchmove", this.handle1PointerHoldMove);
         document.removeEventListener("touchend", this.handle1PointerHoldEnd);
         document.addEventListener("touchend", this.handle1PointerHoldEnd);
     }
 
-    handleRelease(){
-        RadialMenu.Instance.closeMenu()
+    handle1PointerHoldMove = (e: TouchEvent): void => {
+        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+        if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+            this.handleRelease();
+        }
+        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+        document.addEventListener("touchmove", this.handle1PointerHoldMove);
+        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+        document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    }
+
+    handleRelease() {
+        RadialMenu.Instance.closeMenu();
         document.removeEventListener("touchmove", this.handle1PointerHoldMove);
         document.removeEventListener("touchend", this.handle1PointerHoldEnd);
     }
@@ -145,56 +150,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onRadialMenu = async (event: React.TouchEvent): Promise<void> => {
-        // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        // if (e.button === 0) {
-        //     e.preventDefault();
-        //     return;
-        // }
-        let e = event.touches[0];
-        // if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
-        //     // event.isDefaultPrevented()) {
-        //     // event.preventDefault();
-        //     return;
-        // }
-        // event.preventDefault();
+    onRadialMenu = (e: React.TouchEvent): void => {
+        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
 
-        let rm = RadialMenu.Instance;
-        rm.openMenu();
-        const one = RadialMenu.Instance.findByDescription("one...");
-        const two = RadialMenu.Instance.findByDescription("two...");
-        const three = RadialMenu.Instance.findByDescription("three...");
-        const four= RadialMenu.Instance.findByDescription("four...");
-        // const five= RadialMenu.Instance.findByDescription("five...");
-        // const six= RadialMenu.Instance.findByDescription("six...");
-        // const seven= RadialMenu.Instance.findByDescription("seven...");
+        RadialMenu.Instance.openMenu();
 
-
-        !one?rm.addItem({ description: "one one one one one one one one one", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
-        !two?rm.addItem({ description: "two", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1  }):null;
-        !three?rm.addItem({ description: "three", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1  }):null;
-        !four?rm.addItem({ description: "four", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
-        // !five?rm.addItem({ description: "five", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group",selected:-1 }):null;
+        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "tab", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "four", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
         // !six?rm.addItem({ description: "six", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" ,selected:-1}):null;
         // !seven?rm.addItem({ description: "seven", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" ,selected:-1}):null;
 
-        runInAction(() => {
-            // cm.addItem({
-            //     description: "Share",
-            //     event: () => SharingManager.Instance.open(this),
-            //     icon: "external-link-alt"
-            // });
-
-            if (!this.topMost) {
-                // DocumentViews should stop propagation of this event
-            }
-            RadialMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-            if (!SelectionManager.IsSelected(this, true)) {
-                SelectionManager.SelectDoc(this, false);
-            }
-        });
+        RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
+        if (!SelectionManager.IsSelected(this, true)) {
+            SelectionManager.SelectDoc(this, false);
+        }
     }
-    
+
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));

@@ -137,11 +137,9 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     }
 
     handle1PointerHoldStart = (e: React.TouchEvent): any => {
-        console.log("Hold");
         e.stopPropagation();
         e.preventDefault();
         document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
     }
 
 }

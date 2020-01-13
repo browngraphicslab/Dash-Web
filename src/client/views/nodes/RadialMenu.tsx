@@ -1,12 +1,10 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { action, observable, computed, IReactionDisposer, reaction, runInAction } from "mobx";
-import { RadialMenuItem, RadialMenuProps, OriginalMenuProps } from "./RadialMenuItem";
+import { RadialMenuItem, RadialMenuProps } from "./RadialMenuItem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Measure from "react-measure";
 import "./RadialMenu.scss";
-
-
 
 @observer
 export class RadialMenu extends React.Component {
@@ -30,36 +28,36 @@ export class RadialMenu extends React.Component {
     onPointerDown = (e: PointerEvent) => {
         this._mouseDown = true;
         this._mouseX = e.clientX;
-        this._mouseY = e.clientY; 
+        this._mouseY = e.clientY;
         document.addEventListener("pointermove", this.onPointerMove);
     }
 
-    @observable 
-    private _closest:number=-1;
+    @observable
+    private _closest: number = -1;
 
     @action
     onPointerMove = (e: PointerEvent) => {
         const curX = e.clientX;
         const curY = e.clientY;
-        const deltX = this._mouseX-curX
-        const deltY = this._mouseY-curY
-        const scale = Math.hypot(deltY,deltX)
+        const deltX = this._mouseX - curX;
+        const deltY = this._mouseY - curY;
+        const scale = Math.hypot(deltY, deltX);
 
-        if (scale <150 && scale > 50){
-            const rad = Math.atan2(deltY,deltX)+Math.PI;
-            let closest =0;
+        if (scale < 150 && scale > 50) {
+            const rad = Math.atan2(deltY, deltX) + Math.PI;
+            let closest = 0;
             let closestval = 999999999;
-            for (let x =0; x<this._items.length; x++){
-                let curmin= (x/this._items.length)*2*Math.PI;
-                if (rad-curmin<closestval && rad-curmin>0){
-                    closestval=rad-curmin
-                    closest=x;
+            for (let x = 0; x < this._items.length; x++) {
+                const curmin = (x / this._items.length) * 2 * Math.PI;
+                if (rad - curmin < closestval && rad - curmin > 0) {
+                    closestval = rad - curmin;
+                    closest = x;
                 }
             }
-            this._closest=closest;
+            this._closest = closest;
         }
-        else{
-            this._closest=-1;
+        else {
+            this._closest = -1;
         }
     }
     @action
@@ -72,8 +70,8 @@ export class RadialMenu extends React.Component {
         }
         this._shouldDisplay && (this._display = true);
         document.removeEventListener("pointermove", this.onPointerMove);
-        if (this._closest!==-1){
-            this._items[this._closest].event();
+        if (this._closest !== -1) {
+            this._items[this._closest]?.event();
         }
     }
     componentWillUnmount() {
@@ -94,7 +92,7 @@ export class RadialMenu extends React.Component {
         );
     }
 
-    componentDidUpdate = () =>{
+    componentDidUpdate = () => {
         this.previewcircle();
     }
 
@@ -112,23 +110,14 @@ export class RadialMenu extends React.Component {
         return this._items;
     }
 
-    findByDescription = (target: string, toLowerCase = false) => {
-        return this._items.find(menuItem => {
-            let reference = menuItem.description;
-            toLowerCase && (reference = reference.toLowerCase());
-            return reference === target;
-        });
-    }
-
-
     @action
     addItem(item: RadialMenuProps) {
         if (this._items.indexOf(item) === -1) {
             this._items.push(item);
         }
     }
-    
-    @observable 
+
+    @observable
     private _items: Array<RadialMenuProps> = [];
 
     @action
@@ -166,7 +155,7 @@ export class RadialMenu extends React.Component {
     }
 
     @computed get menuItems() {
-        return this._items.map((item,index) => <RadialMenuItem {...item} key={item.description} closeMenu={this.closeMenu} max={this._items.length} min={index} selected={this._closest} />);
+        return this._items.map((item, index) => <RadialMenuItem {...item} key={item.description} closeMenu={this.closeMenu} max={this._items.length} min={index} selected={this._closest} />);
     }
 
     @action
@@ -188,60 +177,45 @@ export class RadialMenu extends React.Component {
     }
 
 
-    previewcircle(){
-        if (document.getElementById("newCanvas")!==null){
-        var c : any= document.getElementById("newCanvas");
-        if (c.getContext){
-        var ctx = c.getContext("2d");
-        ctx.beginPath();
-        ctx.arc(150, 150, 50, 0,  2 * Math.PI);
-        ctx.fillStyle="white";
-        ctx.fill()
-        ctx.font = "12px Arial";
-        ctx.fillStyle = "black";
-        ctx.textAlign = "center";
-        let description ="";
-        if (this._closest!==-1){
-            description = this._items[this._closest].description;
-        }
-        if (description.length>15){
-            description= description.slice(0,12);
-            description += "...";
-        }
-        ctx.fillText(description, 150, 150, 90);
+    previewcircle() {
+        if (document.getElementById("newCanvas") !== null) {
+            const c: any = document.getElementById("newCanvas");
+            if (c.getContext) {
+                const ctx = c.getContext("2d");
+                ctx.beginPath();
+                ctx.arc(150, 150, 50, 0, 2 * Math.PI);
+                ctx.fillStyle = "white";
+                ctx.fill();
+                ctx.font = "12px Arial";
+                ctx.fillStyle = "black";
+                ctx.textAlign = "center";
+                let description = "";
+                if (this._closest !== -1) {
+                    description = this._items[this._closest].description;
+                }
+                if (description.length > 15) {
+                    description = description.slice(0, 12);
+                    description += "...";
+                }
+                ctx.fillText(description, 150, 150, 90);
+            }
         }
     }
-    }
-    
+
 
     render() {
         if (!this._display) {
             return null;
         }
-        const style = this._yRelativeToTop ? { left: this._mouseX-150, top: this._mouseY-150 } :
-            { left: this._mouseX-150, top: this._mouseY-150 };
+        const style = this._yRelativeToTop ? { left: this._mouseX - 150, top: this._mouseY - 150 } :
+            { left: this._mouseX - 150, top: this._mouseY - 150 };
 
-        const contents = (
-            <>
-                {this.menuItems}
-            </>
-        );
-        // return (
-        //     <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
-        //         {({ measureRef }) => (
-        //             <div className="radialMenu-cont" style={style} ref={measureRef}>
-        //                 {contents}
-        //             </div>
-        //         )
-        //         }
-        //     </Measure>
-        // );
         return (
 
-                    <div className="radialMenu-cont" style={style}>
-                        <canvas id="newCanvas" style={{position:"absolute"}}height="300" width="300"> Your browser does not support the HTML5 canvas tag.</canvas>
-                        {contents}
-                    </div>
+            <div className="radialMenu-cont" style={style}>
+                <canvas id="newCanvas" style={{ position: "absolute" }} height="300" width="300"> Your browser does not support the HTML5 canvas tag.</canvas>
+                {this.menuItems}
+            </div>
 
         );
     }
