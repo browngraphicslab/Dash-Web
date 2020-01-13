@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, observable, runInAction } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
 import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -295,7 +295,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
                 this.onSelect(this._searchTerm);
             } else {
-                runInAction(() => this._searchTerm = this._key);
+                this.setSearchTerm(this._key);
             }
         }
     }

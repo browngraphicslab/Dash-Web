@@ -572,13 +572,15 @@ export namespace Doc {
             return;
         }
 
-        const layoutCustomLayout = Doc.MakeDelegate(templateDoc);
+        if ((target[targetKey] as Doc)?.proto !== templateDoc) {
+            const layoutCustomLayout = Doc.MakeDelegate(templateDoc);
 
-        titleTarget && (Doc.GetProto(target).title = titleTarget);
-        Doc.GetProto(target).type = DocumentType.TEMPLATE;
-        target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
+            titleTarget && (Doc.GetProto(target).title = titleTarget);
+            Doc.GetProto(target).type = DocumentType.TEMPLATE;
+            target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
 
-        Doc.GetProto(target)[targetKey] = layoutCustomLayout;
+            Doc.GetProto(target)[targetKey] = layoutCustomLayout;
+        }
         target.layoutKey = targetKey;
         return target;
     }
@@ -750,7 +752,7 @@ export namespace Doc {
             const value = docFilters[i + 1];
             const modifiers = docFilters[i + 2];
             const scriptText = `${modifiers === "x" ? "!" : ""}matchFieldValue(doc, "${key}", "${value}")`;
-            docFilterText = docFilterText ? docFilterText + " && " + scriptText : scriptText;
+            docFilterText = docFilterText ? docFilterText + " || " + scriptText : scriptText;
         };
         return docFilterText ? "(" + docFilterText + ")" : "";
     }

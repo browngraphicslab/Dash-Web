@@ -34,6 +34,7 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { TraceMobx } from '../../../new_fields/util';
+import { Scripting } from '../../util/Scripting';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -177,7 +178,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @undoBatch
     @action
-    public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, minimize: boolean = false, libraryPath?: Doc[]) {
+    public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
@@ -201,11 +202,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
             collayout.config.width = 50;
             newContentItem.config.width = 50;
-        }
-        if (minimize) {
-            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
-            // newContentItem.config.width = 10;
-            // newContentItem.config.height = 10;
         }
         newContentItem.callDownwards('_$init');
         instance.layoutChanged();
@@ -674,7 +670,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (doc.dockingConfig) {
             return MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
-            return CollectionDockingView.AddRightSplit(doc, dataDoc, undefined, libraryPath);
+            return CollectionDockingView.AddRightSplit(doc, dataDoc, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
         } else {
@@ -724,3 +720,4 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             </div >);
     }
 }
+Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc, undefined); });

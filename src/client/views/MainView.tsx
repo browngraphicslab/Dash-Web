@@ -349,7 +349,7 @@ export class MainView extends React.Component {
     addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
             doc.dockingConfig ? this.openWorkspace(doc) :
-                CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
+                CollectionDockingView.AddRightSplit(doc, undefined, libraryPath);
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
