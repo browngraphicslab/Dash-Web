@@ -36,7 +36,7 @@ export interface EditableProps {
         resetValue: () => void;
         value: string,
         onChange: (e: React.ChangeEvent, { newValue }: { newValue: string }) => void,
-        autosuggestProps: Autosuggest.AutosuggestProps<string>
+        autosuggestProps: Autosuggest.AutosuggestProps<string, any>
 
     };
     oneLine?: boolean;

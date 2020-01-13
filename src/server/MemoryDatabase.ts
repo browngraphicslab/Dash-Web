@@ -7,7 +7,7 @@ export class MemoryDatabase implements IDatabase {
     private db: { [collectionName: string]: { [id: string]: any } } = {};
 
     private getCollection(collectionName: string) {
-        let collection = this.db[collectionName];
+        const collection = this.db[collectionName];
         if (collection) {
             return collection;
         } else {
@@ -17,9 +17,10 @@ export class MemoryDatabase implements IDatabase {
 
     public update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, _upsert?: boolean, collectionName = DocumentsCollection): Promise<void> {
         const collection = this.getCollection(collectionName);
-        if ("$set" in value) {
+        const set = "$set";
+        if (set in value) {
             let currentVal = collection[id] ?? (collection[id] = {});
-            const val = value["$set"];
+            const val = value[set];
             for (const key in val) {
                 const keys = key.split(".");
                 for (let i = 0; i < keys.length - 1; i++) {

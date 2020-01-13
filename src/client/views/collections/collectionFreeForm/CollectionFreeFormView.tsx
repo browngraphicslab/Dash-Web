@@ -988,8 +988,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         </MarqueeView>;
     }
     @computed get contentScaling() {
-        let hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
-        let wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
+        const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
+        const wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
         return wscale < hscale ? wscale : hscale;
     }
     render() {
