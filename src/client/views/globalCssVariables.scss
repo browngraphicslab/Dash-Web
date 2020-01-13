@@ -25,6 +25,8 @@ $search-thumnail-size: 175;
 
 // dragged items
 $contextMenu-zindex: 100000; // context menu shows up over everything
+$radialMenu-zindex: 100000; // context menu shows up over everything
+
 $mainTextInput-zindex: 999; // then text input overlay so that it's context menu will appear over decorations, etc
 $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
