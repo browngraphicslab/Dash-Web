@@ -10,12 +10,13 @@ import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import GestureOverlay from "./GestureOverlay";
 
 export class InkingControl {
     @observable static Instance: InkingControl;
     @computed private get _selectedTool(): InkTool { return FieldValue(NumCast(CurrentUserUtils.UserDocument.inkTool)) ?? InkTool.None; }
-    @computed private get _selectedColor(): string { return FieldValue(StrCast(CurrentUserUtils.UserDocument.inkColor)) ?? "rgb(244, 67, 54)"; }
-    @computed private get _selectedWidth(): string { return FieldValue(StrCast(CurrentUserUtils.UserDocument.inkWidth)) ?? "5"; }
+    @computed private get _selectedColor(): string { return GestureOverlay.Instance.Color ?? FieldValue(StrCast(CurrentUserUtils.UserDocument.inkColor)) ?? "rgb(244, 67, 54)"; }
+    @computed private get _selectedWidth(): string { return GestureOverlay.Instance.Width?.toString() ?? FieldValue(StrCast(CurrentUserUtils.UserDocument.inkWidth)) ?? "5"; }
     @observable public _open: boolean = false;
 
     constructor() {

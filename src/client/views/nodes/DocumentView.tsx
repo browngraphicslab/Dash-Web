@@ -59,6 +59,8 @@ export interface DocumentViewProps {
     LibraryPath: Doc[];
     fitToBox?: boolean;
     onClick?: ScriptField;
+    onPointerDown?: ScriptField;
+    onPointerUp?: ScriptField;
     dragDivName?: string;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
@@ -105,6 +107,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.layoutDoc.nativeWidth || 0; }
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
 
     @action
     componentDidMount() {
@@ -180,7 +184,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onClick = async (e: React.MouseEvent) => {
+    onClick = async (e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
@@ -240,8 +244,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerDown = (e: React.TouchEvent) => {
+        if (this.Document.onPointerDown) return;
         if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             this._hitTemplateDrag = false;
@@ -265,7 +270,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("touchmove", this.onTouch);
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
             if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
                     document.removeEventListener("touchmove", this.onTouch);
@@ -293,7 +298,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     handle2PointersMove = (e: TouchEvent) => {
-        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
         const pt1 = myTouches[0];
         const pt2 = myTouches[1];
         const oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -363,6 +368,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        if (this.onPointerDownHandler && this.onPointerDownHandler.script) {
+            this.onPointerDownHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+            return;
+        }
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
@@ -412,6 +423,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerUp = (e: PointerEvent): void => {
+        if (this.onPointerUpHandler && this.onPointerUpHandler.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            this.onPointerUpHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            return;
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);

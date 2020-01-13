@@ -103,6 +103,8 @@ export interface DocumentOptions {
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    onPointerDown?: ScriptField;
+    onPointerUp?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
@@ -116,6 +118,7 @@ export interface DocumentOptions {
     color?: string;
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
+    pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
 }
 
 class EmptyBox {

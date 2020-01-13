@@ -8,12 +8,14 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
-    export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
+    export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
         for (let i = 0; i < e.targetTouches.length; i++) {
-            const pt = e.targetTouches.item(i);
+            const pt: any = e.targetTouches.item(i);
             if (pt && prevPoints.has(pt.identifier)) {
-                myTouches.push(pt);
+                if (ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
+                    myTouches.push(pt);
+                }
             }
         }
         return myTouches;
@@ -23,7 +25,7 @@ export namespace InteractionUtils {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2
             case PENTYPE:
-                return e.pointerType === PENTYPE && e.button === (e instanceof PointerEvent ? POINTER_PEN_BUTTON : REACT_POINTER_PEN_BUTTON);
+                return e.pointerType === PENTYPE && (e.button === -1 || e.button === 0);
             case ERASERTYPE:
                 return e.pointerType === PENTYPE && e.button === (e instanceof PointerEvent ? ERASER_BUTTON : ERASER_BUTTON);
             default:

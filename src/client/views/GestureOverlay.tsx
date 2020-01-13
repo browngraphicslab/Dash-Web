@@ -2,7 +2,7 @@ import React = require("react");
 import { Touchable } from "./Touchable";
 import { observer } from "mobx-react";
 import "./GestureOverlay.scss"
-import { computed, observable, action } from "mobx";
+import { computed, observable, action, runInAction } from "mobx";
 import { CreatePolyline } from "./InkingStroke";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
@@ -12,19 +12,68 @@ import { Doc } from "../../new_fields/Doc";
 import { LinkManager } from "../util/LinkManager";
 import { DocUtils } from "../documents/Documents";
 import { undoBatch } from "../util/UndoManager";
+import { Scripting } from "../util/Scripting";
+import { FieldValue, Cast } from "../../new_fields/Types";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import Palette from "./Palette";
 
 @observer
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
     @observable private _points: { X: number, Y: number }[] = [];
+    @observable private _palette?: JSX.Element;
+    @observable public Color: string = "rgb(244, 67, 54)";
+    @observable public Width: number = 5;
 
     private _d1: Doc | undefined;
+    private thumbIdentifier?: number;
 
     constructor(props: Readonly<{}>) {
         super(props);
 
         GestureOverlay.Instance = this;
+    }
+
+    @action
+    handleHandDown = (e: React.TouchEvent) => {
+        const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+        const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+        this.thumbIdentifier = thumb?.identifier;
+        const others = fingers.filter(f => f !== thumb);
+        const minX = Math.min(...others.map(f => f.clientX));
+        const minY = Math.min(...others.map(f => f.clientY));
+        // const t = this.getTransform().transformPoint(minX, minY);
+        // const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
+
+        const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
+        if (thumbDoc) {
+            this._palette = <Palette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
+        }
+
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchmove", this.handleHandMove);
+        document.addEventListener("touchmove", this.handleHandMove);
+        document.removeEventListener("touchend", this.handleHandUp);
+        document.addEventListener("touchend", this.handleHandUp);
+    }
+
+    @action
+    handleHandMove = (e: TouchEvent) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const pt = e.changedTouches.item(i);
+            if (pt?.identifier === this.thumbIdentifier) {
+            }
+        }
+    }
+
+    @action
+    handleHandUp = (e: TouchEvent) => {
+        this.onTouchEnd(e);
+        if (this.prevPoints.size < 3) {
+            this._palette = undefined;
+            document.removeEventListener("touchend", this.handleHandUp);
+        }
     }
 
     @action
@@ -81,6 +130,8 @@ export default class GestureOverlay extends Touchable {
         target2?.dispatchEvent(ge);
         return actionPerformed;
     }
+
+
 
     @action
     onPointerUp = (e: PointerEvent) => {
@@ -157,16 +208,21 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {CreatePolyline(this._points, B.left, B.top)}
+                {CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
             </svg>
         );
     }
 
     render() {
         return (
-            <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown}>
+            <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart}>
                 {this.props.children}
+                {this._palette}
                 {this.currentStroke}
             </div>);
     }
 }
+
+Scripting.addGlobal("GestureOverlay", GestureOverlay);
+Scripting.addGlobal(function setPen(width: any, color: any) { runInAction(() => { GestureOverlay.Instance.Color = color; GestureOverlay.Instance.Width = width; }); });
+Scripting.addGlobal(function resetPen() { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; }); });

@@ -21,14 +21,25 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
      */
     @action
     protected onTouchStart = (e: React.TouchEvent): void => {
+        const actualPts: React.Touch[] = [];
         for (let i = 0; i < e.targetTouches.length; i++) {
             const pt: any = e.targetTouches.item(i);
+            actualPts.push(pt);
             // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
             // and this seems to be the only way of differentiating pen and touch on touch events
-            if (pt.radiusX > 0.5 && pt.radiusY > 0.5) {
+            if (pt.radiusX > 1 && pt.radiusY > 1) {
                 this.prevPoints.set(pt.identifier, pt);
             }
         }
+
+        const ptsToDelete: number[] = [];
+        this.prevPoints.forEach(pt => {
+            if (!actualPts.includes(pt)) {
+                ptsToDelete.push(pt.identifier);
+            }
+        });
+
+        ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
 
         if (this.prevPoints.size) {
             switch (this.prevPoints.size) {
@@ -57,13 +68,12 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     */
     @action
     protected onTouch = (e: TouchEvent): void => {
-        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
 
         // if we're not actually moving a lot, don't consider it as dragging yet
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         if (this.holdTimer) {
-            console.log("clear");
             clearTimeout(this.holdTimer);
             this.holdTimer = undefined;
         }
@@ -99,7 +109,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             }
         }
         if (this.holdTimer) {
-            console.log("clear");
             clearTimeout(this.holdTimer);
             this.holdTimer = undefined;
         }
@@ -152,7 +161,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     }
 
     handleHandDown = (e: React.TouchEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
+        // e.stopPropagation();
+        // e.preventDefault();
     }
 }

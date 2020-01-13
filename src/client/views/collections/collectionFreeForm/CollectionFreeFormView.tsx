@@ -9,7 +9,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, DateCast, NumCast, StrCast, FieldValue } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
@@ -468,7 +468,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     handle1PointerMove = (e: TouchEvent) => {
         // panning a workspace
         if (!e.cancelBubble) {
-            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
             const pt = myTouches[0];
             if (pt) {
                 if (InkingControl.Instance.selectedTool === InkTool.None) {
@@ -490,7 +490,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     handle2PointersMove = (e: TouchEvent) => {
         // pinch zooming
         if (!e.cancelBubble) {
-            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
             const pt1 = myTouches[0];
             const pt2 = myTouches[1];
 
@@ -849,51 +849,47 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     private thumbIdentifier?: number;
-    private hand?: React.Touch[];
 
-    @action
-    handleHandDown = (e: React.TouchEvent) => {
-        const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
-        this.hand = fingers;
-        const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
-        this.thumbIdentifier = thumb?.identifier;
-        const others = fingers.filter(f => f !== thumb);
-        const minX = Math.min(...others.map(f => f.clientX));
-        const minY = Math.min(...others.map(f => f.clientY));
-        const t = this.getTransform().transformPoint(minX, minY);
-        const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
-        this._palette = <Palette x={t[0]} y={t[1]} thumb={th} />;
+    // @action
+    // handleHandDown = (e: React.TouchEvent) => {
+    //     const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+    //     const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+    //     this.thumbIdentifier = thumb?.identifier;
+    //     const others = fingers.filter(f => f !== thumb);
+    //     const minX = Math.min(...others.map(f => f.clientX));
+    //     const minY = Math.min(...others.map(f => f.clientY));
+    //     const t = this.getTransform().transformPoint(minX, minY);
+    //     const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
 
-        document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchmove", this.handleHandMove);
-        document.addEventListener("touchmove", this.handleHandMove);
-        document.removeEventListener("touchend", this.handleHandUp);
-        document.addEventListener("touchend", this.handleHandUp);
-    }
+    //     const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
+    //     if (thumbDoc) {
+    //         this._palette = <Palette x={t[0]} y={t[1]} thumb={th} thumbDoc={thumbDoc} />;
+    //     }
 
-    @action
-    handleHandMove = (e: TouchEvent) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            const pt = e.changedTouches.item(i);
-            if (pt?.identifier === this.thumbIdentifier) {
-            }
-        }
-    }
+    //     document.removeEventListener("touchmove", this.onTouch);
+    //     document.removeEventListener("touchmove", this.handleHandMove);
+    //     document.addEventListener("touchmove", this.handleHandMove);
+    //     document.removeEventListener("touchend", this.handleHandUp);
+    //     document.addEventListener("touchend", this.handleHandUp);
+    // }
 
-    @action
-    handleHandUp = (e: TouchEvent) => {
-        console.log(e.changedTouches.length);
-        this.onTouchEnd(e);
-        if (this.prevPoints.size < 3) {
-            if (this.hand) {
-                for (const h of this.hand) {
-                    this.prevPoints.has(h.identifier) && this.prevPoints.delete(h.identifier);
-                }
-            }
-            this._palette = undefined;
-            document.removeEventListener("touchend", this.handleHandUp);
-        }
-    }
+    // @action
+    // handleHandMove = (e: TouchEvent) => {
+    //     for (let i = 0; i < e.changedTouches.length; i++) {
+    //         const pt = e.changedTouches.item(i);
+    //         if (pt?.identifier === this.thumbIdentifier) {
+    //         }
+    //     }
+    // }
+
+    // @action
+    // handleHandUp = (e: TouchEvent) => {
+    //     this.onTouchEnd(e);
+    //     if (this.prevPoints.size < 3) {
+    //         this._palette = undefined;
+    //         document.removeEventListener("touchend", this.handleHandUp);
+    //     }
+    // }
 
     onContextMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
@@ -958,12 +954,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ];
     }
 
-    @observable private _palette?: JSX.Element;
+    // @observable private _palette?: JSX.Element;
 
     children = () => {
         const eles: JSX.Element[] = [];
         this.extensionDoc && (eles.push(...this.childViews()));
-        this._palette && (eles.push(this._palette));
+        // this._palette && (eles.push(this._palette));
         // this.currentStroke && (eles.push(this.currentStroke));
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;
