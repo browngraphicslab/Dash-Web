@@ -82,28 +82,19 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         );
     }
     //let l = docList(this.source[0].data).length; if (l) { let ind = this.target[0].index !== undefined ? (this.target[0].index+1) % l : 0;  this.target[0].index = ind;  this.target[0].proto = getProto(docList(this.source[0].data)[ind]);}
-    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, prewrapper?: string, postwrapper?: string) {
+    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, contextParams?: { [name: string]: string }) {
         let overlayDisposer: () => void = emptyFunction;
         const script = ScriptCast(doc[fieldKey]);
         let originalText: string | undefined = undefined;
         if (script) {
             originalText = script.script.originalScript;
-            if (prewrapper && originalText.startsWith(prewrapper)) {
-                originalText = originalText.substr(prewrapper.length);
-            }
-            if (postwrapper && originalText.endsWith(postwrapper)) {
-                originalText = originalText.substr(0, originalText.length - postwrapper.length);
-            }
         }
         // tslint:disable-next-line: no-unnecessary-callback-wrapper
         const params: string[] = [];
         const setParams = (p: string[]) => params.splice(0, params.length, ...p);
         const scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={overlayDisposer} onSave={(text, onError) => {
-            if (prewrapper) {
-                text = prewrapper + text + (postwrapper ? postwrapper : "");
-            }
             const script = CompileScript(text, {
-                params: { this: Doc.name },
+                params: { this: Doc.name, ...contextParams },
                 typecheck: false,
                 editable: true,
                 transformer: DocumentIconContainer.getTransformer()

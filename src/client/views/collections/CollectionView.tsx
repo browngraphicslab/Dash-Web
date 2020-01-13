@@ -34,6 +34,7 @@ import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
 import { TraceMobx } from '../../../new_fields/util';
 import { Utils } from '../../../Utils';
+import { ScriptBox } from '../ScriptBox';
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -233,6 +234,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
             const moreItems = more && "subitems" in more ? more.subitems : [];
             moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
             !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+
+            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
         }
     }
 

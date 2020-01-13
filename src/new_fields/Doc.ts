@@ -742,8 +742,19 @@ export namespace Doc {
             source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
             source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
     }
-}
 
+    export function MakeDocFilter(docFilters: string[]) {
+        let docFilterText = "";
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const key = docFilters[i];
+            const value = docFilters[i + 1];
+            const modifiers = docFilters[i + 2];
+            const scriptText = `${modifiers === "x" ? "!" : ""}matchFieldValue(doc, "${key}", "${value}")`;
+            docFilterText = docFilterText ? docFilterText + " && " + scriptText : scriptText;
+        };
+        return docFilterText ? "(" + docFilterText + ")" : "";
+    }
+}
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
@@ -761,9 +772,31 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, type: string, contains: boolean = true) {
-    const scriptText = `${contains ? "" : "!"}(((doc.${key} && (doc.${key} as ${type})${type === "string" ? ".includes" : "<="}(${value}))) ||
-    ((doc.data_ext && doc.data_ext.${key}) && (doc.data_ext.${key} as ${type})${type === "string" ? ".includes" : "<="}(${value}))))`;
-    container.docFilter = scriptText;
-    container.viewSpecScript = ScriptField.MakeFunction(scriptText, { doc: Doc.name });
+Scripting.addGlobal(function matchFieldValue(doc: Doc, key: string, value: any) {
+    const fieldVal = doc[key] ? doc[key] : doc[key + "_ext"];
+    if (StrCast(fieldVal, null) !== undefined) return StrCast(fieldVal) === value;
+    if (NumCast(fieldVal, null) !== undefined) return NumCast(fieldVal) === value;
+    if (Cast(fieldVal, listSpec("string"), []).length) {
+        let vals = Cast(fieldVal, listSpec("string"), []);
+        return vals.some(v => v === value);
+    }
+    return false;
+});
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers: string) {
+    const docFilters = Cast(container.docFilter, listSpec("string"), []);
+    let found = false;
+    for (let i = 0; i < docFilters.length && !found; i += 3) {
+        if (docFilters[i] === key && docFilters[i + 1] === value) {
+            found = true;
+            docFilters.splice(i, 3);
+        }
+    }
+    if (!found || modifiers !== "none") {
+        docFilters.push(key);
+        docFilters.push(value);
+        docFilters.push(modifiers);
+        container.docFilter = new List<string>(docFilters);
+    }
+    const docFilterText = Doc.MakeDocFilter(docFilters);
+    container.viewSpecScript = docFilterText ? ScriptField.MakeFunction(docFilterText, { doc: Doc.name }) : undefined;
 });

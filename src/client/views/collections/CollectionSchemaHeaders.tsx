@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, observable } from "mobx";
+import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
 import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -286,7 +286,6 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     }
 
     @undoBatch
-    @action
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
             const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
@@ -296,7 +295,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
                 this.onSelect(this._searchTerm);
             } else {
-                this._searchTerm = this._key;
+                runInAction(() => this._searchTerm = this._key);
             }
         }
     }
