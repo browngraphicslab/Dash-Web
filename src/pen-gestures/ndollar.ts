@@ -257,16 +257,16 @@ export class NDollarRecognizer {
         {
             if (!requireSameNoOfStrokes || strokes.length === this.Multistrokes[i].NumStrokes) // optional -- only attempt match when same # of component strokes
             {
-                for (var j = 0; j < this.Multistrokes[i].Unistrokes.length; j++) // for each unistroke within this multistroke
+                for (const unistroke of this.Multistrokes[i].Unistrokes) // for each unistroke within this multistroke
                 {
-                    if (AngleBetweenUnitVectors(candidate.StartUnitVector, this.Multistrokes[i].Unistrokes[j].StartUnitVector) <= AngleSimilarityThreshold) // strokes start in the same direction
+                    if (AngleBetweenUnitVectors(candidate.StartUnitVector, unistroke.StartUnitVector) <= AngleSimilarityThreshold) // strokes start in the same direction
                     {
                         var d;
                         if (useProtractor) {
-                            d = OptimalCosineDistance(this.Multistrokes[i].Unistrokes[j].Vector, candidate.Vector); // Protractor
+                            d = OptimalCosineDistance(unistroke.Vector, candidate.Vector); // Protractor
                         }
                         else {
-                            d = DistanceAtBestAngle(candidate.Points, this.Multistrokes[i].Unistrokes[j], -AngleRange, +AngleRange, AnglePrecision); // Golden Section Search (original $N)
+                            d = DistanceAtBestAngle(candidate.Points, unistroke, -AngleRange, +AngleRange, AnglePrecision); // Golden Section Search (original $N)
                         }
                         if (d < b) {
                             b = d; // best (least) distance
@@ -283,8 +283,8 @@ export class NDollarRecognizer {
     AddGesture = (name: string, useBoundedRotationInvariance: boolean, strokes: any[]) => {
         this.Multistrokes[this.Multistrokes.length] = new Multistroke(name, useBoundedRotationInvariance, strokes);
         var num = 0;
-        for (var i = 0; i < this.Multistrokes.length; i++) {
-            if (this.Multistrokes[i].Name === name) {
+        for (const multistroke of this.Multistrokes) {
+            if (multistroke.Name === name) {
                 num++;
             }
         }
@@ -322,20 +322,20 @@ function HeapPermute(n: number, order: any[], /*out*/ orders: any[]) {
 
 function MakeUnistrokes(strokes: any, orders: any) {
     const unistrokes = new Array(); // array of point arrays
-    for (var r = 0; r < orders.length; r++) {
-        for (var b = 0; b < Math.pow(2, orders[r].length); b++) // use b's bits for directions
+    for (const order of orders) {
+        for (var b = 0; b < Math.pow(2, order.length); b++) // use b's bits for directions
         {
             const unistroke = new Array(); // array of points
-            for (var i = 0; i < orders[r].length; i++) {
+            for (var i = 0; i < order.length; i++) {
                 var pts;
                 if (((b >> i) & 1) === 1) {// is b's bit at index i on?
-                    pts = strokes[orders[r][i]].slice().reverse(); // copy and reverse
+                    pts = strokes[order[i]].slice().reverse(); // copy and reverse
                 }
                 else {
-                    pts = strokes[orders[r][i]].slice(); // copy
+                    pts = strokes[order[i]].slice(); // copy
                 }
-                for (var p = 0; p < pts.length; p++) {
-                    unistroke[unistroke.length] = pts[p]; // append points
+                for (const point of pts) {
+                    unistroke[unistroke.length] = point; // append points
                 }
             }
             unistrokes[unistrokes.length] = unistroke; // add one unistroke to set
@@ -346,9 +346,9 @@ function MakeUnistrokes(strokes: any, orders: any) {
 
 function CombineStrokes(strokes: any) {
     const points = new Array();
-    for (var s = 0; s < strokes.length; s++) {
-        for (var p = 0; p < strokes[s].length; p++) {
-            points[points.length] = new Point(strokes[s][p].X, strokes[s][p].Y);
+    for (const stroke of strokes) {
+        for (const { X, Y } of stroke) {
+            points[points.length] = new Point(X, Y);
         }
     }
     return points;
@@ -384,9 +384,9 @@ function RotateBy(points: any, radians: any) // rotates points around centroid
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
     const newpoints = new Array();
-    for (var i = 0; i < points.length; i++) {
-        const qx = (points[i].X - c.X) * cos - (points[i].Y - c.Y) * sin + c.X;
-        const qy = (points[i].X - c.X) * sin + (points[i].Y - c.Y) * cos + c.Y;
+    for (const point of points) {
+        const qx = (point.X - c.X) * cos - (point.Y - c.Y) * sin + c.X;
+        const qy = (point.X - c.X) * sin + (point.Y - c.Y) * cos + c.Y;
         newpoints[newpoints.length] = new Point(qx, qy);
     }
     return newpoints;
@@ -396,9 +396,9 @@ function ScaleDimTo(points: any, size: any, ratio1D: any) // scales bbox uniform
     const B = BoundingBox(points);
     const uniformly = Math.min(B.Width / B.Height, B.Height / B.Width) <= ratio1D; // 1D or 2D gesture test
     const newpoints = new Array();
-    for (var i = 0; i < points.length; i++) {
-        const qx = uniformly ? points[i].X * (size / Math.max(B.Width, B.Height)) : points[i].X * (size / B.Width);
-        const qy = uniformly ? points[i].Y * (size / Math.max(B.Width, B.Height)) : points[i].Y * (size / B.Height);
+    for (const { X, Y } of points) {
+        const qx = uniformly ? X * (size / Math.max(B.Width, B.Height)) : X * (size / B.Width);
+        const qy = uniformly ? Y * (size / Math.max(B.Width, B.Height)) : Y * (size / B.Height);
         newpoints[newpoints.length] = new Point(qx, qy);
     }
     return newpoints;
@@ -407,9 +407,9 @@ function TranslateTo(points: any, pt: any) // translates points' centroid
 {
     const c = Centroid(points);
     const newpoints = new Array();
-    for (var i = 0; i < points.length; i++) {
-        const qx = points[i].X + pt.X - c.X;
-        const qy = points[i].Y + pt.Y - c.Y;
+    for (const { X, Y } of points) {
+        const qx = X + pt.X - c.X;
+        const qy = Y + pt.Y - c.Y;
         newpoints[newpoints.length] = new Point(qx, qy);
     }
     return newpoints;
@@ -478,9 +478,9 @@ function DistanceAtAngle(points: any, T: any, radians: any) {
 }
 function Centroid(points: any) {
     var x = 0.0, y = 0.0;
-    for (var i = 0; i < points.length; i++) {
-        x += points[i].X;
-        y += points[i].Y;
+    for (const point of points) {
+        x += point.X;
+        y += point.Y;
     }
     x /= points.length;
     y /= points.length;
@@ -488,11 +488,11 @@ function Centroid(points: any) {
 }
 function BoundingBox(points: any) {
     var minX = +Infinity, maxX = -Infinity, minY = +Infinity, maxY = -Infinity;
-    for (var i = 0; i < points.length; i++) {
-        minX = Math.min(minX, points[i].X);
-        minY = Math.min(minY, points[i].Y);
-        maxX = Math.max(maxX, points[i].X);
-        maxY = Math.max(maxY, points[i].Y);
+    for (const { X, Y } of points) {
+        minX = Math.min(minX, X);
+        minY = Math.min(minY, Y);
+        maxX = Math.max(maxX, X);
+        maxY = Math.max(maxY, Y);
     }
     return new Rectangle(minX, minY, maxX - minX, maxY - minY);
 }

@@ -86,7 +86,7 @@ function buildWithMiddleware(server: express.Express) {
             resave: true,
             cookie: { maxAge: week },
             saveUninitialized: true,
-            store: new MongoStore({ url: Database.url })
+            store: process.env.DB === "MEM" ? new session.MemoryStore() : new MongoStore({ url: Database.url })
         }),
         flash(),
         expressFlash(),

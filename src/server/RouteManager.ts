@@ -86,7 +86,11 @@ export default class RouteManager {
         const { method, subscription, secureHandler: onValidation, publicHandler: onUnauthenticated, errorHandler: onError } = initializer;
         const isRelease = this._isRelease;
         const supervised = async (req: express.Request, res: express.Response) => {
-            const { user, originalUrl: target } = req;
+            let { user } = req;
+            const { originalUrl: target } = req;
+            if (process.env.DB === "MEM" && !user) {
+                user = { id: "guest", email: "", userDocumentId: "guestDocId" };
+            }
             const core = { req, res, isRelease };
             const tryExecute = async (toExecute: (args: any) => any | Promise<any>, args: any) => {
                 try {

@@ -28,7 +28,7 @@ export namespace WebSocket {
 
     function initialize(isRelease: boolean) {
         const endpoint = io();
-        endpoint.on("connection", function (socket: Socket) {
+        endpoint.on("connection", function(socket: Socket) {
             _socket = socket;
 
             socket.use((_packet, next) => {
@@ -83,7 +83,9 @@ export namespace WebSocket {
 
     export async function deleteFields() {
         await Database.Instance.deleteAll();
-        await Search.clear();
+        if (process.env.DISABLE_SEARCH !== "true") {
+            await Search.clear();
+        }
         await Database.Instance.deleteAll('newDocuments');
     }
 
@@ -92,7 +94,9 @@ export namespace WebSocket {
         await Database.Instance.deleteAll('newDocuments');
         await Database.Instance.deleteAll('sessions');
         await Database.Instance.deleteAll('users');
-        await Search.clear();
+        if (process.env.DISABLE_SEARCH !== "true") {
+            await Search.clear();
+        }
     }
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {

@@ -272,7 +272,7 @@ export namespace DocServer {
             const fieldMap: { [id: string]: RefField } = {};
             const proms: Promise<void>[] = [];
             for (const field of fields) {
-                if (field !== undefined) {
+                if (field !== undefined && field !== null) {
                     // deserialize
                     const prom = SerializationHelper.Deserialize(field).then(deserialized => {
                         fieldMap[field.id] = deserialized;
