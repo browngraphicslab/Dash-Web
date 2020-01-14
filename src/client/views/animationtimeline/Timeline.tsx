@@ -8,7 +8,7 @@ import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines,faPauseCircle, faEyeSlash,faEye,faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faPlayCircle, faBackward, faForward, faGripLines, faPauseCircle, faEyeSlash, faEye, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenu } from "../ContextMenu";
 import { TimelineOverview } from "./TimelineOverview";
 import { FieldViewProps } from "../nodes/FieldView";
@@ -43,14 +43,14 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     //readonly constants
     private readonly DEFAULT_TICK_SPACING: number = 50;
-    private readonly MAX_TITLE_HEIGHT = 75; 
+    private readonly MAX_TITLE_HEIGHT = 75;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
     private readonly DEFAULT_TICK_INCREMENT: number = 1000;
 
     //height variables
     private DEFAULT_CONTAINER_HEIGHT: number = 330;
     private MIN_CONTAINER_HEIGHT: number = 205;
-    
+
     //react refs
     @observable private _trackbox = React.createRef<HTMLDivElement>();
     @observable private _titleContainer = React.createRef<HTMLDivElement>();
@@ -224,7 +224,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         e.stopPropagation();
         let scrubberbox = this._infoContainer.current!;
         let left = scrubberbox.getBoundingClientRect().left;
-        let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale; 
+        let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
         this.changeCurrentBarX(offsetX + this._visibleStart); //changes scrubber to clicked scrubber position
     }
 
@@ -403,9 +403,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         let size = 40 * scale; //50 is default
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
-                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px`, color: "grey" }} /> </div>
-                <div key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px`, color: "grey" }} /> </div>
-                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px`, color: "grey" }} /> </div>
+                <div className="timeline-icon" key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
+                <div className="timeline-icon" key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
+                <div className="timeline-icon" key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
                 <div key="overview-text" className="animation-text">Timeline Overview</div>
                 <TimelineOverview isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
                 <div key="animation-text" className="animation-text">Mode: {this.props.Document.isATOn ? "Authoring" : "Play"}</div>
@@ -460,7 +460,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggle.style.transform = "translate(45px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
-            roundToggleContainer.style.backgroundColor = "green";
+            roundToggleContainer.style.backgroundColor = "#9acedf";
             timelineContainer.style.top = "0px";
             this.props.Document.isATOn = true;
         }
@@ -499,7 +499,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     render() {
         return (
             <div>
-                <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}> 
+                <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
                     <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
                         <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
                             <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
