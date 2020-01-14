@@ -231,9 +231,9 @@ export default class GestureOverlay extends Touchable {
     render() {
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart}>
+                {this.currentStroke}
                 {this.props.children}
                 {this._palette}
-                {this.currentStroke}
             </div>);
     }
 }

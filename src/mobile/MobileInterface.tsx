@@ -10,10 +10,16 @@ import { DocumentView } from '../client/views/nodes/DocumentView';
 import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue } from '../Utils';
 import { Transform } from '../client/util/Transform';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice } from '@fortawesome/free-solid-svg-icons';
+import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { Scripting } from '../client/util/Scripting';
 import { CollectionFreeFormView } from '../client/views/collections/collectionFreeForm/CollectionFreeFormView';
 import GestureOverlay from '../client/views/GestureOverlay';
+import { InkingControl } from '../client/views/InkingControl';
+import { InkTool } from '../new_fields/InkField';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import "./MobileInterface.scss";
+
+library.add(faTrash, faCheck);
 
 @observer
 export default class MobileInterface extends React.Component {
@@ -21,6 +27,9 @@ export default class MobileInterface extends React.Component {
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     @observable private currentView: "main" | "ink" | "library" = "main";
+
+    private mainDoc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+    private inkDoc?: Doc;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -32,8 +41,8 @@ export default class MobileInterface extends React.Component {
         library.add(...[faPenNib, faHighlighter, faEraser, faMousePointer]);
 
         if (this.userDoc && !this.mainContainer) {
-            const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
-            this.userDoc.activeMobile = doc;
+            // const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+            this.userDoc.activeMobile = this.mainDoc;
         }
     }
 
@@ -44,13 +53,14 @@ export default class MobileInterface extends React.Component {
         if (this.userDoc) {
             switch (view) {
                 case "main": {
-                    const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
-                    this.userDoc.activeMobile = doc;
+                    // const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+                    this.userDoc.activeMobile = this.mainDoc;
                     break;
                 }
                 case "ink": {
-                    const doc = CurrentUserUtils.setupMobileInkingDoc(this.userDoc);
-                    this.userDoc.activeMobile = doc;
+                    this.inkDoc = CurrentUserUtils.setupMobileInkingDoc(this.userDoc);
+                    this.userDoc.activeMobile = this.inkDoc;
+                    InkingControl.Instance.switchTool(InkTool.Pen);
                     break;
                 }
             }
@@ -64,7 +74,7 @@ export default class MobileInterface extends React.Component {
                 Document={this.mainContainer}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
-                addDocument={undefined}
+                addDocument={returnFalse}
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
                 removeDocument={undefined}
@@ -89,40 +99,46 @@ export default class MobileInterface extends React.Component {
         return "hello";
     }
 
+    onClick = (e: React.MouseEvent) => {
+        // insert ink as collection into active displayed doc view
+        // reset ink collection
+        this.inkDoc = undefined;
+        console.log("clicked");
+        this.switchCurrentView("main");
+        InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
+    }
+
     @computed
     get inkContent() {
-        // return <div>INK</div>;
+        // TODO: get props from active collection and pass to the new freeform
         if (this.mainContainer) {
             return (
                 <GestureOverlay>
-                    <CollectionFreeFormView
+                    <div className="mobileInterface-topButtons">
+                        <button className="mobileInterface-button cancel" onClick={this.onClick} title="Cancel drawing"><FontAwesomeIcon icon="trash" /></button>
+                        <button className="mobileInterface-button cancel" onClick={this.onClick} title="Insert drawing"><FontAwesomeIcon icon="check" /></button>
+                    </div>
+                    <CollectionView
                         Document={this.mainContainer}
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
                         fieldKey={""}
-                        addDocument={returnFalse}
-                        removeDocument={returnFalse}
-                        moveDocument={returnFalse}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
-                        PanelHeight={() => window.screen.height}
-                        PanelWidth={() => window.screen.width}
-                        annotationsKey={""}
-                        isAnnotationOverlay={false}
+                        PanelHeight={() => window.innerHeight}
+                        PanelWidth={() => window.innerWidth}
                         focus={emptyFunction}
-                        isSelected={returnTrue} //
+                        isSelected={returnTrue}
                         select={emptyFunction}
-                        active={returnTrue} //
+                        active={returnTrue}
                         ContentScaling={returnOne}
                         whenActiveChanged={returnFalse}
-                        CollectionView={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         ruleProvider={undefined}
                         renderDepth={0}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        chromeCollapsed={true}>
-                    </CollectionFreeFormView>
+                        ContainingCollectionDoc={undefined}>
+                    </CollectionView>
                 </GestureOverlay>
             );
         }
