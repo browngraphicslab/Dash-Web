@@ -290,14 +290,13 @@ export namespace Doc {
      * @param fields the fields to project onto the target. Its type signature defines a mapping from some string key
      * to a potentially undefined field, where each entry in this mapping is optional. 
      */
-    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>) {
+    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false) {
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
-                // Do we want to filter out undefineds?
-                // if (value !== undefined) {
-                doc[key] = value;
-                // }
+                if (!skipUndefineds || value !== undefined) { // Do we want to filter out undefineds?
+                    doc[key] = value;
+                }
             }
         }
         return doc;
@@ -406,8 +405,9 @@ export namespace Doc {
     }
     export function MakeAlias(doc: Doc) {
         const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
-        if (alias.layout instanceof Doc) {
-            alias.layout = Doc.MakeAlias(alias.layout);
+        let layout = Doc.Layout(alias);
+        if (layout instanceof Doc && layout !== alias) {
+            Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
         const aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${aliasNumber})`);
@@ -455,6 +455,7 @@ export namespace Doc {
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             const extensionDoc = fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)));
             layoutDoc = Doc.expandTemplateLayout(childDocLayout, extensionDoc !== resolvedDataDoc ? extensionDoc : undefined);
+            layoutDoc && (layoutDoc.resolvedDataDoc = resolvedDataDoc);
         } else layoutDoc = childDocLayout;
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
@@ -468,7 +469,7 @@ export namespace Doc {
     //
     export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
         const extension = doc[fieldKey + "_ext"];
-        if (extension === undefined) {
+        if (doc instanceof Doc && extension === undefined) {
             setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
         }
         return extension ? extension as Doc : undefined;
@@ -657,6 +658,7 @@ export namespace Doc {
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document  
     export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? doc[StrCast(doc.layoutKey, "layout")] as Doc : doc; }
+    export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     const manager = new DocData();
     export function SearchQuery(): string { return manager._searchQuery; }

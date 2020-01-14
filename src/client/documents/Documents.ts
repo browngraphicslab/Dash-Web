@@ -355,7 +355,7 @@ export namespace Docs {
 
             AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
 
-            return Doc.assign(viewDoc, delegateProps);
+            return Doc.assign(viewDoc, delegateProps, true);
         }
 
         /**
