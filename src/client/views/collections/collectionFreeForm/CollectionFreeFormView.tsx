@@ -326,29 +326,30 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     handle1PointerDown = (e: React.TouchEvent) => {
-        const pt = e.targetTouches.item(0);
-        if (pt) {
-            this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
-            if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
-                document.removeEventListener("touchmove", this.onTouch);
-                document.addEventListener("touchmove", this.onTouch);
-                document.removeEventListener("touchend", this.onTouchEnd);
-                document.addEventListener("touchend", this.onTouchEnd);
-                // if (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen) {
-                //     e.stopPropagation();
-                //     e.preventDefault();
-                //     const point = this.getTransform().transformPoint(pt.pageX, pt.pageY);
-                //     this._points.push({ X: point[0], Y: point[1] });
-                // }
-                if (InkingControl.Instance.selectedTool === InkTool.None) {
-                    this._lastX = pt.pageX;
-                    this._lastY = pt.pageY;
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
-                else {
-                    e.stopPropagation();
-                    e.preventDefault();
+        if (!e.nativeEvent.cancelBubble) {
+            // const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+            const pt = e.changedTouches.item(0);
+            if (pt) {
+                this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+                if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+                    this.removeMoveListeners();
+                    this.addMoveListeners();
+                    this.removeEndListeners();
+                    this.addEndListeners();
+                    // if (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen) {
+                    //     e.stopPropagation();
+                    //     e.preventDefault();
+                    //     const point = this.getTransform().transformPoint(pt.pageX, pt.pageY);
+                    //     this._points.push({ X: point[0], Y: point[1] });
+                    // }
+                    if (InkingControl.Instance.selectedTool === InkTool.None) {
+                        this._lastX = pt.pageX;
+                        this._lastY = pt.pageY;
+                        e.preventDefault();
+                    }
+                    else {
+                        e.preventDefault();
+                    }
                 }
             }
         }
@@ -395,8 +396,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
+        this.removeMoveListeners();
+        this.removeEndListeners();
     }
 
     @action
@@ -482,7 +483,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     this.pan(pt);
                 }
             }
-            e.stopPropagation();
+            // e.stopPropagation();
             e.preventDefault();
         }
     }
@@ -527,7 +528,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                 }
             }
-            e.stopPropagation();
+            // e.stopPropagation();
             e.preventDefault();
         }
     }
@@ -535,18 +536,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     handle2PointersDown = (e: React.TouchEvent) => {
         if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
-            const pt1: React.Touch | null = e.targetTouches.item(0);
-            const pt2: React.Touch | null = e.targetTouches.item(1);
-            if (!pt1 || !pt2) return;
+            // const pt1: React.Touch | null = e.targetTouches.item(0);
+            // const pt2: React.Touch | null = e.targetTouches.item(1);
+            // // if (!pt1 || !pt2) return;
+            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+            const pt1 = myTouches[0];
+            const pt2 = myTouches[1];
 
             const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
             const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
             this._lastX = centerX;
             this._lastY = centerY;
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
+            this.removeMoveListeners();
+            this.addMoveListeners();
+            this.removeEndListeners();
+            this.addEndListeners();
             e.stopPropagation();
         }
     }
@@ -554,8 +558,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     cleanUpInteractions = () => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
+        this.removeMoveListeners();
+        this.removeEndListeners();
     }
 
     @action
@@ -989,9 +993,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         if (!this.extensionDoc) return (null);
         // let lodarea = this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale;
-        return <div className={"collectionfreeformview-container"} ref={this.createDropAndGestureTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+        return <div className={"collectionfreeformview-container"} ref={this.createDashEventsTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
             style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
-            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>
+            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
             {!this.Document.LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />

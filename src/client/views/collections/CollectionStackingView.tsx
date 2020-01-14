@@ -153,7 +153,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     createRef = (ele: HTMLDivElement | null) => {
         this._masonryGridRef = ele;
-        this.createDropAndGestureTarget(ele!); //so the whole grid is the drop target?
+        this.createDashEventsTarget(ele!); //so the whole grid is the drop target?
     }
 
     overlays = (doc: Doc) => {
@@ -309,7 +309,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             docList={docList}
             parent={this}
             type={type}
-            createDropTarget={this.createDropAndGestureTarget}
+            createDropTarget={this.createDashEventsTarget}
             screenToLocalTransform={this.props.ScreenToLocalTransform}
         />;
     }
@@ -342,7 +342,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             docList={docList}
             parent={this}
             type={type}
-            createDropTarget={this.createDropAndGestureTarget}
+            createDropTarget={this.createDashEventsTarget}
             screenToLocalTransform={this.props.ScreenToLocalTransform}
             setDocHeight={this.setDocHeight}
         />;

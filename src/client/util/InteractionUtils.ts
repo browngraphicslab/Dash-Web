@@ -8,13 +8,53 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
+    export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
+        constructor(
+            readonly fingers: number,
+            readonly points: T extends React.TouchEvent ? React.TouchList : TouchList,
+            readonly touchEvent: T extends React.TouchEvent ? React.TouchEvent : TouchEvent
+        ) { }
+    }
+
+    export interface MultiTouchEventDisposer { (): void; }
+
+    export function MakeMultiTouchTarget(
+        element: HTMLElement,
+        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void,
+    ): MultiTouchEventDisposer {
+        const onMultiTouchStartHandler = (e: Event) => startFunc(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
+        // const onMultiTouchMoveHandler = moveFunc ? (e: Event) => moveFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
+        // const onMultiTouchEndHandler = endFunc ? (e: Event) => endFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
+        element.addEventListener("dashOnTouchStart", onMultiTouchStartHandler);
+        // if (onMultiTouchMoveHandler) {
+        //     element.addEventListener("dashOnTouchMove", onMultiTouchMoveHandler);
+        // }
+        // if (onMultiTouchEndHandler) {
+        //     element.addEventListener("dashOnTouchEnd", onMultiTouchEndHandler);
+        // }
+        return () => {
+            element.removeEventListener("dashOnTouchStart", onMultiTouchStartHandler);
+            // if (onMultiTouchMoveHandler) {
+            //     element.removeEventListener("dashOnTouchMove", onMultiTouchMoveHandler);
+            // }
+            // if (onMultiTouchEndHandler) {
+            //     element.removeEventListener("dashOnTouchend", onMultiTouchEndHandler);
+            // }
+        };
+    }
+
     export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
-        for (let i = 0; i < e.targetTouches.length; i++) {
-            const pt: any = e.targetTouches.item(i);
-            if (pt && prevPoints.has(pt.identifier)) {
-                if (ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
-                    myTouches.push(pt);
+        for (let i = 0; i < e.touches.length; i++) {
+            const pt: any = e.touches.item(i);
+            if (ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
+                for (let j = 0; j < e.targetTouches.length; j++) {
+                    const tPt = e.targetTouches.item(j);
+                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                        if (pt && prevPoints.has(pt.identifier)) {
+                            myTouches.push(pt);
+                        }
+                    }
                 }
             }
         }

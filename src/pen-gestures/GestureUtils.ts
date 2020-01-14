@@ -31,7 +31,7 @@ export namespace GestureUtils {
         element.addEventListener("dashOnGesture", handler);
         return () => {
             element.removeEventListener("dashOnGesture", handler);
-        }
+        };
     }
 
     export enum Gestures {
