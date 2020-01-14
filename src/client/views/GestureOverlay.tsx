@@ -1,9 +1,9 @@
 import React = require("react");
 import { Touchable } from "./Touchable";
 import { observer } from "mobx-react";
-import "./GestureOverlay.scss"
+import "./GestureOverlay.scss";
 import { computed, observable, action, runInAction } from "mobx";
-import { CreatePolyline } from "./InkingStroke";
+// import { CreatePolyline } from "./InkingStroke";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { InkingControl } from "./InkingControl";
@@ -199,6 +199,21 @@ export default class GestureOverlay extends Touchable {
         return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
     }
 
+    // TODO: find a way to reference this function from InkingStroke instead of copy pastign here. copied bc of weird error when on mobile view
+    CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
+        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        return (
+            <polyline
+                points={pts}
+                style={{
+                    fill: "none",
+                    stroke: color ?? InkingControl.Instance.selectedColor,
+                    strokeWidth: width ?? InkingControl.Instance.selectedWidth
+                }}
+            />
+        );
+    }
+
     @computed get currentStroke() {
         if (this._points.length <= 1) {
             return (null);
@@ -208,7 +223,7 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
+                {this.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
             </svg>
         );
     }
