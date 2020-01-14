@@ -1,6 +1,6 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun , toJS} from "mobx";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun , toJS, isObservableArray, IObservableArray} from "mobx";
 import "./Track.scss";
 import { Doc, DocListCastAsync, DocListCast, Field } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
@@ -22,8 +22,6 @@ interface IProps {
     timelineVisible: boolean;
     check: string;
     changeCurrentBarX: (x: number) => void;
-    checkCallBack: (visible: boolean) => void;
-
 }
 
 @observer
@@ -58,18 +56,6 @@ export class Track extends React.Component<IProps> {
         "zIndex"
     ];
 
-    private whiteList = [
-        "data", 
-        "height", 
-        "opacity", 
-        "width", 
-        "x", 
-        "y"
-    ]
-
-    @observable private whitelist = [
-
-    ]; 
     private readonly MAX_TITLE_HEIGHT = 75; 
     private _trackHeight = 0;
 
@@ -143,24 +129,38 @@ export class Track extends React.Component<IProps> {
         this._isOnKeyframe = false;
     }
 
+
+    private whitelist = [
+        "x", 
+        "y", 
+        "width", 
+        "height", 
+        "data"
+    ]
     /**
      * autocreates keyframe
      */
     @action 
-    autoCreateKeyframe = async () => {
-        return reaction(() => [this.props.node.data, this.props.node.height, this.props.node.width, this.props.node.x, this.props.node.y, this.props.node.opacity], async changed => {            
-            console.log("RAN!"); 
+    autoCreateKeyframe = async () => {        
+        return reaction(async () => {
+            return this.whitelist.map(key => this.props.node[key]);
+        }, (changed, reaction) => {            
             //convert scrubber pos(pixel) to time
             let time = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement); 
             //check for region 
-            let region:(Doc | undefined) = await this.findRegion(time); 
-            if (region !== undefined){ //if region at scrub time exist
-                if (DocListCast(region!.keyframes).find(kf => {return kf.time === time}) === undefined ){
-                   console.log("change has occured");
-                } 
-            }
+            //let region:(Doc | undefined) = await this.findRegion(time); 
+            console.log(this.props.node.x);
+            console.log(this.props.node.y); 
+            console.log(changed);  
             
+            // if (region !== undefined){ //if region at scrub time exist
+            //     if (DocListCast(region!.keyframes).find(kf => {return kf.time === time}) === undefined ){
+            //        console.log("change has occured");
+            //     } 
+            // }
+            //reaction.dispose(); 
         });
+        
     }
 
     /**
@@ -185,7 +185,7 @@ export class Track extends React.Component<IProps> {
             let regiondata: (Doc | undefined) = await this.findRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             if (regiondata) {
                 this.props.node.hidden = false;
-                await this.timeChange(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+                //await this.timeChange(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             } else {
                 this.props.node.hidden = true;
                 this.props.node.opacity = 0;

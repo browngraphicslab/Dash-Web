@@ -9,7 +9,6 @@ import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { Transform } from "../../util/Transform";
-import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -172,7 +171,6 @@ interface IProps {
     check: string;
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
-    checkCallBack: (visible: boolean) => void;
 }
 
 
@@ -214,17 +212,7 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-    @computed
-    private get inks() {
-        if (this.props.collection.data_ext) {
-            let data_ext = Cast(this.props.collection.data_ext, Doc) as Doc;
-            let ink = Cast(data_ext.ink, InkField) as InkField;
-            if (ink) {
-                return ink.inkData;
-            }
-        }
-    }
-
+   
     componentWillMount() {
         runInAction(async () => {
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
@@ -418,12 +406,6 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
-        TimelineMenu.Instance.addItem("button", "Add Ease", () => {
-            this.onContainerDown(kf, "interpolate");
-        }),
-            TimelineMenu.Instance.addItem("button", "Add Path", () => {
-                this.onContainerDown(kf, "path");
-            }),
             TimelineMenu.Instance.addItem("button", "Remove Region", () => {
                 runInAction(() => {
                     this.regions.splice(this.regions.indexOf(this.props.RegionData), 1);
@@ -525,88 +507,7 @@ export class Keyframe extends React.Component<IProps> {
         div.style.opacity = "0";
         Doc.UnBrushDoc(this.props.node);
     }
-
-
-    private _reac: (undefined | IReactionDisposer) = undefined;
-    private _plotList: ([string, StrokeData] | undefined) = undefined;
-    private _interpolationKeyframe: (Doc | undefined) = undefined;
-    private _type: string = "";
-
-
-    /**
-     * Need to fix this. skip
-     */
-    @action
-    onContainerDown = (kf: Doc, type: string) => {
-        let listenerCreated = false;
-        this.props.checkCallBack(true);
-        this._type = type;
-        this.props.collection.backgroundColor = "rgb(0,0,0)";
-        this._reac = reaction(() => {
-            return this.inks;
-        }, data => {
-            if (!listenerCreated) {
-                this._plotList = Array.from(data!)[data!.size - 1]!;
-                this._interpolationKeyframe = kf;
-                listenerCreated = true;
-                const reac = reaction(() => {
-                    return this.props.check;
-                }, () => {
-                    if (this.props.check === "yes") this.onReactionListen();
-                    reac();
-                    this.props.checkCallBack(false);
-                });
-            }
-        });
-    }
-
-    /**
-     * for custom draw interpolation. Need to be refactored
-     */
-    @action
-    onReactionListen = () => {
-        if (this._reac && this._plotList && this._interpolationKeyframe) {
-            this.props.collection.backgroundColor = "#FFF";
-            this._reac();
-            let xPlots = new List<number>();
-            let yPlots = new List<number>();
-            let maxY = 0;
-            let minY = Infinity;
-            let pathData = this._plotList![1].pathData;
-            for (let i = 0; i < pathData.length - 1;) {
-                let val = pathData[i];
-                if (val.y > maxY) {
-                    maxY = val.y;
-                }
-                if (val.y < minY) {
-                    minY = val.y;
-                }
-                xPlots.push(val.x);
-                yPlots.push(val.y);
-                let increment = Math.floor(pathData.length / this._gain);
-                if (pathData.length > this._gain) {
-                    if (i + increment < pathData.length) {
-                        i = i + increment;
-                    } else {
-                        i = pathData.length - 1;
-                    }
-                } else {
-                    i++;
-                }
-            }
-            let index = this.keyframes.indexOf(this._interpolationKeyframe!);
-            if (this._type === "interpolate") {
-                (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationX = xPlots;
-                (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationY = yPlots;
-            } else if (this._type === "path") {
-                (Cast(this.regiondata.functions![index], Doc) as Doc).pathX = xPlots;
-                (Cast(this.regiondata.functions![index], Doc) as Doc).pathY = yPlots;
-            }
-            this._reac = undefined;
-            this._interpolationKeyframe = undefined;
-            this._plotList = undefined;
-        }
-    }
+  
 
     ///////////////////////UI STUFF /////////////////////////
 
