@@ -53,7 +53,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected createDropAndGestureTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             this.gestureDisposer && this.gestureDisposer();
+            console.log("create drop", ele);
             if (ele) {
+                console.log("create drop 2", ele);
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
             }
@@ -135,7 +137,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
-
         }
 
         @undoBatch

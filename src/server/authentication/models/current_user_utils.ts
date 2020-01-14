@@ -140,6 +140,10 @@ export class CurrentUserUtils {
         });
     }
 
+    static setupMobileInkingDoc(userDoc: Doc) {
+        return Docs.Create.FreeformDocument([], { x: 0, y: 0, width: 10, height: 20, title: "Mobile Inking", backgroundColor: "red" });
+    }
+
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.  when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
     static setupToolsPanel(sidebarContainer: Doc, doc: Doc) {
         // setup a masonry view of all he creators

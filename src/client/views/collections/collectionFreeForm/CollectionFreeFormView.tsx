@@ -356,6 +356,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @undoBatch
     onGesture = (e: Event, ge: GestureUtils.GestureEvent) => {
+        console.log("on gesture");
         switch (ge.gesture) {
             case GestureUtils.Gestures.Stroke:
                 const points = ge.points;
