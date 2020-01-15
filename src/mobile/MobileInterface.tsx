@@ -68,7 +68,11 @@ export default class MobileInterface extends React.Component {
                     InkingControl.Instance.switchTool(InkTool.Pen);
                     this.drawingInk = true;
 
-                    DocServer.Mobile.dispatchBoxTrigger(true);
+                    DocServer.Mobile.dispatchBoxTrigger({
+                        enableBox: true,
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                    });
 
                     break;
                 }
@@ -112,7 +116,11 @@ export default class MobileInterface extends React.Component {
         this.switchCurrentView("main");
         InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
 
-        DocServer.Mobile.dispatchBoxTrigger(false);
+        DocServer.Mobile.dispatchBoxTrigger({
+            enableBox: false,
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
 
         this.inkDoc = undefined;
         this.drawingInk = false;

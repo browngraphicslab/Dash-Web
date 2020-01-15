@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, YoutubeQueryTypes, GestureContent } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkBoxContent } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -71,9 +71,9 @@ export namespace DocServer {
             Utils.Emit(_socket, MessageStore.GesturePoints, content);
         }
 
-        export function dispatchBoxTrigger(enableBox: boolean) {
+        export function dispatchBoxTrigger(content: MobileInkBoxContent) {
             // _socket.emit("dispatchBoxTrigger");
-            Utils.Emit(_socket, MessageStore.MobileInkBoxTrigger, enableBox);
+            Utils.Emit(_socket, MessageStore.MobileInkBoxTrigger, content);
         }
 
     }
@@ -100,10 +100,10 @@ export namespace DocServer {
             alert("Your connection to the server has been terminated.");
         });
         _socket.addEventListener("receiveGesturePoints", (content: GestureContent) => {
-            GestureOverlay.Instance.manualDispatch(content);
+            GestureOverlay.Instance.drawStrokeToMobileInkBox(content);
         });
-        _socket.addEventListener("receiveBoxTrigger", (enableBox: boolean) => {
-            GestureOverlay.Instance.showBox(enableBox);
+        _socket.addEventListener("receiveBoxTrigger", (content: MobileInkBoxContent) => {
+            GestureOverlay.Instance.enableMobileInkBox(content);
         });
     }
 

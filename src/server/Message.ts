@@ -45,12 +45,15 @@ export interface Diff extends Reference {
 
 export interface GestureContent {
     readonly points: Array<Point>;
+    readonly bounds: { right: number, left: number, bottom: number, top: number, width: number, height: number };
     readonly width?: string;
     readonly color?: string;
 }
 
-export interface MobileInkBoxTriggerContent {
+export interface MobileInkBoxContent {
     readonly enableBox: boolean;
+    readonly width?: number;
+    readonly height?: number;
 }
 
 export namespace MessageStore {
@@ -63,7 +66,7 @@ export namespace MessageStore {
     export const DeleteAll = new Message<any>("Delete All");
     export const ConnectionTerminated = new Message<string>("Connection Terminated");
     export const GesturePoints = new Message<GestureContent>("Gesture Points");
-    export const MobileInkBoxTrigger = new Message<boolean>("Trigger Mobile Ink Box");
+    export const MobileInkBoxTrigger = new Message<MobileInkBoxContent>("Trigger Mobile Ink Box");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
