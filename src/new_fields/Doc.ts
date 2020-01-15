@@ -755,7 +755,7 @@ export namespace Doc {
             const modifiers = docFilters[i + 2];
             const scriptText = `${modifiers === "x" ? "!" : ""}matchFieldValue(doc, "${key}", "${value}")`;
             docFilterText = docFilterText ? docFilterText + " || " + scriptText : scriptText;
-        };
+        }
         return docFilterText ? "(" + docFilterText + ")" : "";
     }
 }

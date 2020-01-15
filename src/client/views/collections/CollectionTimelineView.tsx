@@ -1,31 +1,19 @@
 import React = require("react");
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { DateField } from "../../../new_fields/DateField";
-import { Doc, DocListCast, Field, FieldResult, HeightSym, WidthSym, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { AudioField, ImageField, PdfField, VideoField, WebField } from "../../../new_fields/URLField";
-import { Utils, returnFalse, emptyPath } from "../../../Utils";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { returnFalse, Utils } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import "./CollectionTimelineView.scss";
 import { Thumbnail } from "./CollectionTimeLineViewNode";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { number } from "prop-types";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { RichTextUtils } from "../../../new_fields/RichTextUtils";
-import { DocumentView } from "../nodes/DocumentView";
-import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
-import { Transform } from "../../util/Transform";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { DragManager } from "../../util/DragManager";
 
 //Types for storing positions of various components of the view.
 //Anntations
@@ -106,7 +94,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         super(props);
     }
 
-<<<<<<< HEAD
     /*The previewdoc is a document containing two children: a display for the selected thumbnail on the timeline and a text document that dispalays the 
     selected document's value. While this document is created for the first time with the make preview method, it does not get added to the props, meaning
     the preview document gets deleted/recreated every time the ruler is opened.
@@ -136,8 +123,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             doclist[1] = text;
         }
     }
-=======
->>>>>>> a28aeffac24942d12ec9b40f3b7eaf5ed280438b
 
     //The firat time the timeline is loaded all of the components need to be calculated. 
     componentWillMount() {
@@ -342,10 +327,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let markers = DocListCast(this.markerDocs);
         markers.forEach(doc => {
             let newscale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-            doc.initialLeft = (NumCast(doc.initialLeft) * (newscale / NumCast(doc.initialScale))*(this.barwidth/doc.initialBW));
+            doc.initialLeft = (NumCast(doc.initialLeft) * (newscale / NumCast(doc.initialScale)) * (this.barwidth / NumCast(doc.initialBW)));
             doc.initialX = this.leftbound;
-            doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale))*(this.barwidth/doc.initialBW);
-            doc.initialBW=this.barwidth
+            doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale)) * (this.barwidth / NumCast(doc.initialBW));
+            doc.initialBW = this.barwidth
             doc.initialScale = newscale;
         });
     }
@@ -923,7 +908,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.initialLeft = leftval;
             d.firstLeft = leftval;
             d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-            d.initialBW=this.barwidth;
+            d.initialBW = this.barwidth;
             d.initialX = this.leftbound;
             d.initialWidth = 10;
             d.initialMapLeft = (((leftval / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
@@ -1005,7 +990,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     //Actual marquee element.
     @computed
     get marqueeDiv() {
-        let v = this.props.ScreenToLocalTransform().translate(0, 0).transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+        const v = this.props.ScreenToLocalTransform().translate(0, 0).transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         return <div ref={this.marqueeref} className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
         </div>;
     }
@@ -1026,8 +1011,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerMove_OnBar = (e: PointerEvent): void => {
         e.stopPropagation();
-        let newx2 = this.rightbound - e.movementX;
-        let newx = this.leftbound + e.movementX;
+        const newx2 = this.rightbound - e.movementX;
+        const newx = this.leftbound + e.movementX;
         if (newx2 < 4) {
             this.rightbound = 4;
         }
@@ -1102,7 +1087,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
         this.props.addDocument(new Doc);
-        let temp = this.barwidth - this.rightbound - this.leftbound;
+        const temp = this.barwidth - this.rightbound - this.leftbound;
         let newx = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98;
         this.leftbound = (newx);
         if (this.leftbound < 0) {
@@ -1110,7 +1095,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             newx = 0;
         }
 
-        let newx2 = this.barwidth - temp - newx;
+        const newx2 = this.barwidth - temp - newx;
         this.rightbound = (newx2);
         if (newx2 < 4) {
             this.leftbound = (newx + newx2);
@@ -1149,7 +1134,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     render() {
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
-        let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
+        const p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>

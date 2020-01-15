@@ -739,7 +739,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     @action.bound
     enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        let doc = this.props.CollectionView.props.Document;
+        const doc = this.props.CollectionView.props.Document;
 
         if (e.key === "Enter") {
             const thing = (parseFloat(this.searchString!) - NumCast(this.props.CollectionView.props.Document.barwidth)) * NumCast(this.props.CollectionView.props.Document.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
@@ -911,10 +911,10 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     }
 
     previewValue = async () => {
-        let field: Field | undefined | null = null;
-        let onProto: boolean = false;
+        const field: Field | undefined | null = null;
+        const onProto: boolean = false;
         let value: string | undefined = undefined;
-        let docs = this.props.CollectionView.props.Document;
+        const docs = this.props.CollectionView.props.Document;
         await docs[this._currentKey];
         value = Field.toKeyValueString(docs, this._currentKey);
         if (value === undefined) {
@@ -941,7 +941,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
             e.stopPropagation();
             const script = KeyValueBox.CompileKVPScript(this._currentValue);
             if (!script) return;
-            let doc = (this.props.CollectionView.props.Document);
+            const doc = (this.props.CollectionView.props.Document);
             let success: boolean;
             success = KeyValueBox.ApplyKVPScript(doc, this._currentKey, script);
             this.clearInputs();
@@ -961,7 +961,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
-        let docs = this.props.CollectionView.props.Document;
+        const docs = this.props.CollectionView.props.Document;
         return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
 
     }
@@ -1032,7 +1032,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
             e.stopPropagation();
             const script = KeyValueBox.CompileKVPScript(this._currentValue2);
             if (!script) return;
-            let doc = (this.props.CollectionView.props.Document);
+            const doc = (this.props.CollectionView.props.Document);
             let success: boolean;
             success = KeyValueBox.ApplyKVPScript(doc, this._currentKey2, script);
             this.clearInputs2();

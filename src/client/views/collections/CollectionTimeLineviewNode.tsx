@@ -45,7 +45,7 @@ export class
     //Provides icon based on document type.
     @action
     checkData = (document: Doc): IconProp => {
-        let field = document.data;
+        const field = document.data;
         if (field instanceof AudioField) { return faMusic; }
         else if (field instanceof PdfField) { return faFilePdf; }
         else if (field instanceof RichTextField) { return faFont; }
@@ -141,9 +141,9 @@ export class
     private calculatepreview() {
         if (!this.props.rangeval) {
             console.log(this.props.doc[this.props.sortstate]);
-            return this.props.doc[this.props.sortstate]
+            return this.props.doc[this.props.sortstate];
         }
-        return Math.round(NumCast(this.props.doc[this.props.sortstate]))
+        return Math.round(NumCast(this.props.doc[this.props.sortstate]));
     }
 
     //First half is just the square icon of the document, second (After the "selection class") is extra information when selected by marquee.

@@ -239,8 +239,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             rowlayout.config.height = 50;
             newContentItem.config.height = 50;
         } else if (this._goldenLayout.root.contentItems[0].isRow) {
-            var rowlayout = this._goldenLayout.root.contentItems[0];
-            var newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
+            const rowlayout = this._goldenLayout.root.contentItems[0];
+            const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
             rowlayout.parent.replaceChild(rowlayout, newColumn);
 
             newColumn.addChild(newContentItem, undefined, true);
