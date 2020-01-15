@@ -130,7 +130,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onDrop = (e: React.DragEvent): Promise<void> => {
         const pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        return super.onDrop(e, { x: pt[0], y: pt[1] });
+        const mutator = (doc: Doc) => {
+            doc.x = pt[0];
+            doc.y = pt[1];
+            return doc;
+        };
+        return super.onDrop(e, {}, undefined, mutator);
     }
 
     @undoBatch

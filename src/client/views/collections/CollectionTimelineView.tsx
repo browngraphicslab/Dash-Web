@@ -81,19 +81,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onDrop = (e: React.DragEvent): Promise<void> => {
         const { pageX, pageY } = e;
         var pt = this.props.ScreenToLocalTransform().transformPoint(pageX, pageY);
-        const mutator = (input: Doc | Doc[]) => {
+        const mutator = (input: Doc) => {
             let newX = pageX;
             newX += -(document.body.clientWidth - this.barref.current!.getBoundingClientRect().width);
             let x = (((newX / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
             let fieldval = NumCast(this.props.Document.minvalue) + x * this._range * 1.1 / this.barref.current!.getBoundingClientRect().width;
-            if (Array.isArray(input)) {
-                for (let inputs of input) {
-                    inputs[this.currentSortingKey] = fieldval;
-                }
-            }
-            else {
-                input[this.currentSortingKey] = fieldval;
-            }
+            input[this.currentSortingKey] = fieldval;
+            return input;
         };
         this.initiallyPopulateThumbnails();
         return super.onDrop(e, { x: pt[0], y: pt[1] }, undefined, mutator);
@@ -112,35 +106,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         super(props);
     }
 
-    /*The previewdoc is a document containing two children: a display for the selected thumbnail on the timeline and a text document that dispalays the 
-    selected document's value. While this document is created for the first time with the make preview method, it does not get added to the props, meaning
-    the preview document gets deleted/recreated every time the ruler is opened.
-    */
-    @observable
-    private previewdoc: Doc | undefined;
-    @action
-    makePreview(newdoc: Doc, string: string) {
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
-        let proto = text.proto!;
-        let ting = NumCast(newdoc[this.currentSortingKey]);
-        proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
-        let doc = Docs.Create.StackingDocument([newdoc, text,], { width: 500, height: 500, title: "Untitled Collection", chromeStatus: "disabled" });
-        doc.title = "preview";
-        this.previewdoc = doc;
-    }
-
-    @action
-    updatePreview(newdoc: Doc, string: string) {
-        const doclist = Cast(this.previewdoc?.data, listSpec(Doc));
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
-        let proto = text.proto!;
-        let ting = NumCast(newdoc[this.currentSortingKey]);
-        proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
-        if (doclist) {
-            doclist[0] = newdoc;
-            doclist[1] = text;
-        }
-    }
 
     //The firat time the timeline is loaded all of the components need to be calculated. 
     componentWillMount() {
@@ -158,20 +123,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     componentDidMount() {
-        //Selecting a thumbnail updates the preview document.
-        reaction(
-            () => this.props.Document.currdoc,
-            async () => {
-                let doc = await Cast(this.props.Document.currdoc, Doc);
-                let string = await StrCast(this.props.Document.currval);
-                if (!this.previewdoc) {
-                    doc ? this.makePreview(doc, string) : undefined;
-                }
-                else {
-                    doc ? this.updatePreview(doc, string) : undefined;
-                }
-            }
-        );
         //Addding a new document causes the thumbnails to be recalculatedd.
         reaction(
             () => this.childDocs,
@@ -209,9 +160,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             async () => {
                 this.initiallyPopulateThumbnails();
                 this.createticks();
-                let doc = await Cast(this.props.Document.currdoc, Doc);
-                let string = await StrCast(this.props.Document.currval);
-                doc ? this.updatePreview(doc, string) : undefined;
             }
         );
     }
@@ -1163,36 +1111,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private get nodeoffset() {
         return this.barwidth / (this.barwidth - this.leftbound - this.rightbound);
     }
-    //Method passed into node class such that clicking on it results in preview changing.
-    sethoverdoc(doc: Doc) {
-        this.previewdoc = doc;
-    }
-
-    private getLocalTransform = (): Transform => new Transform(-NumCast(this.previewdoc!.x), -NumCast(this.previewdoc!.y), 1);
-    private getTransform = (): Transform => this.props.ScreenToLocalTransform().transform(this.getLocalTransform());
-    //For dragging preview.
-    @undoBatch
-    @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.complete.docDragData?.droppedDocuments.length && de.complete.docDragData.droppedDocuments[0] === this.previewdoc) {
-            let [xp, yp] = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
-            if (super.drop(e, de)) {
-                if (de.complete.docDragData.droppedDocuments.length) {
-                    this.previewdoc.x = xp - de.complete.docDragData.offset[0];
-                    this.previewdoc.y = yp - de.complete.docDragData.offset[1];
-                }
-            }
-        } else {
-            super.drop(e, de);
-        }
-        return false;
-    }
-
     render() {
         this.props.Document._range = this._range;
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        let d = this.previewdoc;
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
@@ -1227,7 +1149,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                                 select={node.select ? node.select : false}
                                 range={this._range}
                                 rangeval={this.toggle_tick_numbers}
-                                sethover={this.sethoverdoc}
                                 timelinedoc={this.props.Document}
                             />
                         )

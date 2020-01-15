@@ -35,7 +35,6 @@ export interface NodeProps {
     select: boolean;
     range: number;
     rangeval: boolean;
-    sethover: (doc: Doc) => void;
     timelinedoc: Doc;
 }
 //Thumbnail class defines the icons used for displaying documents in the ruler view.
