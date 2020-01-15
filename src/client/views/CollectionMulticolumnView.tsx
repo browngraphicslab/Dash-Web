@@ -47,14 +47,14 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
             <div className={"collectionMulticolumnView_outer"}>
                 <div className={"collectionMulticolumnView_contents"}>
                     {this.configuration.map(config => {
-                        const { target } = config;
+                        const { target, columnWidth } = config;
                         if (target instanceof Doc) {
                             let computedWidth: number = 0;
-                            const widthSpecifier = Cast(config.columnWidth, "number");
+                            const widthSpecifier = Cast(columnWidth, "number");
                             let matches: RegExpExecArray | null;
                             if (widthSpecifier !== undefined) {
                                 computedWidth = widthSpecifier;
-                            } else if ((matches = /([\d.]+)\%/.exec(StrCast(config.columnWidth))) !== null) {
+                            } else if ((matches = /([\d.]+)\%/.exec(StrCast(columnWidth))) !== null) {
                                 computedWidth = Number(matches[1]) / 100 * PanelWidth();
                             }
                             return (!computedWidth ? (null) :
