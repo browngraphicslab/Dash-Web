@@ -10,7 +10,7 @@ export interface EditableProps {
     /**
      * Called to get the initial value for editing
      *  */
-    GetValue(): string;
+    GetValue(): string | undefined;
 
     /**
      * Called to apply changes
@@ -21,7 +21,7 @@ export interface EditableProps {
 
     OnFillDown?(value: string): void;
 
-    OnTab?(): void;
+    OnTab?(shift?: boolean): void;
 
     /**
      * The contents to render when not editing
@@ -36,7 +36,7 @@ export interface EditableProps {
         resetValue: () => void;
         value: string,
         onChange: (e: React.ChangeEvent, { newValue }: { newValue: string }) => void,
-        autosuggestProps: Autosuggest.AutosuggestProps<string>
+        autosuggestProps: Autosuggest.AutosuggestProps<string, any>
 
     };
     oneLine?: boolean;
@@ -79,7 +79,7 @@ export class EditableView extends React.Component<EditableProps> {
         if (e.key === "Tab") {
             e.stopPropagation();
             this.finalizeEdit(e.currentTarget.value, e.shiftKey);
-            this.props.OnTab && this.props.OnTab();
+            this.props.OnTab && this.props.OnTab(e.shiftKey);
         } else if (e.key === "Enter") {
             e.stopPropagation();
             if (!e.ctrlKey) {
@@ -108,8 +108,8 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     private finalizeEdit(value: string, shiftDown: boolean) {
+        this._editing = false;
         if (this.props.SetValue(value, shiftDown)) {
-            this._editing = false;
             this.props.isEditingCallback && this.props.isEditingCallback(false);
         }
     }
@@ -120,11 +120,13 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     setIsFocused = (value: boolean) => {
+        const wasFocused = this._editing;
         this._editing = value;
+        return wasFocused !== this._editing;
     }
 
     render() {
-        if (this._editing) {
+        if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.autosuggestProps
                 ? <Autosuggest
                     {...this.props.autosuggestProps.autosuggestProps}

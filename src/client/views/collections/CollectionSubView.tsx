@@ -6,9 +6,8 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -20,14 +19,15 @@ import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-var path = require('path');
+import { basename } from 'path';
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { Networking } from "../../Network";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: AddDocumentFunction;
     removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
@@ -53,7 +53,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
-                this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -87,14 +87,16 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             return this.props.annotationsKey ? (this.extensionDoc ? this.extensionDoc[this.props.annotationsKey] : undefined) : this.dataDoc[this.props.fieldKey];
         }
 
-        get childLayoutPairs() {
-            return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
+        get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
+            const { Document, DataDoc, fieldKey } = this.props;
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, fieldKey, doc)).filter(pair => pair.layout);
+            return validPairs.map(({ data, layout }) => ({ data: data!, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
         }
         get childDocs() {
-            let docs = DocListCast(this.dataField);
+            const docs = DocListCast(this.dataField);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         }
@@ -102,10 +104,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected async setCursorPosition(position: [number, number]) {
             let ind;
-            let doc = this.props.Document;
-            let id = CurrentUserUtils.id;
-            let email = Doc.CurrentUserEmail;
-            let pos = { x: position[0], y: position[1] };
+            const doc = this.props.Document;
+            const id = CurrentUserUtils.id;
+            const email = Doc.CurrentUserEmail;
+            const pos = { x: position[0], y: position[1] };
             if (id && email) {
                 const proto = Doc.GetProto(doc);
                 if (!proto) {
@@ -125,7 +127,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.data.metadata.id === id)) > -1) {
                     cursors[ind].setPosition(pos);
                 } else {
-                    let entry = new CursorField({ metadata: { id: id, identifier: email, timestamp: Date.now() }, position: pos });
+                    const entry = new CursorField({ metadata: { id: id, identifier: email, timestamp: Date.now() }, position: pos });
                     cursors.push(entry);
                 }
             }
@@ -134,53 +136,51 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
+            const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
-                this.props.Document.dropConverter.script.run({ dragData: de.data });
-            if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
-                if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
+                this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
+            if (docDragData && !docDragData.applyAsTemplate) {
+                if (de.altKey && docDragData.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, "layoutFromParent"));
+                        Doc.ApplyTemplateTo(docDragData.draggedDocuments[0], doc, "layoutFromParent"));
                     e.stopPropagation();
                     return true;
                 }
                 let added = false;
-                if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
-                } else if (de.data.moveDocument) {
-                    let movedDocs = de.data.draggedDocuments;
+                if (docDragData.dropAction || docDragData.userDropAction) {
+                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                } else if (docDragData.moveDocument) {
+                    const movedDocs = docDragData.draggedDocuments;
                     added = movedDocs.reduce((added: boolean, d, i) =>
-                        de.data.droppedDocuments[i] !== d ? this.props.addDocument(de.data.droppedDocuments[i]) :
-                            de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
+                        docDragData.droppedDocuments[i] !== d ? this.props.addDocument(docDragData.droppedDocuments[i]) :
+                            docDragData.moveDocument?.(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
             }
-            else if (de.data instanceof DragManager.AnnotationDragData) {
+            else if (de.complete.annoDragData) {
                 e.stopPropagation();
-                return this.props.addDocument(de.data.dropDocument);
+                return this.props.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
         }
 
-        private tryMutateAndAdd = (target: Doc, mutator?: (docInput: Doc[] | Doc) => void, allowDuplicates = false) => {
-            if (this.props.addDocument) {
-                mutator && mutator(target);
-                this.props.addDocument(target, allowDuplicates);
-            }
+        private mutateAndAdd = (target: Doc, mutator?: (docInput: Doc) => Doc, allowDuplicates = false) => {
+            target && this.props.addDocument?.(mutator ? mutator(target) : target, allowDuplicates);
         }
 
         @undoBatch
         @action
-        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Doc[] | Doc) => void) {
+        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void, mutateDoc?: (docInput: Doc) => Doc) {
             let newlyCreated: Doc[] | Doc;
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
             }
-            let html = e.dataTransfer.getData("text/html");
-            let text = e.dataTransfer.getData("text/plain");
+            const html = e.dataTransfer.getData("text/html");
+            const text = e.dataTransfer.getData("text/plain");
 
             if (text && text.startsWith("<div")) {
                 return;
@@ -189,66 +189,56 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.preventDefault();
 
             if (html && FormattedTextBox.IsFragment(html)) {
-                let href = FormattedTextBox.GetHref(html);
+                const href = FormattedTextBox.GetHref(html);
                 if (href) {
-                    let docid = FormattedTextBox.GetDocFromUrl(href);
+                    const docid = FormattedTextBox.GetDocFromUrl(href);
                     if (docid) { // prosemirror text containing link to dash document
-                        DocServer.GetRefField(docid).then(f => {
-                            if (f instanceof Doc) {
-                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.tryMutateAndAdd(f, mutateDoc);
-                            }
-                        });
+                        DocServer.GetRefField(docid).then(f => this.mutateAndAdd(f as Doc, mutateDoc));
                     } else {
-                        newlyCreated = Docs.Create.WebDocument(href, options);
-                        this.tryMutateAndAdd(newlyCreated, mutateDoc);
+                        newlyCreated = Docs.Create.WebDocument(href, { ...options, title: href });
+                        this.mutateAndAdd(newlyCreated, mutateDoc);
                     }
                 } else if (text) {
-                    this.tryMutateAndAdd(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), mutateDoc);
+                    this.mutateAndAdd(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), mutateDoc);
                 }
                 return;
             }
             if (html && !html.startsWith("<a")) {
-                let tags = html.split("<");
+                const tags = html.split("<");
                 if (tags[0] === "") tags.splice(0, 1);
-                let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
-                    let split = img.split("src=\"")[1].split("\"")[0];
-                    let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
-                    this.tryMutateAndAdd(doc, mutateDoc);
+                    const split = img.split("src=\"")[1].split("\"")[0];
+                    const doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
+                    this.mutateAndAdd(doc, mutateDoc);
                     ImageUtils.ExtractExif(doc);
                     return;
                 } else {
-                    let path = window.location.origin + "/doc/";
+                    const path = window.location.origin + "/doc/";
                     if (text.startsWith(path)) {
-                        let docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                        DocServer.GetRefField(docid).then(f => {
-                            if (f instanceof Doc) {
-                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.tryMutateAndAdd(f, mutateDoc);
-                            }
-                        });
+                        const docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                        DocServer.GetRefField(docid).then(f => this.mutateAndAdd(f as Doc, mutateDoc));
                     } else {
-                        let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                        this.tryMutateAndAdd(htmlDoc, mutateDoc);
+                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", width: 300, height: 300, documentText: text });
+                        this.mutateAndAdd(htmlDoc, mutateDoc);
                     }
                     return;
                 }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.tryMutateAndAdd(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }), mutateDoc);
+                this.mutateAndAdd(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }), mutateDoc);
                 return;
             }
             let matches: RegExpExecArray | null;
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
-                let proto = newBox.proto!;
+                const newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
+                const proto = newBox.proto!;
                 const documentId = matches[2];
                 proto[GoogleRef] = documentId;
                 proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
-                this.tryMutateAndAdd(newBox, mutateDoc);
+                this.mutateAndAdd(newBox, mutateDoc);
                 return;
             }
             if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
@@ -257,63 +247,58 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
                 console.log(mediaItems);
             }
-            let batch = UndoManager.StartBatch("collection view drop");
-            let promises: Promise<void>[] = [];
+            const batch = UndoManager.StartBatch("collection view drop");
+            const promises: Promise<void>[] = [];
             // tslint:disable-next-line:prefer-for-of
             newlyCreated = [];
             for (let i = 0; i < e.dataTransfer.items.length; i++) {
-                const upload = window.location.origin + RouteStore.upload;
-                let item = e.dataTransfer.items[i];
+                const item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
-                    let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
+                    const prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
                         .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
                         .then(result => {
-                            let type = result["content-type"];
+                            const type = result["content-type"];
                             if (type) {
-                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
-                                    .then(doc => doc && this.tryMutateAndAdd(doc, mutateDoc));
+                                Docs.Get.DocumentFromType(type, str, options)
+                                    .then(doc => doc && this.mutateAndAdd(doc, mutateDoc));
                             }
                         });
                     promises.push(prom);
                 }
-                let type = item.type;
+                const type = item.type;
                 if (item.kind === "file") {
-                    let file = item.getAsFile();
-                    let formData = new FormData();
+                    const file = item.getAsFile();
+                    const formData = new FormData();
 
-                    if (file) {
-                        formData.append('file', file);
+                    if (!file || !file.type) {
+                        continue;
                     }
-                    let dropFileName = file ? file.name : "-empty-";
 
-                    let prom = fetch(upload, {
-                        method: 'POST',
-                        body: formData
-                    }).then(async (res: Response) => {
-                        (await res.json()).map(action((file: any) => {
-                            let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let pathname = Utils.prepend(file.path);
+                    formData.append('file', file);
+                    const dropFileName = file ? file.name : "-empty-";
+                    promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
+                        results.map(action(({ clientAccessPath }: any) => {
+                            const full = { ...options, width: 300, title: dropFileName };
+                            const pathname = Utils.prepend(clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 if (doc) {
-                                    Doc.GetProto(doc).fileUpload = path.basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+                                    Doc.GetProto(doc).fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
                                     (newlyCreated as Doc[]).push(doc);
-                                    this.tryMutateAndAdd(doc, mutateDoc);
+                                    this.mutateAndAdd(doc, mutateDoc);
                                 }
                             });
                         }));
-                    });
-                    promises.push(prom);
+                    }));
                 }
-            }
-            if (text) {
-                this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
-                return;
             }
 
             if (promises.length) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
+                if (text && !text.includes("https://")) {
+                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                }
                 batch.end();
             }
             // if (mutateDoc) {

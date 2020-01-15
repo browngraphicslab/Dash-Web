@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { FontWeightProperty, FontStyleProperty, FontSizeProperty, ColorProperty } from 'csstype';
+import { FontStyleProperty, ColorProperty } from 'csstype';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
-import { FormattedTextBox, FormattedTextBoxProps } from '../../nodes/FormattedTextBox';
+import { FormattedTextBox } from '../../nodes/FormattedTextBox';
 import { FieldViewProps } from '../../nodes/FieldView';
 
 interface DetailedCaptionDataProps {
@@ -33,7 +33,7 @@ export default class DetailedCaptionToggle extends React.Component<DetailedCapti
     }
 
     render() {
-        let size = this.props.toggleSize || 20;
+        const size = this.props.toggleSize || 20;
         return (
             <div style={{
                 transition: "0.5s opacity ease",

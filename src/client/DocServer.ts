@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -64,6 +64,24 @@ export namespace DocServer {
         }
     }
 
+    const instructions = "This page will automatically refresh after this alert is closed. Expect to reconnect after about 30 seconds.";
+    function alertUser(connectionTerminationReason: string) {
+        switch (connectionTerminationReason) {
+            case "crash":
+                alert(`Dash has temporarily crashed. Administrators have been notified and the server is restarting itself. ${instructions}`);
+                break;
+            case "temporary":
+                alert(`An administrator has chosen to restart the server. ${instructions}`);
+                break;
+            case "exit":
+                alert("An administrator has chosen to kill the server. Do not expect to reconnect until administrators start the server.");
+                break;
+            default:
+                console.log(`Received an unknown ConnectionTerminated message: ${connectionTerminationReason}`);
+        }
+        window.location.reload();
+    }
+
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;
@@ -82,6 +100,7 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
+        Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, alertUser);
     }
 
     function errorFunc(): never {
@@ -148,7 +167,7 @@ export namespace DocServer {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache
-        let cached = _cache[id];
+        const cached = _cache[id];
         if (cached === undefined) {
             // NOT CACHED => we'll have to send a request to the server
 
@@ -195,7 +214,7 @@ export namespace DocServer {
     }
 
     export async function getYoutubeChannels() {
-        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
+        const apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
         return apiKey;
     }
 
@@ -253,9 +272,9 @@ export namespace DocServer {
             const fieldMap: { [id: string]: RefField } = {};
             const proms: Promise<void>[] = [];
             for (const field of fields) {
-                if (field !== undefined) {
+                if (field !== undefined && field !== null) {
                     // deserialize
-                    let prom = SerializationHelper.Deserialize(field).then(deserialized => {
+                    const prom = SerializationHelper.Deserialize(field).then(deserialized => {
                         fieldMap[field.id] = deserialized;
 
                         //overwrite or delete any promises (that we inserted as flags
@@ -411,7 +430,7 @@ export namespace DocServer {
     }
 
     let _RespondToUpdate = _respondToUpdateImpl;
-    let _respondToDelete = _respondToDeleteImpl;
+    const _respondToDelete = _respondToDeleteImpl;
 
     function respondToUpdate(diff: any) {
         _RespondToUpdate(diff);

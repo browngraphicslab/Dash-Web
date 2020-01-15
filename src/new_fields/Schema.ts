@@ -23,7 +23,7 @@ export type makeInterface<T extends Interface[]> = AllToInterface<T> & Doc & { p
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
 export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFunc<T> {
-    let schema: Interface = {};
+    const schema: Interface = {};
     for (const s of schemas) {
         for (const key in s) {
             schema[key] = s[key];

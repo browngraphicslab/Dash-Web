@@ -5,7 +5,7 @@ html,
 body {
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow: hidden;
     font-family: $sans-serif;
     margin: 0;
     position: absolute;
@@ -13,12 +13,12 @@ body {
     left: 0;
 }
 
-div {
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-}
+// div {
+//     user-select: none;
+//     -moz-user-select: none;
+//     -webkit-user-select: none;
+//     -ms-user-select: none;
+// }
 
 
 .jsx-parser {
@@ -27,7 +27,7 @@ div {
     pointer-events: none;
     border-radius: inherit;
     position: inherit;
-    background: inherit;
+   // background: inherit;
 }
 
 p {
@@ -38,7 +38,7 @@ p {
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     height: 8px;
-    width: 8px;
+    width:  8px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -63,10 +63,6 @@ button:hover {
     background: $main-accent;
     transform: scale(1.05);
     cursor: pointer;
-}
-
-#root {
-    overflow: visible;
 }
 
 .svg-inline--fa {

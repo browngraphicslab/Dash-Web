@@ -2,7 +2,6 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
 import { ObjectField } from "./ObjectField";
 import { Copy, ToScriptString } from "./FieldSymbols";
-import { DeepCopy } from "../Utils";
 
 export enum InkTool {
     None,
@@ -12,19 +11,15 @@ export enum InkTool {
     Scrubber
 }
 
-export interface StrokeData {
-    pathData: Array<{ x: number, y: number }>;
-    color: string;
-    width: string;
-    tool: InkTool;
-    displayTimecode: number;
-    creationTime: number;
+export interface PointData {
+    X: number;
+    Y: number;
 }
 
-export type InkData = Map<string, StrokeData>;
+export type InkData = Array<PointData>;
 
 const pointSchema = createSimpleSchema({
-    x: true, y: true
+    X: true, Y: true
 });
 
 const strokeDataSchema = createSimpleSchema({
@@ -34,16 +29,16 @@ const strokeDataSchema = createSimpleSchema({
 
 @Deserializable("ink")
 export class InkField extends ObjectField {
-    @serializable(map(object(strokeDataSchema)))
+    @serializable(list(object(strokeDataSchema)))
     readonly inkData: InkData;
 
-    constructor(data?: InkData) {
+    constructor(data: InkData) {
         super();
-        this.inkData = data || new Map;
+        this.inkData = data;
     }
 
     [Copy]() {
-        return new InkField(DeepCopy(this.inkData));
+        return new InkField(this.inkData);
     }
 
     [ToScriptString]() {

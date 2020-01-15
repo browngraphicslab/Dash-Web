@@ -96,6 +96,7 @@
 
     .collectionStackingView-columnDoc {
         display: inline-block;
+        margin: auto;
     }
 
     .collectionStackingView-masonryDoc {
@@ -176,7 +177,9 @@
         .collectionStackingView-sectionHeader-subCont {
             outline: none;
             border: 0px;
-            color: $light-color;
+            color: $light-color; 
+            width: 100%;
+            color: grey;
             letter-spacing: 2px;
             font-size: 75%;
             transition: transform 0.2s;

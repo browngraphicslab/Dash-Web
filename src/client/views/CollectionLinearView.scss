@@ -17,6 +17,7 @@
             height: 18px;
             margin-top:auto;
             margin-bottom:auto;
+            margin-right: 3px;
             cursor: pointer;
             transition: transform 0.2s;
         }
@@ -51,8 +52,9 @@
 
             .collectionLinearView-docBtn, .collectionLinearView-docBtn-scalable {
                 position:relative;
-                margin-top: auto;
-                margin-bottom: auto;
+                margin:auto;
+                margin-left: 3px;
+                transform-origin: center 80%;
             }
             .collectionLinearView-docBtn-scalable:hover {
                 transform: scale(1.15);

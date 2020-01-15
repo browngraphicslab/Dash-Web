@@ -46,8 +46,8 @@ export class HistogramBox extends React.Component<FieldViewProps> {
 
     @action
     dropX = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            let h = Cast(de.data.draggedDocuments[0].data, HistogramField);
+        if (de.complete.docDragData) {
+            let h = Cast(de.complete.docDragData.draggedDocuments[0].data, HistogramField);
             if (h) {
                 this.HistoOp.X = h.HistoOp.X;
             }
@@ -57,8 +57,8 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     }
     @action
     dropY = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            let h = Cast(de.data.draggedDocuments[0].data, HistogramField);
+        if (de.complete.docDragData) {
+            let h = Cast(de.complete.docDragData.draggedDocuments[0].data, HistogramField);
             if (h) {
                 this.HistoOp.Y = h.HistoOp.X;
             }
@@ -78,10 +78,10 @@ export class HistogramBox extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         if (this._dropXRef.current) {
-            this._dropXDisposer = DragManager.MakeDropTarget(this._dropXRef.current, { handlers: { drop: this.dropX.bind(this) } });
+            this._dropXDisposer = DragManager.MakeDropTarget(this._dropXRef.current, this.dropX.bind(this));
         }
         if (this._dropYRef.current) {
-            this._dropYDisposer = DragManager.MakeDropTarget(this._dropYRef.current, { handlers: { drop: this.dropY.bind(this) } });
+            this._dropYDisposer = DragManager.MakeDropTarget(this._dropYRef.current, this.dropY.bind(this));
         }
         reaction(() => CurrentUserUtils.NorthstarDBCatalog, (catalog?: Catalog) => this.activateHistogramOperation(catalog), { fireImmediately: true });
         reaction(() => [this.VisualBinRanges && this.VisualBinRanges.slice()], () => this.SizeConverter.SetVisualBinRanges(this.VisualBinRanges));

@@ -11,12 +11,17 @@ import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { MetadataEntryMenu } from "../MetadataEntryMenu";
+import { DocumentView } from "../nodes/DocumentView";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 library.add(faEdit);
 
-type SelectorProps = { Document: Doc, Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
+type SelectorProps = { Document: Doc, Views: DocumentView[], Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -29,7 +34,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     }
 
     async fetchDocuments() {
-        let aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
+        const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
         const map: Map<Doc, Doc> = new Map;
         const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
@@ -53,50 +58,42 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
             this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };
     }
+    get metadataMenu() {
+        return <div className="parentDocumentSelector-metadata">
+            <Flyout anchorPoint={anchorPoints.TOP_LEFT}
+                content={<MetadataEntryMenu docs={() => this.props.Views.map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
+                <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
+            </Flyout>
+        </div>;
+    }
 
     render() {
-        return (
-            <>
-                <p key="contexts">Contexts:</p>
-                {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-                {this._otherDocs.length ? <hr key="hr" /> : null}
-                {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-            </>
-        );
+        return <div >
+            <div key="metadata">Metadata: {this.metadataMenu}</div>
+            <p key="contexts">Contexts:</p>
+            {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+            {this._otherDocs.length ? <hr key="hr" /> : null}
+            {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+        </div>;
     }
 }
 
 @observer
 export class ParentDocSelector extends React.Component<SelectorProps> {
-    @observable hover = false;
-
-    @action
-    onMouseLeave = () => {
-        this.hover = false;
-    }
-
-    @action
-    onMouseEnter = () => {
-        this.hover = true;
-    }
-
     render() {
-        let flyout;
-        if (this.hover) {
-            flyout = (
-                <div className="PDS-flyout" title=" ">
-                    <SelectorContextMenu {...this.props} />
-                </div>
-            );
-        }
-        return (
-            <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
-                <p>^</p>
-                {flyout}
-            </span>
+        const flyout = (
+            <div className="parentDocumentSelector-flyout" style={{}} title=" ">
+                <SelectorContextMenu {...this.props} />
+            </div>
         );
+        return <div title="Tap to View Contexts/Metadata" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={flyout}>
+                <span className="parentDocumentSelector-button" >
+                    <FontAwesomeIcon icon={faChevronCircleUp} size={"lg"} />
+                </span>
+            </Flyout>
+        </div>;
     }
 }
 
@@ -105,32 +102,31 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
     @observable hover = false;
 
     @action
-    onMouseLeave = () => {
-        this.hover = false;
+    onPointerDown = (e: React.PointerEvent) => {
+        this.hover = !this.hover;
+        e.stopPropagation();
     }
-
-    @action
-    onMouseEnter = () => {
-        this.hover = true;
+    customStylesheet(styles: any) {
+        return {
+            ...styles,
+            panel: {
+                ...styles.panel,
+                minWidth: "100px"
+            },
+        };
     }
 
     render() {
-        let flyout;
-        if (this.hover) {
-            let view = DocumentManager.Instance.getDocumentView(this.props.Document);
-            flyout = !view ? (null) : (
-                <div className="PDS-flyout" title=" " onMouseLeave={this.onMouseLeave}>
-                    <DocumentButtonBar views={[view]} stack={this.props.Stack} />
-                </div>
-            );
-        }
-        return (
-            <span className="buttonSelector"
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
-                {this.hover ? (null) : <FontAwesomeIcon icon={faEdit} size={"sm"} />}
-                {flyout}
-            </span>
+        const view = DocumentManager.Instance.getDocumentView(this.props.Document);
+        const flyout = (
+            <div className="ParentDocumentSelector-flyout" title=" ">
+                <DocumentButtonBar views={[view]} stack={this.props.Stack} />
+            </div>
         );
+        return <span title="Tap for menu" onPointerDown={e => e.stopPropagation()} className="buttonSelector">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} stylesheet={this.customStylesheet}>
+                <FontAwesomeIcon icon={faEdit} size={"sm"} />
+            </Flyout>
+        </span>;
     }
 }
