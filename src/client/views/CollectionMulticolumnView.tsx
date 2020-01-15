@@ -12,6 +12,7 @@ const MulticolumnDocument = makeInterface(documentSchema);
 
 @observer
 export default class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
+    private _dropDisposer?: DragManager.DragDropDisposer;
 
     constructor(props: Readonly<SubCollectionViewProps>) {
         super(props);
@@ -19,8 +20,7 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
         Document.multicolumnData = new Doc();
     }
 
-    private _dropDisposer?: DragManager.DragDropDisposer;
-    protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
+    protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
             this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));

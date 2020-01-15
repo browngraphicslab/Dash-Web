@@ -35,6 +35,7 @@ import { Touchable } from '../Touchable';
 import { TraceMobx } from '../../../new_fields/util';
 import { Utils } from '../../../Utils';
 import { ScriptBox } from '../ScriptBox';
+import CollectionMulticolumnView from '../CollectionMulticolumnView';
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -48,7 +49,8 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
-    Staff
+    Staff,
+    Multicolumn
 }
 
 export namespace CollectionViewType {
@@ -61,7 +63,8 @@ export namespace CollectionViewType {
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
         ["pivot", CollectionViewType.Pivot],
-        ["linear", CollectionViewType.Linear]
+        ["linear", CollectionViewType.Linear],
+        ["multicolumn", CollectionViewType.Multicolumn]
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
@@ -173,6 +176,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
