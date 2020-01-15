@@ -116,7 +116,7 @@ export class CurrentUserUtils {
             { title: "use highlighter", icon: "highlighter", pointerUp: "resetPen()", pointerDown: 'setPen(20, this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
-            nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.pointerDown ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
+            nativeWidth: 10, nativeHeight: 10, width: 10, height: 10, dropAction: data.pointerDown ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
             onPointerUp: data.pointerUp ? ScriptField.MakeScript(data.pointerUp) : undefined, onPointerDown: data.pointerDown ? ScriptField.MakeScript(data.pointerDown) : undefined,
             ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen, pointerHack: true,
@@ -127,7 +127,7 @@ export class CurrentUserUtils {
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
             return Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
-                width: 300, columnWidth: 100, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5
+                width: 100, height: 50, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5, isExpanded: true
             });
         }
         return userDoc.thumbDoc;

@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../new_fields/Doc';
 import { makeInterface } from '../../new_fields/Schema';
-import { BoolCast, NumCast, StrCast } from '../../new_fields/Types';
+import { BoolCast, NumCast, StrCast, Cast } from '../../new_fields/Types';
 import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
@@ -13,6 +13,7 @@ import { CollectionSubView } from './collections/CollectionSubView';
 import { DocumentView } from './nodes/DocumentView';
 import { documentSchema } from '../../new_fields/documentSchemas';
 import { Id } from '../../new_fields/FieldSymbols';
+import { ScriptField } from '../../new_fields/ScriptField';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -76,6 +77,9 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         const nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
                         const deltaSize = nativeWidth * .15 / 2;
                         const isSelected = this._selectedIndex === ind;
+                        if (isSelected) {
+                            Cast(pair.layout.proto?.onPointerDown, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
+                        }
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,

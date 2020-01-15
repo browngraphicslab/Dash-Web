@@ -13,7 +13,7 @@ import { LinkManager } from "../util/LinkManager";
 import { DocUtils } from "../documents/Documents";
 import { undoBatch } from "../util/UndoManager";
 import { Scripting } from "../util/Scripting";
-import { FieldValue, Cast } from "../../new_fields/Types";
+import { FieldValue, Cast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import Palette from "./Palette";
 import { Utils } from "../../Utils";
@@ -28,6 +28,9 @@ export default class GestureOverlay extends Touchable {
     @observable public Width: number = 5;
 
     private _d1: Doc | undefined;
+    private _thumbDoc: Doc | undefined;
+    private _thumbX?: number;
+    private _thumbY?: number;
     private thumbIdentifier?: number;
     private _hands: (React.Touch[])[] = [];
 
@@ -170,8 +173,26 @@ export default class GestureOverlay extends Touchable {
     }
 
     handleHandDown = (e: React.TouchEvent) => {
-        const fingers = Array.from(e.touches);
+        const fingers = new Array<React.Touch>();
+        for (let i = 0; i < e.touches.length; i++) {
+            const pt: any = e.touches.item(i);
+            if (pt.radiusX > 1 && pt.radiusY > 1) {
+                for (let j = 0; j < e.targetTouches.length; j++) {
+                    const tPt = e.targetTouches.item(j);
+                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                        if (pt && this.prevPoints.has(pt.identifier)) {
+                            fingers.push(pt);
+                        }
+                    }
+                }
+            }
+        }
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+        if (thumb.identifier === this.thumbIdentifier) {
+            this._thumbX = thumb.clientX;
+            this._thumbY = thumb.clientY;
+            return;
+        }
         this.thumbIdentifier = thumb?.identifier;
         fingers.forEach((f) => this.prevPoints.delete(f.identifier));
         this._hands.push(fingers);
@@ -184,6 +205,9 @@ export default class GestureOverlay extends Touchable {
         const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
         if (thumbDoc) {
             runInAction(() => {
+                this._thumbDoc = thumbDoc;
+                this._thumbX = thumb.clientX;
+                this._thumbY = thumb.clientY;
                 this._palette = <Palette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
             });
         }
@@ -199,17 +223,24 @@ export default class GestureOverlay extends Touchable {
     handleHandMove = (e: TouchEvent) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
-            if (pt?.identifier === this.thumbIdentifier) {
-                console.log("thumby movey")
+            if (pt && pt.identifier === this.thumbIdentifier && this._thumbX && this._thumbDoc) {
+                if (Math.abs(pt.clientX - this._thumbX) > 20) {
+                    this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
+                    this._thumbX = pt.clientX;
+                }
             }
         }
     }
 
     @action
     handleHandUp = (e: TouchEvent) => {
-        // this.onTouchEnd(e);
-        this._palette = undefined;
-        document.removeEventListener("touchend", this.handleHandUp);
+        if (e.touches.length < 3) {
+            // this.onTouchEnd(e);
+            this._palette = undefined;
+            this.thumbIdentifier = undefined;
+            this._thumbDoc = undefined;
+            document.removeEventListener("touchend", this.handleHandUp);
+        }
     }
 
     @action
