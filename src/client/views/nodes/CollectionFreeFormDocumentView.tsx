@@ -11,6 +11,8 @@ import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
 import { PositionDocument } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
+import { returnFalse } from "../../../Utils";
+import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
@@ -20,6 +22,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     height?: number;
     jitterRotation: number;
     transition?: string;
+    fitToBox?: boolean;
 }
 
 @observer
@@ -83,8 +86,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @observable _animPos: number[] | undefined = undefined;
 
-    finalPanelWidth = () => this.dataProvider ? this.dataProvider.width : this.panelWidth();
-    finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
+    finalPanelWidth = () => (this.dataProvider ? this.dataProvider.width : this.panelWidth());
+    finalPanelHeight = () => (this.dataProvider ? this.dataProvider.height : this.panelHeight());
 
     render() {
         TraceMobx();
@@ -104,24 +107,22 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.Document.zIndex || 0,
             }} >
 
-            <DocumentView {...this.props}
+
+            {!this.props.fitToBox ? <DocumentView {...this.props}
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
                 backgroundColor={this.clusterColorFunc}
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
-            />
-            {/* <ContentFittingDocumentView {...this.props}
-                //dragDivName={"collectionFreeFormDocumentView-container"}
-                //ContentScaling={this.contentScaling}
+            /> : <ContentFittingDocumentView {...this.props}
+                DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}
                 focus={(doc: Doc) => this.props.focus(doc, false)}
-                // backgroundColor={this.clusterColorFunc}
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
-            /> */}
+                />}
         </div>;
     }
 }

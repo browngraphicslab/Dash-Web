@@ -56,6 +56,8 @@ export const panZoomSchema = createSchema({
     useClusters: "boolean",
     isRuleProvider: "boolean",
     fitToBox: "boolean",
+    xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     panTransformType: "string",
     scrollHeight: "number",
     fitX: "number",
@@ -802,9 +804,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         this.childLayoutPairs.filter((pair, i) => this.isCurrent(pair.layout)).forEach(pair =>
             computedElementData.elements.push({
-                ele: <CollectionFreeFormDocumentView key={pair.layout[Id]} dataProvider={this.childDataProvider}
+                ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
+                    dataProvider={this.childDataProvider}
                     ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
-                    jitterRotation={NumCast(this.props.Document.jitterRotation)} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
+                    jitterRotation={NumCast(this.props.Document.jitterRotation)}
+                    fitToBox={this.props.fitToBox || this.Document.freeformLayoutEngine === "pivot"} />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 
