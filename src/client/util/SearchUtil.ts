@@ -28,42 +28,43 @@ export namespace SearchUtil {
         start?: number;
         rows?: number;
         fq?: string;
+        allowAliases?: boolean;
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
-        let result: IdSearchResult = JSON.parse(await rp.get(Utils.prepend("/search"), {
-            qs: { ...options, q: query },
-        }));
+        const rpquery = Utils.prepend("/search");
+        const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
+        const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
             return result;
         }
 
-        let { ids, numFound, highlighting } = result;
+        const { ids, highlighting } = result;
 
-        let txtresult = query !== "*" && JSON.parse(await rp.get(Utils.prepend("/textsearch"), {
+        const txtresult = query !== "*" && JSON.parse(await rp.get(Utils.prepend("/textsearch"), {
             qs: { ...options, q: query },
         }));
 
-        let fileids = txtresult ? txtresult.ids : [];
-        let newIds: string[] = [];
-        let newLines: string[][] = [];
+        const fileids = txtresult ? txtresult.ids : [];
+        const newIds: string[] = [];
+        const newLines: string[][] = [];
         await Promise.all(fileids.map(async (tr: string, i: number) => {
-            let docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
-            let docResult = JSON.parse(await rp.get(Utils.prepend("/search"), { qs: { ...options, q: docQuery } }));
+            const docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
+            const docResult = JSON.parse(await rp.get(Utils.prepend("/search"), { qs: { ...options, q: docQuery } }));
             newIds.push(...docResult.ids);
             newLines.push(...docResult.ids.map((dr: any) => txtresult.lines[i]));
         }));
 
 
-        let theDocs: Doc[] = [];
-        let theLines: string[][] = [];
+        const theDocs: Doc[] = [];
+        const theLines: string[][] = [];
         const textDocMap = await DocServer.GetRefFields(newIds);
         const textDocs = newIds.map((id: string) => textDocMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < textDocs.length; i++) {
-            let testDoc = textDocs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1) {
+            const testDoc = textDocs[i];
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && testDoc.type !== DocumentType.EXTENSION && theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1) {
                 theDocs.push(Doc.GetProto(testDoc));
                 theLines.push(newLines[i].map(line => line.replace(query, query.toUpperCase())));
             }
@@ -72,8 +73,8 @@ export namespace SearchUtil {
         const docMap = await DocServer.GetRefFields(ids);
         const docs = ids.map((id: string) => docMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < ids.length; i++) {
-            let testDoc = docs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1) {
+            const testDoc = docs[i];
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && testDoc.type !== DocumentType.EXTENSION && (options.allowAliases || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
             }
@@ -88,9 +89,9 @@ export namespace SearchUtil {
         const proto = Doc.GetProto(doc);
         const protoId = proto[Id];
         if (returnDocs) {
-            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"` })).docs;
+            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"`, allowAliases: true })).docs;
         } else {
-            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"` })).ids;
+            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"`, allowAliases: true })).ids;
         }
         // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }

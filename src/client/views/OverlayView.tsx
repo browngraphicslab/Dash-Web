@@ -1,7 +1,7 @@
 import * as React from "react";
 import { observer } from "mobx-react";
 import { observable, action, trace, computed } from "mobx";
-import { Utils, emptyFunction, returnOne, returnTrue, returnEmptyString, returnZero, returnFalse } from "../../Utils";
+import { Utils, emptyFunction, returnOne, returnTrue, returnEmptyString, returnZero, returnFalse, emptyPath } from "../../Utils";
 
 import './OverlayView.scss';
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
@@ -9,8 +9,6 @@ import { DocListCast, Doc } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
-import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
-import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { NumCast } from "../../new_fields/Types";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 
@@ -148,7 +146,7 @@ export class OverlayView extends React.Component {
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
             d.inOverlay = true;
             let offsetx = 0, offsety = 0;
-            let onPointerMove = action((e: PointerEvent) => {
+            const onPointerMove = action((e: PointerEvent) => {
                 if (e.buttons === 1) {
                     d.x = e.clientX + offsetx;
                     d.y = e.clientY + offsety;
@@ -156,14 +154,14 @@ export class OverlayView extends React.Component {
                     e.preventDefault();
                 }
             });
-            let onPointerUp = action((e: PointerEvent) => {
+            const onPointerUp = action((e: PointerEvent) => {
                 document.removeEventListener("pointermove", onPointerMove);
                 document.removeEventListener("pointerup", onPointerUp);
                 e.stopPropagation();
                 e.preventDefault();
             });
 
-            let onPointerDown = (e: React.PointerEvent) => {
+            const onPointerDown = (e: React.PointerEvent) => {
                 offsetx = NumCast(d.x) - e.clientX;
                 offsety = NumCast(d.y) - e.clientY;
                 e.stopPropagation();
@@ -174,6 +172,7 @@ export class OverlayView extends React.Component {
             return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)`, display: d.isMinimized ? "none" : "" }}>
                 <DocumentView
                     Document={d}
+                    LibraryPath={emptyPath}
                     ChromeHeight={returnZero}
                     // isSelected={returnFalse}
                     // select={emptyFunction}

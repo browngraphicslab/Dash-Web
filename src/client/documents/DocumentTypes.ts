@@ -24,5 +24,7 @@ export enum DocumentType {
     QUERY = "search",
     COLOR = "color",
     DOCULINK = "doculink",
-    PDFANNO = "pdfanno"
+    PDFANNO = "pdfanno",
+    INK = "ink",
+    DOCUMENT = "document"
 }

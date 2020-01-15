@@ -23,6 +23,10 @@ export class DateField extends ObjectField {
         return new DateField(this.date);
     }
 
+    toString() {
+        return `${this.date.toISOString()}`;
+    }
+
     [ToScriptString]() {
         return `new DateField(new Date(${this.date.toISOString()}))`;
     }

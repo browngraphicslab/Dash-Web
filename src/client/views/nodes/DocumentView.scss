@@ -1,13 +1,14 @@
 @import "../globalCssVariables";
 
-.documentView-node, .documentView-node-topmost {
+.documentView-node,
+.documentView-node-topmost {
     position: inherit;
     top: 0;
-    left:0;
+    left: 0;
     border-radius: inherit;
-    transition : outline .3s linear;
+    transition: outline .3s linear;
     cursor: grab;
-                        
+
     // background: $light-color; //overflow: hidden;
     transform-origin: left top;
 
@@ -37,44 +38,49 @@
         position: absolute;
         transform-origin: top left;
         width: 100%;
-        height: 100%; 
+        height: 100%;
+        z-index: 1;
     }
+
     .documentView-styleWrapper {
-        position: absolute; 
+        position: absolute;
         display: inline-block;
-        width:100%;
-        height:100%;
+        width: 100%;
+        height: 100%;
         pointer-events: none;
 
         .documentView-styleContentWrapper {
-            width:100%;
+            width: 100%;
             display: inline-block;
             position: absolute;
         }
+
         .documentView-titleWrapper {
-            overflow:hidden; 
-            color: white; 
-            transform-origin: top left; 
-            top: 0; 
+            overflow: hidden;
+            color: white;
+            transform-origin: top left;
+            top: 0;
+            width: 100%;
             height: 25;
             background: rgba(0, 0, 0, .4);
-            padding: 4px; 
-            text-align: center; 
-            text-overflow: ellipsis; 
+            padding: 4px;
+            text-align: center;
+            text-overflow: ellipsis;
             white-space: pre;
         }
 
         .documentView-searchHighlight {
-            position: absolute; 
-            background: yellow; 
+            position: absolute;
+            background: yellow;
             bottom: -20px;
             border-radius: 5px;
-            transform-origin: bottom left; 
+            transform-origin: bottom left;
         }
 
         .documentView-captionWrapper {
-            position: absolute; 
-            bottom: 0; 
+            position: absolute;
+            bottom: 0;
+            width: 100%;
             transform-origin: bottom left;
         }
     }

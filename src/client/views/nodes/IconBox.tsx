@@ -51,7 +51,7 @@ export class IconBox extends React.Component<FieldViewProps> {
     }
 
     public static DocumentIcon(layout: string) {
-        let button = layout.indexOf("PDFBox") !== -1 ? faFilePdf :
+        const button = layout.indexOf("PDFBox") !== -1 ? faFilePdf :
             layout.indexOf("ImageBox") !== -1 ? faImage :
                 layout.indexOf("Formatted") !== -1 ? faStickyNote :
                     layout.indexOf("Video") !== -1 ? faFilm :
@@ -65,14 +65,14 @@ export class IconBox extends React.Component<FieldViewProps> {
     }
 
     specificContextMenu = (): void => {
-        let cm = ContextMenu.Instance;
+        const cm = ContextMenu.Instance;
         cm.addItem({ description: this.props.Document.hideLabel ? "Show label with icon" : "Remove label from icon", event: this.setLabelField, icon: "tag" });
         if (!this.props.Document.hideLabel) {
             cm.addItem({ description: "Use Target Title", event: () => IconBox.AutomaticTitle(this.props.Document), icon: "text-height" });
         }
     }
     render() {
-        let label = this.props.Document.hideLabel ? "" : this.props.Document.title;
+        const label = this.props.Document.hideLabel ? "" : this.props.Document.title;
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}

@@ -17,7 +17,7 @@ fs.readdir(folder, async (err, files) => {
     // });
     for (const file of files) {
         const filesplit = file.split(".");
-        let resizers = [
+        const resizers = [
             { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
             { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
             { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },

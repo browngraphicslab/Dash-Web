@@ -1,20 +1,8 @@
 //@ts-ignore
 import * as bcrypt from "bcrypt-nodejs";
 //@ts-ignore
-import * as mongoose from "mongoose";
-var url = 'mongodb://localhost:27017/Dash';
+import * as mongoose from 'mongoose';
 
-mongoose.connect(url, { useNewUrlParser: true });
-
-mongoose.connection.on('connected', function () {
-    console.log('Stablished connection on ' + url);
-});
-mongoose.connection.on('error', function (error) {
-    console.log('Something wrong happened: ' + error);
-});
-mongoose.connection.on('disconnected', function () {
-    console.log('connection closed');
-});
 export type DashUserModel = mongoose.Document & {
     email: String,
     password: string,
@@ -85,7 +73,11 @@ userSchema.pre("save", function save(next) {
 });
 
 const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
+    // Choose one of the following bodies for authentication logic.
+    // secure
     bcrypt.compare(candidatePassword, this.password, cb);
+    // bypass password
+    // cb(undefined, true);
 };
 
 userSchema.methods.comparePassword = comparePassword;

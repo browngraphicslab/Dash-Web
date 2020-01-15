@@ -1,8 +1,7 @@
 import "fs";
 import React = require("react");
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { RouteStore } from "../../../server/RouteStore";
-import { action, observable, autorun, runInAction, computed, reaction, IReactionDisposer } from "mobx";
+import { action, observable, runInAction, computed, reaction, IReactionDisposer } from "mobx";
 import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -20,18 +19,12 @@ import { listSpec } from "../../../new_fields/Schema";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import "./DirectoryImportBox.scss";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 import { BatchedArray } from "array-batcher";
-import { ExifData } from "exif";
+import * as path from 'path';
+import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
 
 const unsupported = ["text/html", "text/plain"];
-
-interface ImageUploadResponse {
-    name: string;
-    path: string;
-    type: string;
-    exif: any;
-}
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -55,7 +48,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     constructor(props: FieldViewProps) {
         super(props);
         library.add(faTag, faPlus);
-        let doc = this.props.Document;
+        const doc = this.props.Document;
         this.editingMetadata = this.editingMetadata || false;
         this.persistent = this.persistent || false;
         !Cast(doc.data, listSpec(Doc)) && (doc.data = new List<Doc>());
@@ -85,17 +78,22 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             this.phase = "Initializing download...";
         });
 
-        let docs: Doc[] = [];
+        const docs: Doc[] = [];
 
-        let files = e.target.files;
+        const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        let directory = (files.item(0) as any).webkitRelativePath.split("/", 1)[0];
+        const directory = (files.item(0) as any).webkitRelativePath.split("/", 1)[0];
 
-        let validated: File[] = [];
+        const validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
-            let file = files.item(i);
-            file && !unsupported.includes(file.type) && validated.push(file);
+            const file = files.item(i);
+            if (file && !unsupported.includes(file.type)) {
+                const ext = path.extname(file.name).toLowerCase();
+                if (AcceptibleMedia.imageFormats.includes(ext)) {
+                    validated.push(file);
+                }
+            }
         }
 
         runInAction(() => {
@@ -103,13 +101,13 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             this.completed = 0;
         });
 
-        let sizes: number[] = [];
-        let modifiedDates: number[] = [];
+        const sizes: number[] = [];
+        const modifiedDates: number[] = [];
 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
         const batched = BatchedArray.from(validated, { batchSize: 15 });
-        const uploads = await batched.batchedMapAsync<ImageUploadResponse>(async (batch, collector) => {
+        const uploads = await batched.batchedMapAsync<any>(async (batch, collector) => {
             const formData = new FormData();
 
             batch.forEach(file => {
@@ -118,20 +116,14 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 formData.append(Utils.GenerateGuid(), file);
             });
 
-            collector.push(...(await Identified.PostFormDataToServer(RouteStore.upload, formData)));
+            collector.push(...(await Networking.PostFormDataToServer("/upload", formData)));
             runInAction(() => this.completed += batch.length);
         });
 
-        await Promise.all(uploads.map(async upload => {
-            const type = upload.type;
-            const path = Utils.prepend(upload.path);
-            const options = {
-                nativeWidth: 300,
-                width: 300,
-                title: upload.name
-            };
-            const document = await Docs.Get.DocumentFromType(type, path, options);
-            const { data, error } = upload.exif;
+        await Promise.all(uploads.map(async ({ name, type, clientAccessPath, exifData }) => {
+            const path = Utils.prepend(clientAccessPath);
+            const document = await Docs.Get.DocumentFromType(type, path, { width: 300, title: name });
+            const { data, error } = exifData;
             if (document) {
                 Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data);
                 docs.push(document);
@@ -139,26 +131,26 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         }));
 
         for (let i = 0; i < docs.length; i++) {
-            let doc = docs[i];
+            const doc = docs[i];
             doc.size = sizes[i];
             doc.modified = modifiedDates[i];
             this.entries.forEach(entry => {
-                let target = entry.onDataDoc ? Doc.GetProto(doc) : doc;
+                const target = entry.onDataDoc ? Doc.GetProto(doc) : doc;
                 target[entry.key] = entry.value;
             });
         }
 
-        let doc = this.props.Document;
-        let height: number = NumCast(doc.height) || 0;
-        let offset: number = this.persistent ? (height === 0 ? 0 : height + 30) : 0;
-        let options: DocumentOptions = {
+        const doc = this.props.Document;
+        const height: number = NumCast(doc.height) || 0;
+        const offset: number = this.persistent ? (height === 0 ? 0 : height + 30) : 0;
+        const options: DocumentOptions = {
             title: `Import of ${directory}`,
             width: 1105,
             height: 500,
             x: NumCast(doc.x),
             y: NumCast(doc.y) + offset
         };
-        let parent = this.props.ContainingCollectionView;
+        const parent = this.props.ContainingCollectionView;
         if (parent) {
             let importContainer: Doc;
             if (docs.length < 50) {
@@ -197,18 +189,18 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
     @action
     preserveCentering = (rect: ContentRect) => {
-        let bounds = rect.offset!;
+        const bounds = rect.offset!;
         if (bounds.width === 0 || bounds.height === 0) {
             return;
         }
-        let offset = this.dimensions / 2;
+        const offset = this.dimensions / 2;
         this.left = bounds.width / 2 - offset;
         this.top = bounds.height / 2 - offset;
     }
 
     @action
     addMetadataEntry = async () => {
-        let entryDoc = new Doc();
+        const entryDoc = new Doc();
         entryDoc.checked = false;
         entryDoc.key = keyPlaceholder;
         entryDoc.value = valuePlaceholder;
@@ -217,7 +209,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
     @action
     remove = async (entry: ImportMetadataEntry) => {
-        let metadata = await DocListCastAsync(this.props.Document.data);
+        const metadata = await DocListCastAsync(this.props.Document.data);
         if (metadata) {
             let index = this.entries.indexOf(entry);
             if (index !== -1) {
@@ -231,18 +223,18 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     }
 
     render() {
-        let dimensions = 50;
-        let entries = DocListCast(this.props.Document.data);
-        let isEditing = this.editingMetadata;
-        let completed = this.completed;
-        let quota = this.quota;
-        let uploading = this.uploading;
-        let showRemoveLabel = this.removeHover;
-        let persistent = this.persistent;
+        const dimensions = 50;
+        const entries = DocListCast(this.props.Document.data);
+        const isEditing = this.editingMetadata;
+        const completed = this.completed;
+        const quota = this.quota;
+        const uploading = this.uploading;
+        const showRemoveLabel = this.removeHover;
+        const persistent = this.persistent;
         let percent = `${completed / quota * 100}`;
         percent = percent.split(".")[0];
         percent = percent.startsWith("100") ? "99" : percent;
-        let marginOffset = (percent.length === 1 ? 5 : 0) - 1.6;
+        const marginOffset = (percent.length === 1 ? 5 : 0) - 1.6;
         const message = <span className={"phase"}>{this.phase}</span>;
         const centerPiece = this.phase.includes("Google Photos") ?
             <img src={"/assets/google_photos.png"} style={{

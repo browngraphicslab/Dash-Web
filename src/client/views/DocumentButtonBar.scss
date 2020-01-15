@@ -2,54 +2,24 @@
 
 $linkGap : 3px;
 
-.linkFlyout {
+.documentButtonBar-linkFlyout {
     grid-column: 2/4;
 }
 
-.linkButton-empty:hover {
+.documentButtonBar-linkButton-empty:hover {
     background: $main-accent;
     transform: scale(1.05);
     cursor: pointer;
 }
 
-.linkButton-nonempty:hover {
+.documentButtonBar-linkButton-nonempty:hover {
     background: $main-accent;
     transform: scale(1.05);
     cursor: pointer;
 }
 
-.documentButtonBar {
-    margin-top: $linkGap;
-    grid-column: 1/4;
-    width: max-content;
-    height: auto;
-    display: flex;
-    flex-direction: row;
-}
-
-.linkButtonWrapper {
-    pointer-events: auto;
-    padding-right: 5px;
-    width: 25px;
-}
-
-.linkButton-linker {
-    height: 20px;
-    width: 20px;
-    text-align: center;
-    border-radius: 50%;
-    pointer-events: auto;
-    color: $dark-color;
-    border: $dark-color 1px solid;
-}
-
-.linkButton-linker:hover {
-    cursor: pointer;
-    transform: scale(1.05);
-}
-
-.linkButton-empty,
-.linkButton-nonempty {
+.documentButtonBar-linkButton-empty,
+.documentButtonBar-linkButton-nonempty {
     height: 20px;
     width: 20px;
     border-radius: 50%;
@@ -73,57 +43,63 @@ $linkGap : 3px;
     }
 }
 
-.templating-menu {
-    position: absolute;
-    pointer-events: auto;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-size: 75%;
-    transition: transform 0.2s;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.templating-button,
-.docDecs-tagButton {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    opacity: 0.9;
-    font-size: 14;
-    background-color: $dark-color;
-    color: $light-color;
-    text-align: center;
-    cursor: pointer;
-
-    &:hover {
-        background: $main-accent;
-        transform: scale(1.05);
-    }
-}
-
-#template-list {
-    position: absolute;
-    top: 25px;
-    left: 0px;
+.documentButtonBar {
+    margin-top: $linkGap;
+    grid-column: 1/4;
     width: max-content;
-    font-family: $sans-serif;
-    font-size: 12px;
-    background-color: $light-color-secondary;
-    padding: 2px 12px;
-    list-style: none;
+    height: auto;
+    display: flex;
+    flex-direction: row;
+}
 
-    .templateToggle, .chromeToggle {
-        text-align: left;
-    }
+.documentButtonBar-button {
+    pointer-events: auto;
+    padding-right: 5px;
+    width: 25px;
+}
 
-    input {
-        margin-right: 10px;
+.documentButtonBar-linker {
+    height: 20px;
+    width: 20px;
+    text-align: center;
+    border-radius: 50%;
+    pointer-events: auto;
+    color: $dark-color;
+    border: $dark-color 1px solid;
+    transition: 0.2s ease all;
+}
+
+.documentButtonBar-linker:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+}
+
+
+@-moz-keyframes spin {
+    100% {
+        -moz-transform: rotate(360deg);
     }
 }
 
-@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
-@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
-@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+@-webkit-keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shadow-pulse {
+    0% {
+        box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+    }
+}

@@ -1,8 +1,11 @@
 node_modules
-package-lock.json
 dist/
 .DS_Store
 .env
 ClientUtils.ts
-solr-8.1.1/server/
-solr-8.3.1/server/tmp/start_1935456665153398890.properties
+solr-8.3.1/server/logs/
+solr-8.3.1/server/solr/dash/data/tlog/*
+solr-8.3.1/server/solr/dash/data/index/*
+src/server/public/files/
+src/scraping/acm/package-lock.json
+src/server/session_manager/logs/**/*.log

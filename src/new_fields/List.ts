@@ -270,8 +270,8 @@ class ListImpl<T extends Field> extends ObjectField {
     }
 
     [Copy]() {
-        let copiedData = this[Self].__fields.map(f => f instanceof ObjectField ? f[Copy]() : f);
-        let deepCopy = new ListImpl<T>(copiedData as any);
+        const copiedData = this[Self].__fields.map(f => f instanceof ObjectField ? f[Copy]() : f);
+        const deepCopy = new ListImpl<T>(copiedData as any);
         return deepCopy;
     }
 
@@ -290,8 +290,7 @@ class ListImpl<T extends Field> extends ObjectField {
     private [SelfProxy]: any;
 
     [ToScriptString]() {
-        return "invalid";
-        // return `new List([${(this as any).map((field => Field.toScriptString(field))}])`;
+        return `new List([${(this as any).map((field: any) => Field.toScriptString(field))}])`;
     }
 }
 export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];

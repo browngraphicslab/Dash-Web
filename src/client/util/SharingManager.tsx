@@ -4,13 +4,11 @@ import MainViewModal from "../views/MainViewModal";
 import { Doc, Opt, DocCastAsync } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../new_fields/Types";
-import { RouteStore } from "../../server/RouteStore";
 import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
 import "./SharingManager.scss";
 import { Id } from "../../new_fields/FieldSymbols";
 import { observer } from "mobx-react";
-import { MainView } from "../views/MainView";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
@@ -104,10 +102,10 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     populateUsers = async () => {
-        let userList = await RequestPromise.get(Utils.prepend(RouteStore.getUsers));
+        const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
-            let isCandidate = user.email !== Doc.CurrentUserEmail;
+            const isCandidate = user.email !== Doc.CurrentUserEmail;
             if (isCandidate) {
                 const userDocument = await DocServer.GetRefField(user.userDocumentId);
                 if (userDocument instanceof Doc) {
@@ -131,7 +129,7 @@ export default class SharingManager extends React.Component<{}> {
         if (state === SharingPermissions.None) {
             const metadata = (await DocCastAsync(manager[key]));
             if (metadata) {
-                let sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
+                const sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
                 Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
                 manager[key] = undefined;
             }
@@ -146,7 +144,7 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     private setExternalSharing = (state: string) => {
-        let sharingDoc = this.sharingDoc;
+        const sharingDoc = this.sharingDoc;
         if (!sharingDoc) {
             return;
         }
@@ -157,7 +155,7 @@ export default class SharingManager extends React.Component<{}> {
         if (!this.targetDoc) {
             return undefined;
         }
-        let baseUrl = Utils.prepend("/doc/" + this.targetDoc[Id]);
+        const baseUrl = Utils.prepend("/doc/" + this.targetDoc[Id]);
         return `${baseUrl}?sharing=true`;
     }
 
@@ -179,7 +177,7 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     private focusOn = (contents: string) => {
-        let title = this.targetDoc ? StrCast(this.targetDoc.title) : "";
+        const title = this.targetDoc ? StrCast(this.targetDoc.title) : "";
         return (
             <span
                 className={"focus-span"}

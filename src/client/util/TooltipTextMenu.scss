@@ -1,100 +1,62 @@
 @import "../views/globalCssVariables";
-
-.ProseMirror-textblock-dropdown {
-    min-width: 3em;
-  }
-  
-  .ProseMirror-menu {
-    margin: 0 -4px;
-    line-height: 1;
-  }
-  
-  .ProseMirror-tooltip .ProseMirror-menu {
-    width: -webkit-fit-content;
-    width: fit-content;
-    white-space: pre;
-  }
-  
-  .ProseMirror-menuitem {
-    margin-right: 3px;
+.ProseMirror-menu-dropdown-wrap {
     display: inline-block;
-    z-index: 50000;
     position: relative;
-  }
+}
   
-  .ProseMirror-menuseparator {
-   // border-right: 1px solid #ddd;
-    margin-right: 3px;
-  }
-  
-  .ProseMirror-menu-dropdown, .ProseMirror-menu-dropdown-menu {
-    font-size: 90%;
-    white-space: nowrap;
-  }
-  
-  .ProseMirror-menu-dropdown {
+.ProseMirror-menu-dropdown {
     vertical-align: 1px;
     cursor: pointer;
     position: relative;
-    padding-right: 15px;
-    margin: 3px;
+    padding: 0 15px 0 4px;
     background: white;
-    border-radius: 3px;
-    text-align: center;
-  }
-  
-  .ProseMirror-menu-dropdown-wrap {
-    padding: 1px 0 1px 4px;
-    display: inline-block;
-    position: relative;
-  }
-  
-  .ProseMirror-menu-dropdown:after {
-    content: "";
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid currentColor;
-    opacity: .6;
-    position: absolute;
-    right: 4px;
-    top: calc(50% - 2px);
-  }
-  
-  .ProseMirror-menu-dropdown-menu, .ProseMirror-menu-submenu {
-    background: $dark-color;
-    color:white;
-    border: 1px solid rgb(223, 223, 223);
-    padding: 2px;
-  }
-  
-  .ProseMirror-menu-dropdown-menu {
-    z-index: 50000;
-    min-width: 6em;
-    background: white;
-    position: absolute;
-  }
-  
-  .linking {
-      text-align: center;
-  }
+    border-radius: 2px;
+    text-align: left;
+    font-size: 12px;
+    white-space: nowrap;
+    margin-right: 4px;
 
-  .ProseMirror-menu-dropdown-item {
-    cursor: pointer;
-    padding: 2px 8px 2px 4px;
-    width: auto;
-    z-index: 100000;
-  }
-  
-  .ProseMirror-menu-dropdown-item:hover {
-    background: white;
-  }
-  
-  .ProseMirror-menu-submenu-wrap {
+    &:after {
+        content: "";
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid currentColor;
+        opacity: .6;
+        position: absolute;
+        right: 4px;
+        top: calc(50% - 2px);
+    }
+}
+
+.ProseMirror-menu-submenu-wrap {
     position: relative;
     margin-right: -4px;
-  }
-  
-  .ProseMirror-menu-submenu-label:after {
+}
+
+.ProseMirror-menu-dropdown-menu, 
+.ProseMirror-menu-submenu {
+    font-size: 12px;
+    background: white;
+    border: 1px solid rgb(223, 223, 223);
+    min-width: 40px;
+    z-index: 50000;
+    position: absolute;
+    box-sizing: content-box;
+
+    .ProseMirror-menu-dropdown-item {
+        cursor: pointer;
+        z-index: 100000;
+        text-align: left;
+        padding: 3px;
+
+        &:hover {
+            background-color: $light-color-secondary;
+        }
+    }
+}
+
+
+.ProseMirror-menu-submenu-label:after {
     content: "";
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
@@ -103,222 +65,149 @@
     position: absolute;
     right: 4px;
     top: calc(50% - 4px);
-  }
-  
-  .ProseMirror-menu-submenu {
-    display: none;
-    min-width: 4em;
-    left: 100%;
-    top: -3px;
-  }
-  
-  .ProseMirror-menu-active {
-    background: #eee;
-    border-radius: 4px;
-  }
-  
-  .ProseMirror-menu-active {
-    background: #eee;
-    border-radius: 4px;
-  }
-  
-  .ProseMirror-menu-disabled {
-    opacity: .3;
-  }
-  
-  .ProseMirror-menu-submenu-wrap:hover .ProseMirror-menu-submenu, .ProseMirror-menu-submenu-wrap-active .ProseMirror-menu-submenu {
-    display: block;
-  }
-  
-  .ProseMirror-menubar {
-    border-top-left-radius: inherit;
-    border-top-right-radius: inherit;
-    position: relative;
-    min-height: 1em;
-    color: white;
-    padding: 10px 10px;
-    top: 0; left: 0; right: 0;
-    border-bottom: 1px solid silver;
-    background:$dark-color;
-    z-index: 10;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    overflow: visible;
-  }
+}
   
   .ProseMirror-icon {
     display: inline-block;
-    line-height: .8;
-    vertical-align: -2px; /* Compensate for padding */
-    padding: 2px 8px;
+    // line-height: .8;
+    // vertical-align: -2px; /* Compensate for padding */
+    // padding: 2px 8px;
     cursor: pointer;
-  }
-  
-  .ProseMirror-menu-disabled.ProseMirror-icon {
-    cursor: default;
-  }
-  
-  .ProseMirror-icon svg {
-    fill:white;
-    height: 1em;
-  }
-  
-  .ProseMirror-icon span {
-    vertical-align: text-top;
-  }  
-  
-  .ProseMirror ul, .ProseMirror ol {
-    padding-left: 30px;
-  }
-  
-  .ProseMirror blockquote {
-    padding-left: 1em;
-    border-left: 3px solid #eee;
-    margin-left: 0; margin-right: 0;
-  }
-  
-  .ProseMirror-example-setup-style img {
-    cursor: default;
-  }
-  
-  .ProseMirror-prompt {
-    background: white;
-    padding: 5px 10px 5px 15px;
-    border: 1px solid silver;
-    position: fixed;
-    border-radius: 3px;
-    z-index: 11;
-    box-shadow: -.5px 2px 5px white(255, 255, 255, 0.2);
-  }
-  
-  .ProseMirror-prompt h5 {
-    margin: 0;
-    font-weight: normal;
-    font-size: 100%;
-    color: #444;
-  }
-  
-  .ProseMirror-prompt input[type="text"],
-  .ProseMirror-prompt textarea {
-    background: white;
-    border: none;
-    outline: none;
-  }
-  
-  .ProseMirror-prompt input[type="text"] {
-    padding: 0 4px;
-  }
-  
-  .ProseMirror-prompt-close {
-    position: absolute;
-    left: 2px; top: 1px;
-    color: #666;
-    border: none; background: transparent; padding: 0;
-  }
-  
-  .ProseMirror-prompt-close:after {
-    content: "✕";
-    font-size: 12px;
-  }
-  
-  .ProseMirror-invalid {
-    background: #ffc;
-    border: 1px solid #cc7;
-    border-radius: 4px;
-    padding: 5px 10px;
-    position: absolute;
-    min-width: 10em;
-  }
-  
-  .ProseMirror-prompt-buttons {
-    margin-top: 5px;
-    display: none;
-  }
 
-.tooltipMenu {
-    position: absolute;
-    z-index: 20000;
-    background: #121721;
-    border: 1px solid silver;
-    border-radius: 15px;
-    //height: 60px;
-    //padding: 2px 10px;
-    //margin-top: 100px;
-    //-webkit-transform: translateX(-50%);
-    //transform: translateX(-50%);
-    transform: translateY(-85px);
-    pointer-events: all;
-    height: fit-content;
-    width:550px;
-    .ProseMirror-example-setup-style hr {
-      padding: 2px 10px;
-      border: none;
-      margin: 1em 0;
+    &.ProseMirror-menu-disabled {
+        cursor: default;
     }
-    
-    .ProseMirror-example-setup-style hr:after {
-      content: "";
-      display: block;
-      height: 1px;
-      background-color: silver;
-      line-height: 2px;
-    }
-}
 
-.tooltipExtras {
-    position: absolute;
-    z-index: 20000;
-    background: #121721;
-    border: 1px solid silver;
-    border-radius: 15px;
-    //height: 60px;
-    //padding: 2px 10px;
-    //margin-top: 100px;
-    //-webkit-transform: translateX(-50%);
-    //transform: translateX(-50%);
-    transform: translateY(-115px);
-    pointer-events: all;
-    height: 25px;
-    width:fit-content;
-    .ProseMirror-example-setup-style hr {
-      padding: 2px 10px;
-      border: none;
-      margin: 1em 0;
+    svg {
+        fill:white;
+        height: 1em;
     }
-    
-    .ProseMirror-example-setup-style hr:after {
-      content: "";
-      display: block;
-      height: 1px;
-      background-color: silver;
-      line-height: 2px;
-    }
-}
+
+    span {
+        vertical-align: text-top;
+      }  
+  }
 
 .wrapper {
     position: absolute;
     pointer-events: all;
+    display: flex;
+    align-items: center;
+    transform: translateY(-85px);
+
+    height: 35px;
+    background: #323232;
+    border-radius: 6px;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
+
 }
 
-  .menuicon {
-    display: inline-block;
-    border-right: 1px solid white(0, 0, 0, 0.2);
-    //color: rgb(19, 18, 18);
-    color: rgb(226, 21, 21);
-    line-height: 1;
-    padding: 0px 2px;
-    margin: 1px;
+.tooltipMenu, .basic-tools {
+    z-index: 20000;
+    pointer-events: all;
+    padding: 3px;
+    padding-bottom: 5px;
+    display: flex;
+    align-items: center;
+
+    .ProseMirror-example-setup-style hr {
+      padding: 2px 10px;
+      border: none;
+      margin: 1em 0;
+    }
+    
+    .ProseMirror-example-setup-style hr:after {
+      content: "";
+      display: block;
+      height: 1px;
+      background-color: silver;
+      line-height: 2px;
+    }
+}
+
+.menuicon {
+    width: 25px;
+    height: 25px;
     cursor: pointer;
     text-align: center;
-    min-width: 10px;
-    
-  }
-  .strong, .heading { font-weight: bold; }
-  .em { font-style: italic; }
-  .underline {text-decoration: underline}
-  .superscript {vertical-align:super}
-  .subscript { vertical-align:sub }
-  .strikethrough {text-decoration-line:line-through}
+    line-height: 25px;
+    margin: 0 2px;
+    border-radius: 3px;
+
+    &:hover {
+        background-color: black;
+
+        #link-drag {
+            background-color: black;
+        }
+    }
+
+    &> * {
+        margin-top: 50%;
+        margin-left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    svg {
+        fill: inherit;
+        width: 18px;
+        height: 18px;
+    }
+}
+
+.menuicon-active {
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 25px;
+    margin: 0 2px;
+    border-radius: 3px;
+
+    &:hover {
+        background-color: black;
+    }
+
+    &> * {
+        margin-top: 50%;
+        margin-left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    svg {
+        fill: greenyellow;
+        width: 18px;
+        height: 18px;
+    }
+}
+
+.colorPicker {
+    position: relative;
+
+    svg {
+        width: 18px;
+        height: 18px;
+        // margin-top: 11px;
+    }
+
+    .buttonColor {
+        position: absolute;
+        top: 24px;
+        left: 1px;
+        width: 24px;
+        height: 4px;
+        margin-top: 0;
+    }
+}
+
+#link-drag {
+    background-color: #323232;
+}
+
+.underline svg {
+    margin-top: 13px;
+}
+
   .font-size-indicator {
       font-size: 12px;
       padding-right: 0px;
@@ -328,8 +217,9 @@
       height: 20px;
       text-align: center;
   }
+  
 
-  .brush{
+.brush{
     display: inline-block;
     width: 1em;
     height: 1em;
@@ -337,19 +227,146 @@
     stroke: currentColor;
     fill: currentColor;
     margin-right: 15px;
-  }
+}
 
-  .brush-active{
+.brush-active{
     display: inline-block;
     width: 1em;
     height: 1em;
     stroke-width: 3;
-    stroke: greenyellow;
     fill: greenyellow;
     margin-right: 15px;
-  }
+}
 
-  .dragger{
-      color: #eee;
-      margin-left: 5px;
-  }
+.dragger-wrapper {
+    color: #eee;
+    height: 22px;
+    padding: 0 5px;
+    box-sizing: content-box;
+    cursor: grab;
+
+    .dragger {
+        width: 18px;
+        height: 100%;
+        display: flex;
+        justify-content: space-evenly;
+    }
+
+    .dragger-line {
+        width: 2px;
+        height: 100%;
+        background-color: black;
+    }
+}
+
+.button-dropdown-wrapper {
+    display: flex;
+    align-content: center;
+
+    &:hover {
+        background-color: black;
+    }
+}
+
+.buttonSettings-dropdown {
+
+    &.ProseMirror-menu-dropdown {
+        width: 10px;
+        height: 25px;
+        margin: 0;
+        padding: 0 2px;
+        background-color: #323232;
+        text-align: center;
+
+        &:after {
+            border-top: 4px solid white;
+            right: 2px;
+        }
+
+        &:hover {
+            background-color: black;
+        }
+    }
+
+    &.ProseMirror-menu-dropdown-menu {
+        min-width: 150px;
+        left: -27px;
+        top: 31px;
+        background-color: #323232;
+        border: 1px solid #4d4d4d;
+        color: $light-color-secondary;
+        // border: none;
+        // border: 1px solid $light-color-secondary;
+        border-radius: 0 6px 6px 6px;
+        padding: 3px;
+        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
+
+        .ProseMirror-menu-dropdown-item{
+            cursor: default;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            &:hover {
+                background-color: #323232;
+            }
+
+            .button-setting, .button-setting-disabled {
+                padding: 2px;
+                border-radius: 2px;
+            }
+
+            .button-setting:hover {
+                cursor: pointer;
+                background-color: black;
+            }
+
+            .separated-button {
+                border-top: 1px solid $light-color-secondary;
+                padding-top: 6px;
+            }
+
+            input {
+               color: black;
+               border: none;
+               border-radius: 1px;
+               padding: 3px;
+            }
+
+            button {
+               padding: 6px;
+               background-color: #323232;
+               border: 1px solid black;
+               border-radius: 1px;
+
+                &:hover {
+                   background-color: black;
+                }
+            }
+        }
+
+
+    }
+}
+
+.colorPicker-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-top: 3px;
+    margin-left: -3px;
+    width: calc(100% + 6px);
+}
+
+button.colorPicker {
+    width: 20px;
+    height: 20px;
+    border-radius: 15px !important;
+    margin: 3px;
+    border: none !important;
+
+    &.active {
+        border: 2px solid white !important;
+    }
+}

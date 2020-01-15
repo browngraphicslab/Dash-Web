@@ -16,17 +16,21 @@ export class RichTextField extends ObjectField {
     @serializable(true)
     readonly Data: string;
 
-    constructor(data: string) {
+    @serializable(true)
+    readonly Text: string;
+
+    constructor(data: string, text: string = "") {
         super();
         this.Data = data;
+        this.Text = text;
     }
 
     [Copy]() {
-        return new RichTextField(this.Data);
+        return new RichTextField(this.Data, this.Text);
     }
 
     [ToScriptString]() {
-        return `new RichTextField("${this.Data}")`;
+        return `new RichTextField("${this.Data}", "${this.Text}")`;
     }
 
     public static Initialize = (initial: string) => {

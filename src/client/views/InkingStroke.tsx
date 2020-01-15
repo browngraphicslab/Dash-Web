@@ -1,70 +1,61 @@
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { observable, trace, runInAction } from "mobx";
+import { documentSchema } from "../../new_fields/documentSchemas";
+import { InkData, InkField, InkTool } from "../../new_fields/InkField";
+import { makeInterface } from "../../new_fields/Schema";
+import { Cast } from "../../new_fields/Types";
+import { DocExtendableComponent } from "./DocComponent";
 import { InkingControl } from "./InkingControl";
-import React = require("react");
-import { InkTool } from "../../new_fields/InkField";
 import "./InkingStroke.scss";
-import { AudioBox } from "./nodes/AudioBox";
+import { FieldView, FieldViewProps } from "./nodes/FieldView";
+import React = require("react");
 
+type InkDocument = makeInterface<[typeof documentSchema]>;
+const InkDocument = makeInterface(documentSchema);
 
-interface StrokeProps {
-    offsetX: number;
-    offsetY: number;
-    id: string;
-    count: number;
-    line: Array<{ x: number, y: number }>;
-    color: string;
-    width: string;
-    tool: InkTool;
-    creationTime: number;
-    deleteCallback: (index: string) => void;
+export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
+    const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+    return (
+        <polyline
+            points={pts}
+            style={{
+                fill: "none",
+                stroke: color ?? InkingControl.Instance.selectedColor,
+                strokeWidth: width ?? InkingControl.Instance.selectedWidth
+            }}
+        />
+    );
 }
 
 @observer
-export class InkingStroke extends React.Component<StrokeProps> {
+export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocument>(InkDocument) {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
-    @observable private _strokeTool: InkTool = this.props.tool;
-    @observable private _strokeColor: string = this.props.color;
-    @observable private _strokeWidth: string = this.props.width;
-
-    deleteStroke = (e: React.PointerEvent): void => {
-        if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
-            this.props.deleteCallback(this.props.id);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        if (InkingControl.Instance.selectedTool === InkTool.Scrubber && e.buttons === 1) {
-            AudioBox.SetScrubTime(this.props.creationTime);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }
-
-    parseData = (line: Array<{ x: number, y: number }>): string => {
-        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ");
-    }
-
-    createStyle() {
-        switch (this._strokeTool) {
-            // add more tool styles here
-            default:
-                return {
-                    fill: "none",
-                    stroke: this._strokeColor,
-                    strokeWidth: this._strokeWidth + "px",
-                };
-        }
-    }
+    @computed get PanelWidth() { return this.props.PanelWidth(); }
+    @computed get PanelHeight() { return this.props.PanelHeight(); }
 
     render() {
-        let pathStyle = this.createStyle();
-        let pathData = this.parseData(this.props.line);
-        let pathlength = this.props.count; // bcz: this is needed to force reactions to the line's data changes
-        let marker = this.props.tool === InkTool.Highlighter ? "-marker" : "";
-
-        let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ||
-            InkingControl.Instance.selectedTool === InkTool.Scrubber ? "all" : "none";
-        return (<path className={`inkingStroke${marker}`} d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }}
-            strokeLinejoin="round" strokeLinecap="round" onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />);
+        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        const xs = data.map(p => p.X);
+        const ys = data.map(p => p.Y);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        const right = Math.max(...xs);
+        const bottom = Math.max(...ys);
+        const points = CreatePolyline(data, 0, 0, this.Document.color, this.Document.strokeWidth);
+        const width = right - left;
+        const height = bottom - top;
+        const scaleX = this.PanelWidth / width;
+        const scaleY = this.PanelHeight / height;
+        return (
+            <svg width={width} height={height} style={{
+                transformOrigin: "top left",
+                transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
+                mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
+                pointerEvents: "all"
+            }}>
+                {points}
+            </svg>
+        );
     }
 }

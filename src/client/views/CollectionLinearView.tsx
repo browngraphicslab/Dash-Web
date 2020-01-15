@@ -22,25 +22,24 @@ const LinearDocument = makeInterface(documentSchema);
 export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     @observable public addMenuToggle = React.createRef<HTMLInputElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
-    private _heightDisposer?: IReactionDisposer;
-    private _spacing = 20;
+    private _widthDisposer?: IReactionDisposer;
 
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
-        this._heightDisposer && this._heightDisposer();
+        this._widthDisposer && this._widthDisposer();
     }
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._heightDisposer = reaction(() => NumCast(this.props.Document.height, 0) + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
-            () => this.props.Document.width = 18 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+        this._widthDisposer = reaction(() => NumCast(this.props.Document.height, 0) + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
+            () => this.props.Document.width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
             { fireImmediately: true }
         );
     }
     protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
@@ -49,34 +48,33 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     dimension = () => NumCast(this.props.Document.height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
         return new Transform(-translateX, -translateY, 1 / scale);
     }
+
     render() {
-        let guid = Utils.GenerateGuid();
+        const guid = Utils.GenerateGuid();
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDropTarget} >
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.isExpanded)} ref={this.addMenuToggle}
                     onChange={action((e: any) => this.props.Document.isExpanded = this.addMenuToggle.current!.checked)} />
                 <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
 
-                <div className="collectionLinearView-content">
+                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document.width, 25) }}>
                     {this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => {
-                        let nested = pair.layout.viewType === CollectionViewType.Linear;
-                        let dref = React.createRef<HTMLDivElement>();
-                        let nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
-                        let scalingContent = nested ? 1 : this.dimension() / (this._spacing + nativeWidth);
-                        let scalingBox = nested ? 1 : this.dimension() / nativeWidth;
-                        let deltaSize = nativeWidth * scalingBox - nativeWidth * scalingContent;
+                        const nested = pair.layout.viewType === CollectionViewType.Linear;
+                        const dref = React.createRef<HTMLDivElement>();
+                        const nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
+                        const deltaSize = nativeWidth * .15 / 2;
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
-                                width: nested ? pair.layout[WidthSym]() : this.dimension(),
-                                height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension(),
-                                transform: nested ? undefined : `translate(${deltaSize / 2}px, ${deltaSize / 2}px)`
+                                width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,
+                                height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
                             }}  >
                             <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
+                                LibraryPath={this.props.LibraryPath}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}
@@ -85,9 +83,9 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 ruleProvider={undefined}
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
-                                ContentScaling={() => scalingContent} // ugh - need to get rid of this inline function to avoid recomputing
-                                PanelWidth={() => nested ? pair.layout[WidthSym]() : this.dimension()}
-                                PanelHeight={() => nested ? pair.layout[HeightSym]() : this.dimension()}
+                                ContentScaling={returnOne}
+                                PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
+                                PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
                                 renderDepth={this.props.renderDepth + 1}
                                 focus={emptyFunction}
                                 backgroundColor={returnEmptyString}
@@ -101,8 +99,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             </DocumentView>
                         </div>;
                     })}
-                    {/* <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li> */}
-
                 </div>
             </div>
         </div>;
