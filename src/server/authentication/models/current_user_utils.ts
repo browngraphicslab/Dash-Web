@@ -126,7 +126,7 @@ export class CurrentUserUtils {
 
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
-            return Docs.Create.MasonryDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
+            return Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
                 width: 300, columnWidth: 100, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5
             });
         }

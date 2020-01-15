@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, observable, reaction } from 'mobx';
+import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../new_fields/Doc';
@@ -21,18 +21,27 @@ const LinearDocument = makeInterface(documentSchema);
 @observer
 export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     @observable public addMenuToggle = React.createRef<HTMLInputElement>();
+    @observable private _selectedIndex = -1;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _widthDisposer?: IReactionDisposer;
+    private _selectedDisposer?: IReactionDisposer;
 
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
         this._widthDisposer && this._widthDisposer();
+        this._selectedDisposer && this._selectedDisposer();
     }
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
         this._widthDisposer = reaction(() => NumCast(this.props.Document.height, 0) + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
             () => this.props.Document.width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+            { fireImmediately: true }
+        );
+
+        this._selectedDisposer = reaction(
+            () => NumCast(this.props.Document.selectedIndex),
+            (i) => runInAction(() => this._selectedIndex = i),
             { fireImmediately: true }
         );
     }
@@ -61,11 +70,12 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
 
                 <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document.width, 25) }}>
-                    {this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => {
+                    {this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
                         const nested = pair.layout.viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
                         const nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
                         const deltaSize = nativeWidth * .15 / 2;
+                        const isSelected = this._selectedIndex === ind;
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,

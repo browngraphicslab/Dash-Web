@@ -29,15 +29,13 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         const actualPts: React.Touch[] = [];
         const te = me.touchEvent;
         // loop through all touches on screen
-        for (let i = 0; i < te.touches.length; i++) {
-            const pt: any = te.touches.item(i);
+        for (const pt of me.touches) {
             actualPts.push(pt);
             if (this.prevPoints.has(pt.identifier)) {
                 this.prevPoints.set(pt.identifier, pt);
             }
             // only add the ones that are targeted on "this" element, but with the identifier that the screen touch gives
-            for (let j = 0; j < te.changedTouches.length; j++) {
-                const tPt = te.changedTouches.item(j);
+            for (const tPt of me.changedTouches) {
                 if (pt.clientX === tPt.clientX && pt.clientY === tPt.clientY) {
                     // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
                     // and this seems to be the only way of differentiating pen and touch on touch events
@@ -58,22 +56,21 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         // console.log(ptsToDelete.length);
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
 
-        // console.log(this.prevPoints.size);
         if (this.prevPoints.size) {
             switch (this.prevPoints.size) {
                 case 1:
-                    this.handle1PointerDown(te);
+                    this.handle1PointerDown(te, me);
                     te.persist();
                     // if (this.holdTimer) {
                     //     clearTimeout(this.holdTimer)
                     //     this.holdTimer = undefined;
                     // }
-                    this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(te), HOLD_DURATION);
+                    this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(te, me), HOLD_DURATION);
                     // e.stopPropagation();
                     // console.log(this.holdTimer);
                     break;
                 case 2:
-                    this.handle2PointersDown(te);
+                    this.handle2PointersDown(te, me);
                     // e.stopPropagation();
                     break;
                 // case 5:
@@ -89,7 +86,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouch = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
         const te = me.touchEvent;
-        const myTouches = InteractionUtils.GetMyTargetTouches(te, this.prevPoints, true);
+        const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
 
         // if we're not actually moving a lot, don't consider it as dragging yet
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
@@ -102,15 +99,14 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         // console.log(myTouches.length);
         switch (myTouches.length) {
             case 1:
-                this.handle1PointerMove(te);
+                this.handle1PointerMove(te, me);
                 break;
             case 2:
-                this.handle2PointersMove(te);
+                this.handle2PointersMove(te, me);
                 break;
         }
 
-        for (let i = 0; i < te.touches.length; i++) {
-            const pt = te.touches.item(i);
+        for (const pt of me.touches) {
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
                     this.prevPoints.set(pt.identifier, pt);
@@ -124,8 +120,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
         // remove all the touches associated with the event
         const te = me.touchEvent;
-        for (let i = 0; i < te.changedTouches.length; i++) {
-            const pt = te.changedTouches.item(i);
+        for (const pt of me.changedTouches) {
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
                     this.prevPoints.delete(pt.identifier);
@@ -155,31 +150,31 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         this.removeEndListeners();
     }
 
-    handle1PointerMove = (e: TouchEvent): any => {
+    handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>): any => {
         e.stopPropagation();
         e.preventDefault();
     }
 
-    handle2PointersMove = (e: TouchEvent): any => {
+    handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>): any => {
         e.stopPropagation();
         e.preventDefault();
     }
 
-    handle1PointerDown = (e: React.TouchEvent): any => {
+    handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();
         this.addMoveListeners();
         this.removeEndListeners();
         this.addEndListeners();
     }
 
-    handle2PointersDown = (e: React.TouchEvent): any => {
+    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();
         this.addMoveListeners();
         this.removeEndListeners();
         this.addEndListeners();
     }
 
-    handle1PointerHoldStart = (e: React.TouchEvent): any => {
+    handle1PointerHoldStart = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         e.stopPropagation();
         e.preventDefault();
         this.removeMoveListeners();

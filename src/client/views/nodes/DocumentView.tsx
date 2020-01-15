@@ -134,46 +134,46 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
     // }
 
-    handle1PointerHoldMove = (e: TouchEvent): void => {
-        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
-        if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
-            this.handleRelease();
-        }
-        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-        document.addEventListener("touchmove", this.handle1PointerHoldMove);
-        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-        document.addEventListener("touchend", this.handle1PointerHoldEnd);
-    }
+    // handle1PointerHoldMove = (e: TouchEvent): void => {
+    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+    //     if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+    //         this.handleRelease();
+    //     }
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
 
-    handleRelease() {
-        RadialMenu.Instance.closeMenu();
-        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    }
+    // handleRelease() {
+    //     RadialMenu.Instance.closeMenu();
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
 
-    handle1PointerHoldEnd = (e: TouchEvent): void => {
-        RadialMenu.Instance.closeMenu();
-        document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-        document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    }
+    // handle1PointerHoldEnd = (e: TouchEvent): void => {
+    //     RadialMenu.Instance.closeMenu();
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
 
-    @action
-    onRadialMenu = (e: React.TouchEvent): void => {
-        const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+    // @action
+    // onRadialMenu = (e: React.TouchEvent): void => {
+    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
 
-        RadialMenu.Instance.openMenu();
+    //     RadialMenu.Instance.openMenu();
 
-        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
 
-        RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
-        if (!SelectionManager.IsSelected(this, true)) {
-            SelectionManager.SelectDoc(this, false);
-        }
-        e.stopPropagation();
-    }
+    //     RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
+    //     if (!SelectionManager.IsSelected(this, true)) {
+    //         SelectionManager.SelectDoc(this, false);
+    //     }
+    //     e.stopPropagation();
+    // }
 
     @action
     componentDidMount() {
@@ -313,10 +313,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    handle1PointerDown = (e: React.TouchEvent) => {
+    handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (this.Document.onPointerDown) return;
         if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             this._hitTemplateDrag = false;
@@ -334,13 +334,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    handle1PointerMove = (e: TouchEvent) => {
+    handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
         if ((e as any).formattedHandled) { e.stopPropagation; return; }
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
             if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
                     this.cleanUpInteractions();
@@ -353,7 +353,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    handle2PointersDown = (e: React.TouchEvent) => {
+    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
             e.stopPropagation();
             e.preventDefault();
@@ -366,8 +366,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    handle2PointersMove = (e: TouchEvent) => {
-        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+    handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
+        const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
         const pt1 = myTouches[0];
         const pt2 = myTouches[1];
         const oldPoint1 = this.prevPoints.get(pt1.identifier);

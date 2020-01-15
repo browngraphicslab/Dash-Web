@@ -11,7 +11,10 @@ export namespace InteractionUtils {
     export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
         constructor(
             readonly fingers: number,
-            readonly points: T extends React.TouchEvent ? React.TouchList : TouchList,
+            // readonly points: T extends React.TouchEvent ? React.TouchList : TouchList,
+            readonly targetTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
+            readonly touches: T extends React.TouchEvent ? React.Touch[] : Touch[],
+            readonly changedTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
             readonly touchEvent: T extends React.TouchEvent ? React.TouchEvent : TouchEvent
         ) { }
     }
@@ -43,13 +46,11 @@ export namespace InteractionUtils {
         };
     }
 
-    export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
+    export function GetMyTargetTouches(mte: InteractionUtils.MultiTouchEvent<React.TouchEvent | TouchEvent>, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
-        for (let i = 0; i < e.touches.length; i++) {
-            const pt: any = e.touches.item(i);
+        for (const pt of mte.touches) {
             if (ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
-                for (let j = 0; j < e.targetTouches.length; j++) {
-                    const tPt = e.targetTouches.item(j);
+                for (const tPt of mte.targetTouches) {
                     if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
                         if (pt && prevPoints.has(pt.identifier)) {
                             myTouches.push(pt);

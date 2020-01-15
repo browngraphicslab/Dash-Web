@@ -15,6 +15,9 @@ import { observer } from "mobx-react";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { CollectionStackingView } from "./collections/CollectionStackingView";
 import { CollectionView } from "./collections/CollectionView";
+import { CollectionSubView, SubCollectionViewProps } from "./collections/CollectionSubView";
+import { makeInterface } from "../../new_fields/Schema";
+import { documentSchema } from "../../new_fields/documentSchemas";
 
 export interface PaletteProps {
     x: number;
@@ -25,6 +28,7 @@ export interface PaletteProps {
 
 @observer
 export default class Palette extends React.Component<PaletteProps> {
+
     render() {
         return (
             <div className="palette-container" style={{ transform: `translate(${this.props.x}px, ${this.props.y}px)` }}>

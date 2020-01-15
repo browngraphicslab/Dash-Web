@@ -40,28 +40,28 @@ export default class GestureOverlay extends Touchable {
     }
 
     getNewTouches(e: React.TouchEvent | TouchEvent) {
-        const ntt: (React.Touch | Touch)[] = [];
-        const nct: (React.Touch | Touch)[] = [];
-        const nt: (React.Touch | Touch)[] = [];
+        const ntt: (React.Touch | Touch)[] = Array.from(e.targetTouches);
+        const nct: (React.Touch | Touch)[] = Array.from(e.changedTouches);
+        const nt: (React.Touch | Touch)[] = Array.from(e.touches);
         this._hands.forEach((hand) => {
             for (let i = 0; i < e.targetTouches.length; i++) {
                 const pt = e.targetTouches.item(i);
-                if (pt && !hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
-                    ntt.push(pt);
+                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
+                    ntt.splice(ntt.indexOf(pt));
                 }
             }
 
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const pt = e.changedTouches.item(i);
-                if (pt && !hand.some((finger: React.Touch) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
-                    nct.push(pt);
+                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
+                    nct.splice(nct.indexOf(pt));
                 }
             }
 
-            for (let i = 0; i < e.changedTouches.length; i++) {
+            for (let i = 0; i < e.touches.length; i++) {
                 const pt = e.touches.item(i);
-                if (pt && !hand.some((finger: React.Touch) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
-                    nt.push(pt);
+                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
+                    nt.splice(ntt.indexOf(pt));
                 }
             }
         });
@@ -93,7 +93,7 @@ export default class GestureOverlay extends Touchable {
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
 
         if (this.prevPoints.size && this.prevPoints.size < 5) {
-            const nts: any = this.getNewTouches(te);
+            const nts = this.getNewTouches(te);
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
@@ -101,12 +101,10 @@ export default class GestureOverlay extends Touchable {
                         bubbles: true,
                         detail: {
                             fingers: this.prevPoints.size,
-                            points: te.targetTouches,
-                            touchEvent: new React.TouchEvent("start", {
-                                targetTouches: nts.ntt,
-                                touches: nts.nt,
-                                changedTouches: nts.nct
-                            });
+                            targetTouches: nts.ntt,
+                            touches: nts.nt,
+                            changedTouches: nts.nct,
+                            touchEvent: te
                         }
                     }
                 )
@@ -131,25 +129,26 @@ export default class GestureOverlay extends Touchable {
                     bubbles: true,
                     detail: {
                         fingers: this.prevPoints.size,
-                        points: e.touches,
-                        touchEvent: new TouchEvent("move", {
-                            targetTouches: nts.ntt,
-                            changedTouches: nts.nct,
-                            touches: nts.nt,
-                        })
+                        targetTouches: nts.ntt,
+                        touches: nts.nt,
+                        changedTouches: nts.nct,
+                        touchEvent: e
                     }
                 })
         );
     }
 
     onReactTouchEnd = (e: TouchEvent) => {
+        const nts: any = this.getNewTouches(e);
         document.dispatchEvent(
             new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchEnd",
                 {
                     bubbles: true,
                     detail: {
                         fingers: this.prevPoints.size,
-                        points: e.touches,
+                        targetTouches: nts.ntt,
+                        touches: nts.nt,
+                        changedTouches: nts.nct,
                         touchEvent: e
                     }
                 })
@@ -171,7 +170,7 @@ export default class GestureOverlay extends Touchable {
     }
 
     handleHandDown = (e: React.TouchEvent) => {
-        const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+        const fingers = Array.from(e.touches);
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
         this.thumbIdentifier = thumb?.identifier;
         fingers.forEach((f) => this.prevPoints.delete(f.identifier));
@@ -201,6 +200,7 @@ export default class GestureOverlay extends Touchable {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
             if (pt?.identifier === this.thumbIdentifier) {
+                console.log("thumby movey")
             }
         }
     }
