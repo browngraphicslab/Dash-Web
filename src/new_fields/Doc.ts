@@ -405,7 +405,7 @@ export namespace Doc {
     }
     export function MakeAlias(doc: Doc) {
         const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
-        let layout = Doc.Layout(alias);
+        const layout = Doc.Layout(alias);
         if (layout instanceof Doc && layout !== alias) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
@@ -755,7 +755,7 @@ export namespace Doc {
             const modifiers = docFilters[i + 2];
             const scriptText = `${modifiers === "x" ? "!" : ""}matchFieldValue(doc, "${key}", "${value}")`;
             docFilterText = docFilterText ? docFilterText + " || " + scriptText : scriptText;
-        };
+        }
         return docFilterText ? "(" + docFilterText + ")" : "";
     }
 }
@@ -781,7 +781,7 @@ Scripting.addGlobal(function matchFieldValue(doc: Doc, key: string, value: any) 
     if (StrCast(fieldVal, null) !== undefined) return StrCast(fieldVal) === value;
     if (NumCast(fieldVal, null) !== undefined) return NumCast(fieldVal) === value;
     if (Cast(fieldVal, listSpec("string"), []).length) {
-        let vals = Cast(fieldVal, listSpec("string"), []);
+        const vals = Cast(fieldVal, listSpec("string"), []);
         return vals.some(v => v === value);
     }
     return false;
