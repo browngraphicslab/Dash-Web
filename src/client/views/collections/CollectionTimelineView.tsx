@@ -131,7 +131,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     updatePreview(newdoc: Doc, string: string) {
-        const doclist = Cast(this.previewdoc.data, listSpec(Doc));
+        const doclist = Cast(this.previewdoc!.data, listSpec(Doc));
         let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
         let proto = text.proto!;
         let ting = NumCast(newdoc[this.currentSortingKey]);
@@ -195,6 +195,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.leftbound = 0;
                 this.initiallyPopulateThumbnails();
                 this.createticks();
+                this.markerrender();
 
             });
         //Updating vertical sort field changes placement of thumbnails.
@@ -361,9 +362,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let markers = DocListCast(this.markerDocs);
         markers.forEach(doc => {
             let newscale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-            doc.initialLeft = (NumCast(doc.initialLeft) * (newscale / NumCast(doc.initialScale)));
+            doc.initialLeft = (NumCast(doc.initialLeft) * (newscale / NumCast(doc.initialScale))*(this.barwidth/doc.initialBW));
             doc.initialX = this.leftbound;
-            doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale));
+            doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale))*(this.barwidth/doc.initialBW);
+            doc.initialBW=this.barwidth
             doc.initialScale = newscale;
         });
     }
@@ -626,13 +628,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             for (let thumbnail1 of this.thumbnails) {
                 for (let thumbnail2 of this.thumbnails) {
                     if (thumbnail1.row !== thumbnail2.row) {
-                        if (thumbnail1.doc[this.verticalSortingKey] < thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row > thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
+                        if (thumbnail1.doc[this.verticalSortingKey]! < thumbnail2.doc[this.verticalSortingKey]! && thumbnail1.row > thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
                             let row1 = thumbnail1.row;
                             let row2 = thumbnail2.row;
                             thumbnail1.row = row2;
                             thumbnail2.row = row1;
                         }
-                        else if (thumbnail1.doc[this.verticalSortingKey] > thumbnail2.doc[this.verticalSortingKey] && thumbnail1.row < thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
+                        else if (thumbnail1.doc[this.verticalSortingKey]! > thumbnail2.doc[this.verticalSortingKey]! && thumbnail1.row < thumbnail2.row && this.checkOverlap(thumbnail1, thumbnail2)) {
                             let row1 = thumbnail1.row;
                             let row2 = thumbnail2.row;
                             thumbnail1.row = row2;
@@ -941,6 +943,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.initialLeft = leftval;
             d.firstLeft = leftval;
             d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
+            d.initialBW=this.barwidth;
             d.initialX = this.leftbound;
             d.initialWidth = 10;
             d.initialMapLeft = (((leftval / this.barref.current!.getBoundingClientRect().width)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
