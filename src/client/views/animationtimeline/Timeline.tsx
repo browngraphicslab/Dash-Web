@@ -131,7 +131,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     drawTicks = () => {
         let ticks = [];
         for (let i = 0; i < this._time / this._tickIncrement; i++) {
-            ticks.push(<div key={Utils.GenerateGuid()} className="tick" style={{ transform: `translate(${i * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toReadTime(i * this._tickIncrement)}</p></div>);
+            ticks.push(<div key={Utils.GenerateGuid()} className="tick" style={{ transform: `translate(${i * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p className="number-label">{this.toReadTime(i * this._tickIncrement)}</p></div>);
         }
         return ticks;
     }
@@ -457,7 +457,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isATOn = false;
         } else {
-            roundToggle.style.transform = "translate(45px, 0px)";
+            roundToggle.style.transform = "translate(40px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
             roundToggleContainer.style.backgroundColor = "#9acedf";

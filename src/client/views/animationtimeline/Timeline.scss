@@ -54,7 +54,7 @@ $timelineColor: #9acedf;
             height: 35px;
             width: 35px;
             background-color: white;
-            border: 1px solid black;
+            border: 3px solid black;
             border-radius: 20px;
             transition: transform 500ms ease-in-out;
             margin-left: 0px;
@@ -80,6 +80,13 @@ $timelineColor: #9acedf;
     height: 100%;
     width: 1px;
     background-color: black;
+    color: black;
+}
+
+.number-label {
+    color: black;
+    padding-left: 5px;
+
 }
 
 .timeline-container {

@@ -38,7 +38,7 @@ $timelineColor: #9acedf;
             position: absolute;
             height: 10px;
             width: 10px;
-            // background-color: black;
+            background-color: black;
             border-radius: 50%;
             // border: 3px solid black;
             left: -4px;
@@ -68,9 +68,9 @@ $timelineColor: #9acedf;
         height: 20px;
         border-radius: 50%;
         background-color: white;
-        border: 3px $timelineColor;
+        border: 3px solid $timelineColor;
         left: 0px;
-        top: -10px;
+        top: -8px;
         cursor: pointer;
     }
 }
