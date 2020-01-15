@@ -1,11 +1,12 @@
 import { observer } from 'mobx-react';
-import { makeInterface } from '../../new_fields/Schema';
+import { makeInterface, listSpec } from '../../new_fields/Schema';
 import { documentSchema } from '../../new_fields/documentSchemas';
 import { CollectionSubView, SubCollectionViewProps } from './collections/CollectionSubView';
 import { DragManager } from '../util/DragManager';
 import * as React from "react";
-import { Doc } from '../../new_fields/Doc';
-import { NumCast } from '../../new_fields/Types';
+import { Doc, DocListCast } from '../../new_fields/Doc';
+import { NumCast, Cast } from '../../new_fields/Types';
+import { List } from '../../new_fields/List';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -13,11 +14,12 @@ const MulticolumnDocument = makeInterface(documentSchema);
 @observer
 export default class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
     private _dropDisposer?: DragManager.DragDropDisposer;
-
-    constructor(props: Readonly<SubCollectionViewProps>) {
-        super(props);
+    private get configuration() {
         const { Document } = this.props;
-        Document.multicolumnData = new Doc();
+        if (!Document.multicolumnData) {
+            Document.multicolumnData = new List<Doc>();
+        }
+        return DocListCast(this.Document.multicolumnData);
     }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -33,7 +35,7 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
         return (
             <div className={"collectionMulticolumnView_outer"}>
                 <div className={"collectionMulticolumnView_contents"}>
-                    {this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(({ layout, data }) => {
+                    {this.configuration.map(config => ).filter(pair => this.isCurrent(pair.layout)).map(({ layout, data }) => {
 
                     })}
                 </div>

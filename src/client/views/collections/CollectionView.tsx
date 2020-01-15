@@ -218,6 +218,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 }, icon: "ellipsis-v"
             });
             subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
+            subItems.push({ description: "Multicolumn", event: () => this.props.Document.viewType = CollectionViewType.Multicolumn, icon: "columns" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
