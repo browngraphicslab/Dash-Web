@@ -5,3 +5,4 @@ dist/
 .env
 ClientUtils.ts
 solr-8.1.1/server/
+solr-8.3.1/server/tmp/start_1935456665153398890.properties
