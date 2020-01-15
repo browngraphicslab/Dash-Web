@@ -16,6 +16,10 @@ import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import Palette from "./Palette";
+import MobileInterface from "../../mobile/MobileInterface";
+import { MainView } from "./MainView";
+import { DocServer } from "../DocServer";
+import { GestureContent } from "../../server/Message";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -33,6 +37,14 @@ export default class GestureOverlay extends Touchable {
         super(props);
 
         GestureOverlay.Instance = this;
+    }
+
+    manualDispatch = (content: GestureContent) => {
+        console.log(content);
+    }
+
+    showBox = (enableBox: boolean) => {
+        console.log("enable box?", enableBox);
     }
 
     @action
@@ -138,6 +150,15 @@ export default class GestureOverlay extends Touchable {
         if (this._points.length > 1) {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
+
+            if (MobileInterface.Instance.drawingInk) {
+                const { selectedColor, selectedWidth } = InkingControl.Instance;
+                DocServer.Mobile.dispatchGesturePoints({
+                    points: this._points,
+                    color: selectedColor,
+                    width: selectedWidth
+                });
+            }
 
             const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
             let actionPerformed = false;

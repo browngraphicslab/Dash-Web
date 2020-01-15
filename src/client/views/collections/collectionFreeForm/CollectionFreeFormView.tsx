@@ -114,7 +114,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     private addDocument = (newBox: Doc) => {
         const added = this.props.addDocument(newBox);
-        console.log("adding doc from freeform", added);
         added && this.bringToFront(newBox);
         added && this.updateCluster(newBox);
         return added;
@@ -362,7 +361,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const points = ge.points;
                 const B = this.getTransform().transformBounds(ge.bounds.left, ge.bounds.top, ge.bounds.width, ge.bounds.height);
                 const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { x: B.x, y: B.y, width: B.width, height: B.height });
-                console.log("make stroke", inkDoc);
                 this.addDocument(inkDoc);
                 e.stopPropagation();
                 break;
@@ -991,7 +989,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         if (!this.extensionDoc) return (null);
         // let lodarea = this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale;
-        console.log("height freeform", this.isAnnotationOverlay, this.Document.scrollHeight, this.props.PanelHeight());
         return <div className={"collectionfreeformview-container"} ref={this.createDropAndGestureTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
             style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
             onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}>

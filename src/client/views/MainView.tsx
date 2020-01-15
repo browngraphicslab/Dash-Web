@@ -49,6 +49,7 @@ export class MainView extends React.Component {
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
+    private _mainViewRef = React.createRef<HTMLDivElement>();
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
@@ -507,8 +508,16 @@ export class MainView extends React.Component {
         return (null);
     }
 
+    get mainViewElement() {
+        return document.getElementById("mainView-container");
+    }
+
+    get mainViewRef() {
+        return this._mainViewRef;
+    }
+
     render() {
-        return (<div id="mainView-container">
+        return (<div id="mainView-container" ref={this._mainViewRef}>
             <DictationOverlay />
             <SharingManager />
             <GoogleAuthenticationManager />
@@ -518,7 +527,7 @@ export class MainView extends React.Component {
             </GestureOverlay>
             <PreviewCursor />
             <ContextMenu />
-            <RadialMenu/>
+            <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
             <OverlayView />

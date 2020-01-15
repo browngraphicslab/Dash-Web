@@ -1,4 +1,5 @@
 import { Utils } from "../Utils";
+import { Point } from "../pen-gestures/ndollar";
 
 export class Message<T> {
     private _name: string;
@@ -42,6 +43,16 @@ export interface Diff extends Reference {
     readonly diff: any;
 }
 
+export interface GestureContent {
+    readonly points: Array<Point>;
+    readonly width?: string;
+    readonly color?: string;
+}
+
+export interface MobileInkBoxTriggerContent {
+    readonly enableBox: boolean;
+}
+
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
@@ -51,6 +62,8 @@ export namespace MessageStore {
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
     export const ConnectionTerminated = new Message<string>("Connection Terminated");
+    export const GesturePoints = new Message<GestureContent>("Gesture Points");
+    export const MobileInkBoxTrigger = new Message<boolean>("Trigger Mobile Ink Box");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");

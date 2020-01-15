@@ -1,10 +1,11 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, YoutubeQueryTypes } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes, GestureContent } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import GestureOverlay from './views/GestureOverlay';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -64,6 +65,19 @@ export namespace DocServer {
         }
     }
 
+    export namespace Mobile {
+
+        export function dispatchGesturePoints(content: GestureContent) {
+            Utils.Emit(_socket, MessageStore.GesturePoints, content);
+        }
+
+        export function dispatchBoxTrigger(enableBox: boolean) {
+            // _socket.emit("dispatchBoxTrigger");
+            Utils.Emit(_socket, MessageStore.MobileInkBoxTrigger, enableBox);
+        }
+
+    }
+
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;
@@ -84,6 +98,12 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, () => {
             alert("Your connection to the server has been terminated.");
+        });
+        _socket.addEventListener("receiveGesturePoints", (content: GestureContent) => {
+            GestureOverlay.Instance.manualDispatch(content);
+        });
+        _socket.addEventListener("receiveBoxTrigger", (enableBox: boolean) => {
+            GestureOverlay.Instance.showBox(enableBox);
         });
     }
 

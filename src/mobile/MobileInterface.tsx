@@ -2,7 +2,7 @@ import React = require('react');
 import { observer } from 'mobx-react';
 import { computed, action, observable } from 'mobx';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { FieldValue, Cast } from '../new_fields/Types';
+import { FieldValue, Cast, StrCast } from '../new_fields/Types';
 import { Doc } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
@@ -18,6 +18,10 @@ import { InkingControl } from '../client/views/InkingControl';
 import { InkTool } from '../new_fields/InkField';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import "./MobileInterface.scss";
+import { SelectionManager } from '../client/util/SelectionManager';
+import { DateField } from '../new_fields/DateField';
+import { GestureUtils } from '../pen-gestures/GestureUtils';
+import { DocServer } from '../client/DocServer';
 
 library.add(faTrash, faCheck);
 
@@ -30,6 +34,7 @@ export default class MobileInterface extends React.Component {
 
     private mainDoc = CurrentUserUtils.setupMobileDoc(this.userDoc);
     private inkDoc?: Doc;
+    public drawingInk: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -61,6 +66,10 @@ export default class MobileInterface extends React.Component {
                     this.inkDoc = CurrentUserUtils.setupMobileInkingDoc(this.userDoc);
                     this.userDoc.activeMobile = this.inkDoc;
                     InkingControl.Instance.switchTool(InkTool.Pen);
+                    this.drawingInk = true;
+
+                    DocServer.Mobile.dispatchBoxTrigger(true);
+
                     break;
                 }
             }
@@ -100,17 +109,17 @@ export default class MobileInterface extends React.Component {
     }
 
     onClick = (e: React.MouseEvent) => {
-        // insert ink as collection into active displayed doc view
-        // reset ink collection
-        this.inkDoc = undefined;
-        console.log("clicked");
         this.switchCurrentView("main");
         InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
+
+        DocServer.Mobile.dispatchBoxTrigger(false);
+
+        this.inkDoc = undefined;
+        this.drawingInk = false;
     }
 
     @computed
     get inkContent() {
-        // TODO: get props from active collection and pass to the new freeform
         if (this.mainContainer) {
             return (
                 <GestureOverlay>
@@ -128,9 +137,9 @@ export default class MobileInterface extends React.Component {
                         PanelHeight={() => window.innerHeight}
                         PanelWidth={() => window.innerWidth}
                         focus={emptyFunction}
-                        isSelected={returnTrue}
+                        isSelected={returnFalse}
                         select={emptyFunction}
-                        active={returnTrue}
+                        active={returnFalse}
                         ContentScaling={returnOne}
                         whenActiveChanged={returnFalse}
                         ScreenToLocalTransform={Transform.Identity}
