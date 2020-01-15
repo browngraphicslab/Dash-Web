@@ -21,6 +21,7 @@ import { MainView } from "./MainView";
 import { DocServer } from "../DocServer";
 import { GestureContent, MobileInkBoxContent } from "../../server/Message";
 import { Point } from "../northstar/model/idea/idea";
+import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -32,8 +33,6 @@ export default class GestureOverlay extends Touchable {
     @observable public Width: number = 5;
 
     @observable private showMobileInkOverlay: boolean = false;
-    @observable private mobileInkOverlaySize: { width: number, height: number } = { width: 500, height: 700 };
-    @observable private mobileInkOverlayPosition: { x: number, y: number } = { x: 300, y: 0 };
 
     private _d1: Doc | undefined;
     private thumbIdentifier?: number;
@@ -247,55 +246,9 @@ export default class GestureOverlay extends Touchable {
         );
     }
 
-    drawStrokeToMobileInkBox = (content: GestureContent) => {
-        console.log(content);
-        const { points, bounds } = content;
-
-        const B = {
-            right: bounds.right + this.mobileInkOverlayPosition.x,
-            left: bounds.left + this.mobileInkOverlayPosition.x,
-            bottom: bounds.bottom + this.mobileInkOverlayPosition.y,
-            top: bounds.top + this.mobileInkOverlayPosition.y,
-            width: bounds.width,
-            height: bounds.height
-        };
-
-        const target = document.elementFromPoint(points[0].X, points[0].Y);
-        target?.dispatchEvent(
-            new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
-                {
-                    bubbles: true,
-                    detail: {
-                        points: points,
-                        gesture: GestureUtils.Gestures.Stroke,
-                        bounds: B
-                    }
-                }
-            )
-        );
-    }
-
     @action
     enableMobileInkBox = (content: MobileInkBoxContent) => {
-        const { enableBox, width, height } = content;
-        console.log("enable box?", enableBox, width, height);
-        this.showMobileInkOverlay = enableBox;
-        this.mobileInkOverlaySize = { width: width ? width : 0, height: height ? height : 0 };
-        this.mobileInkOverlayPosition = { x: 300, y: 25 }; // TODO put at center of screen
-
-    }
-
-    @computed get mobileInkOverlay() {
-        return (
-            <div className="mobileInkOverlay" style={{
-                width: this.mobileInkOverlaySize.width,
-                height: this.mobileInkOverlaySize.height,
-                position: "absolute",
-                transform: `translate(${this.mobileInkOverlayPosition.x}px, ${this.mobileInkOverlayPosition.y}px)`,
-                zIndex: 30000,
-                pointerEvents: "none"
-            }}></div>
-        );
+        this.showMobileInkOverlay = content.enableBox;
     }
 
     render() {
@@ -304,7 +257,7 @@ export default class GestureOverlay extends Touchable {
                 {this.currentStroke}
                 {this.props.children}
                 {this._palette}
-                {this.showMobileInkOverlay ? this.mobileInkOverlay : <></>}
+                {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
             </div>);
     }
 }

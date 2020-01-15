@@ -6,6 +6,7 @@ import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
 import GestureOverlay from './views/GestureOverlay';
+import MobileInkOverlay from '../mobile/MobileInkOverlay';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -100,10 +101,11 @@ export namespace DocServer {
             alert("Your connection to the server has been terminated.");
         });
         _socket.addEventListener("receiveGesturePoints", (content: GestureContent) => {
-            GestureOverlay.Instance.drawStrokeToMobileInkBox(content);
+            MobileInkOverlay.Instance.drawStroke(content);
         });
         _socket.addEventListener("receiveBoxTrigger", (content: MobileInkBoxContent) => {
             GestureOverlay.Instance.enableMobileInkBox(content);
+            MobileInkOverlay.Instance.initMobileInkOverlay(content);
         });
     }
 
