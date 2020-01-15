@@ -35,9 +35,9 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
         return (
             <div className={"collectionMulticolumnView_outer"}>
                 <div className={"collectionMulticolumnView_contents"}>
-                    {this.configuration.map(config => ).filter(pair => this.isCurrent(pair.layout)).map(({ layout, data }) => {
+                    {/* {this.configuration.map(config => ).filter(pair => this.isCurrent(pair.layout)).map(({ layout, data }) => {
 
-                    })}
+                    })} */}
                 </div>
             </div>
         );

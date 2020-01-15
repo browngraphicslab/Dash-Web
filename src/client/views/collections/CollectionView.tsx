@@ -36,6 +36,7 @@ import { TraceMobx } from '../../../new_fields/util';
 import { Utils } from '../../../Utils';
 import { ScriptBox } from '../ScriptBox';
 import CollectionMulticolumnView from '../CollectionMulticolumnView';
+import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 

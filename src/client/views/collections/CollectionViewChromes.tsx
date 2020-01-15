@@ -676,32 +676,27 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     @undoBatch
     togglePreview = () => {
-        let dividerWidth = 4;
-        let borderWidth = Number(COLLECTION_BORDER_WIDTH);
-        let panelWidth = this.props.CollectionView.props.PanelWidth();
-        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
-        let tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
+        const dividerWidth = 4;
+        const borderWidth = Number(COLLECTION_BORDER_WIDTH);
+        const panelWidth = this.props.CollectionView.props.PanelWidth();
+        const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        const tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
     }
 
     @undoBatch
     @action
     toggleTextwrap = async () => {
-        let textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+        const textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
         if (textwrappedRows.length) {
             this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>([]);
         } else {
-            let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
-                = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
-            if (typeof docs === "function") {
-                docs = docs();
-            }
-            docs = await docs;
+            const docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
             if (docs instanceof Doc) {
-                let allRows = [docs[Id]];
+                const allRows = [docs[Id]];
                 this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
             } else {
-                let allRows = docs.map(doc => doc[Id]);
+                const allRows = docs.map(doc => doc[Id]);
                 this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
             }
         }
@@ -747,7 +742,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         let doc = this.props.CollectionView.props.Document;
 
         if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString!) - NumCast(this.props.CollectionView.props.Document.barwidth)) * NumCast(this.props.CollectionView.props.Document.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
+            const thing = (parseFloat(this.searchString!) - NumCast(this.props.CollectionView.props.Document.barwidth)) * NumCast(this.props.CollectionView.props.Document.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
             if (!isNaN(thing)) {
                 if (thing > NumCast(this.props.CollectionView.props.Document.barwidth)) {
                     doc.rightbound = 0;
@@ -775,9 +770,9 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     @action.bound
     enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        let doc = this.props.CollectionView.props.Document;
+        const doc = this.props.CollectionView.props.Document;
         if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString2!) - NumCast(this.props.CollectionView.props.Document.minvalue)) * NumCast(doc.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
+            const thing = (parseFloat(this.searchString2!) - NumCast(this.props.CollectionView.props.Document.minvalue)) * NumCast(doc.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
             if (!isNaN(thing)) {
                 if (thing < 0) {
                     doc.leftbound = 0;
@@ -803,9 +798,9 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     enter3 = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             this._currentKey = "";
-            let collection = this.props.CollectionView.props.Document;
+            const collection = this.props.CollectionView.props.Document;
 
-            var thing = (parseFloat(this.searchString2!) - NumCast(collection.minvalue)) * NumCast(collection.barwidth) / NumCast(collection._range);
+            const thing = (parseFloat(this.searchString2!) - NumCast(collection.minvalue)) * NumCast(collection.barwidth) / NumCast(collection._range);
             if (!isNaN(thing)) {
                 if (thing < 0) {
                     collection.leftbound = 0;
@@ -831,9 +826,9 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     enter4 = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             this._currentKey2 = "";
-            let collection = this.props.CollectionView.props.Document;
+            const collection = this.props.CollectionView.props.Document;
 
-            var thing = (parseFloat(this.searchString2!) - NumCast(collection.minvalue)) * NumCast(collection.barwidth) / NumCast(collection._range);
+            const thing = (parseFloat(this.searchString2!) - NumCast(collection.minvalue)) * NumCast(collection.barwidth) / NumCast(collection._range);
             if (!isNaN(thing)) {
                 if (thing < 0) {
                     collection.leftbound = 0;
@@ -1007,10 +1002,10 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     }
 
     previewValue2 = async () => {
-        let field: Field | undefined | null = null;
-        let onProto: boolean = false;
+        const field: Field | undefined | null = null;
+        const onProto: boolean = false;
         let value: string | undefined = undefined;
-        let docs = this.props.CollectionView.props.Document;
+        const docs = this.props.CollectionView.props.Document;
         await docs[this._currentKey2];
         value = Field.toKeyValueString(docs, this._currentKey2);
         if (value === undefined) {
@@ -1057,7 +1052,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     getKeySuggestions2 = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
-        let docs = this.props.CollectionView.props.Document;
+        const docs = this.props.CollectionView.props.Document;
         return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
 
     }

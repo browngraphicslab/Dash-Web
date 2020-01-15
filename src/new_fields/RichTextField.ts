@@ -35,37 +35,37 @@ export class RichTextField extends ObjectField {
 
     public static Initialize = (initial: string) => {
         !initial.length && (initial = " ");
-        let pos = initial.length + 1;
+        const pos = initial.length + 1;
         return `{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"${initial}"}]}]},"selection":{"type":"text","anchor":${pos},"head":${pos}}}`;
     }
 
     [ToPlainText]() {
         // Because we're working with plain text, just concatenate all paragraphs
-        let content = JSON.parse(this.Data).doc.content;
-        let paragraphs = content.filter((item: any) => item.type === "paragraph");
+        const content = JSON.parse(this.Data).doc.content;
+        const paragraphs = content.filter((item: any) => item.type === "paragraph");
 
         // Functions to flatten ProseMirror paragraph objects (and their components) to plain text
         // While this function already exists in state.doc.textBeteen(), it doesn't account for newlines 
-        let blockText = (block: any) => block.text;
-        let concatenateParagraph = (p: any) => (p.content ? p.content.map(blockText).join(joiner) : "") + delimiter;
+        const blockText = (block: any) => block.text;
+        const concatenateParagraph = (p: any) => (p.content ? p.content.map(blockText).join(joiner) : "") + delimiter;
 
         // Concatentate paragraphs and string the result together
-        let textParagraphs: string[] = paragraphs.map(concatenateParagraph);
-        let plainText = textParagraphs.join(joiner);
+        const textParagraphs: string[] = paragraphs.map(concatenateParagraph);
+        const plainText = textParagraphs.join(joiner);
         return plainText.substring(0, plainText.length - 1);
     }
 
     [FromPlainText](plainText: string) {
         // Remap the text, creating blocks split on newlines
-        let elements = plainText.split(delimiter);
+        const elements = plainText.split(delimiter);
 
         // Google Docs adds in an extra carriage return automatically, so this counteracts it
         !elements[elements.length - 1].length && elements.pop();
 
         // Preserve the current state, but re-write the content to be the blocks
-        let parsed = JSON.parse(this.Data);
+        const parsed = JSON.parse(this.Data);
         parsed.doc.content = elements.map(text => {
-            let paragraph: any = { type: "paragraph" };
+            const paragraph: any = { type: "paragraph" };
             text.length && (paragraph.content = [{ type: "text", marks: [], text }]); // An empty paragraph gets treated as a line break
             return paragraph;
         });

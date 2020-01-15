@@ -329,7 +329,7 @@ export function timenow() {
 }
 
 export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[], xpad: number, ypad: number) {
-    let bounds = boundsList.reduce((bounds, b) => {
+    const bounds = boundsList.reduce((bounds, b) => {
         const [sptX, sptY] = [b.x, b.y];
         const [bptX, bptY] = [sptX + b.width, sptY + b.height];
         return {

@@ -210,17 +210,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @action
     public AddBottomSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
-        let docs = Cast(this.props.Document.data, listSpec(Doc));
+        const docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
         }
-        let newItemStackConfig = {
+        const newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
         };
 
-        var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
-        var config = {
+        const newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
+        const config = {
             content: [{
                 type: 'stack',
                 isClosable: false,
@@ -229,8 +229,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         };
 
         if (this._goldenLayout.root.contentItems.length === 0) {
-            var rowlayout = this._goldenLayout.root.contentItems[0];
-            var newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
+            const rowlayout = this._goldenLayout.root.contentItems[0];
+            const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
             rowlayout.parent.replaceChild(rowlayout, newColumn);
 
             newColumn.addChild(newContentItem, undefined, true);
@@ -250,8 +250,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             newContentItem.config.height = 50;
         } else {
 
-            var rowlayout = this._goldenLayout.root.contentItems[0];
-            var newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
+            const rowlayout = this._goldenLayout.root.contentItems[0];
+            const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
             rowlayout.parent.replaceChild(rowlayout, newColumn);
 
             newColumn.addChild(newContentItem, undefined, true);
