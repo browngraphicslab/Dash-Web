@@ -1,6 +1,7 @@
 @import "./../globalCssVariables.scss";
 
 $timelineColor: #9acedf;
+$timelineDark: #77a1aa;
 
 .timeline-toolbox {
     position: absolute;
@@ -78,15 +79,15 @@ $timelineColor: #9acedf;
 
 .tick {
     height: 100%;
-    width: 1px;
+    width: 2px;
     background-color: black;
     color: black;
 }
 
 .number-label {
     color: black;
-    padding-left: 5px;
-
+    transform: rotate(-90deg) translate(-15px, 8px);
+    font-size: .85em;
 }
 
 .timeline-container {
@@ -94,7 +95,7 @@ $timelineColor: #9acedf;
     height: 300px;
     position: absolute;
     background-color: $light-color-secondary;
-    box-shadow: 0px 10px 20px;
+    border-bottom: 2px solid $timelineDark;
     transition: transform 500ms ease;
 
     .info-container {
@@ -139,7 +140,7 @@ $timelineColor: #9acedf;
             top: 30px;
             height: calc(100% - 30px);
             width: 100%;
-            border: 1px;
+            border: 2px solid black;
             overflow: hidden;
             background-color: white;
             position: absolute;
@@ -155,6 +156,9 @@ $timelineColor: #9acedf;
         width: 100px;
         background-color: white;
         overflow: hidden;
+        border-left: 2px solid black;
+        border-top: 2px solid black;
+        border-bottom: 2px solid black;
 
         .datapane {
             top: 0px;
@@ -172,10 +176,10 @@ $timelineColor: #9acedf;
     }
 
     .resize {
-        bottom: 5px;
+        bottom: 0px;
         position: absolute;
-        height: 30px;
-        width: 50px;
+        height: 20px;
+        width: 40px;
         left: calc(50% - 25px);
     }
 }

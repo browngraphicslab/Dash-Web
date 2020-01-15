@@ -401,11 +401,12 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     private timelineToolBox = (scale: number) => {
         let size = 40 * scale; //50 is default
+        let iconSize = 25;
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
-                <div className="timeline-icon" key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
-                <div className="timeline-icon" key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
-                <div className="timeline-icon" key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${size}px`, width: `${size}px` }} /> </div>
+                <div className="timeline-icon" key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
+                <div className="timeline-icon" key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
+                <div className="timeline-icon" key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
                 <div key="overview-text" className="animation-text">Timeline Overview</div>
                 <TimelineOverview isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
                 <div key="animation-text" className="animation-text">Mode: {this.props.Document.isATOn ? "Authoring" : "Play"}</div>
