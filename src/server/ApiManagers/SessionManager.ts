@@ -8,16 +8,15 @@ const permissionError = "You are not authorized!";
 
 export default class SessionManager extends ApiManager {
 
-    private secureSubscriber = (root: string, ...params: string[]) => new RouteSubscriber(root).add("sessionKey", ...params);
+    private secureSubscriber = (root: string, ...params: string[]) => new RouteSubscriber(root).add("session_key", ...params);
 
     private authorizedAction = (handler: SecureHandler) => {
         return (core: AuthorizedCore) => {
-            const { req, res, isRelease } = core;
-            const { sessionKey } = req.params;
+            const { req: { params }, res, isRelease } = core;
             if (!isRelease) {
                 return res.send("This can be run only on the release server.");
             }
-            if (sessionKey !== process.env.session_key) {
+            if (params.session_key !== process.env.session_key) {
                 return _permission_denied(res, permissionError);
             }
             return handler(core);
