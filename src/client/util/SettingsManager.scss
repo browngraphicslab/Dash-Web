@@ -3,6 +3,8 @@
 .dialogue-box {
     background-color: whitesmoke !important;
     color: grey;
+    width: 400px;
+    height: 300px;
 
     button {
         background: $lighter-alt-accent;
@@ -14,6 +16,7 @@
         letter-spacing: 2px;
         font-size: 75%;
         padding: 10px;
+        margin: 10px;
         transition: transform 0.2s;
         margin: 2px;
     }
@@ -22,6 +25,23 @@
 .settings-interface {
     display: flex;
     flex-direction: column;
+
+    button {
+        width: 100px;
+        align-self: center;
+        background: $darker-alt-accent;
+    }
+
+    .delete-button {
+        background: rgb(227, 86, 86);
+    }
+
+    .close-button {
+        position: absolute;
+        right: 1em;
+        top: 1em;
+    }
+
 
     input {
         border-radius: 5px;
@@ -32,8 +52,7 @@
 
     .settings-body {
         display: flex;
-        flex-direction: row;
-
+        justify-content: space-between;
 
         .settings-type {
             display: flex;
@@ -44,13 +63,14 @@
 
         .settings-content {
             padding-left: 1em;
+            padding-right: 1em;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            text-align: left;
+            justify-content: space-around;
+            // text-align: left;
 
-            button {
-                background: $darker-alt-accent;
+            ::placeholder {
+                color: $intermediate-color;
             }
 
             input {
@@ -82,12 +102,6 @@
         text-transform: uppercase;
         letter-spacing: 2px;
         font-size: 120%;
-    }
-
-    .close-button {
-        position: absolute;
-        right: 1em;
-        top: 1em;
     }
 
     .container {

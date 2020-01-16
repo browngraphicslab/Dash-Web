@@ -101,7 +101,11 @@ export default class SettingsManager extends React.Component<{}> {
                         </div>
                         : undefined}
                     {this.settingsContent === "data" ?
-                        <div className="settings-content">hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii</div>
+                        <div className="settings-content">
+                            WARNING: <br />
+                            THIS WILL ERASE ALL YOUR CURRENT DOCUMENTS STORED ON DASH. IF YOU WISH TO PROCEED, CLICK THE BUTTON BELOW.
+                            <button className="delete-button">DELETE</button>
+                        </div>
                         : undefined}
                 </div>
 
