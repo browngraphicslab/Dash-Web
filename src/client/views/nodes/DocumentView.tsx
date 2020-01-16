@@ -583,7 +583,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        if (e.button === 0) {
+        if (e.button === 0 && !e.ctrlKey) {
             e.preventDefault();
             return;
         }
