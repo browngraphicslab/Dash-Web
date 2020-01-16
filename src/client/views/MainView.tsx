@@ -39,12 +39,9 @@ import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsM
 import InkSelectDecorations from './InkSelectDecorations';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
-<<<<<<< HEAD
 import SettingsManager from '../util/SettingsManager';
-=======
 import { TraceMobx } from '../../new_fields/util';
 import RichTextMenu from '../util/RichTextMenu';
->>>>>>> e410cde0e430553002d4e1a2f64364b57b65fdbc
 
 @observer
 export class MainView extends React.Component {

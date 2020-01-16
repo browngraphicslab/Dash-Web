@@ -41,7 +41,7 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: '/internalResetPassword',
-            onValidation: async ({ user, req, res }) => {
+            secureHandler: async ({ user, req, res }) => {
                 const result: any = {};
                 const { curr_pass, new_pass, new_confirm } = req.body;
                 // perhaps should assert whether curr password is entered correctly
