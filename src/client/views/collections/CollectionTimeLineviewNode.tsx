@@ -58,26 +58,31 @@ export class
 
     //Display document with document contents view.
     documentDisplay(d: Doc, width: number, height: number) {
-        return (<div style={{ width: width, height: height, overflow: "hidden" }}> <ContentFittingDocumentView
-            ruleProvider={undefined}
-            pinToPres={this.props.pinToPres}
-            Document={d}
-            LibraryPath={emptyPath}
-            renderDepth={this.props.renderDepth + 1}
-            PanelWidth={() => width}
-            PanelHeight={() => height}
-            focus={emptyFunction}
-            onClick={this.onChildClickHandler}
-            whenActiveChanged={this.props.whenActiveChanged}
-            addDocTab={this.props.addDocTab}
-            getTransform={Transform.Identity}
-            CollectionDoc={this.props.CollectionView?.props.Document}
-            CollectionView={this.props.CollectionView}
-            moveDocument={returnFalse}
-            addDocument={returnFalse}
-            removeDocument={returnFalse}
-            active={this.props.active}>
-        </ContentFittingDocumentView></div>);
+        return (
+            <div className="collectionSchemaView-previewDoc">
+                <ContentFittingDocumentView
+                    ruleProvider={undefined}
+                    pinToPres={this.props.pinToPres}
+                    Document={d}
+                    LibraryPath={emptyPath}
+                    renderDepth={this.props.renderDepth + 1}
+                    PanelWidth={() => width}
+                    PanelHeight={() => height}
+                    focus={emptyFunction}
+                    onClick={this.onChildClickHandler}
+                    whenActiveChanged={this.props.whenActiveChanged}
+                    addDocTab={this.props.addDocTab}
+                    getTransform={Transform.Identity}
+                    CollectionDoc={this.props.CollectionView?.props.Document}
+                    CollectionView={this.props.CollectionView}
+                    moveDocument={returnFalse}
+                    addDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    active={this.props.active}>
+                </ContentFittingDocumentView>
+
+                <div className="window" style={{ background: "transparent", top: 0, left: 0, pointerEvents: "all", zIndex: 2, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }} />
+            </div >);
     }
 
     @computed get defaultClickScript() {

@@ -4,14 +4,12 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { returnFalse, Utils } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
 import { EditableView } from "../EditableView";
-import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
+import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTimelineView.scss";
 import { Thumbnail } from "./CollectionTimeLineViewNode";
 
@@ -57,12 +55,11 @@ const comparators = {
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private screenref = React.createRef<HTMLDivElement>();
     private barref = React.createRef<HTMLDivElement>();
-    private sortReactionDisposer: IReactionDisposer | undefined;
-    @observable private types: boolean[] = [];
     private marqueeref = React.createRef<HTMLDivElement>();
     private previewflag = true;
     private disposer: Opt<IReactionDisposer>;
-    private documentThumbnailReferences: React.RefObject<Thumbnail>[] = [];
+    private barDisposer: IReactionDisposer | undefined;
+    private sortReactionDisposer: IReactionDisposer | undefined;
 
     //Handles repositioning the preview window and dragging in external documents to be uploaded.
     @action
@@ -90,44 +87,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return stored;
     }
 
-    constructor(props: SubCollectionViewProps) {
-        super(props);
-    }
-
-    /*The previewdoc is a document containing two children: a display for the selected thumbnail on the timeline and a text document that dispalays the 
-    selected document's value. While this document is created for the first time with the make preview method, it does not get added to the props, meaning
-    the preview document gets deleted/recreated every time the ruler is opened.
-    */
-    @observable
-    private previewdoc: Doc | undefined;
-    @action
-    makePreview(newdoc: Doc, string: string) {
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
-        let proto = text.proto!;
-        let ting = NumCast(newdoc[this.currentSortingKey]);
-        proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
-        let doc = Docs.Create.StackingDocument([newdoc, text,], { width: 500, height: 500, title: "Untitled Collection", chromeStatus: "disabled" });
-        doc.title = "preview";
-        this.previewdoc = doc;
-    }
-
-    @action
-    updatePreview(newdoc: Doc, string: string) {
-        const doclist = Cast(this.previewdoc!.data, listSpec(Doc));
-        let text = Docs.Create.TextDocument({ width: 200, height: 100, x: 0, y: 0, autoHeight: true, title: "text" });
-        let proto = text.proto!;
-        let ting = NumCast(newdoc[this.currentSortingKey]);
-        proto.data = new RichTextField(RichTextField.Initialize(this.currentSortingKey + ":" + String(ting)));
-        if (doclist) {
-            doclist[0] = newdoc;
-            doclist[1] = text;
-        }
-    }
-
     //The firat time the timeline is loaded all of the components need to be calculated. 
     componentWillMount() {
         //context menu field    
-
         runInAction(() => {
             this.leftbound = 0;
             this.rightbound = 4;
@@ -136,28 +98,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.initializeMarkers();
         this.createRows();
         this.createticks();
-        window.addEventListener('resize', () => this.createRows(this.rowscale));
     }
 
     componentDidMount() {
-        //Addding a new document causes the thumbnails to be recalculatedd.
-        reaction(
-            () => this.childDocs,
-            () => {
-                this.initiallyPopulateThumbnails();
-                this.createticks();
-            }
-        );
         //Changing the height of the browser window leads to rows being recalculated.
-        reaction(
-            () => this.props.Document.windowheight,
+        this.disposer = reaction(
+            () => this.props.PanelHeight(),
             () => {
                 this.createRows();
                 this.createticks();
             }
         );
         //Changing the widdth of the browser window causes the position of the ruler to be recalculated.
-        reaction(() => this.props.Document.barwidth,
+        this.barDisposer = reaction(() => this.props.Document.barwidth,
             () => {
                 this.rightbound = 4;
                 this.leftbound = 0;
@@ -166,24 +119,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.markerrender();
 
             });
-        //Updating vertical sort field changes placement of thumbnails.
-        reaction(() => this.props.Document.verticalsortstate,
+        //Updating vertical sort field, sort state or document lists updates placement of thumbnails.
+        this.sortReactionDisposer = reaction(() => [this.childDocs, this.props.Document.sortstate, this.props.Document.verticalsortstate],
             () => {
                 this.initiallyPopulateThumbnails();
                 this.createticks();
             });
-        //Updating horizontal sort field changes placement of thumbnails.
-        reaction(
-            () => this.props.Document.sortstate,
-            async () => {
-                this.initiallyPopulateThumbnails();
-                this.createticks();
-            }
-        );
     }
 
     componentWillUnmount() {
         this.sortReactionDisposer && this.sortReactionDisposer();
+        this.barDisposer && this.barDisposer();
         this.disposer && this.disposer();
     }
 
@@ -222,7 +168,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.stopPropagation();
         this.markdoc!.initialLeft = NumCast(this.markdoc!.initialLeft) + e.movementX;
         this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) - e.movementX;
-        document.addEventListener("pointerup", this.onPointerUp);
     }
     //Currently selected annotation.
     @observable markdoc: Doc | undefined = undefined;
@@ -238,6 +183,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         else {
             document.addEventListener("pointermove", (this.onPointerMove_LeftResize));
+            document.addEventListener("pointerup", this.onPointerUp);
             e.stopPropagation();
             this.markdoc = doc;
         }
@@ -247,7 +193,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onPointerMove_RightResize = (e: PointerEvent): void => {
         e.stopPropagation();
         this.markdoc!.initialWidth = NumCast(this.markdoc!.initialWidth) + e.movementX;
-        document.addEventListener("pointerup", this.onPointerUp);
     }
 
     @action
@@ -261,6 +206,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         else {
             document.addEventListener("pointermove", (this.onPointerMove_RightResize));
+            document.addEventListener("pointerup", this.onPointerUp);
             e.stopPropagation();
             this.markdoc = doc;
         }
@@ -488,7 +434,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             return;
         }
 
-        this.documentThumbnailReferences = [];
         //Range defines range from first and last document on the ruler
         this._range = (sortedPairs.lastElement().value - sortedPairs[0].value);
         let laststring = undefined;
@@ -655,18 +600,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     createRows(number?: number) {
         this.rowval = [];
-        this.windowheight = this.props.PanelHeight();
-        for (let i = 0; i < this.windowheight; i
-            += this.rowscale) {
+        for (let i = 0; i < this.props.PanelHeight(); i += this.rowscale) {
             this.rowval.push(i);
         }
         this.rowval.pop();
-        while (this.rowval.length < 5) {
+        while (this.rowval.length < 5 && this.props.PanelHeight()) {
             this.rowscale = this.rowscale * 0.8;
             this.rowval = [];
-            this.windowheight = this.props.PanelHeight();
-            for (let i = 0; i < this.windowheight; i
-                += this.rowscale) {
+            for (let i = 0; i < this.props.PanelHeight(); i += this.rowscale) {
                 this.rowval.push(i);
             }
             this.rowval.pop();
@@ -717,7 +658,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.rowscale += number;
         }
         this.createRows();
-        document.addEventListener("pointerup", this.onPointerUp_Dragger);
     }
     //Left side boundary of viewport of ruler. Adjusted with the scroll bar.
     @computed
@@ -758,16 +698,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let doc = this.props.Document;
         doc.barwidth = this.props.PanelWidth();
         return NumCast(doc.barwidth);
-    }
-    //Height of internal dash window.
-    private set windowheight(number) {
-        this.props.Document.windowheight = number;
-    }
-
-    private get windowheight() {
-        let doc = this.props.Document;
-        doc.windowheight = this.props.PanelHeight();
-        return NumCast(doc.windowheight);
     }
 
     private set barwidth(number) {
@@ -1004,6 +934,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove_OnBar);
+        document.addEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         e.preventDefault();
     }
@@ -1024,7 +955,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.leftbound = (this.leftbound + e.movementX);
             this.rightbound = (this.rightbound - e.movementX);
         }
-        document.addEventListener("pointerup", this.onPointerUp);
     }
 
     @action
@@ -1034,6 +964,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointermove", this.onPointerMove_OnBar);
         document.removeEventListener("pointermove", this.onPointerMove_LeftResize);
         document.removeEventListener("pointermove", this.onPointerMove_RightResize);
+        document.removeEventListener("pointerup", this.onPointerUp);
         document.body.style.cursor = "default";
     }
 
@@ -1051,7 +982,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         else {
             this.leftbound = (this.leftbound + e.movementX);
         }
-        document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
     }
     //Vice versa for right,
@@ -1066,21 +996,24 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.rightbound = (this.barwidth - this.leftbound - 20);
         }
         else { this.rightbound = (this.rightbound - e.movementX); }
-        document.addEventListener("pointerup", this.onPointerUp);
         this.markerrender();
 
     }
 
     @action
     onPointerDown_LeftBound = (e: React.PointerEvent): void => {
+        document.addEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove_LeftBound);
         e.stopPropagation();
+        e.preventDefault();
     }
 
     @action
     onPointerDown_RightBound = (e: React.PointerEvent): void => {
+        document.addEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove_RightBound);
         e.stopPropagation();
+        e.preventDefault();
     }
 
     //Clicking off the actual scroll bar but within the box that contains it will make the bar jump to the point clicked on.
@@ -1137,7 +1070,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         const p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
-                <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.windowheight }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+                <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.props.PanelHeight() }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
 
                     {/*Marquee*/}
                     <div className="marqueeView" style={{ height: "100%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Dragger}>
