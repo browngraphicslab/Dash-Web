@@ -27,7 +27,7 @@ import { Networking } from "../../Network";
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
@@ -51,7 +51,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected createDropTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer && this.dropDisposer();
             if (ele) {
-                this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -85,8 +85,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             return this.props.annotationsKey ? (this.extensionDoc ? this.extensionDoc[this.props.annotationsKey] : undefined) : this.dataDoc[this.props.fieldKey];
         }
 
-        get childLayoutPairs() {
-            return this.childDocs.map(cd => Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, cd)).filter(pair => pair.layout).map(pair => ({ layout: pair.layout!, data: pair.data! }));
+        get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
+            const { Document, DataDoc, fieldKey } = this.props;
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, fieldKey, doc)).filter(pair => pair.layout);
+            return validPairs.map(({ data, layout }) => ({ data: data!, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
@@ -132,32 +134,33 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
+            const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
-                this.props.Document.dropConverter.script.run({ dragData: de.data });
-            if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
-                if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
+                this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
+            if (docDragData && !docDragData.applyAsTemplate) {
+                if (de.altKey && docDragData.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, "layoutFromParent"));
+                        Doc.ApplyTemplateTo(docDragData.draggedDocuments[0], doc, "layoutFromParent"));
                     e.stopPropagation();
                     return true;
                 }
                 let added = false;
-                if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
-                } else if (de.data.moveDocument) {
-                    const movedDocs = de.data.draggedDocuments;
+                if (docDragData.dropAction || docDragData.userDropAction) {
+                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                } else if (docDragData.moveDocument) {
+                    const movedDocs = docDragData.draggedDocuments;
                     added = movedDocs.reduce((added: boolean, d, i) =>
-                        de.data.droppedDocuments[i] !== d ? this.props.addDocument(de.data.droppedDocuments[i]) :
-                            de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
+                        docDragData.droppedDocuments[i] !== d ? this.props.addDocument(docDragData.droppedDocuments[i]) :
+                            docDragData.moveDocument?.(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
             }
-            else if (de.data instanceof DragManager.AnnotationDragData) {
+            else if (de.complete.annoDragData) {
                 e.stopPropagation();
-                return this.props.addDocument(de.data.dropDocument);
+                return this.props.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
         }
@@ -190,7 +193,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
+                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                     }
                 } else if (text) {
                     this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
@@ -261,7 +264,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             const type = result["content-type"];
                             if (type) {
-                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
+                                Docs.Get.DocumentFromType(type, str, options)
                                     .then(doc => doc && this.props.addDocument(doc));
                             }
                         });
@@ -280,7 +283,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const dropFileName = file ? file.name : "-empty-";
                     promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
                         results.map(action(({ clientAccessPath }: any) => {
-                            const full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
+                            const full = { ...options, width: 300, title: dropFileName };
                             const pathname = Utils.prepend(clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 doc && (Doc.GetProto(doc).fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
@@ -290,14 +293,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }));
                 }
             }
-            if (text && !text.includes("https://")) {
-                this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
-                return;
-            }
 
             if (promises.length) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
+                if (text && !text.includes("https://")) {
+                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                }
                 batch.end();
             }
         }

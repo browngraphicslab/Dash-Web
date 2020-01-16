@@ -1,6 +1,5 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
@@ -10,7 +9,8 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
 import { StrCast } from "../../new_fields/Types";
-import { emptyFunction } from "../../Utils";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -62,33 +62,11 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
         const topDocView = this.props.docs[0];
-        const topDoc = topDocView.props.Document;
-        const xf = topDocView.props.ScreenToLocalTransform();
-        const ex = e.target.clientLeft;
-        const ey = e.target.clientTop;
-        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
-        if (e.target.checked) {
-            setTimeout(() => {
-                const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
-                if (newDocView) {
-                    const de = new DragManager.DocumentDragData([topDoc]);
-                    de.moveDocument = topDocView.props.moveDocument;
-                    const xf = newDocView.ContentDiv!.getBoundingClientRect();
-                    DragManager.StartDocumentDrag([newDocView.ContentDiv!], de, ex, ey, {
-                        offsetX: (ex - xf.left), offsetY: (ey - xf.top),
-                        handlers: { dragComplete: () => { }, },
-                        hideSource: false
-                    });
-                }
-            }, 10);
-        } else if (topDocView.props.ContainingCollectionView) {
-            const collView = topDocView.props.ContainingCollectionView;
-            const [sx, sy] = xf.inverse().transformPoint(0, 0);
-            const [x, y] = collView.props.ScreenToLocalTransform().transformPoint(sx, sy);
-            topDoc.x = x;
-            topDoc.y = y;
-        }
+        const ex = e.target.getBoundingClientRect().left;
+        const ey = e.target.getBoundingClientRect().top;
+        DocumentView.FloatDoc(topDocView, ex, ey);
     }
+
 
     @undoBatch
     @action
@@ -155,9 +133,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
                 offsetX: dragData.offset[0],
                 offsetY: dragData.offset[1],
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
                 hideSource: false
             });
         }
@@ -173,13 +148,18 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
-            <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
-                <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                <ul className="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={<ul className="template-list" ref={this._dragRef} style={{ display: "block" }}>
                     {templateMenu}
                     {<button onClick={this.clearTemplates}>Restore Defaults</button>}
-                </ul>
-            </div>
+                </ul>}>
+                <span className="parentDocumentSelector-button" >
+                    <FontAwesomeIcon icon={faEdit} size={"lg"} />
+                </span>
+                {/* <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
+                    <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
+                </div> */}
+            </Flyout>
         );
     }
 }

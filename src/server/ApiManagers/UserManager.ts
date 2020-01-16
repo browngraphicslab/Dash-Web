@@ -18,7 +18,7 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/getUsers",
-            onValidation: async ({ res }) => {
+            secureHandler: async ({ res }) => {
                 const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
                 const results = await cursor.toArray();
                 res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
@@ -28,14 +28,14 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/getUserDocumentId",
-            onValidation: ({ res, user }) => res.send(user.userDocumentId)
+            secureHandler: ({ res, user }) => res.send(user.userDocumentId)
         });
 
         register({
             method: Method.GET,
             subscription: "/getCurrentUser",
-            onValidation: ({ res, user }) => res.send(JSON.stringify(user)),
-            onUnauthenticated: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
+            secureHandler: ({ res, user }) => res.send(JSON.stringify(user)),
+            publicHandler: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
         });
 
         register({
@@ -94,7 +94,7 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/activity",
-            onValidation: ({ res }) => {
+            secureHandler: ({ res }) => {
                 const now = Date.now();
 
                 const activeTimes: ActivityUnit[] = [];

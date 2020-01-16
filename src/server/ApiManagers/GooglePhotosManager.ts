@@ -41,7 +41,7 @@ export default class GooglePhotosManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/googlePhotosMediaUpload",
-            onValidation: async ({ user, req, res }) => {
+            secureHandler: async ({ user, req, res }) => {
                 const { media } = req.body;
                 const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
                 if (!token) {
@@ -82,7 +82,7 @@ export default class GooglePhotosManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/googlePhotosMediaDownload",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const contents: { mediaItems: MediaItem[] } = req.body;
                 let failed = 0;
                 if (contents) {

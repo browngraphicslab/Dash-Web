@@ -56,7 +56,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     createColDropTarget = (ele: HTMLDivElement) => {
         this._colDropDisposer && this._colDropDisposer();
         if (ele) {
-            this._colDropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.colDrop.bind(this) } });
+            this._colDropDisposer = DragManager.MakeDropTarget(ele, this.colDrop.bind(this));
         }
     }
 
@@ -66,8 +66,8 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         const rect = this._header!.current!.getBoundingClientRect();
         const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left + ((rect.right - rect.left) / 2), rect.top);
         const before = x[0] < bounds[0];
-        if (de.data instanceof DragManager.ColumnDragData) {
-            this.props.reorderColumns(de.data.colKey, this.props.columnValue, before, this.props.allColumns);
+        if (de.complete.columnDragData) {
+            this.props.reorderColumns(de.complete.columnDragData.colKey, this.props.columnValue, before, this.props.allColumns);
             return true;
         }
         return false;
@@ -165,7 +165,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     createRowDropTarget = (ele: HTMLDivElement) => {
         this._rowDropDisposer && this._rowDropDisposer();
         if (ele) {
-            this._rowDropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
+            this._rowDropDisposer = DragManager.MakeDropTarget(ele, this.rowDrop.bind(this));
         }
     }
 
@@ -178,16 +178,17 @@ export class MovableRow extends React.Component<MovableRowProps> {
         const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
         const before = x[1] < bounds[1];
 
-        if (de.data instanceof DragManager.DocumentDragData) {
+        const docDragData = de.complete.docDragData;
+        if (docDragData) {
             e.stopPropagation();
-            if (de.data.draggedDocuments[0] === rowDoc) return true;
+            if (docDragData.draggedDocuments[0] === rowDoc) return true;
             const addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
-            const movedDocs = de.data.draggedDocuments;
-            return (de.data.dropAction || de.data.userDropAction) ?
-                de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
-                : (de.data.moveDocument) ?
-                    movedDocs.reduce((added: boolean, d) => de.data.moveDocument(d, rowDoc, addDocument) || added, false)
-                    : de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before), false);
+            const movedDocs = docDragData.draggedDocuments;
+            return (docDragData.dropAction || docDragData.userDropAction) ?
+                docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
+                : (docDragData.moveDocument) ?
+                    movedDocs.reduce((added: boolean, d) => docDragData.moveDocument?.(d, rowDoc, addDocument) || added, false)
+                    : docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before), false);
         }
         return false;
     }
@@ -199,12 +200,12 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
     @undoBatch
     @action
-    move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
-        const targetView = DocumentManager.Instance.getDocumentView(target);
+    move: DragManager.MoveFunction = (doc: Doc, targetCollection: Doc | undefined, addDoc) => {
+        const targetView = targetCollection && DocumentManager.Instance.getDocumentView(targetCollection);
         if (targetView && targetView.props.ContainingCollectionDoc) {
-            return doc !== target && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
+            return doc !== targetCollection && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
         }
-        return doc !== target && this.props.removeDoc(doc) && addDoc(doc);
+        return doc !== targetCollection && this.props.removeDoc(doc) && addDoc(doc);
     }
 
     render() {

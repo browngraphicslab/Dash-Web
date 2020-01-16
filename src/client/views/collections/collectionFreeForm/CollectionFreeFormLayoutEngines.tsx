@@ -44,7 +44,7 @@ function toLabel(target: FieldResult<Field>) {
     return String(target);
 }
 
-export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
+export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], panelDim: number[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
     const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
 
@@ -57,9 +57,14 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
     }
 
     const minSize = Array.from(pivotColumnGroups.entries()).reduce((min, pair) => Math.min(min, pair[1].length), Infinity);
-    const numCols = NumCast(pivotDoc.pivotNumColumns, Math.ceil(Math.sqrt(minSize)));
+    let numCols = NumCast(pivotDoc.pivotNumColumns, Math.ceil(Math.sqrt(minSize)));
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
+    if (panelDim[0] < 2500) numCols = Math.min(5, numCols);
+    if (panelDim[0] < 2000) numCols = Math.min(4, numCols);
+    if (panelDim[0] < 1400) numCols = Math.min(3, numCols);
+    if (panelDim[0] < 1000) numCols = Math.min(2, numCols);
+    if (panelDim[0] < 600) numCols = 1;
 
     const expander = 1.05;
     const gap = .15;
@@ -73,7 +78,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
             x,
             y: pivotAxisWidth + 50,
             width: pivotAxisWidth * expander * numCols,
-            height: 100,
+            height: NumCast(pivotDoc.pivotFontSize, 10),
             fontSize: NumCast(pivotDoc.pivotFontSize, 10)
         });
         for (const doc of val) {
@@ -85,14 +90,14 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
                 wid = layoutDoc.nativeHeight ? (NumCast(layoutDoc.nativeWidth) / NumCast(layoutDoc.nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
             docMap.set(doc, {
-                x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2,
+                x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2 + (val.length < numCols ? (numCols - val.length) * pivotAxisWidth / 2 : 0),
                 y: -y,
                 width: wid,
                 height: hgt
             });
             xCount++;
             if (xCount >= numCols) {
-                xCount = (pivotAxisWidth - wid) / 2;
+                xCount = 0;
                 y += pivotAxisWidth * expander;
             }
         }

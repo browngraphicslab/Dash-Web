@@ -4,7 +4,7 @@ import { action, computed, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Document } from '../../../new_fields/documentSchemas';
+import { Document, PositionDocument } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
@@ -19,7 +19,6 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { LinkManager } from '../../util/LinkManager';
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
@@ -30,7 +29,6 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DictationOverlay } from '../DictationOverlay';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { OverlayView } from '../OverlayView';
@@ -44,6 +42,8 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkingControl } from '../InkingControl';
 import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
+import { List } from '../../../new_fields/List';
+import { FormattedTextBoxComment } from './FormattedTextBoxComment';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -54,14 +54,16 @@ export interface DocumentViewProps {
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
+    LibraryPath: Doc[];
     fitToBox?: boolean;
     onClick?: ScriptField;
+    dragDivName?: string;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
-    moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
-    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
+    showOverlays?: (doc: Doc) => { title?: string, titleHover?: string, caption?: string };
     ContentScaling: () => number;
     ruleProvider: Doc | undefined;
     PanelWidth: () => number;
@@ -70,7 +72,7 @@ export interface DocumentViewProps {
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     zoomToScale: (scale: number) => void;
     backgroundColor: (doc: Doc) => string | undefined;
@@ -91,6 +93,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _titleRef = React.createRef<EditableView>();
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
@@ -102,7 +105,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     componentDidMount() {
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } }));
+        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
 
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
@@ -110,7 +113,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentDidUpdate() {
         this._dropDisposer && this._dropDisposer();
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } }));
+        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
     }
 
     @action
@@ -126,14 +129,50 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
-            dragData.moveDocument = this.Document.onDragStart ? undefined : this.props.moveDocument;
+            dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.applyAsTemplate = applyAsTemplate;
-            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
-                handlers: {
-                    dragComplete: action((emptyFunction))
-                },
-                hideSource: !dropAction && !this.Document.onDragStart
-            });
+            dragData.dragDivName = this.props.dragDivName;
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
+        }
+    }
+
+    public static FloatDoc(topDocView: DocumentView, x: number, y: number) {
+        const topDoc = topDocView.props.Document;
+        const de = new DragManager.DocumentDragData([topDoc]);
+        de.dragDivName = topDocView.props.dragDivName;
+        de.moveDocument = topDocView.props.moveDocument;
+        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
+        setTimeout(() => {
+            const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
+            if (newDocView) {
+                const contentDiv = newDocView.ContentDiv!;
+                const xf = contentDiv.getBoundingClientRect();
+                DragManager.StartDocumentDrag([contentDiv], de, x, y, { offsetX: x - xf.left, offsetY: y - xf.top, hideSource: true });
+            }
+        }, 0);
+    }
+
+    onKeyDown = (e: React.KeyboardEvent) => {
+        if (e.altKey && !(e.nativeEvent as any).StopPropagationForReal) {
+            (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
+            e.stopPropagation();
+            e.preventDefault();
+            if (e.key === "†" || e.key === "t") {
+                if (!StrCast(this.layoutDoc.showTitle)) this.layoutDoc.showTitle = "title";
+                if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
+                else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
+                    {
+                        this._titleRef.current?.setIsFocused(false);
+                        const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                        any.keeplocation = true;
+                        any?.focus();
+                    }
+                }
+            } else if (e.key === "f") {
+                const ex = (e.nativeEvent.target! as any).getBoundingClientRect().left;
+                const ey = (e.nativeEvent.target! as any).getBoundingClientRect().top;
+                DocumentView.FloatDoc(this, ex, ey);
+            }
         }
     }
 
@@ -154,6 +193,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.onClickHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             } else if (this.Document.type === DocumentType.BUTTON) {
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
+            } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
+                FormattedTextBoxComment.Hide();
+                this.Document.links?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0], this.props.Document)]));
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
@@ -168,7 +210,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         const maximizedDocs = await DocListCastAsync(this.Document.maximizedDocs);
         const summarizedDocs = await DocListCastAsync(this.Document.summarizedDocs);
-        const linkDocs = LinkManager.Instance.getAllRelatedLinks(this.props.Document);
+        const linkDocs = DocListCast(this.props.Document.links);
         let expandedDocs: Doc[] = [];
         expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
         expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
@@ -193,28 +235,166 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
-            // return if we're inking, and not selecting a button document
-            || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
-            // return if using pen or eraser
-            || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) return;
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        this._hitTemplateDrag = false;
-        // this whole section needs to move somewhere else.  We're trying to initiate a special "template" drag where
-        // this document is the template and we apply it to whatever we drop it on.
-        for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
-            if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
-                this._hitTemplateDrag = true;
+    handle1PointerDown = (e: React.TouchEvent) => {
+        if (!e.nativeEvent.cancelBubble) {
+            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            this._downX = touch.clientX;
+            this._downY = touch.clientY;
+            this._hitTemplateDrag = false;
+            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+                    this._hitTemplateDrag = true;
+                }
             }
+            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+            if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
         }
-        if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
+    }
+
+    handle1PointerMove = (e: TouchEvent) => {
+        if ((e as any).formattedHandled) { e.stopPropagation; return; }
+        if (e.cancelBubble && this.active) {
+            document.removeEventListener("touchmove", this.onTouch);
+        }
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
+                    document.removeEventListener("touchmove", this.onTouch);
+                    document.removeEventListener("touchend", this.onTouchEnd);
+                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+                }
+            }
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+            e.preventDefault();
+
+        }
+    }
+
+    handle2PointersDown = (e: React.TouchEvent) => {
+        if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            document.removeEventListener("touchmove", this.onTouch);
+            document.addEventListener("touchmove", this.onTouch);
+            document.removeEventListener("touchend", this.onTouchEnd);
+            document.addEventListener("touchend", this.onTouchEnd);
+        }
+    }
+
+    @action
+    handle2PointersMove = (e: TouchEvent) => {
+        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+        const pt1 = myTouches[0];
+        const pt2 = myTouches[1];
+        const oldPoint1 = this.prevPoints.get(pt1.identifier);
+        const oldPoint2 = this.prevPoints.get(pt2.identifier);
+        const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+        if (pinching !== 0 && oldPoint1 && oldPoint2) {
+            // let dX = (Math.min(pt1.clientX, pt2.clientX) - Math.min(oldPoint1.clientX, oldPoint2.clientX));
+            // let dY = (Math.min(pt1.clientY, pt2.clientY) - Math.min(oldPoint1.clientY, oldPoint2.clientY));
+            // let dX = Math.sign(Math.abs(pt1.clientX - oldPoint1.clientX) - Math.abs(pt2.clientX - oldPoint2.clientX));
+            // let dY = Math.sign(Math.abs(pt1.clientY - oldPoint1.clientY) - Math.abs(pt2.clientY - oldPoint2.clientY));
+            // let dW = -dX;
+            // let dH = -dY;
+            const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
+            const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
+            const dX = -1 * Math.sign(dW);
+            const dY = -1 * Math.sign(dH);
+
+            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
+                const doc = PositionDocument(this.props.Document);
+                const layoutDoc = PositionDocument(Doc.Layout(this.props.Document));
+                let nwidth = layoutDoc.nativeWidth || 0;
+                let nheight = layoutDoc.nativeHeight || 0;
+                const width = (layoutDoc.width || 0);
+                const height = (layoutDoc.height || (nheight / nwidth * width));
+                const scale = this.props.ScreenToLocalTransform().Scale * this.props.ContentScaling();
+                const actualdW = Math.max(width + (dW * scale), 20);
+                const actualdH = Math.max(height + (dH * scale), 20);
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
+                const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
+                if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
+                    layoutDoc.ignoreAspect = false;
+                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
+                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                }
+                if (fixedAspect && (!nwidth || !nheight)) {
+                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
+                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                }
+                if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
+                    if (Math.abs(dW) > Math.abs(dH)) {
+                        if (!fixedAspect) {
+                            layoutDoc.nativeWidth = actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0);
+                        }
+                        layoutDoc.width = actualdW;
+                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
+                        else layoutDoc.height = actualdH;
+                    }
+                    else {
+                        if (!fixedAspect) {
+                            layoutDoc.nativeHeight = actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0);
+                        }
+                        layoutDoc.height = actualdH;
+                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
+                        else layoutDoc.width = actualdW;
+                    }
+                } else {
+                    dW && (layoutDoc.width = actualdW);
+                    dH && (layoutDoc.height = actualdH);
+                    dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
+                }
+            }
+            // let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
+            // this.props.Document.width = newWidth;
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
+    onPointerDown = (e: React.PointerEvent): void => {
+        // console.log(e.button)
+        // console.log(e.nativeEvent)
+        // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
+        if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
+            if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+                e.stopPropagation();
+            }
+            return;
+        }
+        if ((!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart)) {
+            // if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
+            //     // return if we're inking, and not selecting a button document
+            //     || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
+            //     // return if using pen or eraser
+            //     || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) {
+            //     return;
+            // }
+
+            this._downX = e.clientX;
+            this._downY = e.clientY;
+            this._hitTemplateDrag = false;
+            // this whole section needs to move somewhere else.  We're trying to initiate a special "template" drag where
+            // this document is the template and we apply it to whatever we drop it on.
+            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+                    this._hitTemplateDrag = true;
+                }
+            }
+            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointerup", this.onPointerUp);
+            if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
+        }
     }
 
     onPointerMove = (e: PointerEvent): void => {
@@ -300,25 +480,37 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
+    makeSelBtnClicked = (): void => {
+        if (this.Document.isButton || this.Document.onClick || this.Document.ignoreClick) {
+            this.Document.isButton = false;
+            this.Document.ignoreClick = false;
+            this.Document.onClick = undefined;
+        } else {
+            this.props.Document.isButton = "Selector";
+        }
+    }
+
+    @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.AnnotationDragData) {
+        if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            (de.data as any).linkedToDoc = true;
+            de.complete.annoDragData.linkedToDoc = true;
 
-            DocUtils.MakeLink({ doc: de.data.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `Link from ${StrCast(de.data.annotationDocument.title)}`);
+            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc },
+                `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
         }
-        if (de.data instanceof DragManager.DocumentDragData && de.data.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.data.draggedDocuments[0], this.props.Document, "layoutCustom");
+        if (de.complete.docDragData && de.complete.docDragData.applyAsTemplate) {
+            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layoutCustom");
             e.stopPropagation();
         }
-        if (de.data instanceof DragManager.LinkDragData) {
+        if (de.complete.linkDragData) {
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-            de.data.linkSourceDocument !== this.props.Document &&
-                (de.data.linkDocument = DocUtils.MakeLink({ doc: de.data.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
+            de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
+                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
         }
     }
 
@@ -390,6 +582,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
+        // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
+        if (e.button === 0 && !e.ctrlKey) {
+            e.preventDefault();
+            return;
+        }
         e.persist();
         e.stopPropagation();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
@@ -401,9 +598,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const cm = ContextMenu.Instance;
         const subitems: ContextMenuProps[] = [];
-        subitems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this), icon: "desktop" });
-        subitems.push({ description: "Open Tab        ", event: () => this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab"), icon: "folder" });
-        subitems.push({ description: "Open Right      ", event: () => this.props.addDocTab(this.props.Document, this.props.DataDoc, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this, this.props.LibraryPath), icon: "desktop" });
+        subitems.push({ description: "Open Tab        ", event: () => this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab", this.props.LibraryPath), icon: "folder" });
+        subitems.push({ description: "Open Right      ", event: () => this.props.addDocTab(this.props.Document, this.props.DataDoc, "onRight", this.props.LibraryPath), icon: "caret-square-right" });
         subitems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "inTab"), icon: "folder" });
         subitems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
@@ -416,13 +613,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript("toggleDetail(this)"), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
+        onClicks.push({ description: this.props.Document.isButton ? "Remove Select Link Behavior" : "Select Link", event: this.makeSelBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
-        onClicks.push({
-            description: "Edit onClick Foreach Doc Script", icon: "edit", event: (obj: any) => {
-                this.props.Document.collectionContext = this.props.ContainingCollectionDoc;
-                ScriptBox.EditButtonScript("Foreach Collection Doc (d) => ", this.props.Document, "onClick", obj.x, obj.y, "docList(this.collectionContext.data).map(d => {", "});\n");
-            }
-        });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         const funcs: ContextMenuProps[] = [];
@@ -527,10 +719,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.SelectDoc(this, false);
             }
         });
+        const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc().LibraryBtn as Doc).sourcePanel as Doc) ? "" : d.title), "");
+        cm.addItem({
+            description: `path: ${path}`, event: () => {
+                this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);
+                Doc.linkFollowHighlight(this.props.Document);
+            }, icon: "check"
+        });
     }
 
     // does Document set a layout prop 
-    setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
+    setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
     getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
     getLayoutPropNum = (prop: string) => NumCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
@@ -540,8 +739,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     chromeHeight = () => {
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
-        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.Document.showTitle);
-        return (showTitle ? 25 : 0) + 1;
+        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        const showTitleHover = showOverlays && "titleHover" in showOverlays ? showOverlays.titleHover : StrCast(this.layoutDoc.showTitleHover);
+        return (showTitle && !showTitleHover ? 0 : 0) + 1;
     }
 
     @computed get finalLayoutKey() { return this.props.layoutKey || "layout"; }
@@ -551,7 +751,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
+            DataDoc={this.props.DataDoc}
             fitToBox={this.props.fitToBox}
+            LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
             moveDocument={this.props.moveDocument}
@@ -576,8 +778,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             isSelected={this.isSelected}
             select={this.select}
             onClick={this.onClickHandler}
-            layoutKey={this.finalLayoutKey}
-            DataDoc={this.props.DataDoc} />);
+            layoutKey={this.finalLayoutKey} />);
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
@@ -593,9 +794,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get innards() {
         TraceMobx();
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
-        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : this.getLayoutPropStr("showTitle");
+        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.getLayoutPropStr("showTitle"));
+        const showTitleHover = showOverlays && "titleHover" in showOverlays ? showOverlays.titleHover : StrCast(this.getLayoutPropStr("showTitleHover"));
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
-        const showTextTitle = showTitle && StrCast(this.Document.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
+        const showTextTitle = showTitle && StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">
                 {this.Document.searchFields}
@@ -609,15 +811,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 />
             </div>);
         const titleView = (!showTitle ? (null) :
-            <div className="documentView-titleWrapper" style={{
+            <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} style={{
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
             }}>
-                <EditableView
-                    contents={this.Document[showTitle]}
+                <EditableView ref={this._titleRef}
+                    contents={(this.props.DataDoc || this.props.Document)[showTitle]}
                     display={"block"} height={72} fontSize={12}
-                    GetValue={() => StrCast(this.Document[showTitle])}
-                    SetValue={(value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true}
+                    GetValue={() => StrCast((this.props.DataDoc || this.props.Document)[showTitle])}
+                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[showTitle] = value) ? true : true)}
                 />
             </div>);
         return <>
@@ -649,23 +851,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.Document.isBackground && !this.isSelected()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
-    @action
-    handle2PointersMove = (e: TouchEvent) => {
-        const pt1 = e.targetTouches.item(0);
-        const pt2 = e.targetTouches.item(1);
-        if (pt1 && pt2 && this.prevPoints.has(pt1.identifier) && this.prevPoints.has(pt2.identifier)) {
-            const oldPoint1 = this.prevPoints.get(pt1.identifier);
-            const oldPoint2 = this.prevPoints.get(pt2.identifier);
-            const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
-            if (pinching !== 0) {
-                const newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX));
-                this.props.Document.width = newWidth;
-            }
-        }
-    }
-
     render() {
-        if (!this.props.Document) return (null);
+        if (!(this.props.Document instanceof Doc)) return (null);
         const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
         const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
@@ -684,8 +871,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
-        const highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont}
+        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc.viewType !== CollectionViewType.Linear;
+        highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
+        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
             onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{

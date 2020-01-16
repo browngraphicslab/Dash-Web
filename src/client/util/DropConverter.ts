@@ -10,17 +10,17 @@ import { ScriptField } from "../../new_fields/ScriptField";
 
 function makeTemplate(doc: Doc): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
-    const layout = StrCast(layoutDoc.layout).match(/fieldKey={"[^"]*"}/)![0];
-    const fieldKey = layout.replace('fieldKey={"', "").replace(/"}$/, "");
+    const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
+    const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
     const docs = DocListCast(layoutDoc[fieldKey]);
     let any = false;
-    docs.map(d => {
+    docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
             any = true;
-            return Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
+            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
+        } else if (d.type === DocumentType.COL) {
+            any = makeTemplate(d) || any;
         }
-        if (d.type === DocumentType.COL) return makeTemplate(d);
-        return false;
     });
     return any;
 }

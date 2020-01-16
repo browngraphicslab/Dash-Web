@@ -70,7 +70,7 @@ export class LinkManager {
     }
 
     // finds all links that contain the given anchor
-    public getAllRelatedLinks(anchor: Doc): Doc[] {//List<Doc> {
+    public getAllRelatedLinks(anchor: Doc): Doc[] {
         const related = LinkManager.Instance.getAllLinks().filter(link => {
             const protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, null));
             const protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
@@ -244,7 +244,5 @@ export class LinkManager {
         if (Doc.AreProtosEqual(anchor, linkDoc)) return linkDoc;
     }
 }
-Scripting.addGlobal(function links(doc: any) {
-    return new List(LinkManager.Instance.getAllRelatedLinks(doc));
-});
 
+Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); });

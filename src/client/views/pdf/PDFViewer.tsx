@@ -30,6 +30,7 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
 import { TraceMobx } from "../../../new_fields/util";
+import { PdfField } from "../../../new_fields/URLField";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -39,7 +40,7 @@ export const pageSchema = createSchema({
     rotation: "number",
     scrollY: "number",
     scrollHeight: "number",
-    search_string: "string"
+    serachMatch: "boolean"
 });
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
@@ -125,14 +126,16 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
-        const path = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
-        this._coverPath = JSON.parse(await rp.get(path));
+        const { url: { href } } = Cast(this.props.Document[this.props.fieldKey], PdfField)!;
+        this._coverPath = href.startsWith(window.location.origin) ?
+            JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`))) :
+            { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
-        this._searchReactionDisposer = reaction(() => this.Document.search_string, searchString => {
-            if (searchString) {
-                this.search(searchString, true);
-                this._lastSearch = searchString;
+        this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
+            if (search) {
+                this.search(Doc.SearchQuery(), true);
+                this._lastSearch = Doc.SearchQuery();
             }
             else {
                 setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
@@ -409,13 +412,13 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if ((this.Document.scale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
+            //e.stopPropagation();
         }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active(true)) {
             // clear out old marquees and initialize menu for new selection
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
-            PDFMenu.Instance.Snippet = this.createSnippet;
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
@@ -513,7 +516,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 }
 
                 if (!e.ctrlKey) {
-                    PDFMenu.Instance.Status = "snippet";
                     PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
                 }
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -559,14 +561,9 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         const targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "Note linked to " + this.props.Document.title });
         const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
-            const dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
-            DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
-                handlers: {
-                    dragComplete: () => !(dragData as any).linkedToDoc &&
-                        DocUtils.MakeLink({ doc: annotationDoc }, { doc: dragData.dropDocument, ctx: dragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF")
-
-                },
-                hideSource: false
+            DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
+                dragComplete: e => !e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc &&
+                    DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF")
             });
         }
     }
@@ -602,12 +599,13 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
             setTimeout((() => {
                 this.Document.height = this.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-                this.Document.nativeHeight = nativeWidth * this._coverPath.height / this._coverPath.width;
+                this.Document.nativeHeight = (this.Document.nativeWidth || 0) * this._coverPath.height / this._coverPath.width;
             }).bind(this), 0);
         }
         const nativeWidth = (this.Document.nativeWidth || 0);
         const nativeHeight = (this.Document.nativeHeight || 0);
-        return <img key={this._coverPath.path} src={this._coverPath.path} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
+        const resolved = Utils.prepend(this._coverPath.path);
+        return <img key={resolved} src={resolved} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
     }
 
@@ -634,6 +632,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     @computed get overlayLayer() {
         return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
+                LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? []}
                 annotationsKey={this.annotationsKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}

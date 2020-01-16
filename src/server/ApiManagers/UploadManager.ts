@@ -41,7 +41,7 @@ export default class UploadManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/upload",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const form = new formidable.IncomingForm();
                 form.uploadDir = pathToDirectory(Directory.parsed_files);
                 form.keepExtensions = true;
@@ -62,7 +62,7 @@ export default class UploadManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/uploadDoc",
-            onValidation: ({ req, res }) => {
+            secureHandler: ({ req, res }) => {
                 const form = new formidable.IncomingForm();
                 form.keepExtensions = true;
                 // let path = req.body.path;
@@ -166,7 +166,7 @@ export default class UploadManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/inspectImage",
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const { source } = req.body;
                 if (typeof source === "string") {
                     const { serverAccessPaths } = await DashUploadUtils.UploadImage(source);
@@ -179,7 +179,7 @@ export default class UploadManager extends ApiManager {
         register({
             method: Method.POST,
             subscription: "/uploadURI",
-            onValidation: ({ req, res }) => {
+            secureHandler: ({ req, res }) => {
                 const uri = req.body.uri;
                 const filename = req.body.name;
                 if (!uri || !filename) {

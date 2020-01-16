@@ -12,13 +12,11 @@ import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
-import { MainView } from '../MainView';
 import { FilterBox } from './FilterBox';
 import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
-import { string } from 'prop-types';
 
 library.add(faTimes);
 
@@ -85,7 +83,11 @@ export class SearchBox extends React.Component {
         this._maxSearchIndex = 0;
     }
 
-    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } };
+    enter = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            this.submitSearch();
+        }
+    }
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
@@ -232,8 +234,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.Create.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-
+        return Docs.Create.TreeDocument(docs, { width: 200, height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
     @action.bound
@@ -307,7 +308,7 @@ export class SearchBox extends React.Component {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
@@ -315,7 +316,7 @@ export class SearchBox extends React.Component {
                     else {
                         result = this._results[i];
                         if (result) {
-                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
@@ -337,9 +338,9 @@ export class SearchBox extends React.Component {
 
     render() {
         return (
-            <div className="searchBox-container">
+            <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
                 <div className="searchBox-bar">
-                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef} title="Drag Results as Collection">
+                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => this._searchString ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
@@ -347,13 +348,13 @@ export class SearchBox extends React.Component {
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
-                {(this._numTotalResults > 0 || !this._searchbarOpen) ? (null) :
-                    (<div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
-                        <div className="filter-panel"><IconBar /></div>
-                    </div>)}
+                <div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
+                    <div className="filter-panel"><IconBar /></div>
+                </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
-                    height: this.resFull ? "auto" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
+                    height: this.resFull ? "auto" : this.resultHeight,
+                    overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this.resultsRef}>
                     {this._visibleElements}
                 </div>

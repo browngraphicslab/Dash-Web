@@ -27,6 +27,9 @@ export const documentSchema = createSchema({
     isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     type: "string",             // enumerated type of document
+    treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
+    treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
+    preventTreeViewOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     currentTimecode: "number",   // current play back time of a temporal document (video / audio)
     summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
     maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)
@@ -38,14 +41,20 @@ export const documentSchema = createSchema({
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
     showCaption: "string",      // whether editable caption text is overlayed at the bottom of the document 
-    showTitle: "string",        // whether an editable title banner is displayed at tht top of the document
+    showTitle: "string",        // the fieldkey whose contents should be displayed at the top of the document
+    showTitleHover: "string",   // the showTitle should be shown only on hover
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
     isAnimating: "string",      // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).  value is undefined|"min"|"max"
     animateToDimensions: listSpec("number"), // layout information about the target rectangle a document is animating towards 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
     strokeWidth: "number",
-    fontSize: "string"
+    fontSize: "string",
+    fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
+    xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    LODarea: "number",          // area (width*height) where CollectionFreeFormViews switch from a label to rendering contents
+    LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
 });
 
 export const positionSchema = createSchema({

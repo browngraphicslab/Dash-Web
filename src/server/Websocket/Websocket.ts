@@ -7,26 +7,30 @@ import { Search } from "../Search";
 import * as io from 'socket.io';
 import YoutubeApi from "../apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { logPort, addBeforeExitHandler } from "../ActionUtilities";
+import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
 
 export namespace WebSocket {
 
+    export let _socket: Socket;
     const clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
+    export let disconnect: Function;
 
-    export async function start(serverPort: number, isRelease: boolean) {
+    export async function start(isRelease: boolean) {
         await preliminaryFunctions();
-        initialize(serverPort, isRelease);
+        initialize(isRelease);
     }
 
     async function preliminaryFunctions() {
     }
 
-    export function initialize(socketPort: number, isRelease: boolean) {
+    function initialize(isRelease: boolean) {
         const endpoint = io();
-        endpoint.on("connection", function (socket: Socket) {
+        endpoint.on("connection", function(socket: Socket) {
+            _socket = socket;
+
             socket.use((_packet, next) => {
                 const userEmail = socketMap.get(socket);
                 if (userEmail) {
@@ -52,8 +56,14 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+
+            disconnect = () => {
+                socket.broadcast.emit("connection_terminated", Date.now());
+                socket.disconnect(true);
+            };
         });
-        addBeforeExitHandler(async () => { await new Promise<void>(resolve => endpoint.close(resolve)); });
+
+        const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
     }
@@ -73,7 +83,9 @@ export namespace WebSocket {
 
     export async function deleteFields() {
         await Database.Instance.deleteAll();
-        await Search.Instance.clear();
+        if (process.env.DISABLE_SEARCH !== "true") {
+            await Search.clear();
+        }
         await Database.Instance.deleteAll('newDocuments');
     }
 
@@ -82,7 +94,9 @@ export namespace WebSocket {
         await Database.Instance.deleteAll('newDocuments');
         await Database.Instance.deleteAll('sessions');
         await Database.Instance.deleteAll('users');
-        await Search.Instance.clear();
+        if (process.env.DISABLE_SEARCH !== "true") {
+            await Search.clear();
+        }
     }
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
@@ -104,7 +118,7 @@ export namespace WebSocket {
         Database.Instance.update(newValue.id, newValue, () =>
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {
-            Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+            Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
             console.log("set field");
             console.log("checking in");
         }
@@ -127,6 +141,7 @@ export namespace WebSocket {
         "pdf": ["_t", "url"],
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
+        "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
         "proxy": ["_i", "fieldId"],
         "list": ["_l", list => {
@@ -171,7 +186,7 @@ export namespace WebSocket {
     function UpdateField(socket: Socket, diff: Diff) {
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
-        const docfield = diff.diff.$set;
+        const docfield = diff.diff.$set || diff.diff.$unset;
         if (!docfield) {
             return;
         }
@@ -190,7 +205,7 @@ export namespace WebSocket {
             }
         }
         if (dynfield) {
-            Search.Instance.updateDocument(update);
+            Search.updateDocument(update);
         }
     }
 
@@ -199,16 +214,14 @@ export namespace WebSocket {
             socket.broadcast.emit(MessageStore.DeleteField.Message, id);
         });
 
-        Search.Instance.deleteDocuments([id]);
+        Search.deleteDocuments([id]);
     }
 
     function DeleteFields(socket: Socket, ids: string[]) {
         Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
             socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
         });
-
-        Search.Instance.deleteDocuments(ids);
-
+        Search.deleteDocuments(ids);
     }
 
     function CreateField(newValue: any) {

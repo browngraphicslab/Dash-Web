@@ -290,8 +290,7 @@ class ListImpl<T extends Field> extends ObjectField {
     private [SelfProxy]: any;
 
     [ToScriptString]() {
-        return "invalid";
-        // return `new List([${(this as any).map((field => Field.toScriptString(field))}])`;
+        return `new List([${(this as any).map((field: any) => Field.toScriptString(field))}])`;
     }
 }
 export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];

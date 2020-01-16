@@ -48,6 +48,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
+import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 const requestImageSize = require('../util/request-image-size');
@@ -96,6 +97,7 @@ export interface DocumentOptions {
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
+    annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
     ischecked?: ScriptField; // returns whether a font icon box is checked
@@ -112,6 +114,7 @@ export interface DocumentOptions {
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
+    limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
 }
 
@@ -170,6 +173,10 @@ export namespace Docs {
                 layout: { view: KeyValueBox, dataField: data },
                 options: { height: 150 }
             }],
+            [DocumentType.DOCUMENT, {
+                layout: { view: DocumentBox, dataField: data },
+                options: { height: 250 }
+            }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: data },
                 options: { currentTimecode: 0 },
@@ -180,7 +187,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
-                options: { nativeWidth: 1200, curPage: 1 }
+                options: { curPage: 1 }
             }],
             [DocumentType.ICON, {
                 layout: { view: IconBox, dataField: data },
@@ -310,7 +317,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "forceActive", "fitWidth"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -348,7 +355,7 @@ export namespace Docs {
 
             AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
 
-            return Doc.assign(viewDoc, delegateProps);
+            return Doc.assign(viewDoc, delegateProps, true);
         }
 
         /**
@@ -422,7 +429,7 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { x: number, y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
             doc.color = color;
             doc.strokeWidth = strokeWidth;
@@ -481,6 +488,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
+        export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCUMENT), document, { title: document ? document.title + "" : "container", ...options });
+        }
+
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
@@ -534,7 +545,8 @@ export namespace Docs {
 
         export type DocConfig = {
             doc: Doc,
-            initialWidth?: number
+            initialWidth?: number,
+            path?: Doc[]
         };
 
         export function StandardCollectionDockingDocument(configs: Array<DocConfig>, options: DocumentOptions, id?: string, type: string = "row") {
@@ -543,7 +555,7 @@ export namespace Docs {
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth, config.path))
                         ]
                     }
                 ]
@@ -642,17 +654,20 @@ export namespace Docs {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {
                 ctor = Docs.Create.ImageDocument;
+                if (!options.width) options.width = 300;
             }
             if (type.indexOf("video") !== -1) {
                 ctor = Docs.Create.VideoDocument;
+                if (!options.width) options.width = 600;
+                if (!options.height) options.height = options.width * 2 / 3;
             }
             if (type.indexOf("audio") !== -1) {
                 ctor = Docs.Create.AudioDocument;
             }
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
-                options.nativeWidth = 927;
-                options.nativeHeight = 1200;
+                if (!options.width) options.width = 400;
+                if (!options.height) options.height = options.width * 1200 / 927;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;

@@ -47,6 +47,7 @@ interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
+    active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
@@ -57,8 +58,9 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && this.props.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
         @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+        @computed get extensionDocSync() { return Doc.fieldExtensionDocSync(this.dataDoc, this.props.fieldKey); }
         @computed get annotationsKey() { return "annotations"; }
 
         @action.bound
@@ -71,7 +73,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         // if the moved document is already in this overlay collection nothing needs to be done.
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
         @action.bound
-        moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+        moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
             return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc) ? addDocument(doc) : false;
         }
         @action.bound

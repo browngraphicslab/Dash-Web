@@ -7,6 +7,7 @@ import { Database } from "../database";
 import * as path from "path";
 import { DashUploadUtils, SizeSuffix } from "../DashUploadUtils";
 import { publicDirectory } from "..";
+import { serverPathToFile, Directory } from "./UploadManager";
 
 export type Hierarchy = { [id: string]: string | Hierarchy };
 export type ZipMutator = (file: Archiver.Archiver) => void | Promise<void>;
@@ -32,7 +33,7 @@ export default class DownloadManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("imageHierarchyExport").add('docId'),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const id = req.params.docId;
                 const hierarchy: Hierarchy = {};
                 await buildHierarchyRecursive(id, hierarchy);
@@ -43,7 +44,7 @@ export default class DownloadManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("downloadId").add("docId"),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 return BuildAndDispatchZip(res, async zip => {
                     const { id, docs, files } = await getDocs(req.params.docId);
                     const docString = JSON.stringify({ id, docs });
@@ -58,7 +59,7 @@ export default class DownloadManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("serializeDoc").add("docId"),
-            onValidation: async ({ req, res }) => {
+            secureHandler: async ({ req, res }) => {
                 const { docs, files } = await getDocs(req.params.docId);
                 res.send({ docs, files: Array.from(files) });
             }
@@ -245,9 +246,9 @@ async function writeHierarchyRecursive(file: Archiver.Archiver, hierarchy: Hiera
         if (typeof result === "string") {
             let path: string;
             let matches: RegExpExecArray | null;
-            if ((matches = /\:1050\/files\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
+            if ((matches = /\:1050\/files\/images\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
                 // image already exists on our server
-                path = `${__dirname}/public/files/${matches[1]}`;
+                path = serverPathToFile(Directory.images, matches[1]);
             } else {
                 // the image doesn't already exist on our server (may have been dragged
                 // and dropped in the browser and thus hosted remotely) so we upload it

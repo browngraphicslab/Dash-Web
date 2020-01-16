@@ -6,6 +6,8 @@ import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { TooltipTextMenu } from "./TooltipTextMenu";
+import { SelectionManager } from "./SelectionManager";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -46,7 +48,11 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     bind("Alt-ArrowUp", joinUp);
     bind("Alt-ArrowDown", joinDown);
     bind("Mod-BracketLeft", lift);
-    bind("Escape", selectParentNode);
+    bind("Escape", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
+        (document.activeElement as any).blur?.();
+        SelectionManager.DeselectAll();
+    });
 
     bind("Mod-b", toggleMark(schema.marks.strong));
     bind("Mod-B", toggleMark(schema.marks.strong));
@@ -104,8 +110,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         dispatch(state.tr.replaceSelectionWith(hr.create()).scrollIntoView());
         return true;
     });
-
-    bind("Mod-s", TooltipTextMenu.insertStar);
 
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         const ref = state.selection;

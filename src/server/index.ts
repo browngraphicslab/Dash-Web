@@ -3,14 +3,13 @@ import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import * as mobileDetect from 'mobile-detect';
 import * as path from 'path';
 import { Database } from './database';
-const serverPort = 4321;
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './Initialization';
-import RouteManager, { Method, _success, _permission_denied, _error, _invalid, OnUnauthenticated } from './RouteManager';
+import initializeServer from './server_Initialization';
+import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import SearchManager from './ApiManagers/SearchManager';
+import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -21,9 +20,14 @@ import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import DiagnosticManager from "./ApiManagers/DiagnosticManager";
+import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
+import { DashSessionAgent } from "./DashSession/DashSessionAgent";
+import SessionManager from "./ApiManagers/SessionManager";
+import { AppliedSessionAgent } from "resilient-server-session";
 
+export const onWindows = process.platform === "win32";
+export let sessionAgent: AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -33,14 +37,17 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
+    await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
-    await log_execution({
-        startMessage: "attempting to initialize mongodb connection",
-        endMessage: "connection outcome determined",
-        action: Database.tryInitializeConnection
-    });
+    if (process.env.DB !== "MEM") {
+        await log_execution({
+            startMessage: "attempting to initialize mongodb connection",
+            endMessage: "connection outcome determined",
+            action: Database.tryInitializeConnection
+        });
+    }
 }
 
 /**
@@ -54,10 +61,10 @@ async function preliminaryFunctions() {
  */
 function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: RouteManager) {
     const managers = [
+        new SessionManager(),
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
-        new DiagnosticManager(),
         new SearchManager(),
         new PDFManager(),
         new DeleteManager(),
@@ -69,11 +76,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     // initialize API Managers
     console.log(yellow("\nregistering server routes..."));
     managers.forEach(manager => manager.register(addSupervisedRoute));
-    logRegistrationOutcome();
-
-    // initialize the web socket (bidirectional communication: if a user changes
-    // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(serverPort, isRelease);
 
     /**
      * Accessing root index redirects to home
@@ -81,10 +83,16 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/",
-        onValidation: ({ res }) => res.redirect("/home")
+        secureHandler: ({ res }) => res.redirect("/home")
     });
 
-    const serve: OnUnauthenticated = ({ req, res }) => {
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/serverHeartbeat",
+        secureHandler: ({ res }) => res.send(true)
+    });
+
+    const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
@@ -93,8 +101,8 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: ["/home", new RouteSubscriber("doc").add("docId")],
-        onValidation: serve,
-        onUnauthenticated: ({ req, ...remaining }) => {
+        secureHandler: serve,
+        publicHandler: ({ req, ...remaining }) => {
             const { originalUrl: target } = req;
             const sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
             const docAccess = target.startsWith("/doc/");
@@ -103,13 +111,37 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
             }
         }
     });
+
+    logRegistrationOutcome();
+
+    // initialize the web socket (bidirectional communication: if a user changes
+    // a field on one client, that change must be broadcast to all other clients)
+    WebSocket.start(isRelease);
 }
 
-(async function start() {
+/**
+ * This function can be used in two different ways. If not in release mode,
+ * this is simply the logic that is invoked to start the server. In release mode,
+ * however, this becomes the logic invoked by a single worker thread spawned by
+ * the main monitor (master) thread.
+ */
+export async function launchServer() {
     await log_execution({
         startMessage: "\nstarting execution of preliminary functions",
         endMessage: "completed preliminary functions\n",
         action: preliminaryFunctions
     });
-    await initializeServer({ serverPort: 1050, routeSetter });
-})();
+    await initializeServer(routeSetter);
+}
+
+/**
+ * If you're in development mode, you won't need to run a session.
+ * The session spawns off new server processes each time an error is encountered, and doesn't
+ * log the output of the server process, so it's not ideal for development.
+ * So, the 'else' clause is exactly what we've always run when executing npm start.
+ */
+if (process.env.RELEASE) {
+    (sessionAgent = new DashSessionAgent()).launch();
+} else {
+    launchServer();
+}

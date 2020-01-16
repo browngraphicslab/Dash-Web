@@ -46,7 +46,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
             this.dropDisposer();
         }
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
@@ -65,9 +65,10 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData && e.target) {
-            this.props.Document[(e.target as any).textContent] = new List<Doc>(de.data.droppedDocuments.map((d, i) =>
-                d.onDragStart ? de.data.draggedDocuments[i] : d));
+        const docDragData = de.complete.docDragData;
+        if (docDragData && e.target) {
+            this.props.Document[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
+                d.onDragStart ? docDragData.draggedDocuments[i] : d));
             e.stopPropagation();
         }
     }

@@ -15,6 +15,7 @@
     background: $light-color-secondary;
     font-size: 13px;
     overflow: auto;
+    user-select: none;
     cursor: default;
 
     ul {

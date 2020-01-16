@@ -12,6 +12,7 @@ import { Cast, PromiseValue } from "../../new_fields/Types";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { InkingControl } from "./InkingControl";
 import { InkTool } from "../../new_fields/InkField";
+import { DocumentView } from "./nodes/DocumentView";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -108,7 +109,7 @@ export default class KeyManager {
         let preventDefault = false;
 
         switch (keyname) {
-            case " ":
+            case "~":
                 DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
@@ -125,6 +126,13 @@ export default class KeyManager {
         const preventDefault = true;
 
         switch (keyname) {
+            case "f":
+                const dv = SelectionManager.SelectedDocuments()?.[0];
+                if (dv) {
+                    const ex = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];
+                    const ey = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];
+                    DocumentView.FloatDoc(dv, ex, ey);
+                }
             // case "n":
             //     let toggle = MainView.Instance.addMenuToggle.current!;
             //     toggle.checked = !toggle.checked;

@@ -4,11 +4,9 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
-import { UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import './LinkMenu.scss';
 import { LinkMenuItem } from "./LinkMenuItem";
@@ -21,7 +19,6 @@ interface LinkMenuGroupProps {
     showEditor: (linkDoc: Doc) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     docView: DocumentView;
-
 }
 
 @observer
@@ -44,27 +41,14 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         e.stopPropagation();
     }
 
-
     onLinkButtonMoved = async (e: PointerEvent) => {
-        UndoManager.RunInBatch(() => {
-            if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
-                document.removeEventListener("pointermove", this.onLinkButtonMoved);
-                document.removeEventListener("pointerup", this.onLinkButtonUp);
+        if (this._drag.current && (e.movementX > 1 || e.movementY > 1)) {
+            document.removeEventListener("pointermove", this.onLinkButtonMoved);
+            document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-                const draggedDocs = this.props.group.map(linkDoc => {
-                    const opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
-                    if (opp) return opp;
-                }) as Doc[];
-                const dragData = new DragManager.DocumentDragData(draggedDocs);
-
-                DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
-                    handlers: {
-                        dragComplete: action(emptyFunction),
-                    },
-                    hideSource: false
-                });
-            }
-        }, "drag links");
+            const targets = this.props.group.map(l => LinkManager.Instance.getOppositeAnchor(l, this.props.sourceDoc)).filter(d => d) as Doc[];
+            DragManager.StartLinkTargetsDrag(this._drag.current, e.x, e.y, this.props.sourceDoc, targets);
+        }
         e.stopPropagation();
     }
 

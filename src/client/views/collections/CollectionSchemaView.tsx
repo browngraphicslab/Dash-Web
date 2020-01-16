@@ -141,6 +141,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <ContentFittingDocumentView
                 Document={layoutDoc}
                 DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                LibraryPath={this.props.LibraryPath}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 ruleProvider={this.props.Document.isRuleProvider && layoutDoc && layoutDoc.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider}
@@ -156,8 +157,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 whenActiveChanged={this.props.whenActiveChanged}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
-                setPreviewScript={this.setPreviewScript}
-                previewScript={this.previewScript}
             />
         </div>;
     }
@@ -223,7 +222,7 @@ export interface SchemaTableProps {
     renderDepth: number;
     deleteDocument: (document: Doc) => boolean;
     addDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: (outsideReaction: boolean) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;

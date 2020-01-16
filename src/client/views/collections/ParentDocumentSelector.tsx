@@ -11,7 +11,7 @@ import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { MetadataEntryMenu } from "../MetadataEntryMenu";
 import { DocumentView } from "../nodes/DocumentView";
@@ -80,35 +80,20 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 
 @observer
 export class ParentDocSelector extends React.Component<SelectorProps> {
-    @observable hover = false;
-
-    @action
-    onMouseLeave = () => {
-        this.hover = false;
-    }
-
-    @action
-    onMouseEnter = () => {
-        this.hover = true;
-    }
-
     render() {
-        let flyout;
-        if (this.hover) {
-            flyout = (
-                <div className="PDS-flyout" title=" ">
-                    <SelectorContextMenu {...this.props} />
-                </div>
-            );
-        }
-        return (
-            <span className="parentDocumentSelector-button" style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
-                <p>^</p>
-                {flyout}
-            </span>
+        const flyout = (
+            <div className="parentDocumentSelector-flyout" style={{}} title=" ">
+                <SelectorContextMenu {...this.props} />
+            </div>
         );
+        return <div title="Tap to View Contexts/Metadata" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={flyout}>
+                <span className="parentDocumentSelector-button" >
+                    <FontAwesomeIcon icon={faChevronCircleUp} size={"lg"} />
+                </span>
+            </Flyout>
+        </div>;
     }
 }
 
@@ -117,32 +102,31 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
     @observable hover = false;
 
     @action
-    onMouseLeave = () => {
-        this.hover = false;
+    onPointerDown = (e: React.PointerEvent) => {
+        this.hover = !this.hover;
+        e.stopPropagation();
     }
-
-    @action
-    onMouseEnter = () => {
-        this.hover = true;
+    customStylesheet(styles: any) {
+        return {
+            ...styles,
+            panel: {
+                ...styles.panel,
+                minWidth: "100px"
+            },
+        };
     }
 
     render() {
-        let flyout;
-        if (this.hover) {
-            const view = DocumentManager.Instance.getDocumentView(this.props.Document);
-            flyout = !view ? (null) : (
-                <div className="PDS-flyout" title=" " onMouseLeave={this.onMouseLeave}>
-                    <DocumentButtonBar views={[view]} stack={this.props.Stack} />
-                </div>
-            );
-        }
-        return (
-            <span className="buttonSelector"
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}>
-                {this.hover ? (null) : <FontAwesomeIcon icon={faEdit} size={"sm"} />}
-                {flyout}
-            </span>
+        const view = DocumentManager.Instance.getDocumentView(this.props.Document);
+        const flyout = (
+            <div className="ParentDocumentSelector-flyout" title=" ">
+                <DocumentButtonBar views={[view]} stack={this.props.Stack} />
+            </div>
         );
+        return <span title="Tap for menu" onPointerDown={e => e.stopPropagation()} className="buttonSelector">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} stylesheet={this.customStylesheet}>
+                <FontAwesomeIcon icon={faEdit} size={"sm"} />
+            </Flyout>
+        </span>;
     }
 }

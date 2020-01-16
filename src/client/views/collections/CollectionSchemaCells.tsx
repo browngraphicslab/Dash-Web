@@ -37,7 +37,7 @@ export interface CellProps {
     renderDepth: number;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
@@ -105,13 +105,13 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     }
 
     private drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.complete.docDragData) {
             const fieldKey = this.props.rowProps.column.id as string;
-            if (de.data.draggedDocuments.length === 1) {
-                this._document[fieldKey] = de.data.draggedDocuments[0];
+            if (de.complete.docDragData.draggedDocuments.length === 1) {
+                this._document[fieldKey] = de.complete.docDragData.draggedDocuments[0];
             }
             else {
-                const coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.data.draggedDocuments, {});
+                const coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.complete.docDragData.draggedDocuments, {});
                 this._document[fieldKey] = coll;
             }
             e.stopPropagation();
@@ -121,7 +121,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     private dropRef = (ele: HTMLElement | null) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
@@ -143,6 +143,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const props: FieldViewProps = {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
+            LibraryPath: [],
             fieldKey: this.props.rowProps.column.id as string,
             ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
@@ -166,11 +167,10 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
         const onItemDown = (e: React.PointerEvent) => {
-            if (fieldIsDoc) {
-                SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
-                    this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
-            }
+            fieldIsDoc && SetupDrag(this._focusRef,
+                () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc | undefined, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
+                this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
         const onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {

@@ -1,13 +1,22 @@
-.imageBox {
+.imageBox, .imageBox-dragging{
     pointer-events: all;
     border-radius: inherit;
     width:100%;
     height:100%;
     position: absolute;
     transform-origin: top left;
+    .imageBox-fader {
+        pointer-events: all;
+    }
 }
 
-.imageBox-cont, .imageBox-cont-dragging {
+.imageBox-dragging {
+    .imageBox-fader {
+        pointer-events: none;
+    }
+}
+
+.imageBox-cont {
     padding: 0vw;
     position: absolute;
     text-align: center;
@@ -22,15 +31,6 @@
         width: 100%;
         pointer-events: all;
     }
-    .imageBox-fader {
-        pointer-events: all;
-    }
-}
-
-.imageBox-cont-dragging {
-    .imageBox-fader {
-        pointer-events: none;
-    }
 }
 
 .imageBox-dot {
@@ -42,7 +42,6 @@
     height: 20px;
     background: gray;
 }
-
 
 #google-photos {
     transition: all 0.5s ease 0s;

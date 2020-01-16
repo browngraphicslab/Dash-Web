@@ -9,7 +9,7 @@ import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnFalse } from "../../../Utils";
+import { emptyFunction, returnFalse, emptyPath } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
@@ -170,8 +170,9 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <ContentFittingDocumentView
-                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.targetDoc}
+                    LibraryPath={emptyPath}
+                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ruleProvider={undefined}
@@ -179,7 +180,6 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                     pinToPres={returnFalse}
                     PanelWidth={() => this.props.PanelWidth() - 20}
                     PanelHeight={() => 100}
-                    setPreviewScript={emptyFunction}
                     getTransform={Transform.Identity}
                     active={this.props.active}
                     moveDocument={this.props.moveDocument!}

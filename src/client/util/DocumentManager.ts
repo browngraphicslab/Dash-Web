@@ -93,33 +93,36 @@ export class DocumentManager {
         const toReturn: DocumentView[] = [];
 
         DocumentManager.Instance.DocumentViews.map(view =>
-            Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+            view.props.Document === toFind && toReturn.push(view));
+        DocumentManager.Instance.DocumentViews.map(view =>
+            view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }
 
     @computed
     public get LinkedDocumentViews() {
-        const pairs = DocumentManager.Instance.DocumentViews.filter(dv =>
-            (dv.isSelected() || Doc.IsBrushed(dv.props.Document)) // draw links from DocumentViews that are selected or brushed OR
-            || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
-                const rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
-                const init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
-                return init && rest;
-            })
-        ).reduce((pairs, dv) => {
-            const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
-            pairs.push(...linksList.reduce((pairs, link) => {
-                const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                    if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
-                        pairs.push({ a: dv, b: docView1, l: link });
-                    }
-                });
+        const pairs = DocumentManager.Instance.DocumentViews
+            //.filter(dv => (dv.isSelected() || Doc.IsBrushed(dv.props.Document))) // draw links from DocumentViews that are selected or brushed OR
+            // || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
+            //     const rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
+            //     const init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
+            //     return init && rest;
+            // }
+            // )
+            .reduce((pairs, dv) => {
+                const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
+                pairs.push(...linksList.reduce((pairs, link) => {
+                    const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                    linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                        if (dv.props.Document.type !== DocumentType.LINK || dv.props.layoutKey !== docView1.props.layoutKey) {
+                            pairs.push({ a: dv, b: docView1, l: link });
+                        }
+                    });
+                    return pairs;
+                }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
                 return pairs;
-            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            return pairs;
-        }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
+            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
 
         return pairs;
     }
@@ -131,10 +134,13 @@ export class DocumentManager {
             finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
         };
         const docView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
-        const annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
+        let annotatedDoc = await Cast(docView?.props.Document.annotationOn, Doc);
+        if (annotatedDoc) {
+            const first = DocumentManager.Instance.getFirstDocumentView(annotatedDoc);
+            if (first) annotatedDoc = first.props.Document;
+        }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            annotatedDoc && docView.props.focus(annotatedDoc, false);
-            docView.props.focus(docView.props.Document, willZoom);
+            docView.props.focus(docView.props.Document, false);
             highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
@@ -176,7 +182,7 @@ export class DocumentManager {
     }
 
     public async FollowLink(link: Doc | undefined, doc: Doc, focus: (doc: Doc, maxLocation: string) => void, zoom: boolean = false, reverse: boolean = false, currentContext?: Doc) {
-        const linkDocs = link ? [link] : LinkManager.Instance.getAllRelatedLinks(doc);
+        const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc));
         const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc));
@@ -194,6 +200,8 @@ export class DocumentManager {
             const target = linkFollowDocs[reverse ? 1 : 0];
             target.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
             DocumentManager.Instance.jumpToDocument(linkFollowDocs[reverse ? 1 : 0], zoom, (doc: Doc) => focus(doc, maxLocation), targetContext, linkDoc[Id]);
+        } else if (link) {
+            DocumentManager.Instance.jumpToDocument(link, zoom, (doc: Doc) => focus(doc, "onRight"), undefined, undefined);
         }
     }
 

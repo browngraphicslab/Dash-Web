@@ -3,11 +3,11 @@ import { action, observable, runInAction, reaction, IReactionDisposer, trace, un
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Opt, WidthSym, Doc } from "../../../new_fields/Doc";
+import { Opt, WidthSym, Doc, HeightSym } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast } from "../../../new_fields/Types";
-import { PdfField } from "../../../new_fields/URLField";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { PdfField, URLField } from "../../../new_fields/URLField";
 import { Utils } from '../../../Utils';
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
@@ -21,6 +21,7 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../new_fields/documentSchemas';
+import { url } from 'inspector';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -49,16 +50,38 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     constructor(props: any) {
         super(props);
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
+        const nw = this.Document.nativeWidth = NumCast(this.extensionDocSync.nativeWidth, NumCast(this.Document.nativeWidth, 927));
+        const nh = this.Document.nativeHeight = NumCast(this.extensionDocSync.nativeHeight, NumCast(this.Document.nativeHeight, 1200));
+        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
+
+        const backup = "oldPath";
+        const { Document } = this.props;
+        const { url: { href } } = Cast(Document[this.props.fieldKey], PdfField)!;
+        const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
+        const matches = pathCorrectionTest.exec(href);
+        console.log("\nHere's the { url } being fed into the outer regex:");
+        console.log(href);
+        console.log("And here's the 'properPath' build from the captured filename:\n");
+        if (matches !== null && href.startsWith(window.location.origin)) {
+            const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
+            console.log(properPath);
+            if (!properPath.includes(href)) {
+                console.log(`The two (url and proper path) were not equal`);
+                const proto = Doc.GetProto(Document);
+                proto[this.props.fieldKey] = new PdfField(properPath);
+                proto[backup] = href;
+            } else {
+                console.log(`The two (url and proper path) were equal`);
+            }
+        } else {
+            console.log("Outer matches was null!");
+        }
     }
 
     componentWillUnmount() {
         this._selectReactionDisposer && this._selectReactionDisposer();
     }
     componentDidMount() {
-        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        if (pdfUrl instanceof PdfField) {
-            Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
-        }
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
                 document.removeEventListener("keydown", this.onKeyDown);
@@ -67,9 +90,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     }
 
     loaded = (nw: number, nh: number, np: number) => {
-        this.dataDoc.numPages = np;
-        this.Document.nativeWidth = nw * 96 / 72;
-        this.Document.nativeHeight = nh * 96 / 72;
+        this.extensionDocSync.numPages = np;
+        this.extensionDocSync.nativeWidth = this.Document.nativeWidth = nw * 96 / 72;
+        this.extensionDocSync.nativeHeight = this.Document.nativeHeight = nh * 96 / 72;
         !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
     }
 
@@ -197,9 +220,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
-            width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
-            height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,
-            transform: `scale(${this.props.ContentScaling()})`
+            width: !this.props.Document.fitWidth ? this.Document.nativeWidth || 0 : `${100 / this.contentScaling}%`,
+            height: !this.props.Document.fitWidth ? this.Document.nativeHeight || 0 : `${100 / this.contentScaling}%`,
+            transform: `scale(${this.contentScaling})`
         }}  >
             <div className="pdfBox-title-outer">
                 <strong className="pdfBox-title" >{this.props.Document.title}</strong>
@@ -225,10 +248,19 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         </div>;
     }
 
+    _pdfjsRequested = false;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        return !pdfUrl || !this._pdf || !this.extensionDoc || (!this._everActive && this.props.ScreenToLocalTransform().Scale > 2.5) ?
-            this.renderTitleBox : this.renderPdfView;
+        if (pdfUrl && this.extensionDoc && (this._everActive || (this.extensionDoc.nativeWidth && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+            if (pdfUrl instanceof PdfField && this._pdf) {
+                return this.renderPdfView;
+            }
+            if (!this._pdfjsRequested) {
+                this._pdfjsRequested = true;
+                Pdfjs.getDocument(pdfUrl.url.href).promise.then(pdf => runInAction(() => this._pdf = pdf));
+            }
+        }
+        return this.renderTitleBox;
     }
 }

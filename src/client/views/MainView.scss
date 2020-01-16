@@ -5,13 +5,28 @@
 .mainView-tabButtons {
     position: relative;
     width: 100%;
+    .documentView-node-topmost {
+        height: 200% !important;
+    }
 }
 
+.mainContent-div {
+    position: relative;
+    width:100%;
+    height:100%;
+}
+
+.mainView-contentArea {
+    .documentView-node-topmost {
+        height: 200% !important;
+    }
+}
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 .mainView-docButtons {
     position: absolute;
     bottom: 20px;
-    left: 250px;
+    left: calc(100% + 5px);
+    z-index: 1;
 }
 
 #mainView-container {
@@ -27,13 +42,13 @@
     width: 100%;
     height: 100%;
     position: absolute;
+    display: flex;
 }
 
 .mainView-flyoutContainer {
     display: flex;
     flex-direction: column;
-    position: absolute;
-    width: 100%;
+    position: relative;
     height: 100%;
 
     .documentView-node-topmost {
@@ -64,8 +79,8 @@
 
 .mainView-logout {
     position: absolute;
-    right: 0;
-    bottom: 0;
+    right: 5;
+    bottom: 5;
     font-size: 8px;
 }
 
@@ -75,9 +90,11 @@
 
 .mainView-libraryFlyout {
     height: 100%;
+    width:100%;
     position: absolute;
     display: flex;
     flex-direction: column;
+    z-index: 2;
 }
 
 .mainView-expandFlyoutButton {
@@ -89,13 +106,15 @@
 
 .mainView-libraryHandle {
     width: 20px;
+    left: calc(100% - 10px);
     height: 40px;
     top: 50%;
     border: 1px solid black;
     border-radius: 5px;
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     touch-action: none;
+    cursor: ew-resize;
 }
 
 .mainView-workspace {

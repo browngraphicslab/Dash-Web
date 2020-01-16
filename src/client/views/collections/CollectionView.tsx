@@ -32,6 +32,11 @@ import { SelectionManager } from '../../util/SelectionManager';
 import './CollectionView.scss';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
+import { TraceMobx } from '../../../new_fields/util';
+import { Utils } from '../../../Utils';
+import { ScriptBox } from '../ScriptBox';
+import CollectionMulticolumnView from '../CollectionMulticolumnView';
+const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
@@ -44,7 +49,8 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
-    Staff
+    Staff,
+    Multicolumn
 }
 
 export namespace CollectionViewType {
@@ -57,7 +63,8 @@ export namespace CollectionViewType {
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
         ["pivot", CollectionViewType.Pivot],
-        ["linear", CollectionViewType.Linear]
+        ["linear", CollectionViewType.Linear],
+        ["multicolumn", CollectionViewType.Multicolumn]
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
@@ -66,7 +73,7 @@ export namespace CollectionViewType {
 export interface CollectionRenderProps {
     addDocument: (document: Doc) => boolean;
     removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
 }
@@ -148,7 +155,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+    moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
@@ -169,6 +176,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
@@ -210,6 +218,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 }, icon: "ellipsis-v"
             });
             subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
+            subItems.push({ description: "Multicolumn", event: () => this.props.Document.viewType = CollectionViewType.Multicolumn, icon: "columns" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
@@ -230,19 +239,32 @@ export class CollectionView extends Touchable<FieldViewProps> {
             const moreItems = more && "subitems" in more ? more.subitems : [];
             moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
             !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+
+            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
         }
     }
 
     lightbox = (images: string[]) => {
+        if (!images.length) return (null);
+        const mainPath = path.extname(images[this._curLightboxImg]);
+        const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length]);
+        const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length]);
+        const main = images[this._curLightboxImg].replace(mainPath, "_o" + mainPath);
+        const next = images[(this._curLightboxImg + 1) % images.length].replace(nextPath, "_o" + nextPath);
+        const prev = images[(this._curLightboxImg + images.length - 1) % images.length].replace(prevPath, "_o" + prevPath);
         return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
-            mainSrc={images[this._curLightboxImg]}
-            nextSrc={images[(this._curLightboxImg + 1) % images.length]}
-            prevSrc={images[(this._curLightboxImg + images.length - 1) % images.length]}
+            mainSrc={main}
+            nextSrc={next}
+            prevSrc={prev}
             onCloseRequest={action(() => this._isLightboxOpen = false)}
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
     render() {
+        TraceMobx();
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
             removeDocument: this.removeDocument,
@@ -258,7 +280,12 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d => Cast(d.data, ImageField) ? Cast(d.data, ImageField)!.url.href : ""))}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
+                Cast(d.data, ImageField) ?
+                    (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
+                        Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
+                    :
+                    ""))}
         </div>);
     }
 }

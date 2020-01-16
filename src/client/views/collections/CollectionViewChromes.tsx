@@ -217,7 +217,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             `(${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "true";
 
-        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(fullScript, { doc: Doc.name });
+        const docFilter = Cast(this.props.CollectionView.props.Document.docFilter, listSpec("string"), []);
+        const docFilterText = Doc.MakeDocFilter(docFilter);
+        const finalScript = docFilterText && !fullScript.startsWith("(())") ? `${fullScript} ${docFilterText ? "&&" : ""} (${docFilterText})` :
+            docFilterText ? docFilterText : fullScript;
+
+        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(finalScript, { doc: Doc.name });
     }
 
     @action
@@ -288,15 +293,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer && this.dropDisposer();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.data instanceof DragManager.DocumentDragData && de.data.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.data.draggedDocuments));
+        if (de.complete.docDragData && de.complete.docDragData.draggedDocuments.length) {
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData?.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;

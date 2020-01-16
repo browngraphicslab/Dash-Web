@@ -3,6 +3,7 @@ import { Method } from "../RouteManager";
 import { exec } from 'child_process';
 import { command_line } from "../ActionUtilities";
 import RouteSubscriber from "../RouteSubscriber";
+import { red } from "colors";
 
 export default class UtilManager extends ApiManager {
 
@@ -11,13 +12,20 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: new RouteSubscriber("environment").add("key"),
-            onValidation: ({ req, res }) => res.send(process.env[req.params.key])
+            secureHandler: ({ req, res }) => {
+                const { key } = req.params;
+                const value = process.env[key];
+                if (!value) {
+                    console.log(red(`process.env.${key} is not defined.`));
+                }
+                return res.send(value);
+            }
         });
 
         register({
             method: Method.GET,
             subscription: "/pull",
-            onValidation: async ({ res }) => {
+            secureHandler: async ({ res }) => {
                 return new Promise<void>(resolve => {
                     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', err => {
                         if (err) {
@@ -34,8 +42,8 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/buxton",
-            onValidation: async ({ res }) => {
-                const cwd = '../scraping/buxton';
+            secureHandler: async ({ res }) => {
+                const cwd = './src/scraping/buxton';
 
                 const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
                 const onRejected = (err: any) => { console.error(err.message); res.send(err); };
@@ -48,7 +56,7 @@ export default class UtilManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/version",
-            onValidation: ({ res }) => {
+            secureHandler: ({ res }) => {
                 return new Promise<void>(resolve => {
                     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout) => {
                         if (err) {
