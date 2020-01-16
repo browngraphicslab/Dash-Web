@@ -175,7 +175,7 @@ export default class RichTextMenu extends AntimodeMenu {
     setMark = (mark: Mark, state: EditorState<any>, dispatch: any) => {
         if (mark) {
             const node = (state.selection as NodeSelection).node;
-            if (node ?.type === schema.nodes.ordered_list) {
+            if (node?.type === schema.nodes.ordered_list) {
                 let attrs = node.attrs;
                 if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, setFontFamily: mark.attrs.family };
                 if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, setFontSize: mark.attrs.fontSize };
@@ -294,8 +294,8 @@ export default class RichTextMenu extends AntimodeMenu {
             e.preventDefault();
             e.stopPropagation();
             self.view && self.view.focus();
-            self.view && command && command(self.view!.state, self.view!.dispatch, self.view);
-            self.view && onclick && onclick(self.view!.state, self.view!.dispatch, self.view);
+            self.view && command && command(self.view.state, self.view.dispatch, self.view);
+            self.view && onclick && onclick(self.view.state, self.view.dispatch, self.view);
             self.setActiveMarkButtons(self.getActiveMarksOnSelection());
         }
 
@@ -602,7 +602,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const link = this.currentLink ? this.currentLink : "";
 
-        const button = <FontAwesomeIcon icon="link" size="lg" />
+        const button = <FontAwesomeIcon icon="link" size="lg" />;
 
         const dropdownContent =
             <div className="dropdown link-menu">
@@ -684,8 +684,9 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             } else {
                 if (node) {
-                    const extension = this.linkExtend(this.view!.state.selection.$anchor, href);
-                    this.view!.dispatch(this.view!.state.tr.removeMark(extension.from, extension.to, this.view!.state.schema.marks.link));
+                    const { tr, schema, selection } = this.view.state;
+                    const extension = this.linkExtend(selection.$anchor, href);
+                    this.view.dispatch(tr.removeMark(extension.from, extension.to, schema.marks.link));
                 }
             }
         }

@@ -34,6 +34,8 @@ import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
 import { TraceMobx } from '../../../new_fields/util';
 import { Utils } from '../../../Utils';
+import { ScriptBox } from '../ScriptBox';
+import CollectionMulticolumnView from '../CollectionMulticolumnView';
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -47,7 +49,8 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
-    Staff
+    Staff,
+    Multicolumn
 }
 
 export namespace CollectionViewType {
@@ -60,7 +63,8 @@ export namespace CollectionViewType {
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
         ["pivot", CollectionViewType.Pivot],
-        ["linear", CollectionViewType.Linear]
+        ["linear", CollectionViewType.Linear],
+        ["multicolumn", CollectionViewType.Multicolumn]
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
@@ -172,6 +176,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
@@ -213,6 +218,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 }, icon: "ellipsis-v"
             });
             subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
+            subItems.push({ description: "Multicolumn", event: () => this.props.Document.viewType = CollectionViewType.Multicolumn, icon: "columns" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
@@ -233,6 +239,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
             const moreItems = more && "subitems" in more ? more.subitems : [];
             moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
             !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+
+            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
         }
     }
 

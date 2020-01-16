@@ -5,6 +5,8 @@ import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
+import { IDatabase } from './IDatabase';
+import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
 
 export namespace Database {
@@ -44,7 +46,7 @@ export namespace Database {
         }
     }
 
-    class Database {
+    class Database implements IDatabase {
         public static DocumentsCollection = 'documents';
         private MongoClient = mongodb.MongoClient;
         private currentWrites: { [id: string]: Promise<void> } = {};
@@ -215,7 +217,7 @@ export namespace Database {
                     if (!fetchIds.length) {
                         continue;
                     }
-                    const docs = await new Promise<{ [key: string]: any }[]>(res => Instance.getDocuments(fetchIds, res, "newDocuments"));
+                    const docs = await new Promise<{ [key: string]: any }[]>(res => this.getDocuments(fetchIds, res, collectionName));
                     for (const doc of docs) {
                         const id = doc.id;
                         visited.add(id);
@@ -262,7 +264,16 @@ export namespace Database {
         }
     }
 
-    export const Instance = new Database();
+    function getDatabase() {
+        switch (process.env.DB) {
+            case "MEM":
+                return new MemoryDatabase();
+            default:
+                return new Database();
+        }
+    }
+
+    export const Instance: IDatabase = getDatabase();
 
     export namespace Auxiliary {
 

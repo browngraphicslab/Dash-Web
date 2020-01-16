@@ -78,7 +78,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
             x,
             y: pivotAxisWidth + 50,
             width: pivotAxisWidth * expander * numCols,
-            height: 100,
+            height: NumCast(pivotDoc.pivotFontSize, 10),
             fontSize: NumCast(pivotDoc.pivotFontSize, 10)
         });
         for (const doc of val) {

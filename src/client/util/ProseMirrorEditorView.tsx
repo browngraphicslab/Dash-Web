@@ -18,23 +18,23 @@ export class ProseMirrorEditorView extends React.Component<ProseMirrorEditorView
     private _editorView?: EditorView;
 
     _createEditorView = (element: HTMLDivElement | null) => {
-        if (element != null) {
+        if (element !== null) {
             this._editorView = new EditorView(element, {
                 state: this.props.editorState,
                 dispatchTransaction: this.dispatchTransaction,
             });
         }
-    };
+    }
 
     dispatchTransaction = (tx: any) => {
         // In case EditorView makes any modification to a state we funnel those
         // modifications up to the parent and apply to the EditorView itself.
         const editorState = this.props.editorState.apply(tx);
-        if (this._editorView != null) {
+        if (this._editorView) {
             this._editorView.updateState(editorState);
         }
         this.props.onEditorState(editorState);
-    };
+    }
 
     focus() {
         if (this._editorView) {

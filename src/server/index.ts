@@ -5,7 +5,7 @@ import * as path from 'path';
 import { Database } from './database';
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './server_initialization';
+import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
@@ -24,7 +24,7 @@ import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
-import { AppliedSessionAgent } from "./session/agents/applied_session_agent";
+import { AppliedSessionAgent } from "resilient-server-session";
 
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;
@@ -41,11 +41,13 @@ async function preliminaryFunctions() {
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
-    await log_execution({
-        startMessage: "attempting to initialize mongodb connection",
-        endMessage: "connection outcome determined",
-        action: Database.tryInitializeConnection
-    });
+    if (process.env.DB !== "MEM") {
+        await log_execution({
+            startMessage: "attempting to initialize mongodb connection",
+            endMessage: "connection outcome determined",
+            action: Database.tryInitializeConnection
+        });
+    }
 }
 
 /**

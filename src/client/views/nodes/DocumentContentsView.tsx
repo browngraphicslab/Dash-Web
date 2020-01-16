@@ -82,7 +82,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return this.props.DataDoc;
     }
     get layoutDoc() {
-        return this.props.DataDoc === undefined ? Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document) : Doc.Layout(this.props.Document);
+        return Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document);
     }
 
     CreateBindings(): JsxBindings {

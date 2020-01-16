@@ -3,7 +3,7 @@ import { AttributeTransformationModel } from "../../northstar/core/attribute/Att
 import { ChartType } from '../../northstar/model/binRanges/VisualBinRange';
 import { AggregateFunction, Bin, Brush, DoubleValueAggregateResult, HistogramResult, MarginAggregateParameters, MarginAggregateResult } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
-import { LABColor } from '../../northstar/utils/LABcolor';
+import { LABColor } from '../../northstar/utils/LABColor';
 import { PIXIRectangle } from "../../northstar/utils/MathUtil";
 import { StyleConstants } from "../../northstar/utils/StyleContants";
 import { HistogramBox } from "./HistogramBox";

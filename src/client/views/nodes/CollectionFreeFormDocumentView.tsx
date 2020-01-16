@@ -1,4 +1,4 @@
-import { random } from "animejs";
+import anime from "animejs";
 import { computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
@@ -11,6 +11,8 @@ import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
 import { PositionDocument } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
+import { returnFalse } from "../../../Utils";
+import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
@@ -20,13 +22,14 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     height?: number;
     jitterRotation: number;
     transition?: string;
+    fitToBox?: boolean;
 }
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     _disposer: IReactionDisposer | undefined = undefined;
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
-    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg)`; }
+    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${anime.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
     get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.layoutDoc[WidthSym](); }
@@ -83,8 +86,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @observable _animPos: number[] | undefined = undefined;
 
-    finalPanelWidth = () => this.dataProvider ? this.dataProvider.width : this.panelWidth();
-    finalPanelHeight = () => this.dataProvider ? this.dataProvider.height : this.panelHeight();
+    finalPanelWidth = () => (this.dataProvider ? this.dataProvider.width : this.panelWidth());
+    finalPanelHeight = () => (this.dataProvider ? this.dataProvider.height : this.panelHeight());
 
     render() {
         TraceMobx();
@@ -104,24 +107,22 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.Document.zIndex || 0,
             }} >
 
-            <DocumentView {...this.props}
+
+            {!this.props.fitToBox ? <DocumentView {...this.props}
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
                 backgroundColor={this.clusterColorFunc}
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
-            />
-            {/* <ContentFittingDocumentView {...this.props}
-                //dragDivName={"collectionFreeFormDocumentView-container"}
-                //ContentScaling={this.contentScaling}
+            /> : <ContentFittingDocumentView {...this.props}
+                DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}
                 focus={(doc: Doc) => this.props.focus(doc, false)}
-                // backgroundColor={this.clusterColorFunc}
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
-            /> */}
+                />}
         </div>;
     }
 }
