@@ -41,7 +41,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized).map(d => (Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d).layout as Doc) || d); }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
-    @computed get yMargin() { return Math.max(this.props.Document.showTitle ? 30 : 0, NumCast(this.props.Document.yMargin, 2 * this.gridGap)); }
+    @computed get yMargin() { return Math.max(this.props.Document.showTitle && !this.props.Document.showTitleHover ? 30 : 0, NumCast(this.props.Document.yMargin, 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
@@ -152,7 +152,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     overlays = (doc: Doc) => {
-        return doc.type === DocumentType.IMG || doc.type === DocumentType.VID ? { title: StrCast(this.props.Document.showTitles), caption: StrCast(this.props.Document.showCaptions) } : {};
+        return doc.type === DocumentType.IMG || doc.type === DocumentType.VID ? { title: StrCast(this.props.Document.showTitles), titleHover: StrCast(this.props.Document.showTitleHovers), caption: StrCast(this.props.Document.showCaptions) } : {};
     }
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }

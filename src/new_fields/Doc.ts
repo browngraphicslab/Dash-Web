@@ -455,7 +455,7 @@ export namespace Doc {
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             const extensionDoc = fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)));
             layoutDoc = Doc.expandTemplateLayout(childDocLayout, extensionDoc !== resolvedDataDoc ? extensionDoc : undefined);
-            layoutDoc && (layoutDoc.resolvedDataDoc = resolvedDataDoc);
+            setTimeout(() => layoutDoc && (layoutDoc.resolvedDataDoc = resolvedDataDoc), 0);
         } else layoutDoc = childDocLayout;
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
