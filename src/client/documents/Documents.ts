@@ -69,6 +69,8 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     fitWidth?: boolean;
+    fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
+    isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
@@ -114,6 +116,9 @@ export interface DocumentOptions {
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
+    treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewOpen?: boolean; // whether this document is expanded in a tree view
+    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
 }
