@@ -396,7 +396,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ref={this.createRef}
                     style={{
                         transform: `scale(${Math.min(1, this.props.PanelHeight() / this.layoutDoc[HeightSym]())})`,
-                        height: `${100 * 1 / Math.min(this.props.PanelWidth() / this.layoutDoc[WidthSym](), this.props.PanelHeight() / this.layoutDoc[HeightSym]())}%`,
+                        height: `${Math.max(100, 100 * 1 / Math.min(this.props.PanelWidth() / this.layoutDoc[WidthSym](), this.props.PanelHeight() / this.layoutDoc[HeightSym]()))}%`,
                         transformOrigin: "top"
                     }}
                     onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
