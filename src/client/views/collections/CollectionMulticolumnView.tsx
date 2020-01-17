@@ -1,14 +1,14 @@
 import { observer } from 'mobx-react';
 import { makeInterface } from '../../../new_fields/Schema';
 import { documentSchema } from '../../../new_fields/documentSchemas';
-import { CollectionSubView } from './CollectionSubView';
+import { CollectionSubView, SubCollectionViewProps } from './CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../new_fields/Doc';
 import { NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
 import { ContentFittingDocumentView } from './../nodes/ContentFittingDocumentView';
 import { Utils } from '../../../Utils';
 import "./collectionMulticolumnView.scss";
-import { computed, trace } from 'mobx';
+import { computed, trace, observable, action } from 'mobx';
 import { Transform } from '../../util/Transform';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
@@ -34,7 +34,7 @@ interface LayoutData {
 
 const resolvedUnits = ["*", "px"];
 const resizerWidth = 2;
-const resizerOpacity = 0.4;
+const resizerOpacity = 1;
 
 @observer
 export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
@@ -210,31 +210,10 @@ interface SpacerProps {
     toRight?: Doc;
 }
 
-interface WidthLabelProps {
-    layout: Doc;
-    collectionDoc: Doc;
-    decimals?: number;
-}
-
-@observer
-class WidthLabel extends React.Component<WidthLabelProps> {
-
-    @computed
-    private get contents() {
-        const { layout, decimals } = this.props;
-        const magnitude = NumCast(layout.widthMagnitude).toFixed(decimals ?? 3);
-        const unit = StrCast(layout.widthUnit);
-        return <span className={"display"}>{magnitude} {unit}</span>;
-    }
-
-    render() {
-        return BoolCast(this.props.collectionDoc.showWidthLabels) ? this.contents : (null);
-    }
-
-}
-
 @observer
 class ResizeBar extends React.Component<SpacerProps> {
+    @observable private isHoverActive = false;
+    private isResizingActive = false;
 
     private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
@@ -257,6 +236,7 @@ class ResizeBar extends React.Component<SpacerProps> {
     }
 
     private get isActivated() {
+        this.isResizingActive = true;
         const { toLeft, toRight } = this.props;
         if (toLeft && toRight) {
             if (StrCast(toLeft.widthUnit) === "px" && StrCast(toRight.widthUnit) === "px") {
@@ -277,7 +257,10 @@ class ResizeBar extends React.Component<SpacerProps> {
         return false;
     }
 
+    @action
     private onPointerUp = () => {
+        this.isResizingActive = false;
+        this.isHoverActive = false;
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
     }
@@ -288,11 +271,36 @@ class ResizeBar extends React.Component<SpacerProps> {
                 className={"resizer"}
                 style={{
                     width: this.props.width,
-                    opacity: this.isActivated ? resizerOpacity : 0
+                    opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
                 }}
                 onPointerDown={this.registerResizing}
+                onPointerEnter={action(() => this.isHoverActive = true)}
+                onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
             />
         );
+    }
+
+}
+
+interface WidthLabelProps {
+    layout: Doc;
+    collectionDoc: Doc;
+    decimals?: number;
+}
+
+@observer
+class WidthLabel extends React.Component<WidthLabelProps> {
+
+    @computed
+    private get contents() {
+        const { layout, decimals } = this.props;
+        const magnitude = NumCast(layout.widthMagnitude).toFixed(decimals ?? 3);
+        const unit = StrCast(layout.widthUnit);
+        return <span className={"display"}>{magnitude} {unit}</span>;
+    }
+
+    render() {
+        return BoolCast(this.props.collectionDoc.showWidthLabels) ? this.contents : (null);
     }
 
 }

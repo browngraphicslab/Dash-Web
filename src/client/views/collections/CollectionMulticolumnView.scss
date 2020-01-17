@@ -18,6 +18,7 @@
     .resizer {
         background: black;
         cursor: ew-resize;
+        transition: 0.5s opacity ease;
     }
 
 }
