@@ -36,6 +36,7 @@ const resizerWidth = 2;
 
 @observer
 export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
+
     @computed
     private get resolvedLayoutInformation(): LayoutData {
         const unresolved: Unresolved[] = [];
@@ -84,8 +85,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     @computed
     private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation?.unresolved.length;
-        if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined)
+        if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
             return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1));
+        }
     }
 
     /**
@@ -153,7 +155,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMulticolumnView_contents"}>
+            <div
+                className={"collectionMulticolumnView_contents"}
+                ref={this.createDropTarget}
+            >
                 {this.contents}
             </div>
         );
