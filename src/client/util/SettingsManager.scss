@@ -4,7 +4,7 @@
     background-color: whitesmoke !important;
     color: grey;
     width: 400px;
-    height: 300px;
+    height: 250px;
 
     button {
         background: $lighter-alt-accent;
@@ -27,9 +27,10 @@
     flex-direction: column;
 
     button {
-        width: 100px;
+        width: 100%;
         align-self: center;
         background: $darker-alt-accent;
+        margin-top: 4px;
     }
 
     .delete-button {
@@ -42,13 +43,10 @@
         top: 1em;
     }
 
-
-    input {
-        border-radius: 5px;
-        border: none;
-        padding: 4px 4px 4px 10px;
-        margin: 2px;
+    .settings-heading {
+        letter-spacing: .5em;
     }
+
 
     .settings-body {
         display: flex;
@@ -66,15 +64,20 @@
             padding-right: 1em;
             display: flex;
             flex-direction: column;
+            flex-basis: 65%;
             justify-content: space-around;
-            // text-align: left;
+            text-align: left;
 
             ::placeholder {
                 color: $intermediate-color;
             }
 
             input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
                 min-width: 100%;
+                margin: 2px 0;
             }
 
             .error-text {
@@ -84,17 +87,16 @@
             .success-text {
                 color: #009F6B;
             }
+
+            p {
+                padding: 0 0 .1em .2em;
+            }
+
         }
     }
 
     .focus-span {
         text-decoration: underline;
-    }
-
-    p {
-        text-align: left;
-        padding: 0;
-        margin: 0 0 20px 0;
     }
 
     h1 {

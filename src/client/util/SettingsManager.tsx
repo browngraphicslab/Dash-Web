@@ -91,19 +91,20 @@ export default class SettingsManager extends React.Component<{}> {
                     </div>
                     {this.settingsContent === "password" ?
                         <div className="settings-content">
-                            change password here:
                             <input placeholder="current password" ref={this.curr_password_ref} />
                             <input placeholder="new password" ref={this.new_password_ref} />
                             <input placeholder="confirm new password" ref={this.new_confirm_ref} />
+                            <button onClick={this.dispatchRequest}>submit</button>
+                            <a href="/forgotPassword">forgot password?</a>
                             {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
                             {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
-                            <button onClick={this.dispatchRequest}>submit</button> <a href="/forgotPassword">forgot password?</a>
+
                         </div>
                         : undefined}
                     {this.settingsContent === "data" ?
                         <div className="settings-content">
-                            WARNING: <br />
-                            THIS WILL ERASE ALL YOUR CURRENT DOCUMENTS STORED ON DASH. IF YOU WISH TO PROCEED, CLICK THE BUTTON BELOW.
+                            <p>WARNING: <br />
+                                THIS WILL ERASE ALL YOUR CURRENT DOCUMENTS STORED ON DASH. IF YOU WISH TO PROCEED, CLICK THE BUTTON BELOW.</p>
                             <button className="delete-button">DELETE</button>
                         </div>
                         : undefined}
