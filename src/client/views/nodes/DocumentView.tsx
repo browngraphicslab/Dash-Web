@@ -29,7 +29,6 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DictationOverlay } from '../DictationOverlay';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { OverlayView } from '../OverlayView';
@@ -70,7 +69,7 @@ export interface DocumentViewProps {
     moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
-    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
+    showOverlays?: (doc: Doc) => { title?: string, titleHover?: string, caption?: string };
     ContentScaling: () => number;
     ruleProvider: Doc | undefined;
     PanelWidth: () => number;
@@ -273,7 +272,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
                 FormattedTextBoxComment.Hide();
-                this.Document.links?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0]!, this.props.Document)]));
+                this.Document.links?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0], this.props.Document)]));
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
@@ -675,7 +674,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        if (e.button === 0) {
+        if (e.button === 0 && !e.ctrlKey) {
             e.preventDefault();
             return;
         }
@@ -832,7 +831,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     chromeHeight = () => {
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        return (showTitle ? 25 : 0) + 1;
+        const showTitleHover = showOverlays && "titleHover" in showOverlays ? showOverlays.titleHover : StrCast(this.layoutDoc.showTitleHover);
+        return (showTitle && !showTitleHover ? 0 : 0) + 1;
     }
 
     @computed get finalLayoutKey() { return this.props.layoutKey || "layout"; }
@@ -842,6 +842,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
+            DataDoc={this.props.DataDoc}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
@@ -868,8 +869,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             isSelected={this.isSelected}
             select={this.select}
             onClick={this.onClickHandler}
-            layoutKey={this.finalLayoutKey}
-            DataDoc={this.props.DataDoc} />);
+            layoutKey={this.finalLayoutKey} />);
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
@@ -886,6 +886,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         TraceMobx();
         const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
         const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.getLayoutPropStr("showTitle"));
+        const showTitleHover = showOverlays && "titleHover" in showOverlays ? showOverlays.titleHover : StrCast(this.getLayoutPropStr("showTitleHover"));
         const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
         const showTextTitle = showTitle && StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
@@ -901,15 +902,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 />
             </div>);
         const titleView = (!showTitle ? (null) :
-            <div className="documentView-titleWrapper" style={{
+            <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} style={{
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
             }}>
                 <EditableView ref={this._titleRef}
-                    contents={this.Document[showTitle]}
+                    contents={(this.props.DataDoc || this.props.Document)[showTitle]}
                     display={"block"} height={72} fontSize={12}
-                    GetValue={() => StrCast(this.Document[showTitle])}
-                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.Document)[showTitle] = value) ? true : true)}
+                    GetValue={() => StrCast((this.props.DataDoc || this.props.Document)[showTitle])}
+                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[showTitle] = value) ? true : true)}
                 />
             </div>);
         return <>

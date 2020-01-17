@@ -9,6 +9,8 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
 import { StrCast } from "../../new_fields/Types";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -146,14 +148,17 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
-            <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
-                content={<ul className="template-list" ref={this._dragRef} style={{ display: this._hidden ? "none" : "block" }}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={<ul className="template-list" ref={this._dragRef} style={{ display: "block" }}>
                     {templateMenu}
                     {<button onClick={this.clearTemplates}>Restore Defaults</button>}
                 </ul>}>
-                <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
+                <span className="parentDocumentSelector-button" >
+                    <FontAwesomeIcon icon={faEdit} size={"lg"} />
+                </span>
+                {/* <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
                     <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                </div>
+                </div> */}
             </Flyout>
         );
     }

@@ -436,4 +436,4 @@ export default class GestureOverlay extends Touchable {
 
 Scripting.addGlobal("GestureOverlay", GestureOverlay);
 Scripting.addGlobal(function setPen(width: any, color: any) { runInAction(() => { GestureOverlay.Instance.Color = color; GestureOverlay.Instance.Width = width; }); });
-Scripting.addGlobal(function resetPen() { runInAction(() => { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; })); });
+Scripting.addGlobal(function resetPen() { runInAction(() => { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; }); }); });

@@ -5,11 +5,11 @@ import * as path from 'path';
 import { Database } from './database';
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './server_initialization';
+import initializeServer from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
-import { SearchManager, SolrManager } from './ApiManagers/SearchManager';
+import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
@@ -17,16 +17,17 @@ import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
-import { log_execution, Email } from "./ActionUtilities";
+import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
-import { yellow, red } from "colors";
-import { Session } from "./Session/session";
-import { DashSessionAgent } from "./DashSession";
+import { yellow } from "colors";
+import { DashSessionAgent } from "./DashSession/DashSessionAgent";
+import SessionManager from "./ApiManagers/SessionManager";
+import { AppliedSessionAgent } from "resilient-server-session";
 
 export const onWindows = process.platform === "win32";
-export let sessionAgent: Session.AppliedSessionAgent;
+export let sessionAgent: AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
 export const filesDirectory = path.resolve(publicDirectory, "files");
 
@@ -40,11 +41,13 @@ async function preliminaryFunctions() {
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     await DashUploadUtils.buildFileDirectories();
-    await log_execution({
-        startMessage: "attempting to initialize mongodb connection",
-        endMessage: "connection outcome determined",
-        action: Database.tryInitializeConnection
-    });
+    if (process.env.DB !== "MEM") {
+        await log_execution({
+            startMessage: "attempting to initialize mongodb connection",
+            endMessage: "connection outcome determined",
+            action: Database.tryInitializeConnection
+        });
+    }
 }
 
 /**
@@ -58,6 +61,7 @@ async function preliminaryFunctions() {
  */
 function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: RouteManager) {
     const managers = [
+        new SessionManager(),
         new UserManager(),
         new UploadManager(),
         new DownloadManager(),
@@ -86,21 +90,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: "/serverHeartbeat",
         secureHandler: ({ res }) => res.send(true)
-    });
-
-    addSupervisedRoute({
-        method: Method.GET,
-        subscription: new RouteSubscriber("kill").add("key"),
-        secureHandler: ({ req, res }) => {
-            if (req.params.key === process.env.session_key) {
-                res.send("<img src='https://media.giphy.com/media/NGIfqtcS81qi4/giphy.gif' style='width:100%;height:100%;'/>");
-                setTimeout(() => {
-                    sessionAgent.killSession("an authorized user has manually ended the server session via the /kill route", false);
-                }, 5000);
-            } else {
-                res.redirect("/home");
-            }
-        }
     });
 
     const serve: PublicHandler = ({ req, res }) => {

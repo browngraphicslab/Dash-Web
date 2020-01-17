@@ -47,6 +47,8 @@ import { AudioBox } from './AudioBox';
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
+import RichTextMenu from '../../util/RichTextMenu';
+import { DocumentDecorations } from '../DocumentDecorations';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -909,6 +911,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         prosediv && (prosediv.keeplocation = undefined);
         const pos = this._editorView?.state.selection.$from.pos || 1;
         keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
+
+        // jump rich text menu to this textbox
+        const { current } = this._ref;
+        if (current) {
+            const x = Math.min(Math.max(current.getBoundingClientRect().left, 0), window.innerWidth - RichTextMenu.Instance.width);
+            const y = this._ref.current!.getBoundingClientRect().top - RichTextMenu.Instance.height - 50;
+            RichTextMenu.Instance.jumpTo(x, y);
+        }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
@@ -930,7 +940,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             }
             if (!node && this.ProseRef) {
                 const lastNode = this.ProseRef.children[this.ProseRef.children.length - 1].children[this.ProseRef.children[this.ProseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
-                if (e.clientY > lastNode.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
+                if (e.clientY > lastNode?.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
                     this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
                 }
             }
@@ -1032,7 +1042,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                // return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
+                RichTextMenu.Instance.changeView(newView);
+                return RichTextMenu.Instance;
             }
         });
     }
@@ -1052,6 +1064,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             this._undoTyping = undefined;
         }
         this.doLinkOnDeselect();
+
+        // move the richtextmenu offscreen
+        if (!RichTextMenu.Instance.Pinned && !RichTextMenu.Instance.overMenu) RichTextMenu.Instance.jumpTo(-300, -300);
     }
 
     _lastTimedMark: Mark | undefined = undefined;
@@ -1121,7 +1136,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
+            // TODO: ftong --> update from dash in richtextmenu
+            RichTextMenu.Instance.updateFromDash(this._editorView!, undefined, this.props);
+            // FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }

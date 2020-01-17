@@ -39,8 +39,6 @@ interface ContentFittingDocumentViewProps {
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
-    setPreviewScript: (script: string) => void;
-    previewScript?: string;
 }
 
 @observer
@@ -50,11 +48,11 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     private get nativeWidth() { return NumCast(this.layoutDoc?.nativeWidth, this.props.PanelWidth()); }
     private get nativeHeight() { return NumCast(this.layoutDoc?.nativeHeight, this.props.PanelHeight()); }
     private contentScaling = () => {
-        const wscale = this.props.PanelWidth() / (this.nativeWidth ? this.nativeWidth : this.props.PanelWidth());
+        const wscale = this.props.PanelWidth() / (this.nativeWidth || this.props.PanelWidth() || 1);
         if (wscale * this.nativeHeight > this.props.PanelHeight()) {
-            return this.props.PanelHeight() / (this.nativeHeight ? this.nativeHeight : this.props.PanelHeight());
+            return (this.props.PanelHeight() / (this.nativeHeight || this.props.PanelHeight() || 1)) || 1;
         }
-        return wscale;
+        return wscale || 1;
     }
 
     @undoBatch

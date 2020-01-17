@@ -9,7 +9,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, DateCast, NumCast, StrCast, FieldValue } from "../../../../new_fields/Types";
+import { BoolCast, Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
@@ -57,6 +57,8 @@ export const panZoomSchema = createSchema({
     useClusters: "boolean",
     isRuleProvider: "boolean",
     fitToBox: "boolean",
+    xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     panTransformType: "string",
     scrollHeight: "number",
     fitX: "number",
@@ -83,7 +85,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get fitToContent() { return (this.props.fitToBox || this.Document.fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
-    @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)); }
+    @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc.xPadding, 10), NumCast(this.layoutDoc.yPadding, 10)); }
     @computed get nativeWidth() { return this.Document.fitToContent ? 0 : this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.fitToContent ? 0 : this.Document.nativeHeight || 0; }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
@@ -684,6 +686,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getScale = () => this.Document.scale || 1;
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
+    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -693,7 +696,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             LibraryPath: this.libraryPath,
             layoutKey: undefined,
             ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
-            onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
+            //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
+            onClick: this.onChildClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
             PanelWidth: childLayout[WidthSym],
@@ -746,7 +750,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
-            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), this.viewDefsToJSX);
+            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doFreeformLayout(poolData: ObservableMap<string, any>) {
@@ -774,9 +778,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         this.childLayoutPairs.filter((pair, i) => this.isCurrent(pair.layout)).forEach(pair =>
             computedElementData.elements.push({
-                ele: <CollectionFreeFormDocumentView key={pair.layout[Id]} dataProvider={this.childDataProvider}
+                ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
+                    dataProvider={this.childDataProvider}
                     ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
-                    jitterRotation={NumCast(this.props.Document.jitterRotation)} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
+                    jitterRotation={NumCast(this.props.Document.jitterRotation)}
+                    fitToBox={this.props.fitToBox || this.Document.freeformLayoutEngine === "pivot"} />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 
@@ -983,6 +989,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             </CollectionFreeFormViewPannableContents>
         </MarqueeView>;
     }
+    @computed get contentScaling() {
+        const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
+        const wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
+        return wscale < hscale ? wscale : hscale;
+    }
     render() {
         TraceMobx();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
@@ -994,9 +1005,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         if (!this.extensionDoc) return (null);
         // let lodarea = this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale;
-        return <div className={"collectionfreeformview-container"} ref={this.createDashEventsTarget} onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
-            style={{ pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined, height: this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight() }}
-            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}>
+        return <div className={"collectionfreeformview-container"}
+            ref={this.createDashEventsTarget}
+            onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}
+            style={{
+                pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+                transform: this.contentScaling ? `scale(${this.contentScaling})` : "",
+                transformOrigin: this.contentScaling ? "left top" : "",
+                width: this.contentScaling ? `${100 / this.contentScaling}%` : "",
+                height: this.contentScaling ? `${100 / this.contentScaling}%` : this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
+            }}>
             {!this.Document.LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />

@@ -56,8 +56,17 @@ export namespace Templates {
                 <div style="width:100%;overflow:auto">{layout}</div>
             </div>
         </div>` );
+    export const TitleHover = new Template("TitleHover", TemplatePosition.InnerTop,
+        `<div>
+            <div style="height:25px; width:100%; background-color: rgba(0, 0, 0, .4); color: white; z-index: 100">
+                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>
+            </div>
+            <div style="height:calc(100% - 25px);">
+                <div style="width:100%;overflow:auto">{layout}</div>
+            </div>
+        </div>` );
 
-    export const TemplateList: Template[] = [Title, Caption];
+    export const TemplateList: Template[] = [Title, TitleHover, Caption];
 
     export function sortTemplates(a: Template, b: Template) {
         if (a.Position < b.Position) { return -1; }

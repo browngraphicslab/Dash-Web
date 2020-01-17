@@ -55,7 +55,7 @@
             position: absolute;
         }
 
-        .documentView-titleWrapper {
+        .documentView-titleWrapper, .documentView-titleWrapper-hover {
             overflow: hidden;
             color: white;
             transform-origin: top left;
@@ -67,6 +67,9 @@
             text-align: center;
             text-overflow: ellipsis;
             white-space: pre;
+        }
+        .documentView-titleWrapper-hover {
+            display:none;
         }
 
         .documentView-searchHighlight {
@@ -85,4 +88,12 @@
         }
     }
 
+}
+
+.documentView-node:hover, .documentView-node-topmost:hover {
+    > .documentView-styleWrapper {
+        > .documentView-titleWrapper-hover {
+            display:inline-block;
+        }
+    }
 }

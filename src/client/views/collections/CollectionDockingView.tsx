@@ -34,6 +34,7 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { TraceMobx } from '../../../new_fields/util';
+import { Scripting } from '../../util/Scripting';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -177,7 +178,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @undoBatch
     @action
-    public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, minimize: boolean = false, libraryPath?: Doc[]) {
+    public static AddRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
@@ -202,14 +203,41 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             collayout.config.width = 50;
             newContentItem.config.width = 50;
         }
-        if (minimize) {
-            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
-            // newContentItem.config.width = 10;
-            // newContentItem.config.height = 10;
-        }
         newContentItem.callDownwards('_$init');
         instance.layoutChanged();
         return true;
+    }
+    //
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //
+    @undoBatch
+    @action
+    public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        if (instance._goldenLayout.root.contentItems[0].isRow) {
+            let found: DocumentView | undefined;
+            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.props.Document.isDisplayPanel) {
+                    found = DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!;
+                } else {
+                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.props.Document.isDisplayPanel) {
+                            found = DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!;
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+            });
+            if (found) {
+                Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
+            } else {
+                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" });
+                CollectionDockingView.AddRightSplit(stackView, undefined, []);
+            }
+        }
     }
 
     @undoBatch
@@ -674,7 +702,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (doc.dockingConfig) {
             return MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
-            return CollectionDockingView.AddRightSplit(doc, dataDoc, undefined, libraryPath);
+            return CollectionDockingView.AddRightSplit(doc, dataDoc, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
         } else {
@@ -724,3 +752,5 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             </div >);
     }
 }
+Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc, undefined); });
+Scripting.addGlobal(function useRightSplit(doc: any) { CollectionDockingView.UseRightSplit(doc, undefined); });

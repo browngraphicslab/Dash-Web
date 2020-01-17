@@ -214,37 +214,23 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
     _curSuffix = "_m";
 
-    _resized = false;
-    resize = (srcpath: string) => {
-        requestImageSize(srcpath)
+    _resized = "";
+    resize = (imgPath: string) => {
+        requestImageSize(imgPath)
             .then((size: any) => {
                 const rotation = NumCast(this.dataDoc.rotation) % 180;
                 const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
                 const aspect = realsize.height / realsize.width;
                 if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
                     setTimeout(action(() => {
-                        this._resized = true;
-                        this.Document.height = this.Document[WidthSym]() * aspect;
-                        this.Document.nativeHeight = realsize.height;
-                        this.Document.nativeWidth = realsize.width;
+                        if (this.pathInfos.srcpath === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
+                            this._resized = imgPath;
+                            this.Document.height = this.Document[WidthSym]() * aspect;
+                            this.Document.nativeHeight = realsize.height;
+                            this.Document.nativeWidth = realsize.width;
+                        }
                     }), 0);
-                } else this._resized = true;
-            })
-            .catch((err: any) => console.log(err));
-    }
-    fadesize = (srcpath: string) => {
-        requestImageSize(srcpath)
-            .then((size: any) => {
-                const rotation = NumCast(this.dataDoc.rotation) % 180;
-                const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
-                const aspect = realsize.height / realsize.width;
-                if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
-                    setTimeout(action(() => {
-                        this.Document.height = this.Document[WidthSym]() * aspect;
-                        this.Document.nativeHeight = realsize.height;
-                        this.Document.nativeWidth = realsize.width;
-                    }), 0);
-                }
+                } else this._resized = imgPath;
             })
             .catch((err: any) => console.log(err));
     }
@@ -285,18 +271,16 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return !tags ? (null) : (<img id={"google-tags"} src={"/assets/google_tags.png"} />);
     }
 
-    @computed get content() {
-        TraceMobx();
-        const extensionDoc = this.extensionDoc;
-        if (!extensionDoc) return (null);
-        // let transform = this.props.ScreenToLocalTransform().inverse();
+    @computed get nativeSize() {
         const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
-        // var [sptX, sptY] = transform.transformPoint(0, 0);
-        // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
-        // let w = bptX - sptX;
-
         const nativeWidth = (this.Document.nativeWidth || pw);
         const nativeHeight = (this.Document.nativeHeight || 1);
+        return { nativeWidth, nativeHeight };
+    }
+
+    @computed get pathInfos() {
+        const extensionDoc = this.extensionDoc!;
+        const { nativeWidth, nativeHeight } = this.nativeSize;
         let paths = [[Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png"), nativeWidth / nativeHeight]];
         // this._curSuffix = "";
         // if (w > 20) {
@@ -308,15 +292,24 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
         if (field instanceof ImageField) paths = [[this.choosePath(field.url), nativeWidth / nativeHeight]];
         paths.push(...altpaths);
-        // }
-        const rotation = NumCast(this.Document.rotation, 0);
-        const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
-        const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
         const srcpath = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][0] as string;
         const srcaspect = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][1] as number;
         const fadepath = paths[Math.min(paths.length - 1, 1)][0] as string;
+        return { srcpath, srcaspect, fadepath };
+    }
 
-        !this.Document.ignoreAspect && !this._resized && this.resize(srcpath);
+    @computed get content() {
+        TraceMobx();
+        const extensionDoc = this.extensionDoc;
+        if (!extensionDoc) return (null);
+
+        const { srcpath, srcaspect, fadepath } = this.pathInfos;
+        const { nativeWidth, nativeHeight } = this.nativeSize;
+        const rotation = NumCast(this.Document.rotation, 0);
+        const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
+        const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
+
+        !this.Document.ignoreAspect && this._resized !== srcpath && this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
             <div className="imageBox-fader" >

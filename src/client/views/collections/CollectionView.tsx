@@ -4,36 +4,38 @@ import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagra
 import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
+import Lightbox from 'react-image-lightbox-with-rotate';
+import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
+import { DateField } from '../../../new_fields/DateField';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { StrCast, BoolCast, Cast } from '../../../new_fields/Types';
+import { listSpec } from '../../../new_fields/Schema';
+import { BoolCast, Cast, StrCast } from '../../../new_fields/Types';
+import { ImageField } from '../../../new_fields/URLField';
+import { TraceMobx } from '../../../new_fields/util';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { Utils } from '../../../Utils';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { DocumentManager } from '../../util/DocumentManager';
+import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from "../ContextMenu";
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import { ScriptBox } from '../ScriptBox';
+import { Touchable } from '../Touchable';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionMulticolumnView } from './CollectionMulticolumnView';
+import { CollectionPivotView } from './CollectionPivotView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
-import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { ImageUtils } from '../../util/Import & Export/ImageUtils';
-import { CollectionLinearView } from '../CollectionLinearView';
 import { CollectionStaffView } from './CollectionStaffView';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { ImageField } from '../../../new_fields/URLField';
-import { DocListCast } from '../../../new_fields/Doc';
-import Lightbox from 'react-image-lightbox-with-rotate';
-import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
-export const COLLECTION_BORDER_WIDTH = 2;
-import { DateField } from '../../../new_fields/DateField';
-import { Doc, } from '../../../new_fields/Doc';
-import { listSpec } from '../../../new_fields/Schema';
-import { DocumentManager } from '../../util/DocumentManager';
-import { SelectionManager } from '../../util/SelectionManager';
+import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { FieldViewProps, FieldView } from '../nodes/FieldView';
-import { Touchable } from '../Touchable';
-import { TraceMobx } from '../../../new_fields/util';
-import { Utils } from '../../../Utils';
+import { CollectionViewBaseChrome } from './CollectionViewChromes';
+export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -47,7 +49,8 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
-    Staff
+    Staff,
+    Multicolumn
 }
 
 export namespace CollectionViewType {
@@ -60,7 +63,8 @@ export namespace CollectionViewType {
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
         ["pivot", CollectionViewType.Pivot],
-        ["linear", CollectionViewType.Linear]
+        ["linear", CollectionViewType.Linear],
+        ["multicolumn", CollectionViewType.Multicolumn]
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
@@ -172,10 +176,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView key="collview" {...props} />); }
+            case CollectionViewType.Pivot: { return (<CollectionPivotView key="collview" {...props} />); }
             case CollectionViewType.Freeform:
             default: { this.props.Document.freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -213,6 +218,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 }, icon: "ellipsis-v"
             });
             subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
+            subItems.push({ description: "Multicolumn", event: () => this.props.Document.viewType = CollectionViewType.Multicolumn, icon: "columns" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document.viewType) {
@@ -233,6 +239,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
             const moreItems = more && "subitems" in more ? more.subitems : [];
             moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
             !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+
+            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
         }
     }
 

@@ -22,7 +22,7 @@ import { Docs, DocumentOptions } from '../documents/Documents';
 import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
-import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionViewType, CollectionView } from './collections/CollectionView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
@@ -41,6 +41,7 @@ import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
 import { TraceMobx } from '../../new_fields/util';
 import { RadialMenu } from './nodes/RadialMenu';
+import RichTextMenu from '../util/RichTextMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -352,7 +353,7 @@ export class MainView extends React.Component {
     addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
             doc.dockingConfig ? this.openWorkspace(doc) :
-                CollectionDockingView.AddRightSplit(doc, undefined, undefined, libraryPath);
+                CollectionDockingView.AddRightSplit(doc, undefined, libraryPath);
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
@@ -522,6 +523,7 @@ export class MainView extends React.Component {
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
+            <RichTextMenu />
             <OverlayView />
         </div >);
     }

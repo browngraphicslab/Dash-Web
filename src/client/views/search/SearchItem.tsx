@@ -172,8 +172,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     moveDocument={returnFalse}
                     active={returnFalse}
                     whenActiveChanged={returnFalse}
-                    setPreviewScript={emptyFunction}
-                    previewScript={undefined}
                 />
             </div>;
             return docview;

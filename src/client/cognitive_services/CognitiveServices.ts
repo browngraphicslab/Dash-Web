@@ -137,7 +137,7 @@ export namespace CognitiveServices {
                 let id = 0;
                 const strokes: AzureStrokeData[] = inkData.map(points => ({
                     id: id++,
-                    points: points.map(({ x, y }) => `${x},${y}`).join(","),
+                    points: points.map(({ X: x, Y: y }) => `${x},${y}`).join(","),
                     language: "en-US"
                 }));
                 return JSON.stringify({
@@ -153,7 +153,7 @@ export namespace CognitiveServices {
                 const serverAddress = "https://api.cognitive.microsoft.com";
                 const endpoint = serverAddress + "/inkrecognizer/v1.0-preview/recognize";
 
-                const promisified = (resolve: any, reject: any) => {
+                return new Promise<string>((resolve, reject) => {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4) {
                             const result = xhttp.responseText;
@@ -171,11 +171,8 @@ export namespace CognitiveServices {
                     xhttp.setRequestHeader('Ocp-Apim-Subscription-Key', apiKey);
                     xhttp.setRequestHeader('Content-Type', 'application/json');
                     xhttp.send(body);
-                };
-
-                return new Promise<any>(promisified);
+                });
             },
-
         };
 
         export namespace Appliers {

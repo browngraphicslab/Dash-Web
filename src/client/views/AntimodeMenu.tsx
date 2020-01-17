@@ -18,8 +18,12 @@ export default abstract class AntimodeMenu extends React.Component {
     @observable protected _opacity: number = 1;
     @observable protected _transition: string = "opacity 0.5s";
     @observable protected _transitionDelay: string = "";
+    @observable protected _canFade: boolean = true;
 
     @observable public Pinned: boolean = false;
+
+    get width() { return this._mainCont.current ? this._mainCont.current.getBoundingClientRect().width : 0; }
+    get height() { return this._mainCont.current ? this._mainCont.current.getBoundingClientRect().height : 0; }
 
     @action
     /**
@@ -62,7 +66,7 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected pointerLeave = (e: React.PointerEvent) => {
-        if (!this.Pinned) {
+        if (!this.Pinned && this._canFade) {
             this._transition = "opacity 0.5s";
             this._transitionDelay = "1s";
             this._opacity = 0.2;
@@ -88,8 +92,8 @@ export default abstract class AntimodeMenu extends React.Component {
         document.removeEventListener("pointerup", this.dragEnd);
         document.addEventListener("pointerup", this.dragEnd);
 
-        this._offsetX = this._mainCont.current!.getBoundingClientRect().width - e.nativeEvent.offsetX;
-        this._offsetY = e.nativeEvent.offsetY;
+        this._offsetX = e.pageX - this._mainCont.current!.getBoundingClientRect().left;
+        this._offsetY = e.pageY - this._mainCont.current!.getBoundingClientRect().top;
 
         e.stopPropagation();
         e.preventDefault();
@@ -97,8 +101,14 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected dragging = (e: PointerEvent) => {
-        this._left = e.pageX - this._offsetX;
-        this._top = e.pageY - this._offsetY;
+        const width = this._mainCont.current!.getBoundingClientRect().width;
+        const height = this._mainCont.current!.getBoundingClientRect().height;
+
+        const left = e.pageX - this._offsetX;
+        const top = e.pageY - this._offsetY;
+
+        this._left = Math.min(Math.max(left, 0), window.innerWidth - width);
+        this._top = Math.min(Math.max(top, 0), window.innerHeight - height);
 
         e.stopPropagation();
         e.preventDefault();
@@ -116,12 +126,26 @@ export default abstract class AntimodeMenu extends React.Component {
         e.preventDefault();
     }
 
+    protected getDragger = () => {
+        return <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />;
+    }
+
     protected getElement(buttons: JSX.Element[]) {
         return (
             <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
                 style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay }}>
                 {buttons}
                 <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />
+            </div>
+        );
+    }
+
+    protected getElementWithRows(rows: JSX.Element[], numRows: number, hasDragger: boolean = true) {
+        return (
+            <div className="antimodeMenu-cont with-rows" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
+                style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay, height: 35 * numRows + "px" }}>
+                {rows}
+                {hasDragger ? <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} /> : <></>}
             </div>
         );
     }
