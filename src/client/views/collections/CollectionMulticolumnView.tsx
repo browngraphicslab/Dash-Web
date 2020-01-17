@@ -20,11 +20,6 @@ interface Unresolved {
     unit: string;
 }
 
-interface Resolved {
-    target: Doc;
-    pixels: number;
-}
-
 interface LayoutData {
     unresolved: Unresolved[];
     numFixed: number;
@@ -65,9 +60,13 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             // space is allocated as if the document were absent from the configuration list
         }
 
+
         setTimeout(() => {
-            const minimum = Math.min(...this.ratioDefinedDocs.map(({ widthMagnitude }) => NumCast(widthMagnitude)));
-            this.ratioDefinedDocs.forEach(layout => layout.widthMagnitude = NumCast(layout.widthMagnitude) / minimum);
+            const { ratioDefinedDocs } = this;
+            if (ratioDefinedDocs.length > 1) {
+                const minimum = Math.min(...ratioDefinedDocs.map(({ widthMagnitude }) => NumCast(widthMagnitude)));
+                ratioDefinedDocs.forEach(layout => layout.widthMagnitude = NumCast(layout.widthMagnitude) / minimum);
+            }
         });
 
         return { unresolved, numRatio, numFixed, starSum };
@@ -203,7 +202,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
 }
 
-interface SpacerProps {
+interface ResizerProps {
     width: number;
     columnUnitLength(): number | undefined;
     toLeft?: Doc;
@@ -211,9 +210,9 @@ interface SpacerProps {
 }
 
 @observer
-class ResizeBar extends React.Component<SpacerProps> {
+class ResizeBar extends React.Component<ResizerProps> {
     @observable private isHoverActive = false;
-    private isResizingActive = false;
+    @observable private isResizingActive = false;
 
     private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
@@ -222,21 +221,30 @@ class ResizeBar extends React.Component<SpacerProps> {
         window.removeEventListener("pointerup", this.onPointerUp);
         window.addEventListener("pointermove", this.onPointerMove);
         window.addEventListener("pointerup", this.onPointerUp);
+        this.isResizingActive = true;
     }
 
     private onPointerMove = ({ movementX }: PointerEvent) => {
         const { toLeft, toRight, columnUnitLength } = this.props;
-        const target = movementX > 0 ? toRight : toLeft;
-        let scale = columnUnitLength();
-        if (target && scale) {
-            const { widthUnit, widthMagnitude } = target;
-            scale = widthUnit === "*" ? scale : 1;
-            target.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
+        const movingRight = movementX > 0;
+        const toNarrow = movingRight ? toRight : toLeft;
+        const toWiden = movingRight ? toLeft : toRight;
+        const unitLength = columnUnitLength();
+        if (unitLength) {
+            if (toNarrow) {
+                const { widthUnit, widthMagnitude } = toNarrow;
+                const scale = widthUnit === "*" ? unitLength : 1;
+                toNarrow.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
+            }
+            if (toWiden) {
+                const { widthUnit, widthMagnitude } = toWiden;
+                const scale = widthUnit === "*" ? unitLength : 1;
+                toWiden.widthMagnitude = NumCast(widthMagnitude) + Math.abs(movementX) / scale;
+            }
         }
     }
 
     private get isActivated() {
-        this.isResizingActive = true;
         const { toLeft, toRight } = this.props;
         if (toLeft && toRight) {
             if (StrCast(toLeft.widthUnit) === "px" && StrCast(toRight.widthUnit) === "px") {
