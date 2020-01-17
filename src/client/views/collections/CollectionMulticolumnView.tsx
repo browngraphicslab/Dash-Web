@@ -1,14 +1,15 @@
 import { observer } from 'mobx-react';
 import { makeInterface } from '../../../new_fields/Schema';
 import { documentSchema } from '../../../new_fields/documentSchemas';
-import { CollectionSubView } from './CollectionSubView';
+import { CollectionSubView, SubCollectionViewProps } from './CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../new_fields/Doc';
-import { NumCast, StrCast } from '../../../new_fields/Types';
+import { NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
 import { ContentFittingDocumentView } from './../nodes/ContentFittingDocumentView';
 import { Utils } from '../../../Utils';
 import "./collectionMulticolumnView.scss";
-import { computed } from 'mobx';
+import { computed, trace, observable, action } from 'mobx';
+import { Transform } from '../../util/Transform';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -33,16 +34,24 @@ interface LayoutData {
 
 const resolvedUnits = ["*", "px"];
 const resizerWidth = 2;
+const resizerOpacity = 1;
 
 @observer
 export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
+
+    @computed
+    private get ratioDefinedDocs() {
+        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ widthUnit }) => StrCast(widthUnit) === "*");
+    }
+
     @computed
     private get resolvedLayoutInformation(): LayoutData {
         const unresolved: Unresolved[] = [];
         let starSum = 0, numFixed = 0, numRatio = 0;
-        for (const pair of this.childLayoutPairs) {
-            const unit = StrCast(pair.layout.widthUnit);
-            const magnitude = NumCast(pair.layout.widthMagnitude);
+
+        for (const { layout } of this.childLayoutPairs) {
+            const unit = StrCast(layout.widthUnit);
+            const magnitude = NumCast(layout.widthMagnitude);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 if (unit === "*") {
                     starSum += magnitude;
@@ -50,11 +59,17 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 } else {
                     numFixed++;
                 }
-                unresolved.push({ target: pair.layout, magnitude, unit });
+                unresolved.push({ target: layout, magnitude, unit });
             }
             // otherwise, the particular configuration entry is ignored and the remaining
             // space is allocated as if the document were absent from the configuration list
         }
+
+        setTimeout(() => {
+            const minimum = Math.min(...this.ratioDefinedDocs.map(({ widthMagnitude }) => NumCast(widthMagnitude)));
+            this.ratioDefinedDocs.forEach(layout => layout.widthMagnitude = NumCast(layout.widthMagnitude) / minimum);
+        });
+
         return { unresolved, numRatio, numFixed, starSum };
     }
 
@@ -84,8 +99,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     @computed
     private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation?.unresolved.length;
-        if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined)
+        if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
             return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1));
+        }
     }
 
     /**
@@ -107,48 +123,68 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         }
     }
 
+    private getColumnUnitLength = () => this.columnUnitLength;
+
+    private lookupPixels = (layout: Doc): number => {
+        const columnUnitLength = this.columnUnitLength;
+        if (columnUnitLength === undefined) {
+            return 0; // we're still waiting on promises to resolve
+        }
+        let width = NumCast(layout.widthMagnitude);
+        if (StrCast(layout.widthUnit) === "*") {
+            width *= columnUnitLength;
+        }
+        return width;
+    }
+
+    private lookupIndividualTransform = (layout: Doc) => {
+        const columnUnitLength = this.columnUnitLength;
+        if (columnUnitLength === undefined) {
+            return Transform.Identity(); // we're still waiting on promises to resolve
+        }
+        let offset = 0;
+        for (const { layout: candidate } of this.childLayoutPairs) {
+            if (candidate === layout) {
+                const shift = offset;
+                return this.props.ScreenToLocalTransform().translate(-shift, 0);
+            }
+            offset += this.lookupPixels(candidate) + resizerWidth;
+        }
+        return Transform.Identity(); // type coersion, this case should never be hit
+    }
+
     @computed
     private get contents(): JSX.Element[] | null {
-        const layout = this.resolvedLayoutInformation;
-        const columnUnitLength = this.columnUnitLength;
-        if (layout === null || columnUnitLength === undefined) {
-            return (null); // we're still waiting on promises to resolve
-        }
-        const resolved: Resolved[] = [];
-        layout.unresolved.forEach(item => {
-            const { unit, magnitude, ...remaining } = item;
-            let width = magnitude;
-            if (unit === "*") {
-                width = magnitude * columnUnitLength;
-            }
-            resolved.push({ pixels: width, ...remaining });
-        });
+        trace();
+        const { childLayoutPairs } = this;
+        const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
-        let offset = 0;
-        for (let i = 0; i < resolved.length; i++) {
-            const { target, pixels } = resolved[i];
-            const shiftX = offset;
+        for (let i = 0; i < childLayoutPairs.length; i++) {
+            const { layout } = childLayoutPairs[i];
             collector.push(
-                <div className={"fish"}>
+                <div className={"document-wrapper"}>
                     <ContentFittingDocumentView
                         {...this.props}
                         key={Utils.GenerateGuid()}
-                        Document={target}
-                        DataDocument={target.resolvedDataDoc as Doc}
-                        PanelWidth={() => pixels}
-                        getTransform={() => this.props.ScreenToLocalTransform().translate(-shiftX, 0)}
+                        Document={layout}
+                        DataDocument={layout.resolvedDataDoc as Doc}
+                        PanelWidth={() => this.lookupPixels(layout)}
+                        PanelHeight={() => PanelHeight() - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
+                        getTransform={() => this.lookupIndividualTransform(layout)}
                     />
-                    <span className={"display"}>{NumCast(target.widthMagnitude).toFixed(3)} {StrCast(target.widthUnit)}</span>
+                    <WidthLabel
+                        layout={layout}
+                        collectionDoc={Document}
+                    />
                 </div>,
                 <ResizeBar
                     width={resizerWidth}
                     key={Utils.GenerateGuid()}
-                    columnUnitLength={columnUnitLength}
-                    toLeft={target}
-                    toRight={resolved[i + 1]?.target}
+                    columnUnitLength={this.getColumnUnitLength}
+                    toLeft={layout}
+                    toRight={childLayoutPairs[i + 1]?.layout}
                 />
             );
-            offset += pixels + resizerWidth;
         }
         collector.pop(); // removes the final extraneous resize bar
         return collector;
@@ -156,7 +192,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMulticolumnView_contents"}>
+            <div
+                className={"collectionMulticolumnView_contents"}
+                ref={this.createDropTarget}
+            >
                 {this.contents}
             </div>
         );
@@ -166,12 +205,15 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
 interface SpacerProps {
     width: number;
-    columnUnitLength: number;
+    columnUnitLength(): number | undefined;
     toLeft?: Doc;
     toRight?: Doc;
 }
 
+@observer
 class ResizeBar extends React.Component<SpacerProps> {
+    @observable private isHoverActive = false;
+    private isResizingActive = false;
 
     private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
@@ -185,36 +227,40 @@ class ResizeBar extends React.Component<SpacerProps> {
     private onPointerMove = ({ movementX }: PointerEvent) => {
         const { toLeft, toRight, columnUnitLength } = this.props;
         const target = movementX > 0 ? toRight : toLeft;
-        if (target) {
+        let scale = columnUnitLength();
+        if (target && scale) {
             const { widthUnit, widthMagnitude } = target;
-            if (widthUnit === "*") {
-                target.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / columnUnitLength;
-            }
+            scale = widthUnit === "*" ? scale : 1;
+            target.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
         }
     }
 
-    private get opacity() {
+    private get isActivated() {
+        this.isResizingActive = true;
         const { toLeft, toRight } = this.props;
         if (toLeft && toRight) {
             if (StrCast(toLeft.widthUnit) === "px" && StrCast(toRight.widthUnit) === "px") {
-                return 0;
+                return false;
             }
-            return 0.4;
+            return true;
         } else if (toLeft) {
             if (StrCast(toLeft.widthUnit) === "px") {
-                return 0;
+                return false;
             }
-            return 0.4;
+            return true;
         } else if (toRight) {
             if (StrCast(toRight.widthUnit) === "px") {
-                return 0;
+                return false;
             }
-            return 0.4;
+            return true;
         }
-        return 0;
+        return false;
     }
 
+    @action
     private onPointerUp = () => {
+        this.isResizingActive = false;
+        this.isHoverActive = false;
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
     }
@@ -225,11 +271,36 @@ class ResizeBar extends React.Component<SpacerProps> {
                 className={"resizer"}
                 style={{
                     width: this.props.width,
-                    opacity: this.opacity
+                    opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
                 }}
                 onPointerDown={this.registerResizing}
+                onPointerEnter={action(() => this.isHoverActive = true)}
+                onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
             />
         );
+    }
+
+}
+
+interface WidthLabelProps {
+    layout: Doc;
+    collectionDoc: Doc;
+    decimals?: number;
+}
+
+@observer
+class WidthLabel extends React.Component<WidthLabelProps> {
+
+    @computed
+    private get contents() {
+        const { layout, decimals } = this.props;
+        const magnitude = NumCast(layout.widthMagnitude).toFixed(decimals ?? 3);
+        const unit = StrCast(layout.widthUnit);
+        return <span className={"display"}>{magnitude} {unit}</span>;
+    }
+
+    render() {
+        return BoolCast(this.props.collectionDoc.showWidthLabels) ? this.contents : (null);
     }
 
 }
