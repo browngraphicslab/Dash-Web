@@ -44,6 +44,7 @@ import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
 import { List } from '../../../new_fields/List';
 import { FormattedTextBoxComment } from './FormattedTextBoxComment';
+import { CollectionStackingView } from '../collections/CollectionStackingView';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -553,6 +554,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
+    setNarrativeView = (custom: boolean): void => {
+        if (custom) {
+            this.props.Document.layout_narrative = CollectionView.LayoutString("narrative");
+            this.props.Document.nativeWidth = this.props.Document.nativeHeight = undefined;
+            !this.props.Document.narrative && (Doc.GetProto(this.props.Document).narrative = new List<Doc>([]));
+            this.props.Document.viewType = CollectionViewType.Stacking;
+            this.props.Document.layoutKey = "layout_narrative";
+        } else {
+            DocumentView.makeNativeViewClicked(this.props.Document)
+        }
+    }
+
+    @undoBatch
+    @action
     setCustomView = (custom: boolean): void => {
         if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
@@ -744,7 +759,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (showTitle && !showTitleHover ? 0 : 0) + 1;
     }
 
-    @computed get finalLayoutKey() { return this.props.layoutKey || "layout"; }
+    @computed get finalLayoutKey() { return this.props.layoutKey || StrCast(this.props.Document.layoutKey, "layout"); }
     childScaling = () => (this.layoutDoc.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();

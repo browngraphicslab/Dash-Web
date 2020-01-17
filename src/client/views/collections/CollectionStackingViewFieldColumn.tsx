@@ -18,6 +18,9 @@ import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
 import { TraceMobx } from "../../../new_fields/util";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { ImageField } from "../../../new_fields/URLField";
+import { ImageBox } from "../nodes/ImageBox";
 
 library.add(faPalette);
 
@@ -132,6 +135,22 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
+        if (value === ":freeForm") {
+            return this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { width: 200, height: 200 }));
+        } else if (value.startsWith(":")) {
+            const field = value.substring(1);
+            if (this.props.parent.props.Document[field] instanceof ImageField) {
+                let doc = Docs.Create.ImageDocument((this.props.parent.props.Document[field] as ImageField).url.href, {});
+                doc.layout = ImageBox.LayoutString(field);
+                doc.proto = Doc.GetProto(this.props.parent.props.Document);
+                return this.props.parent.props.addDocument(doc);
+            } else {
+                let doc = Docs.Create.TextDocument({ width: 200, height: 25, autoHeight: true });
+                doc.layout = FormattedTextBox.LayoutString(field);
+                doc.proto = Doc.GetProto(this.props.parent.props.Document);
+                return this.props.parent.props.addDocument(doc);
+            }
+        }
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
         const newDoc = Docs.Create.TextDocument({ height: 18, width: 200, documentText: "@@@" + value, title: value, autoHeight: true });

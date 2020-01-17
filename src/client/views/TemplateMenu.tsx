@@ -58,6 +58,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
         this.props.docs.map(dv => dv.setCustomView(e.target.checked));
     }
+    toggleNarrative = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.props.docs.map(dv => dv.setNarrativeView(e.target.checked));
+    }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
@@ -146,6 +149,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
+        templateMenu.push(<OtherToggle key={"narrative"} name={"Narrative"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_narrative"} toggle={this.toggleNarrative} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
