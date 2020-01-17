@@ -174,7 +174,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
     //
     @undoBatch
     @action
@@ -207,6 +207,77 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         instance.layoutChanged();
         return true;
     }
+
+    //
+    //  Creates a horizontal split on the docking view, and then adds the Document to the top of that split
+    //
+    @undoBatch
+    @action
+    public static AddTopSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        const newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
+        };
+
+        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+
+        if (instance._goldenLayout.root.contentItems.length === 0) {
+            instance._goldenLayout.root.addChild(newContentItem, 0);
+        } else if (instance._goldenLayout.root.contentItems[0].isColumn) {
+            instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
+        } else {
+            const hlayout = instance._goldenLayout.root.contentItems[0];
+            const newColumn = hlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
+            hlayout.parent.replaceChild(hlayout, newColumn);
+
+            newColumn.addChild(newContentItem, 0, true);
+            newColumn.addChild(hlayout, undefined, true);
+
+            hlayout.config.height = 50;
+            newContentItem.config.height = 50;
+        }
+        newContentItem.callDownwards('_$init');
+        instance.layoutChanged();
+        return true;
+    }
+
+    //
+    //  Creates a horizontal split on the docking view, and then adds the Document to the bottom of that split
+    //
+    @undoBatch
+    @action
+    public static AddBottomSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        const newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
+        };
+
+        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+
+        if (instance._goldenLayout.root.contentItems.length === 0) {
+            instance._goldenLayout.root.addChild(newContentItem);
+        } else if (instance._goldenLayout.root.contentItems[0].isColumn) {
+            instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
+        } else {
+            const hlayout = instance._goldenLayout.root.contentItems[0];
+            const newColumn = hlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
+            hlayout.parent.replaceChild(hlayout, newColumn);
+
+            newColumn.addChild(newContentItem, undefined, true);
+            newColumn.addChild(hlayout, 0, true);
+
+            hlayout.config.height = 50;
+            newContentItem.config.height = 50;
+        }
+        newContentItem.callDownwards('_$init');
+        instance.layoutChanged();
+        return true;
+    }
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -703,6 +774,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, dataDoc, libraryPath);
+        } else if (location === "onTop") {
+            return CollectionDockingView.AddTopSplit(doc, dataDoc, libraryPath);
+        } else if (location === "onBottom") {
+            return CollectionDockingView.AddBottomSplit(doc, dataDoc, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
         } else {
@@ -754,3 +829,5 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 }
 Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc, undefined); });
 Scripting.addGlobal(function useRightSplit(doc: any) { CollectionDockingView.UseRightSplit(doc, undefined); });
+Scripting.addGlobal(function openOnTop(doc: any) { CollectionDockingView.AddTopSplit(doc, undefined); }); // TEMPORARY didnt really know what this did but it seems important so
+Scripting.addGlobal(function openOnBottom(doc: any) { CollectionDockingView.AddBottomSplit(doc, undefined); }); // TEMPORARY didnt really know what this did but it seems important so
