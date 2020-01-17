@@ -248,12 +248,11 @@ class ResizeBar extends React.Component<SpacerProps> {
     private onPointerMove = ({ movementX }: PointerEvent) => {
         const { toLeft, toRight, columnUnitLength } = this.props;
         const target = movementX > 0 ? toRight : toLeft;
-        const unitLength = columnUnitLength();
-        if (target && unitLength) {
+        let scale = columnUnitLength();
+        if (target && scale) {
             const { widthUnit, widthMagnitude } = target;
-            if (widthUnit === "*") {
-                target.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / unitLength;
-            }
+            scale = widthUnit === "*" ? scale : 1;
+            target.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
         }
     }
 
