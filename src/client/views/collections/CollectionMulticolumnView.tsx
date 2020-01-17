@@ -1,13 +1,12 @@
 import { observer } from 'mobx-react';
-import { makeInterface } from '../../new_fields/Schema';
-import { documentSchema } from '../../new_fields/documentSchemas';
-import { CollectionSubView } from './collections/CollectionSubView';
-import { DragManager } from '../util/DragManager';
+import { makeInterface } from '../../../new_fields/Schema';
+import { documentSchema } from '../../../new_fields/documentSchemas';
+import { CollectionSubView } from './CollectionSubView';
 import * as React from "react";
-import { Doc } from '../../new_fields/Doc';
-import { NumCast, StrCast } from '../../new_fields/Types';
-import { ContentFittingDocumentView } from './nodes/ContentFittingDocumentView';
-import { Utils } from '../../Utils';
+import { Doc } from '../../../new_fields/Doc';
+import { NumCast, StrCast } from '../../../new_fields/Types';
+import { ContentFittingDocumentView } from './../nodes/ContentFittingDocumentView';
+import { Utils } from '../../../Utils';
 import "./collectionMulticolumnView.scss";
 import { computed } from 'mobx';
 
@@ -36,7 +35,7 @@ const resolvedUnits = ["*", "px"];
 const resizerWidth = 2;
 
 @observer
-export default class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
+export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
     @computed
     private get resolvedLayoutInformation(): LayoutData {
         const unresolved: Unresolved[] = [];
