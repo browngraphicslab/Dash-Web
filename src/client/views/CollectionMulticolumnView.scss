@@ -4,8 +4,18 @@
     height: 100%;
     overflow: hidden;
 
+    .fish {
+        display: flex;
+        flex-direction: column;
+
+        .display {
+            text-align: center;
+            height: 20px;
+        }
+
+    }
+
     .spacer {
-        width: 2px;
         background: black;
         cursor: ew-resize;
         opacity: 0.2;

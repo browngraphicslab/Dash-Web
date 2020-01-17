@@ -65,7 +65,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
     facetClick = (facet: string) => {
         const facetCollection = this.props.Document.facetCollection;
         if (facetCollection instanceof Doc) {
-            let found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facet);
+            const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facet);
             if (found !== -1) {
                 //Doc.RemoveDocFromList(facetCollection, "data", DocListCast(facetCollection.data)[found]);
                 (facetCollection.data as List<Doc>).splice(found, 1);

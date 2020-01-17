@@ -1,15 +1,14 @@
 import { observer } from 'mobx-react';
-import { makeInterface, listSpec } from '../../new_fields/Schema';
+import { makeInterface } from '../../new_fields/Schema';
 import { documentSchema } from '../../new_fields/documentSchemas';
 import { CollectionSubView } from './collections/CollectionSubView';
 import { DragManager } from '../util/DragManager';
 import * as React from "react";
 import { Doc, DocListCast } from '../../new_fields/Doc';
-import { NumCast, Cast, StrCast } from '../../new_fields/Types';
+import { NumCast, StrCast } from '../../new_fields/Types';
 import { List } from '../../new_fields/List';
 import { ContentFittingDocumentView } from './nodes/ContentFittingDocumentView';
 import { Utils } from '../../Utils';
-import { Transform } from '../util/Transform';
 import "./collectionMulticolumnView.scss";
 import { computed } from 'mobx';
 
@@ -29,7 +28,15 @@ interface Resolved {
     pixels: number;
 }
 
+interface LayoutData {
+    unresolved: Unresolved[];
+    numFixed: number;
+    numRatio: number;
+    starSum: number;
+}
+
 const resolvedUnits = ["*", "px"];
+const resizerWidth = 2;
 
 @observer
 export default class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
@@ -50,23 +57,20 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
     }
 
     @computed
-    private get resolvedLayoutInformation() {
+    private get resolvedLayoutInformation(): LayoutData {
         const unresolved: Unresolved[] = [];
-        let ratioSum = 0, numFixed = 0, numRatio = 0;
+        let starSum = 0, numFixed = 0, numRatio = 0;
         for (const config of this.configuration) {
             const { target, widthMagnitude, widthUnit } = config;
             if (target instanceof Doc) {
                 const unit = StrCast(widthUnit);
                 const magnitude = NumCast(widthMagnitude);
                 if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                    switch (unit) {
-                        case "*":
-                            ratioSum += magnitude;
-                            numRatio++;
-                            break;
-                        case "px":
-                            numFixed++;
-                            break;
+                    if (unit === "*") {
+                        starSum += magnitude;
+                        numRatio++;
+                    } else {
+                        numFixed++;
                     }
                     unresolved.push({ config, target, magnitude, unit });
                 }
@@ -74,7 +78,7 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
                 // space is allocated as if the document were absent from the configuration list
             }
         }
-        return { unresolved, numRatio, numFixed, ratioSum };
+        return { unresolved, numRatio, numFixed, starSum };
     }
 
     /**
@@ -112,17 +116,21 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
     @computed
     private get totalRatioAllocation(): number | undefined {
         const { totalFixedAllocation } = this;
-        return totalFixedAllocation !== undefined ? this.props.PanelWidth() - totalFixedAllocation : undefined;
+        const layout = this.resolvedLayoutInformation;
+        if (!layout) {
+            return undefined;
+        }
+        return totalFixedAllocation !== undefined ? this.props.PanelWidth() - (totalFixedAllocation + resizerWidth * (layout.unresolved.length - 1)) : undefined;
     }
 
     /**
      * This returns the total quantity, in pixels, that
      * 1* (relative / star unit) is worth. For example,
-     * if the configuration had three documents, with, respectively,
-     * widths of 2*, 2* and 1*, and the panel width was 1000px,
-     * this value would return 1000 / (2 + 2 + 1), or 200px.
-     * This is then multiplied by each relative-width
-     * document's * factor to compute its actual width (400px, 400px and 200px).
+     * if the configuration has three documents, with, respectively,
+     * widths of 2*, 2* and 1*, and the panel width returns 1000px,
+     * this accessor returns 1000 / (2 + 2 + 1), or 200px.
+     * Elsewhere, this is then multiplied by each relative-width
+     * document's (potentially decimal) * count to compute its actual width (400px, 400px and 200px).
      * 
      * If the underlying totalRatioAllocation or this.resolveLayoutInformation return undefined
      * because we're waiting indirectly on promises to resolve, this value will be undefined as well.
@@ -131,11 +139,10 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
     private get columnUnitLength(): number | undefined {
         const layout = this.resolvedLayoutInformation;
         const { totalRatioAllocation } = this;
-        if (layout !== null && totalRatioAllocation !== undefined) {
-            const { ratioSum, unresolved } = layout;
-            return (totalRatioAllocation - 2 * (unresolved.length - 1)) / ratioSum;
+        if (layout === null || totalRatioAllocation === undefined) {
+            return undefined;
         }
-        return undefined;
+        return totalRatioAllocation / layout.starSum;
     }
 
     @computed
@@ -146,27 +153,31 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
             return (null); // we're still waiting on promises to resolve
         }
         const resolved: Resolved[] = [];
-        layout.unresolved.forEach(value => {
-            const { unit, magnitude, ...remaining } = value;
+        layout.unresolved.forEach(item => {
+            const { unit, magnitude, ...remaining } = item;
             let width = magnitude;
             if (unit === "*") {
                 width = magnitude * columnUnitLength;
             }
-            resolved.push({ pixels: width, ...remaining, });
+            resolved.push({ pixels: width, ...remaining });
         });
         const collector: JSX.Element[] = [];
         for (let i = 0; i < resolved.length; i++) {
             const { target, pixels, config } = resolved[i];
-            collector.push(<ContentFittingDocumentView
-                {...this.props}
-                key={Utils.GenerateGuid()}
-                Document={target}
-                DataDocument={undefined}
-                PanelWidth={() => pixels}
-                getTransform={this.props.ScreenToLocalTransform}
-            />);
             collector.push(
-                <MulticolumnSpacer
+                <div className={"fish"}>
+                    <ContentFittingDocumentView
+                        {...this.props}
+                        key={Utils.GenerateGuid()}
+                        Document={target}
+                        DataDocument={undefined}
+                        PanelWidth={() => pixels}
+                        getTransform={this.props.ScreenToLocalTransform}
+                    />
+                    <span className={"display"}>{NumCast(config.widthMagnitude).toFixed(3)} {StrCast(config.widthUnit)}</span>
+                </div>,
+                <ResizeBar
+                    width={resizerWidth}
                     key={Utils.GenerateGuid()}
                     columnUnitLength={columnUnitLength}
                     toLeft={config}
@@ -174,11 +185,11 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
                 />
             );
         }
-        collector.pop(); // not the cleanest, but simply removes the final extraneous spacer
+        collector.pop(); // removes the final extraneous resize bar
         return collector;
     }
 
-    render() {
+    render(): JSX.Element {
         return (
             <div className={"collectionMulticolumnView_contents"}>
                 {this.contents}
@@ -189,12 +200,13 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
 }
 
 interface SpacerProps {
+    width: number;
     columnUnitLength: number;
     toLeft?: Doc;
     toRight?: Doc;
 }
 
-class MulticolumnSpacer extends React.Component<SpacerProps> {
+class ResizeBar extends React.Component<SpacerProps> {
 
     private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
@@ -225,6 +237,7 @@ class MulticolumnSpacer extends React.Component<SpacerProps> {
         return (
             <div
                 className={"spacer"}
+                style={{ width: this.props.width }}
                 onPointerDown={this.registerResizing}
             />
         );

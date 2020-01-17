@@ -234,7 +234,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             if (found) {
                 Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
             } else {
-                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" })
+                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" });
                 CollectionDockingView.AddRightSplit(stackView, undefined, []);
             }
         }
