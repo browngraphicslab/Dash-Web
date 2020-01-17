@@ -228,6 +228,27 @@ class ResizeBar extends React.Component<SpacerProps> {
         }
     }
 
+    private get opacity() {
+        const { toLeft, toRight } = this.props;
+        if (toLeft && toRight) {
+            if (StrCast(toLeft.widthUnit) === "px" && StrCast(toRight.widthUnit) === "px") {
+                return 0;
+            }
+            return 0.4;
+        } else if (toLeft) {
+            if (StrCast(toLeft.widthUnit) === "px") {
+                return 0;
+            }
+            return 0.4;
+        } else if (toRight) {
+            if (StrCast(toRight.widthUnit) === "px") {
+                return 0;
+            }
+            return 0.4;
+        }
+        return 0;
+    }
+
     private onPointerUp = () => {
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
@@ -236,8 +257,11 @@ class ResizeBar extends React.Component<SpacerProps> {
     render() {
         return (
             <div
-                className={"spacer"}
-                style={{ width: this.props.width }}
+                className={"resizer"}
+                style={{
+                    width: this.props.width,
+                    opacity: this.opacity
+                }}
                 onPointerDown={this.registerResizing}
             />
         );
