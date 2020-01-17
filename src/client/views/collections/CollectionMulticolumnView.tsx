@@ -124,8 +124,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             resolved.push({ pixels: width, ...remaining });
         });
         const collector: JSX.Element[] = [];
+        let offset = 0;
         for (let i = 0; i < resolved.length; i++) {
             const { target, pixels } = resolved[i];
+            const shiftX = offset;
             collector.push(
                 <div className={"fish"}>
                     <ContentFittingDocumentView
@@ -134,7 +136,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         Document={target}
                         DataDocument={target.resolvedDataDoc as Doc}
                         PanelWidth={() => pixels}
-                        getTransform={this.props.ScreenToLocalTransform}
+                        getTransform={() => this.props.ScreenToLocalTransform().translate(-shiftX, 0)}
                     />
                     <span className={"display"}>{NumCast(target.widthMagnitude).toFixed(3)} {StrCast(target.widthUnit)}</span>
                 </div>,
@@ -146,6 +148,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                     toRight={resolved[i + 1]?.target}
                 />
             );
+            offset += pixels + resizerWidth;
         }
         collector.pop(); // removes the final extraneous resize bar
         return collector;
