@@ -4,9 +4,8 @@ import { documentSchema } from '../../new_fields/documentSchemas';
 import { CollectionSubView } from './collections/CollectionSubView';
 import { DragManager } from '../util/DragManager';
 import * as React from "react";
-import { Doc, DocListCast } from '../../new_fields/Doc';
+import { Doc } from '../../new_fields/Doc';
 import { NumCast, StrCast } from '../../new_fields/Types';
-import { List } from '../../new_fields/List';
 import { ContentFittingDocumentView } from './nodes/ContentFittingDocumentView';
 import { Utils } from '../../Utils';
 import "./collectionMulticolumnView.scss";
@@ -16,14 +15,12 @@ type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
 
 interface Unresolved {
-    config: Doc;
     target: Doc;
     magnitude: number;
     unit: string;
 }
 
 interface Resolved {
-    config: Doc;
     target: Doc;
     pixels: number;
 }
@@ -40,43 +37,24 @@ const resizerWidth = 2;
 
 @observer
 export default class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
-    private _dropDisposer?: DragManager.DragDropDisposer;
-
-    /**
-     * Returns the list of so-called configuration documents.
-     * Each one is a wrapper around what we typically think of as
-     * the child document, just also encoding the magnitude and unit
-     * of the specified width.
-     */
-    private get configuration() {
-        const { Document } = this.props;
-        if (!Document.multicolumnData) {
-            Document.multicolumnData = new List<Doc>();
-        }
-        return DocListCast(this.Document.multicolumnData);
-    }
-
     @computed
     private get resolvedLayoutInformation(): LayoutData {
         const unresolved: Unresolved[] = [];
         let starSum = 0, numFixed = 0, numRatio = 0;
-        for (const config of this.configuration) {
-            const { target, widthMagnitude, widthUnit } = config;
-            if (target instanceof Doc) {
-                const unit = StrCast(widthUnit);
-                const magnitude = NumCast(widthMagnitude);
-                if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                    if (unit === "*") {
-                        starSum += magnitude;
-                        numRatio++;
-                    } else {
-                        numFixed++;
-                    }
-                    unresolved.push({ config, target, magnitude, unit });
+        for (const target of this.childDocs) {
+            const unit = StrCast(target.widthUnit);
+            const magnitude = NumCast(target.widthMagnitude);
+            if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
+                if (unit === "*") {
+                    starSum += magnitude;
+                    numRatio++;
+                } else {
+                    numFixed++;
                 }
-                // otherwise, the particular configuration entry is ignored and the remaining
-                // space is allocated as if the document were absent from the configuration list
+                unresolved.push({ target, magnitude, unit });
             }
+            // otherwise, the particular configuration entry is ignored and the remaining
+            // space is allocated as if the document were absent from the configuration list
         }
         return { unresolved, numRatio, numFixed, starSum };
     }
@@ -91,17 +69,8 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
      */
     @computed
     private get totalFixedAllocation(): number | undefined {
-        const layout = this.resolvedLayoutInformation;
-        if (!layout) {
-            return undefined;
-        }
-        let sum = 0;
-        for (const { magnitude, unit } of layout.unresolved) {
-            if (unit === "px") {
-                sum += magnitude;
-            }
-        }
-        return sum;
+        return this.resolvedLayoutInformation?.unresolved.reduce(
+            (sum, { magnitude, unit }) => sum + (unit === "px" ? magnitude : 0), 0);
     }
 
     /**
@@ -115,12 +84,9 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
      */
     @computed
     private get totalRatioAllocation(): number | undefined {
-        const { totalFixedAllocation } = this;
-        const layout = this.resolvedLayoutInformation;
-        if (!layout) {
-            return undefined;
-        }
-        return totalFixedAllocation !== undefined ? this.props.PanelWidth() - (totalFixedAllocation + resizerWidth * (layout.unresolved.length - 1)) : undefined;
+        const layoutInfoLen = this.resolvedLayoutInformation?.unresolved.length;
+        if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined)
+            return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1));
     }
 
     /**
@@ -137,12 +103,9 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
      */
     @computed
     private get columnUnitLength(): number | undefined {
-        const layout = this.resolvedLayoutInformation;
-        const { totalRatioAllocation } = this;
-        if (layout === null || totalRatioAllocation === undefined) {
-            return undefined;
+        if (this.resolvedLayoutInformation && this.totalRatioAllocation !== undefined) {
+            return this.totalRatioAllocation / this.resolvedLayoutInformation.starSum;
         }
-        return totalRatioAllocation / layout.starSum;
     }
 
     @computed
@@ -163,7 +126,7 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
         });
         const collector: JSX.Element[] = [];
         for (let i = 0; i < resolved.length; i++) {
-            const { target, pixels, config } = resolved[i];
+            const { target, pixels } = resolved[i];
             collector.push(
                 <div className={"fish"}>
                     <ContentFittingDocumentView
@@ -174,14 +137,14 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
                         PanelWidth={() => pixels}
                         getTransform={this.props.ScreenToLocalTransform}
                     />
-                    <span className={"display"}>{NumCast(config.widthMagnitude).toFixed(3)} {StrCast(config.widthUnit)}</span>
+                    <span className={"display"}>{NumCast(target.widthMagnitude).toFixed(3)} {StrCast(target.widthUnit)}</span>
                 </div>,
                 <ResizeBar
                     width={resizerWidth}
                     key={Utils.GenerateGuid()}
                     columnUnitLength={columnUnitLength}
-                    toLeft={config}
-                    toRight={resolved[i + 1]?.config}
+                    toLeft={target}
+                    toRight={resolved[i + 1]?.target}
                 />
             );
         }

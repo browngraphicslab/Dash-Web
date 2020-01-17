@@ -1,5 +1,5 @@
-@import "globalCssVariables";
-@import "nodeModuleOverrides";
+@import "../globalCssVariables";
+@import "../_nodeModuleOverrides";
 
 .collectionLinearView-outer{
     overflow: hidden;
