@@ -3,7 +3,6 @@ import { Touchable } from "./Touchable";
 import { observer } from "mobx-react";
 import "./GestureOverlay.scss";
 import { computed, observable, action, runInAction } from "mobx";
-import { CreatePolyline } from "./InkingStroke";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { InkingControl } from "./InkingControl";
@@ -400,7 +399,7 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
             </svg>
         );
     }

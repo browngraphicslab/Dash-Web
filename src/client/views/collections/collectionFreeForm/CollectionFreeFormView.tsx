@@ -26,7 +26,6 @@ import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss"
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
-import { CreatePolyline } from "../../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";

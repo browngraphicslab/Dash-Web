@@ -8,6 +8,20 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
+        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        return (
+            <polyline
+                points={pts}
+                style={{
+                    fill: "none",
+                    stroke: color,
+                    strokeWidth: width
+                }}
+            />
+        );
+    }
+
     export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
         constructor(
             readonly fingers: number,
