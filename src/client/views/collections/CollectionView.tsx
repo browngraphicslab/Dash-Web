@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
+import { action, IReactionDisposer, observable, reaction, runInAction, computed } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
@@ -10,7 +10,7 @@ import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, StrCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, StrCast, NumCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
@@ -50,7 +50,8 @@ export enum CollectionViewType {
     Pivot,
     Linear,
     Staff,
-    Multicolumn
+    Multicolumn,
+    Timeline
 }
 
 export namespace CollectionViewType {
@@ -90,8 +91,18 @@ export class CollectionView extends Touchable<FieldViewProps> {
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
+    @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+
     get collectionViewType(): CollectionViewType | undefined {
-        const viewField = Cast(this.props.Document.viewType, "number");
+        if (!this.extensionDoc) return CollectionViewType.Invalid;
+        NumCast(this.props.Document.viewType) && setTimeout(() => {
+            if (this.props.Document.viewType) {
+                this.extensionDoc!.viewType = NumCast(this.props.Document.viewType);
+            }
+            Doc.GetProto(this.props.Document).viewType = this.props.Document.viewType = undefined;
+        });
+        const viewField = NumCast(this.extensionDoc.viewType, Cast(this.props.Document.viewType, "number"));
         if (CollectionView._safeMode) {
             if (viewField === CollectionViewType.Freeform) {
                 return CollectionViewType.Tree;
