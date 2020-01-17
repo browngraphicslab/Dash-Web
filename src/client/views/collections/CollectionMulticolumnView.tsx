@@ -40,9 +40,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     private get resolvedLayoutInformation(): LayoutData {
         const unresolved: Unresolved[] = [];
         let starSum = 0, numFixed = 0, numRatio = 0;
-        for (const target of this.childDocs) {
-            const unit = StrCast(target.widthUnit);
-            const magnitude = NumCast(target.widthMagnitude);
+        for (const pair of this.childLayoutPairs) {
+            const unit = StrCast(pair.layout.widthUnit);
+            const magnitude = NumCast(pair.layout.widthMagnitude);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 if (unit === "*") {
                     starSum += magnitude;
@@ -50,7 +50,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 } else {
                     numFixed++;
                 }
-                unresolved.push({ target, magnitude, unit });
+                unresolved.push({ target: pair.layout, magnitude, unit });
             }
             // otherwise, the particular configuration entry is ignored and the remaining
             // space is allocated as if the document were absent from the configuration list
@@ -132,7 +132,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         {...this.props}
                         key={Utils.GenerateGuid()}
                         Document={target}
-                        DataDocument={undefined}
+                        DataDocument={target.resolvedDataDoc as Doc}
                         PanelWidth={() => pixels}
                         getTransform={this.props.ScreenToLocalTransform}
                     />
