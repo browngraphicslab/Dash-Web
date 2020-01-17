@@ -19,6 +19,13 @@
         background: black;
         cursor: ew-resize;
         transition: 0.5s opacity ease;
+        display: flex;
+        flex-direction: column;
+
+        .internal {
+            width: 100%;
+            height: 100%;
+        }
     }
 
 }

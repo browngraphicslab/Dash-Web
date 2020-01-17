@@ -28,7 +28,7 @@ interface LayoutData {
 }
 
 const resolvedUnits = ["*", "px"];
-const resizerWidth = 2;
+const resizerWidth = 4;
 const resizerOpacity = 1;
 
 @observer
@@ -209,14 +209,22 @@ interface ResizerProps {
     toRight?: Doc;
 }
 
+enum ResizeMode {
+    Global,
+    Pinned,
+    Undefined
+}
+
 @observer
 class ResizeBar extends React.Component<ResizerProps> {
     @observable private isHoverActive = false;
     @observable private isResizingActive = false;
+    private resizeMode = ResizeMode.Undefined;
 
-    private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
+    private registerResizing = (e: React.PointerEvent<HTMLDivElement>, mode: ResizeMode) => {
         e.stopPropagation();
         e.preventDefault();
+        this.resizeMode = mode;
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
         window.addEventListener("pointermove", this.onPointerMove);
@@ -236,7 +244,7 @@ class ResizeBar extends React.Component<ResizerProps> {
                 const scale = widthUnit === "*" ? unitLength : 1;
                 toNarrow.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
             }
-            if (toWiden) {
+            if (this.resizeMode === ResizeMode.Pinned && toWiden) {
                 const { widthUnit, widthMagnitude } = toWiden;
                 const scale = widthUnit === "*" ? unitLength : 1;
                 toWiden.widthMagnitude = NumCast(widthMagnitude) + Math.abs(movementX) / scale;
@@ -267,6 +275,7 @@ class ResizeBar extends React.Component<ResizerProps> {
 
     @action
     private onPointerUp = () => {
+        this.resizeMode = ResizeMode.Undefined;
         this.isResizingActive = false;
         this.isHoverActive = false;
         window.removeEventListener("pointermove", this.onPointerMove);
@@ -281,10 +290,18 @@ class ResizeBar extends React.Component<ResizerProps> {
                     width: this.props.width,
                     opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
                 }}
-                onPointerDown={this.registerResizing}
                 onPointerEnter={action(() => this.isHoverActive = true)}
                 onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
-            />
+            >
+                <div
+                    className={"internal"}
+                    onPointerDown={e => this.registerResizing(e, ResizeMode.Pinned)}
+                />
+                <div
+                    className={"internal"}
+                    onPointerDown={e => this.registerResizing(e, ResizeMode.Global)}
+                />
+            </div>
         );
     }
 
