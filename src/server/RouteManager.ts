@@ -68,7 +68,7 @@ export default class RouteManager {
                 console.log('please remove all duplicate routes before continuing');
             }
             if (malformedCount) {
-                console.log(`please ensure all routes adhere to ^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?]+)*$`);
+                console.log(`please ensure all routes adhere to ^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?_]+)*$`);
             }
             process.exit(1);
         } else {
@@ -133,7 +133,7 @@ export default class RouteManager {
             } else {
                 route = subscriber.build;
             }
-            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?]+)*$/g.test(route)) {
+            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?_]+)*$/g.test(route)) {
                 this.failedRegistrations.push({
                     reason: RegistrationError.Malformed,
                     route
@@ -198,5 +198,5 @@ export function _permission_denied(res: Response, message?: string) {
     if (message) {
         res.statusMessage = message;
     }
-    res.status(STATUS.BAD_REQUEST).send("Permission Denied!");
+    res.status(STATUS.PERMISSION_DENIED).send("Permission Denied!");
 }

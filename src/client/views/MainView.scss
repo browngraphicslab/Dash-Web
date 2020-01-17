@@ -5,22 +5,12 @@
 .mainView-tabButtons {
     position: relative;
     width: 100%;
-
-    .documentView-node-topmost {
-        height: 200% !important;
-    }
 }
 
 .mainContent-div {
     position: relative;
     width: 100%;
     height: 100%;
-}
-
-.mainView-contentArea {
-    .documentView-node-topmost {
-        height: 200% !important;
-    }
 }
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.

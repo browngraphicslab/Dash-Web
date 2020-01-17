@@ -207,6 +207,38 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         instance.layoutChanged();
         return true;
     }
+    //
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //
+    @undoBatch
+    @action
+    public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        if (instance._goldenLayout.root.contentItems[0].isRow) {
+            let found: DocumentView | undefined;
+            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.props.Document.isDisplayPanel) {
+                    found = DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!;
+                } else {
+                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.props.Document.isDisplayPanel) {
+                            found = DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!;
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+            });
+            if (found) {
+                Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
+            } else {
+                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" });
+                CollectionDockingView.AddRightSplit(stackView, undefined, []);
+            }
+        }
+    }
 
     @undoBatch
     @action
@@ -721,3 +753,4 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 }
 Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc, undefined); });
+Scripting.addGlobal(function useRightSplit(doc: any) { CollectionDockingView.UseRightSplit(doc, undefined); });

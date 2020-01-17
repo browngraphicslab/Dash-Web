@@ -22,7 +22,7 @@ import { Docs, DocumentOptions } from '../documents/Documents';
 import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
-import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionViewType, CollectionView } from './collections/CollectionView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';

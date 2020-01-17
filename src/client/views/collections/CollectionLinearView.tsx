@@ -1,18 +1,18 @@
 import { action, IReactionDisposer, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, HeightSym, WidthSym } from '../../new_fields/Doc';
-import { makeInterface } from '../../new_fields/Schema';
-import { BoolCast, NumCast, StrCast } from '../../new_fields/Types';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
-import { DragManager } from '../util/DragManager';
-import { Transform } from '../util/Transform';
+import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { makeInterface } from '../../../new_fields/Schema';
+import { BoolCast, NumCast, StrCast } from '../../../new_fields/Types';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../../Utils';
+import { DragManager } from '../../util/DragManager';
+import { Transform } from '../../util/Transform';
 import "./CollectionLinearView.scss";
-import { CollectionViewType } from './collections/CollectionView';
-import { CollectionSubView } from './collections/CollectionSubView';
-import { DocumentView } from './nodes/DocumentView';
-import { documentSchema } from '../../new_fields/documentSchemas';
-import { Id } from '../../new_fields/FieldSymbols';
+import { CollectionViewType } from './CollectionView';
+import { CollectionSubView } from './CollectionSubView';
+import { DocumentView } from '../nodes/DocumentView';
+import { documentSchema } from '../../../new_fields/documentSchemas';
+import { Id } from '../../../new_fields/FieldSymbols';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
