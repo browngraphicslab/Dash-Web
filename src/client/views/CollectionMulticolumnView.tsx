@@ -16,17 +16,22 @@ import { computed } from 'mobx';
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
 
-interface LayoutUnit {
+interface UnitBase {
     config: Doc;
     target: Doc;
 }
 
-interface Fixed extends LayoutUnit {
-    pixels: number;
+type WidthSpecifier = { pixels: number } | { ratio: number };
+interface LayoutUnit extends UnitBase {
+    specifier: WidthSpecifier;
 }
 
-interface Proportional extends LayoutUnit {
-    ratio: number;
+interface Fixed extends UnitBase {
+    specifier: { pixels: number };
+}
+
+interface Ratio extends UnitBase {
+    specifier: { ratio: number };
 }
 
 @observer
@@ -57,9 +62,10 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
 
     @computed
     private get layoutInformation() {
-        const fixed: Fixed[] = [];
-        const proportional: Proportional[] = [];
+        const values: LayoutUnit[] = [];
         let ratioSum = 0;
+        let fixedCount = 0;
+        let ratioCount = 0;
         for (const config of this.configuration) {
             const { columnWidth, target } = config;
             if (!(target instanceof Doc)) {
@@ -68,23 +74,37 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
             }
             const widthSpecifier = Cast(columnWidth, "number");
             let matches: RegExpExecArray | null;
+            let specifier: WidthSpecifier | null = null;
             if (widthSpecifier !== undefined) {
                 // we've gotten a number, referring to a pixel value
-                fixed.push({ config, target, pixels: widthSpecifier });
+                specifier = { pixels: widthSpecifier };
+                fixedCount++;
             } else if ((matches = /^(\d+(\.\d+)?)\*/.exec(StrCast(columnWidth))) !== null) {
                 // we've gotten a proportional measure, like 1.8*
                 const ratio = Number(matches[1]);
                 ratioSum += ratio;
-                proportional.push({ config, target, ratio });
+                specifier = { ratio };
+                ratioCount++;
+            }
+            if (specifier !== null) {
+                values.push({ config, target, specifier });
             }
             // otherwise, the particular configuration entry is ignored and the remaining
             // space is allocated as if the document were absent from the configuration list
         }
-        return { fixed, proportional, ratioSum };
+        return { values, ratioCount, fixedCount, ratioSum };
     }
 
     @computed private get totalFixedPool() {
-        return this.layoutInformation?.fixed.reduce((sum, unit) => sum + unit.pixels, 0);
+        const fixed: Fixed[] = [];
+        const layout = this.layoutInformation;
+        if (!layout) {
+            return undefined;
+        }
+        layout.values.forEach(unit => {
+            ("pixels" in unit.specifier) && fixed.push(unit as Fixed);
+        });
+        return fixed.reduce((sum, unit) => sum + unit.specifier.pixels, 0);
     }
 
     @computed private get totalProportionalPool() {
@@ -96,8 +116,8 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
         const layout = this.layoutInformation;
         const { totalProportionalPool } = this;
         if (layout !== null && totalProportionalPool !== undefined) {
-            const { ratioSum, proportional } = layout;
-            return (totalProportionalPool - 2 * (proportional.length - 1)) / ratioSum;
+            const { ratioSum, values } = layout;
+            return (totalProportionalPool - 2 * (values.length - 1)) / ratioSum;
         }
         return undefined;
     }
@@ -108,13 +128,13 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
         if (layout === null) {
             return (null);
         }
-        const { fixed, proportional } = layout;
+        const { values } = layout;
         const { columnUnitLength } = this;
         if (columnUnitLength === undefined) {
             return (null);
         }
         const { GenerateGuid } = Utils;
-        const toView = ({ target, pixels }: Fixed) =>
+        const toView = ({ target, specifier: { pixels } }: Fixed) =>
             <ContentFittingDocumentView
                 {...this.props}
                 key={GenerateGuid()}
@@ -123,16 +143,24 @@ export default class CollectionMulticolumnView extends CollectionSubView(Multico
                 PanelWidth={() => pixels}
                 getTransform={this.props.ScreenToLocalTransform}
             />;
-        const collector: JSX.Element[] = fixed.map(toView);
-        const resolvedColumns = proportional.map(({ target, ratio, config }) => ({ target, pixels: ratio * columnUnitLength, config }));
-        for (let i = 0; i < resolvedColumns.length; i++) {
-            collector.push(toView(resolvedColumns[i]));
+        const resolved: Fixed[] = [];
+        values.forEach(value => {
+            const { specifier, ...remaining } = value;
+            if ("ratio" in specifier) {
+                resolved.push({ ...remaining, specifier: { pixels: specifier.ratio * columnUnitLength } });
+            } else {
+                resolved.push(value as Fixed);
+            }
+        });
+        const collector: JSX.Element[] = [];
+        for (let i = 0; i < resolved.length; i++) {
+            collector.push(toView(resolved[i]));
             collector.push(
                 <MulticolumnSpacer
                     key={GenerateGuid()}
                     columnBaseUnit={columnUnitLength}
-                    toLeft={resolvedColumns[i].config}
-                    toRight={resolvedColumns[i + 1]?.config}
+                    toLeft={resolved[i].config}
+                    toRight={resolved[i + 1]?.config}
                 />
             );
         }
