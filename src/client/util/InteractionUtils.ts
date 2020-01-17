@@ -49,7 +49,7 @@ export namespace InteractionUtils {
     export function GetMyTargetTouches(mte: InteractionUtils.MultiTouchEvent<React.TouchEvent | TouchEvent>, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
         for (const pt of mte.touches) {
-            if (ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
+            if (!ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
                 for (const tPt of mte.targetTouches) {
                     if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
                         if (pt && prevPoints.has(pt.identifier)) {

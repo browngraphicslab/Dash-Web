@@ -16,7 +16,8 @@ import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import Palette from "./Palette";
-import { Utils } from "../../Utils";
+import { Utils, emptyPath, emptyFunction } from "../../Utils";
+import { DocumentView } from "./nodes/DocumentView";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -24,15 +25,15 @@ export default class GestureOverlay extends Touchable {
 
     @observable private _points: { X: number, Y: number }[] = [];
     @observable private _palette?: JSX.Element;
+    @observable private _elements: JSX.Element[];
     @observable public Color: string = "rgb(244, 67, 54)";
     @observable public Width: number = 5;
 
     private _d1: Doc | undefined;
     private _thumbDoc: Doc | undefined;
     private _thumbX?: number;
-    private _thumbY?: number;
     private thumbIdentifier?: number;
-    private _hands: (React.Touch[])[] = [];
+    private _hands: Map<number, React.Touch[]> = new Map<number, React.Touch[]>();
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
@@ -49,22 +50,22 @@ export default class GestureOverlay extends Touchable {
         this._hands.forEach((hand) => {
             for (let i = 0; i < e.targetTouches.length; i++) {
                 const pt = e.targetTouches.item(i);
-                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
-                    ntt.splice(ntt.indexOf(pt));
+                if (pt && hand.some((finger) => finger.screenX === pt.screenX && finger.screenY === pt.screenY)) {
+                    ntt.splice(ntt.indexOf(pt), 1);
                 }
             }
 
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const pt = e.changedTouches.item(i);
-                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
-                    nct.splice(nct.indexOf(pt));
+                if (pt && hand.some((finger) => finger.screenX === pt.screenX && finger.screenY === pt.screenY)) {
+                    nct.splice(nct.indexOf(pt), 1);
                 }
             }
 
             for (let i = 0; i < e.touches.length; i++) {
                 const pt = e.touches.item(i);
-                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
-                    nt.splice(ntt.indexOf(pt));
+                if (pt && hand.some((finger) => finger.screenX === pt.screenX && finger.screenY === pt.screenY)) {
+                    nt.splice(nt.indexOf(pt), 1);
                 }
             }
         });
@@ -94,9 +95,10 @@ export default class GestureOverlay extends Touchable {
         });
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
+        const nts = this.getNewTouches(te);
+        console.log(nts.nt.length);
 
-        if (this.prevPoints.size && this.prevPoints.size < 5) {
-            const nts = this.getNewTouches(te);
+        if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
@@ -190,12 +192,12 @@ export default class GestureOverlay extends Touchable {
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
         if (thumb.identifier === this.thumbIdentifier) {
             this._thumbX = thumb.clientX;
-            this._thumbY = thumb.clientY;
+            this._hands.set(thumb.identifier, fingers);
             return;
         }
         this.thumbIdentifier = thumb?.identifier;
-        fingers.forEach((f) => this.prevPoints.delete(f.identifier));
-        this._hands.push(fingers);
+        // fingers.forEach((f) => this.prevPoints.delete(f.identifier));
+        this._hands.set(thumb.identifier, fingers);
         const others = fingers.filter(f => f !== thumb);
         const minX = Math.min(...others.map(f => f.clientX));
         const minY = Math.min(...others.map(f => f.clientY));
@@ -207,7 +209,6 @@ export default class GestureOverlay extends Touchable {
             runInAction(() => {
                 this._thumbDoc = thumbDoc;
                 this._thumbX = thumb.clientX;
-                this._thumbY = thumb.clientY;
                 this._palette = <Palette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
             });
         }
@@ -221,6 +222,29 @@ export default class GestureOverlay extends Touchable {
 
     @action
     handleHandMove = (e: TouchEvent) => {
+        const fingers = new Array<React.Touch>();
+        for (let i = 0; i < e.touches.length; i++) {
+            const pt: any = e.touches.item(i);
+            if (pt.radiusX > 1 && pt.radiusY > 1) {
+                for (let j = 0; j < e.targetTouches.length; j++) {
+                    const tPt = e.targetTouches.item(j);
+                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                        if (pt && this.prevPoints.has(pt.identifier)) {
+                            this._hands.forEach(hand => hand.some(f => {
+                                if (f.identifier === pt.identifier) {
+                                    fingers.push(pt);
+                                }
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+        const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+        if (thumb?.identifier === this.thumbIdentifier) {
+            this._hands.set(thumb.identifier, fingers);
+        }
+
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
             if (pt && pt.identifier === this.thumbIdentifier && this._thumbX && this._thumbDoc) {
@@ -236,6 +260,7 @@ export default class GestureOverlay extends Touchable {
     handleHandUp = (e: TouchEvent) => {
         if (e.touches.length < 3) {
             // this.onTouchEnd(e);
+            if (this.thumbIdentifier) this._hands.delete(this.thumbIdentifier);
             this._palette = undefined;
             this.thumbIdentifier = undefined;
             this._thumbDoc = undefined;
@@ -380,16 +405,35 @@ export default class GestureOverlay extends Touchable {
         );
     }
 
+    @computed get elements() {
+        return [
+            this.props.children,
+            this._elements,
+            this._palette,
+            this.currentStroke
+        ]
+    }
+
+    @action
+    openFloatingDoc = (doc: Doc) => {
+        // this._elements.push(
+        //     <DocumentView 
+        //     Document={doc}
+        //     LibraryPath={emptyPath}
+        //     addDocument={undefined}
+        //     addDocTab={emptyFunction}
+        //     />
+        // )
+    }
+
     render() {
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
-                {this.props.children}
-                {this._palette}
-                {this.currentStroke}
+                {this.elements}
             </div>);
     }
 }
 
 Scripting.addGlobal("GestureOverlay", GestureOverlay);
 Scripting.addGlobal(function setPen(width: any, color: any) { runInAction(() => { GestureOverlay.Instance.Color = color; GestureOverlay.Instance.Width = width; }); });
-Scripting.addGlobal(function resetPen() { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; }); });
+Scripting.addGlobal(function resetPen() { runInAction(() => { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; })); });

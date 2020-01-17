@@ -327,7 +327,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (!e.nativeEvent.cancelBubble) {
-            // const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+            // const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt = me.changedTouches[0];
             if (pt) {
                 this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;

@@ -119,6 +119,7 @@ export interface DocumentOptions {
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    isExpanded?: boolean; // is linear view expanded
 }
 
 class EmptyBox {
