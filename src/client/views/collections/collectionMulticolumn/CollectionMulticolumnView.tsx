@@ -26,7 +26,12 @@ interface LayoutData {
     starSum: number;
 }
 
-const resolvedUnits = ["*", "px"];
+export const WidthUnit = {
+    Pixel: "px",
+    Ratio: "*"
+};
+
+const resolvedUnits = Object.values(WidthUnit);
 const resizerWidth = 4;
 
 @observer
@@ -38,7 +43,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ widthUnit }) => StrCast(widthUnit) === "*");
+        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ widthUnit }) => StrCast(widthUnit) === WidthUnit.Ratio);
     }
 
     /**
@@ -57,7 +62,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             const unit = StrCast(widthUnit);
             const magnitude = NumCast(widthMagnitude);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                (unit === "*") && (starSum += magnitude);
+                (unit === WidthUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
             }
             /**
@@ -74,7 +79,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
          */
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
-            if (ratioDefinedDocs.length > 1) {
+            if (this.childLayoutPairs.length) {
                 const minimum = Math.min(...ratioDefinedDocs.map(({ widthMagnitude }) => NumCast(widthMagnitude)));
                 if (minimum !== 0) {
                     ratioDefinedDocs.forEach(layout => layout.widthMagnitude = NumCast(layout.widthMagnitude) / minimum);
@@ -96,7 +101,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     @computed
     private get totalFixedAllocation(): number | undefined {
         return this.resolvedLayoutInformation?.widthSpecifiers.reduce(
-            (sum, { magnitude, unit }) => sum + (unit === "px" ? magnitude : 0), 0);
+            (sum, { magnitude, unit }) => sum + (unit === WidthUnit.Pixel ? magnitude : 0), 0);
     }
 
     /**
@@ -110,7 +115,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get totalRatioAllocation(): number | undefined {
-        const layoutInfoLen = this.ratioDefinedDocs.length;
+        const layoutInfoLen = this.resolvedLayoutInformation.widthSpecifiers.length;
         if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
             return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1));
         }
@@ -154,7 +159,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             return 0; // we're still waiting on promises to resolve
         }
         let width = NumCast(layout.widthMagnitude);
-        if (StrCast(layout.widthUnit) === "*") {
+        if (StrCast(layout.widthUnit) === WidthUnit.Ratio) {
             width *= columnUnitLength;
         }
         return width;

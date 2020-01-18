@@ -3,6 +3,7 @@ import { observer } from "mobx-react";
 import { observable, action } from "mobx";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../../new_fields/Types";
+import { WidthUnit } from "./CollectionMulticolumnView";
 
 interface ResizerProps {
     width: number;
@@ -46,12 +47,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
         if (unitLength) {
             if (toNarrow) {
                 const { widthUnit, widthMagnitude } = toNarrow;
-                const scale = widthUnit === "*" ? unitLength : 1;
+                const scale = widthUnit === WidthUnit.Ratio ? unitLength : 1;
                 toNarrow.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
             }
             if (this.resizeMode === ResizeMode.Pinned && toWiden) {
                 const { widthUnit, widthMagnitude } = toWiden;
-                const scale = widthUnit === "*" ? unitLength : 1;
+                const scale = widthUnit === WidthUnit.Ratio ? unitLength : 1;
                 toWiden.widthMagnitude = NumCast(widthMagnitude) + Math.abs(movementX) / scale;
             }
         }
@@ -60,17 +61,17 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     private get isActivated() {
         const { toLeft, toRight } = this.props;
         if (toLeft && toRight) {
-            if (StrCast(toLeft.widthUnit) === "px" && StrCast(toRight.widthUnit) === "px") {
+            if (StrCast(toLeft.widthUnit) === WidthUnit.Pixel && StrCast(toRight.widthUnit) === WidthUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toLeft) {
-            if (StrCast(toLeft.widthUnit) === "px") {
+            if (StrCast(toLeft.widthUnit) === WidthUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toRight) {
-            if (StrCast(toRight.widthUnit) === "px") {
+            if (StrCast(toRight.widthUnit) === WidthUnit.Pixel) {
                 return false;
             }
             return true;
