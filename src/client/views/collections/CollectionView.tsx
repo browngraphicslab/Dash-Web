@@ -27,7 +27,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionLinearView } from './CollectionLinearView';
-import { CollectionMulticolumnView } from './CollectionMulticolumnView';
+import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
 import { CollectionPivotView } from './CollectionPivotView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
