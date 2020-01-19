@@ -44,14 +44,20 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     private hangupButton: HTMLButtonElement | undefined;
     private roomText: HTMLInputElement | undefined;
     private roomOfCam: string = "";
+    private webRTCManager: DashWebRTC | undefined;
 
     componentDidMount() {
         DocumentDecorations.Instance.addCloseCall(this.closeConnection);
+        this.webRTCManager = new DashWebRTC();
+        let self = this;
+        window.onbeforeunload = function () {
+            self.webRTCManager!.sendMessage('bye');
+        };
     }
 
     closeConnection: CloseCall = () => {
         //Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: 'bye', room: this.roomOfCam });
-        DashWebRTC.hangup();
+        this.webRTCManager!.hangup();
     }
 
     componentWillUnmount() {
@@ -309,9 +315,11 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
             this.roomText!.value = "";
             this.roomText!.blur();
             this.roomOfCam = submittedTitle;
-            DashWebRTC.init(submittedTitle);
+            this.webRTCManager!.init(submittedTitle);
         }
     }
+
+
 
 
 
@@ -357,11 +365,11 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
                 <input type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
                 <video id="localVideo" autoPlay playsInline ref={(e) => {
                     this.localVideoEl = e!;
-                    DashWebRTC.setLocalVideoObject(e!);
+                    this.webRTCManager!.setLocalVideoObject(e!);
                 }}></video>
                 <video id="remoteVideo" autoPlay playsInline ref={(e) => {
                     this.peerVideoEl = e!;
-                    DashWebRTC.setRemoteVideoObject(e!);
+                    this.webRTCManager!.setRemoteVideoObject(e!);
                 }}></video>
                 {/* <button id="startButton" ref={(e) => this.startButton = e!} onClick={this.startAction}>Start</button>
                 <button id="callButton" ref={(e) => this.callButton = e!} onClick={this.callAction}>Call</button>

@@ -7,36 +7,44 @@ import { MessageStore } from '../../../server/Message';
 /**
  * This namespace will have the code required to have functionality code for the usage of webRTC.
  */
-export namespace DashWebRTC {
+export class DashWebRTC {
 
 
-    let isChannelReady = false;
-    let isInitiator = false;
-    let isStarted = false;
-    let localStream: MediaStream | undefined;
-    let pc: any;
-    let remoteStream: MediaStream | undefined;
-    let turnReady;
-    let localVideo: HTMLVideoElement;
-    let remoteVideo: HTMLVideoElement;
-    let curRoom: string = "";
+    private isChannelReady = false;
+    private isInitiator = false;
+    private isStarted = false;
+    localStream: MediaStream | undefined;
+    private pc: any;
+    remoteStream: MediaStream | undefined;
+    private turnReady: boolean | undefined;
+    localVideo: HTMLVideoElement | undefined;
+    remoteVideo: HTMLVideoElement | undefined;
+    curRoom: string = "";
 
 
-    let pcConfig = {
-        'iceServers': [{
-            'urls': 'stun:stun.l.google.com:19302'
-        }]
-    };
+    private pcConfig: any;
+    private sdpConstraints: any;
 
-    // Set up audio and video regardless of what devices are present.
-    let sdpConstraints = {
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-    };
+    constructor() {
+        this.pcConfig = {
+            'iceServers': [{
+                'urls': 'stun:stun.l.google.com:19302'
+            }]
+        };
 
-    export function init(room: string) {
+        // Set up audio and video regardless of what devices are present.
+        this.sdpConstraints = {
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
+        };
+    }
 
-        curRoom = room;
+
+
+    init(room: string) {
+
+        this.curRoom = room;
+        let self = this;
 
         if (room !== '') {
             DocServer._socket.emit('create or join', room);
@@ -46,7 +54,7 @@ export namespace DashWebRTC {
 
         DocServer._socket.on('created', function (room: string) {
             console.log('Created room ' + room);
-            isInitiator = true;
+            self.isInitiator = true;
         });
 
         DocServer._socket.on('full', function (room: string) {
@@ -56,13 +64,13 @@ export namespace DashWebRTC {
         DocServer._socket.on('join', function (room: string) {
             console.log('Another peer made a request to join room ' + room);
             console.log('This peer is the initiator of room ' + room + '!');
-            isChannelReady = true;
+            self.isChannelReady = true;
         });
 
 
         DocServer._socket.on('joined', function (room: string) {
             console.log('joined: ' + room);
-            isChannelReady = true;
+            self.isChannelReady = true;
         });
 
 
@@ -74,23 +82,23 @@ export namespace DashWebRTC {
         DocServer._socket.on('message', function (message: any) {
             console.log('Client received message:', message);
             if (message.message === 'got user media') {
-                maybeStart();
+                self.maybeStart();
             } else if (message.message.type === 'offer') {
-                if (!isInitiator && !isStarted) {
-                    maybeStart();
+                if (!self.isInitiator && !self.isStarted) {
+                    self.maybeStart();
                 }
-                pc.setRemoteDescription(new RTCSessionDescription(message.message));
-                doAnswer();
-            } else if (message.message.type === 'answer' && isStarted) {
-                pc.setRemoteDescription(new RTCSessionDescription(message.message));
-            } else if (message.message.type === 'candidate' && isStarted) {
+                self.pc.setRemoteDescription(new RTCSessionDescription(message.message));
+                self.doAnswer();
+            } else if (message.message.type === 'answer' && self.isStarted) {
+                self.pc.setRemoteDescription(new RTCSessionDescription(message.message));
+            } else if (message.message.type === 'candidate' && self.isStarted) {
                 let candidate = new RTCIceCandidate({
                     sdpMLineIndex: message.message.label,
                     candidate: message.message.candidate
                 });
-                pc.addIceCandidate(candidate);
-            } else if (message === 'bye' && isStarted) {
-                handleRemoteHangup();
+                self.pc.addIceCandidate(candidate);
+            } else if (message === 'bye' && self.isStarted) {
+                self.handleRemoteHangup();
             }
         });
 
@@ -98,16 +106,16 @@ export namespace DashWebRTC {
             audio: false,
             video: true
         })
-            .then(gotStream)
+            .then(this.gotStream)
             .catch(function (e) {
                 alert('getUserMedia() error: ' + e.name);
             });
 
         //Trying this one out!!!
-        console.log('Getting user media with constraints', constraints);
+        console.log('Getting user media with constraints', this.constraints);
 
         if (location.hostname !== 'localhost') {
-            requestTurn(
+            this.requestTurn(
                 'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
             );
         }
@@ -116,9 +124,9 @@ export namespace DashWebRTC {
     }
 
 
-    function sendMessage(message: any) {
+    sendMessage(message: any) {
         console.log('Client sending message: ', message);
-        Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: curRoom });
+        Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: this.curRoom });
         //DocServer._socket.emit('message', message);
     }
 
@@ -126,33 +134,33 @@ export namespace DashWebRTC {
 
 
 
-    export function setVideoObjects(localVideo: HTMLVideoElement, remoteVideo: HTMLVideoElement) {
+    setVideoObjects(localVideo: HTMLVideoElement, remoteVideo: HTMLVideoElement) {
         localVideo = localVideo;
         remoteVideo = remoteVideo;
     }
 
-    export function setLocalVideoObject(localVideoRef: HTMLVideoElement) {
-        localVideo = localVideoRef;
+    setLocalVideoObject(localVideoRef: HTMLVideoElement) {
+        this.localVideo = localVideoRef;
     }
 
-    export function setRemoteVideoObject(remoteVideoRef: HTMLVideoElement) {
-        remoteVideo = remoteVideoRef;
+    setRemoteVideoObject(remoteVideoRef: HTMLVideoElement) {
+        this.remoteVideo = remoteVideoRef;
     }
 
 
 
 
-    function gotStream(stream: any) {
+    gotStream(stream: any) {
         console.log('Adding local stream.');
-        localStream = stream;
-        localVideo.srcObject = stream;
-        sendMessage('got user media');
-        if (isInitiator) {
-            maybeStart();
+        this.localStream = stream;
+        this.localVideo!.srcObject = stream;
+        this.sendMessage('got user media');
+        if (this.isInitiator) {
+            this.maybeStart();
         }
     }
 
-    let constraints = {
+    constraints = {
         video: true,
         audio: true
     };
@@ -161,32 +169,32 @@ export namespace DashWebRTC {
 
 
 
-    function maybeStart() {
-        console.log('>>>>>>> maybeStart() ', isStarted, localStream, isChannelReady);
-        if (!isStarted && typeof localStream !== 'undefined' && isChannelReady) {
+    maybeStart() {
+        console.log('>>>>>>> maybeStart() ', this.isStarted, this.localStream, this.isChannelReady);
+        if (!this.isStarted && typeof this.localStream !== 'undefined' && this.isChannelReady) {
             console.log('>>>>>> creating peer connection');
-            createPeerConnection();
-            pc.addStream(localStream);
-            isStarted = true;
-            console.log('isInitiator', isInitiator);
-            if (isInitiator) {
-                doCall();
+            this.createPeerConnection();
+            this.pc.addStream(this.localStream);
+            this.isStarted = true;
+            console.log('isInitiator', this.isInitiator);
+            if (this.isInitiator) {
+                this.doCall();
             }
         }
     }
 
 
-    //this will need to be changed to our version of hangUp
-    window.onbeforeunload = function () {
-        sendMessage('bye');
-    };
+    // //this will need to be changed to our version of hangUp
+    // window.onbeforeunload = function () {
+    //     sendMessage('bye');
+    // };
 
-    function createPeerConnection() {
+    createPeerConnection() {
         try {
-            pc = new RTCPeerConnection(undefined);
-            pc.onicecandidate = handleIceCandidate;
-            pc.onaddstream = handleRemoteStreamAdded;
-            pc.onremovestream = handleRemoteStreamRemoved;
+            this.pc = new RTCPeerConnection(undefined);
+            this.pc.onicecandidate = this.handleIceCandidate;
+            this.pc.onaddstream = this.handleRemoteStreamAdded;
+            this.pc.onremovestream = this.handleRemoteStreamRemoved;
             console.log('Created RTCPeerConnnection');
         } catch (e) {
             console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -195,10 +203,10 @@ export namespace DashWebRTC {
         }
     }
 
-    function handleIceCandidate(event: any) {
+    handleIceCandidate(event: any) {
         console.log('icecandidate event: ', event);
         if (event.candidate) {
-            sendMessage({
+            this.sendMessage({
                 type: 'candidate',
                 label: event.candidate.sdpMLineIndex,
                 id: event.candidate.sdpMid,
@@ -209,40 +217,41 @@ export namespace DashWebRTC {
         }
     }
 
-    function handleCreateOfferError(event: any) {
+    handleCreateOfferError(event: any) {
         console.log('createOffer() error: ', event);
     }
 
-    function doCall() {
+    doCall() {
         console.log('Sending offer to peer');
-        pc.createOffer(setLocalAndSendMessage, handleCreateOfferError);
+        this.pc.createOffer(this.setLocalAndSendMessage, this.handleCreateOfferError);
     }
 
-    function doAnswer() {
+    doAnswer() {
         console.log('Sending answer to peer.');
-        pc.createAnswer().then(
-            setLocalAndSendMessage,
-            onCreateSessionDescriptionError
+        this.pc.createAnswer().then(
+            this.setLocalAndSendMessage,
+            this.onCreateSessionDescriptionError
         );
     }
 
-    function setLocalAndSendMessage(sessionDescription: any) {
-        pc.setLocalDescription(sessionDescription);
+    setLocalAndSendMessage(sessionDescription: any) {
+        this.pc.setLocalDescription(sessionDescription);
         console.log('setLocalAndSendMessage sending message', sessionDescription);
-        sendMessage(sessionDescription);
+        this.sendMessage(sessionDescription);
     }
 
-    function onCreateSessionDescriptionError(error: any) {
+    onCreateSessionDescriptionError(error: any) {
         console.log('Failed to create session description: ' + error.toString());
     }
 
 
-    function requestTurn(turnURL: any) {
+    requestTurn(turnURL: any) {
         var turnExists = false;
-        for (var i in pcConfig.iceServers) {
-            if (pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
+        let self = this;
+        for (var i in this.pcConfig.iceServers) {
+            if (this.pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
                 turnExists = true;
-                turnReady = true;
+                this.turnReady = true;
                 break;
             }
         }
@@ -254,11 +263,11 @@ export namespace DashWebRTC {
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     var turnServer = JSON.parse(xhr.responseText);
                     console.log('Got TURN server: ', turnServer);
-                    pcConfig.iceServers.push({
+                    self.pcConfig.iceServers.push({
                         'urls': 'turn:' + turnServer.username + '@' + turnServer.turn,
                         //'credential': turnServer.password
                     });
-                    turnReady = true;
+                    self.turnReady = true;
                 }
             };
             xhr.open('GET', turnURL, true);
@@ -266,39 +275,39 @@ export namespace DashWebRTC {
         }
     }
 
-    function handleRemoteStreamAdded(event: MediaStreamEvent) {
+    handleRemoteStreamAdded(event: MediaStreamEvent) {
         console.log('Remote stream added.');
-        remoteStream = event.stream!;
-        remoteVideo.srcObject = remoteStream;
+        this.remoteStream = event.stream!;
+        this.remoteVideo!.srcObject = this.remoteStream;
     }
 
-    function handleRemoteStreamRemoved(event: MediaStreamEvent) {
+    handleRemoteStreamRemoved(event: MediaStreamEvent) {
         console.log('Remote stream removed. Event: ', event);
     }
 
-    export function hangup() {
+    hangup() {
         console.log('Hanging up.');
-        if (pc) {
+        if (this.pc) {
             stop();
-            sendMessage('bye');
+            this.sendMessage('bye');
         }
 
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
         }
 
     }
 
-    function handleRemoteHangup() {
+    handleRemoteHangup() {
         console.log('Session terminated.');
         stop();
-        isInitiator = false;
+        this.isInitiator = false;
     }
 
-    function stop() {
-        isStarted = false;
-        pc.close();
-        pc = null;
+    stop() {
+        this.isStarted = false;
+        this.pc.close();
+        this.pc = null;
     }
 
 
