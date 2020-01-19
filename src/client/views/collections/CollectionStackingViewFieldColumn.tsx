@@ -138,18 +138,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         if (value === ":freeForm") {
             return this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { width: 200, height: 200 }));
         } else if (value.startsWith(":")) {
-            const field = value.substring(1);
-            if (this.props.parent.props.Document[field] instanceof ImageField) {
-                let doc = Docs.Create.ImageDocument((this.props.parent.props.Document[field] as ImageField).url.href, {});
-                doc.layout = ImageBox.LayoutString(field);
-                doc.proto = Doc.GetProto(this.props.parent.props.Document);
-                return this.props.parent.props.addDocument(doc);
-            } else {
-                let doc = Docs.Create.TextDocument({ width: 200, height: 25, autoHeight: true });
-                doc.layout = FormattedTextBox.LayoutString(field);
-                doc.proto = Doc.GetProto(this.props.parent.props.Document);
-                return this.props.parent.props.addDocument(doc);
-            }
+            const { Document, addDocument } = this.props.parent.props;
+            const fieldKey = value.substring(1);
+            const proto = Doc.GetProto(Document);
+            const created = Docs.Get.DocumentFromField(Document, fieldKey, proto);
+            return created ? addDocument(created) : false;
         }
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);

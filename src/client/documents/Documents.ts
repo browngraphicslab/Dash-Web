@@ -19,7 +19,7 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { OmitKeys, JSONUtils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -51,6 +51,7 @@ import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
 import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
+import { InkingControl } from "../views/InkingControl";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -654,6 +655,45 @@ export namespace Docs {
             }
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };
+
+        export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
+            let created: Doc | undefined;
+            let layout: ((fieldKey: string) => string) | undefined;
+            const field = target[fieldKey];
+            const resolved = options || {};
+            if (field instanceof ImageField) {
+                created = Docs.Create.ImageDocument((field as ImageField).url.href, resolved);
+                layout = ImageBox.LayoutString;
+            } else if (field instanceof VideoField) {
+                created = Docs.Create.VideoDocument((field as VideoField).url.href, resolved);
+                layout = VideoBox.LayoutString;
+            } else if (field instanceof PdfField) {
+                created = Docs.Create.PdfDocument((field as PdfField).url.href, resolved);
+                layout = PDFBox.LayoutString;
+            } else if (field instanceof IconField) {
+                created = Docs.Create.IconDocument((field as IconField).icon, resolved);
+                layout = IconBox.LayoutString;
+            } else if (field instanceof AudioField) {
+                created = Docs.Create.AudioDocument((field as AudioField).url.href, resolved);
+                layout = AudioBox.LayoutString;
+            } else if (field instanceof HistogramField) {
+                created = Docs.Create.HistogramDocument((field as HistogramField).HistoOp, resolved);
+                layout = HistogramBox.LayoutString;
+            } else if (field instanceof InkField) {
+                const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field as InkField).inkData, resolved);
+                layout = InkingStroke.LayoutString;
+            } else if (field instanceof List && field[0] instanceof Doc) {
+                created = Docs.Create.StackingDocument(DocListCast(field), resolved);
+                layout = CollectionView.LayoutString;
+            } else {
+                created = Docs.Create.TextDocument({ ...{ width: 200, height: 25, autoHeight: true }, ...resolved });
+                layout = FormattedTextBox.LayoutString;
+            }
+            created.layout = layout(fieldKey);
+            proto && (created.proto = Doc.GetProto(proto));
+            return created;
+        }
 
         export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;

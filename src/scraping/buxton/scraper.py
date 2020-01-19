@@ -17,7 +17,7 @@ dist = "../../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
 target_collection = db.newDocuments
-target_doc_title = "Workspace 1"
+target_doc_title = "Collection 1"
 schema_guids = []
 common_proto_id = ""
 
