@@ -1,4 +1,4 @@
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs } from "../../../client/documents/Documents";
@@ -9,13 +9,11 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { Cast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../RouteStore";
-import { InkingControl } from "../../../client/views/InkingControl";
-import { DragManager } from "../../../client/util/DragManager";
 import { nullAudio } from "../../../new_fields/URLField";
-import { LinkManager } from "../../../client/util/LinkManager";
+import { DragManager } from "../../../client/util/DragManager";
+import { InkingControl } from "../../../client/views/InkingControl";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -43,12 +41,13 @@ export class CurrentUserUtils {
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
-    static setupCreatorButtons(doc: Doc) {
-        let notes = CurrentUserUtils.setupNoteTypes(doc);
+    static setupCreatorButtons(doc: Doc, buttons?: string[]) {
+        const notes = CurrentUserUtils.setupNoteTypes(doc);
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", height: 75 });
         doc.activePen = doc;
-        let docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, unchecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
+        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "collection", icon: "folder", ignoreClick: true, drag: 'Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" })' },
+            { title: "preview", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,true,[_last_])?.[0]"), { width: 250, height: 250, title: "container" })' },
             { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { width: 200, title: "an image of a cat" })' },
@@ -57,18 +56,39 @@ export class CurrentUserUtils {
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", ignoreClick: true, drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" })' },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 })' },
-            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", unchecked: `!sameDocs(this.activePen.pen,  this)`, activePen: doc },
-            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", unchecked: `!sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
-            { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', unchecked: `!sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
-            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', unchecked: `!sameDocs(this.activePen.pen, this) && this.activePen.pen !== undefined`, backgroundColor: "white", activePen: doc },
+            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
+            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
+            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
+            { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
+            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
         ];
-        return docProtoData.map(data => Docs.Create.FontIconDocument({
+        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-            unchecked: data.unchecked ? ComputedField.MakeFunction(data.unchecked) : undefined, activePen: data.activePen,
+            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen,
             backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
         }));
+    }
+
+    static async updateCreatorButtons(doc: Doc) {
+        const toolsBtn = await Cast(doc.ToolsBtn, Doc);
+        if (toolsBtn) {
+            const stackingDoc = await Cast(toolsBtn.sourcePanel, Doc);
+            if (stackingDoc) {
+                const stackdocs = await Cast(stackingDoc.data, listSpec(Doc));
+                if (stackdocs) {
+                    const dragset = await Cast(stackdocs[0], Doc);
+                    if (dragset) {
+                        const dragdocs = await Cast(dragset.data, listSpec(Doc));
+                        if (dragdocs) {
+                            const dragDocs = await Promise.all(dragdocs);
+                            const newButtons = this.setupCreatorButtons(doc, dragDocs.map(d => StrCast(d.title)));
+                            newButtons.map(nb => Doc.AddDocToList(dragset, "data", nb));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.  when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
@@ -84,7 +104,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 35, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Tools", targetContainer: sidebarContainer,
+            width: 35, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, lockedPosition: true, chromeStatus: "disabled", title: "tools stack"
             }),
@@ -109,19 +129,19 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Library",
+            width: 50, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Library", fontSize: 10,
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
                 title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
             }),
             targetContainer: sidebarContainer,
-            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
+            onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
         });
     }
 
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            width: 50, height: 35, borderRounding: "50%", boxShadow: "2px 2px 1px", title: "Search",
+            width: 50, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Search", fontSize: 10,
             sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
             }),
@@ -187,6 +207,8 @@ export class CurrentUserUtils {
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
         (doc.sidebarButtons === undefined) && CurrentUserUtils.setupSidebarButtons(doc);
 
+        // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
+        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.
         PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
         PromiseValue(Cast(doc.sidebarButtons, Doc)).then(stackingDoc => {
@@ -203,11 +225,12 @@ export class CurrentUserUtils {
         doc.undoBtn && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc.undoBtn as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
         doc.redoBtn && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc.redoBtn as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
+        this.updateCreatorButtons(doc);
         return doc;
     }
 
-    public static loadCurrentUser() {
-        return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
+    public static async loadCurrentUser() {
+        return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
                 const result: { id: string, email: string } = JSON.parse(response);
                 return result;
@@ -220,7 +243,7 @@ export class CurrentUserUtils {
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
-        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
+        await rp.get(Utils.prepend("/getUserDocumentId")).then(id => {
             if (id && id !== "guest") {
                 return DocServer.GetRefField(id).then(async field =>
                     Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(id, true))));
@@ -279,7 +302,7 @@ export class CurrentUserUtils {
         if (this._northstarCatalog && CurrentUserUtils._northstarSchemas) {
             this._northstarCatalog.schemas!.push(schema);
             CurrentUserUtils._northstarSchemas.push(schemaDoc);
-            let schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
+            const schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
             schemas.push(schema.displayName!);
             CurrentUserUtils.UserDocument.DBSchemas = new List<string>(schemas);
         }

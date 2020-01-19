@@ -1,0 +1,24 @@
+@import "../globalCssVariables";
+
+.contentFittingDocumentView {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .contentFittingDocumentView-previewDoc {
+        position: relative;
+        display: inline;
+    }
+
+    .contentFittingDocumentView-input {
+        position: absolute;
+        max-width: 150px;
+        width: 100%;
+        bottom: 0px;
+    }
+
+    .documentView-node:first-child {
+        position: relative;
+        background: $light-color;
+    }
+}

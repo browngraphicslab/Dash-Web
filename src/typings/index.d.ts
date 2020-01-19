@@ -1,6 +1,8 @@
 /// <reference types="node" />
 
 declare module 'googlephotos';
+declare module 'react-image-lightbox-with-rotate';
+declare module 'cors';
 
 declare module 'webrtc-adapter';
 

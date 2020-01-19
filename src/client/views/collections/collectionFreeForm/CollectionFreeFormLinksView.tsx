@@ -72,11 +72,11 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
     @computed
     get uniqueConnections() {
-        let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
+        const connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             if (!drawnPairs.reduce((found, drawnPair) => {
-                let match1 = (connection.a === drawnPair.a && connection.b === drawnPair.b);
-                let match2 = (connection.a === drawnPair.b && connection.b === drawnPair.a);
-                let match = match1 || match2;
+                const match1 = (connection.a === drawnPair.a && connection.b === drawnPair.b);
+                const match2 = (connection.a === drawnPair.b && connection.b === drawnPair.a);
+                const match = match1 || match2;
                 if (match && !drawnPair.l.reduce((found, link) => found || link[Id] === connection.l[Id], false)) {
                     drawnPair.l.push(connection.l);
                 }
@@ -91,13 +91,11 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
 
     render() {
-        return (
-            <div className="collectionfreeformlinksview-container">
-                <svg className="collectionfreeformlinksview-svgCanvas">
-                    {SelectionManager.GetIsDragging() ? (null) : this.uniqueConnections}
-                </svg>
-                {this.props.children}
-            </div>
-        );
+        return <div className="collectionfreeformlinksview-container">
+            <svg className="collectionfreeformlinksview-svgCanvas">
+                {SelectionManager.GetIsDragging() ? (null) : this.uniqueConnections}
+            </svg>
+            {this.props.children}
+        </div>;
     }
 }

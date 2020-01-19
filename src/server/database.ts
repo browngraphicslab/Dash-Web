@@ -5,19 +5,60 @@ import { Utils, emptyFunction } from '../Utils';
 import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
+import { IDatabase } from './IDatabase';
+import { MemoryDatabase } from './MemoryDatabase';
+import * as mongoose from 'mongoose';
 
 export namespace Database {
 
-    class Database {
+    export let disconnect: Function;
+    const schema = 'Dash';
+    const port = 27017;
+    export const url = `mongodb://localhost:${port}/${schema}`;
+
+    enum ConnectionStates {
+        disconnected = 0,
+        connected = 1,
+        connecting = 2,
+        disconnecting = 3,
+        uninitialized = 99,
+    }
+
+    export async function tryInitializeConnection() {
+        try {
+            const { connection } = mongoose;
+            disconnect = async () => new Promise<any>(resolve => connection.close(resolve));
+            if (connection.readyState === ConnectionStates.disconnected) {
+                await new Promise<void>((resolve, reject) => {
+                    connection.on('error', reject);
+                    connection.on('connected', () => {
+                        console.log(`mongoose established default connection at ${url}`);
+                        resolve();
+                    });
+                    mongoose.connect(url, { useNewUrlParser: true });
+                });
+            }
+        } catch (e) {
+            console.error(`Mongoose FAILED to establish default connection at ${url} with the following error:`);
+            console.error(e);
+            console.log('Since a valid database connection is required to use Dash, the server process will now exit.\nPlease try again later.');
+            process.exit(1);
+        }
+    }
+
+    class Database implements IDatabase {
         public static DocumentsCollection = 'documents';
         private MongoClient = mongodb.MongoClient;
-        private url = 'mongodb://localhost:27017/Dash';
         private currentWrites: { [id: string]: Promise<void> } = {};
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
         constructor() {
-            this.MongoClient.connect(this.url, (err, client) => {
+            this.MongoClient.connect(url, (_err, client) => {
+                if (!client) {
+                    console.error("\nPlease start MongoDB by running 'mongod' in a terminal before continuing...\n");
+                    process.exit(0);
+                }
                 this.db = client.db();
                 this.onConnect.forEach(fn => fn());
             });
@@ -25,7 +66,7 @@ export namespace Database {
 
         public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
             if (this.db) {
-                let collection = this.db.collection(collectionName);
+                const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
                 let newProm: Promise<void>;
                 const run = (): Promise<void> => {
@@ -50,7 +91,7 @@ export namespace Database {
 
         public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
             if (this.db) {
-                let collection = this.db.collection(collectionName);
+                const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
                 let newProm: Promise<void>;
                 const run = (): Promise<void> => {
@@ -176,7 +217,7 @@ export namespace Database {
                     if (!fetchIds.length) {
                         continue;
                     }
-                    const docs = await new Promise<{ [key: string]: any }[]>(res => Instance.getDocuments(fetchIds, res, "newDocuments"));
+                    const docs = await new Promise<{ [key: string]: any }[]>(res => this.getDocuments(fetchIds, res, collectionName));
                     for (const doc of docs) {
                         const id = doc.id;
                         visited.add(id);
@@ -223,7 +264,16 @@ export namespace Database {
         }
     }
 
-    export const Instance = new Database();
+    function getDatabase() {
+        switch (process.env.DB) {
+            case "MEM":
+                return new MemoryDatabase();
+            default:
+                return new Database();
+        }
+    }
+
+    export const Instance: IDatabase = getDatabase();
 
     export namespace Auxiliary {
 
@@ -247,7 +297,7 @@ export namespace Database {
         };
 
         export const QueryUploadHistory = async (contentSize: number) => {
-            return SanitizedSingletonQuery<DashUploadUtils.UploadInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
+            return SanitizedSingletonQuery<DashUploadUtils.ImageUploadInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
 
         export namespace GoogleAuthenticationToken {
@@ -256,7 +306,7 @@ export namespace Database {
 
             export type StoredCredentials = Credentials & { _id: string };
 
-            export const Fetch = async (userId: string, removeId = true) => {
+            export const Fetch = async (userId: string, removeId = true): Promise<Opt<StoredCredentials>> => {
                 return SanitizedSingletonQuery<StoredCredentials>({ userId }, GoogleAuthentication, removeId);
             };
 
@@ -276,7 +326,7 @@ export namespace Database {
 
         }
 
-        export const LogUpload = async (information: DashUploadUtils.UploadInformation) => {
+        export const LogUpload = async (information: DashUploadUtils.ImageUploadInformation) => {
             const bundle = {
                 _id: Utils.GenerateDeterministicGuid(String(information.contentSize!)),
                 ...information

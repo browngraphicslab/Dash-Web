@@ -1,5 +1,6 @@
 @import "../../globalCssVariables";
 
+.collectionfreeformview-none,
 .collectionfreeformview-ease {
     position: inherit;
     top: 0;
@@ -7,16 +8,15 @@
     width: 100%;
     height: 100%;
     transform-origin: left top;
+    border-radius: inherit;
+}
+
+.collectionfreeformview-ease {
     transition: transform 1s;
 }
 
 .collectionfreeformview-none {
-    position: inherit;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform-origin: left top;
+    touch-action: none;
 }
 
 .collectionFreeform-customText {
@@ -25,6 +25,24 @@
 }
 
 .collectionfreeformview-container {
+    // touch action none means that the browser will handle none of the touch actions. this allows us to implement our own actions.
+    touch-action: none;
+
+    .collectionfreeformview-placeholder {
+        background: gray;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        .collectionfreeformview-placeholderSpan {
+            font-size: 32;
+            display: flex;
+            text-align: center;
+            margin: auto;
+            background: #80808069;
+        }
+    }
+
     .collectionfreeformview>.jsx-parser {
         position: inherit;
         height: 100%;
@@ -41,7 +59,6 @@
     //   linear-gradient(to bottom, $light-color-secondary 1px, transparent 1px);
     // background-size: 30px 30px;
     // }
-    opacity: 0.99;
     border: 0px solid $light-color-secondary;
     border-radius: inherit;
     box-sizing: border-box;
@@ -50,6 +67,8 @@
     left: 0;
     width: 100%;
     height: 100%;
+    align-items: center;
+    display: flex;
 }
 
 // selection border...?

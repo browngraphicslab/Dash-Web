@@ -4,8 +4,10 @@ import { undoInputRule } from "prosemirror-inputrules";
 import { Schema } from "prosemirror-model";
 import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
-import { EditorState, Transaction, TextSelection, NodeSelection } from "prosemirror-state";
+import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { TooltipTextMenu } from "./TooltipTextMenu";
+import { SelectionManager } from "./SelectionManager";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -15,22 +17,22 @@ export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string)
     let fontSize: number | undefined = undefined;
     tx2.doc.descendants((node: any, offset: any, index: any) => {
         if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
-            let path = (tx2.doc.resolve(offset) as any).path;
+            const path = (tx2.doc.resolve(offset) as any).path;
             let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
             if (node.type === schema.nodes.ordered_list) depth++;
             fontSize = depth === 1 && node.attrs.setFontSize ? Number(node.attrs.setFontSize) : fontSize;
-            let fsize = fontSize && node.type === schema.nodes.ordered_list ? Math.max(6, fontSize - (depth - 1) * 4) : undefined;
+            const fsize = fontSize && node.type === schema.nodes.ordered_list ? Math.max(6, fontSize - (depth - 1) * 4) : undefined;
             tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle ? mapStyle : node.attrs.mapStyle, bulletStyle: depth, inheritedFontSize: fsize }, node.marks);
         }
     });
     return tx2;
 };
 export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: KeyMap): KeyMap {
-    let keys: { [key: string]: any } = {}, type;
+    const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {
         if (mapKeys) {
-            let mapped = mapKeys[key];
+            const mapped = mapKeys[key];
             if (mapped === false) return;
             if (mapped) key = mapped;
         }
@@ -46,7 +48,11 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     bind("Alt-ArrowUp", joinUp);
     bind("Alt-ArrowDown", joinDown);
     bind("Mod-BracketLeft", lift);
-    bind("Escape", selectParentNode);
+    bind("Escape", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
+        (document.activeElement as any).blur?.();
+        SelectionManager.DeselectAll();
+    });
 
     bind("Mod-b", toggleMark(schema.marks.strong));
     bind("Mod-B", toggleMark(schema.marks.strong));
@@ -79,7 +85,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     // });
 
 
-    let cmd = chainCommands(exitCode, (state, dispatch) => {
+    const cmd = chainCommands(exitCode, (state, dispatch) => {
         if (dispatch) {
             dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create()).scrollIntoView());
             return true;
@@ -99,27 +105,25 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         bind("Shift-Ctrl-" + i, setBlockType(schema.nodes.heading, { level: i }));
     }
 
-    let hr = schema.nodes.horizontal_rule;
+    const hr = schema.nodes.horizontal_rule;
     bind("Mod-_", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         dispatch(state.tr.replaceSelectionWith(hr.create()).scrollIntoView());
         return true;
     });
 
-    bind("Mod-s", TooltipTextMenu.insertStar);
-
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        var ref = state.selection;
-        var range = ref.$from.blockRange(ref.$to);
-        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        const ref = state.selection;
+        const range = ref.$from.blockRange(ref.$to);
+        const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
-            let tx3 = updateBullets(tx2, schema);
+            const tx3 = updateBullets(tx2, schema);
             marks && tx3.ensureMarks([...marks]);
             marks && tx3.setStoredMarks([...marks]);
             dispatch(tx3);
         })) { // couldn't sink into an existing list, so wrap in a new one
-            let newstate = state.applyTransaction(state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end)));
+            const newstate = state.applyTransaction(state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end)));
             if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
-                let tx3 = updateBullets(tx2, schema);
+                const tx3 = updateBullets(tx2, schema);
                 // when promoting to a list, assume list will format things so don't copy the stored marks.
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
@@ -131,10 +135,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     });
 
     bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
 
         if (!liftListItem(schema.nodes.list_item)(state.tr, (tx2: Transaction) => {
-            let tx3 = updateBullets(tx2, schema);
+            const tx3 = updateBullets(tx2, schema);
             marks && tx3.ensureMarks([...marks]);
             marks && tx3.setStoredMarks([...marks]);
             dispatch(tx3);
@@ -143,14 +147,14 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         }
     });
 
-    let splitMetadata = (marks: any, tx: Transaction) => {
+    const splitMetadata = (marks: any, tx: Transaction) => {
         marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         return tx;
     };
-    bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => dispatch(tx3))) {
+    bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        if (!splitListItem(schema.nodes.list_item)(state, dispatch)) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                 splitMetadata(marks, tx3);
                 if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
@@ -163,18 +167,18 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         return true;
     });
     bind("Space", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         dispatch(splitMetadata(marks, state.tr));
         return false;
     });
     bind(":", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        let range = state.selection.$from.blockRange(state.selection.$to, (node: any) => {
+        const range = state.selection.$from.blockRange(state.selection.$to, (node: any) => {
             return !node.marks || !node.marks.find((m: any) => m.type === schema.marks.metadata);
         });
-        let path = (state.doc.resolve(state.selection.from - 1) as any).path;
-        let spaceSeparator = path[path.length - 3].childCount > 1 ? 0 : -1;
-        let textsel = TextSelection.create(state.doc, range!.end - path[path.length - 3].lastChild.nodeSize + spaceSeparator, range!.end);
-        let text = range ? state.doc.textBetween(textsel.from, textsel.to) : "";
+        const path = (state.doc.resolve(state.selection.from - 1) as any).path;
+        const spaceSeparator = path[path.length - 3].childCount > 1 ? 0 : -1;
+        const textsel = TextSelection.create(state.doc, range!.end - path[path.length - 3].lastChild.nodeSize + spaceSeparator, range!.end);
+        const text = range ? state.doc.textBetween(textsel.from, textsel.to) : "";
         let whitespace = text.length - 1;
         for (; whitespace >= 0 && text[whitespace] !== " "; whitespace--) { }
         if (text.endsWith(":")) {

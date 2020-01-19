@@ -12,7 +12,7 @@ export default class FaceRectangle extends React.Component<{ rectangle: Rectangl
     }
 
     render() {
-        let rectangle = this.props.rectangle;
+        const rectangle = this.props.rectangle;
         return (
             <div
                 style={{

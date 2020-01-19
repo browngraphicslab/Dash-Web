@@ -42,7 +42,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             if (value) {
                 value.forEach((item, i) => {
                     if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
-                        let pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
+                        const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
                         Doc.GetProto(pinDoc).presentationTargetDoc = item;
                         Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
                         value.splice(i, 1, pinDoc);
@@ -61,9 +61,9 @@ export class PresBox extends React.Component<FieldViewProps> {
     next = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
         //asking to get document at current index
-        let docAtCurrentNext = await this.getDocAtIndex(current + 1);
+        const docAtCurrentNext = await this.getDocAtIndex(current + 1);
         if (docAtCurrentNext !== undefined) {
-            let presDocs = DocListCast(this.props.Document[this.props.fieldKey]);
+            const presDocs = DocListCast(this.props.Document[this.props.fieldKey]);
             let nextSelected = current + 1;
 
             for (; nextSelected < presDocs.length - 1; nextSelected++) {
@@ -78,15 +78,15 @@ export class PresBox extends React.Component<FieldViewProps> {
     back = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
         //requesting for the doc at current index
-        let docAtCurrent = await this.getDocAtIndex(current);
+        const docAtCurrent = await this.getDocAtIndex(current);
         if (docAtCurrent !== undefined) {
 
             //asking for its presentation id.
             let prevSelected = current;
             let zoomOut: boolean = false;
 
-            let presDocs = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-            let currentsArray: Doc[] = [];
+            const presDocs = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
+            const currentsArray: Doc[] = [];
             for (; presDocs && prevSelected > 0 && presDocs[prevSelected].groupButton; prevSelected--) {
                 currentsArray.push(presDocs[prevSelected]);
             }
@@ -104,8 +104,8 @@ export class PresBox extends React.Component<FieldViewProps> {
             //If so making sure to zoom out, which goes back to state before zooming action
             if (current > 0) {
                 if (zoomOut || docAtCurrent.showButton) {
-                    let prevScale = NumCast(this.childDocs[prevSelected].viewScale, null);
-                    let curScale = DocumentManager.Instance.getScaleOfDocView(this.childDocs[current]);
+                    const prevScale = NumCast(this.childDocs[prevSelected].viewScale, null);
+                    const curScale = DocumentManager.Instance.getScaleOfDocView(this.childDocs[current]);
                     if (prevScale !== undefined && prevScale !== curScale) {
                         DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
                     }
@@ -162,13 +162,13 @@ export class PresBox extends React.Component<FieldViewProps> {
      * te option open, navigates to that element.
      */
     navigateToElement = async (curDoc: Doc, fromDocIndex: number) => {
-        let fromDoc = this.childDocs[fromDocIndex].presentationTargetDoc as Doc;
+        const fromDoc = this.childDocs[fromDocIndex].presentationTargetDoc as Doc;
         let docToJump = curDoc;
         let willZoom = false;
 
-        let presDocs = DocListCast(this.props.Document[this.props.fieldKey]);
+        const presDocs = DocListCast(this.props.Document[this.props.fieldKey]);
         let nextSelected = presDocs.indexOf(curDoc);
-        let currentDocGroups: Doc[] = [];
+        const currentDocGroups: Doc[] = [];
         for (; nextSelected < presDocs.length - 1; nextSelected++) {
             if (!presDocs[nextSelected + 1].groupButton) {
                 break;
@@ -190,11 +190,11 @@ export class PresBox extends React.Component<FieldViewProps> {
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            let target = await curDoc.presentationTargetDoc as Doc;
+            const target = await curDoc.presentationTargetDoc as Doc;
             if (curDoc.navButton) {
                 DocumentManager.Instance.jumpToDocument(target, false);
             } else if (curDoc.showButton) {
-                let curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
+                const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
                 //awaiting jump so that new scale can be found, since jumping is async
                 await DocumentManager.Instance.jumpToDocument(target, true);
                 curDoc.viewScale = DocumentManager.Instance.getScaleOfDocView(target);
@@ -207,11 +207,11 @@ export class PresBox extends React.Component<FieldViewProps> {
             }
             return;
         }
-        let curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
+        const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
 
         //awaiting jump so that new scale can be found, since jumping is async
         await DocumentManager.Instance.jumpToDocument(await docToJump.presentationTargetDoc as Doc, willZoom);
-        let newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
+        const newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on
         if (curScale !== 1) {
@@ -238,7 +238,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     public removeDocument = (doc: Doc) => {
         const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
         if (value) {
-            let indexOfDoc = value.indexOf(doc);
+            const indexOfDoc = value.indexOf(doc);
             if (indexOfDoc !== - 1) {
                 value.splice(indexOfDoc, 1)[0];
                 return true;
@@ -337,13 +337,13 @@ export class PresBox extends React.Component<FieldViewProps> {
     @action
     initializeScaleViews = (docList: Doc[], viewtype: number) => {
         this.props.Document.chromeStatus = "disabled";
-        let hgt = (viewtype === CollectionViewType.Tree) ? 50 : 72;
+        const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 72;
         docList.forEach((doc: Doc) => {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
             doc.collapsedHeight = hgt;
             doc.height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)");
-            let curScale = NumCast(doc.viewScale, null);
+            const curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
             }
@@ -352,7 +352,7 @@ export class PresBox extends React.Component<FieldViewProps> {
 
 
     selectElement = (doc: Doc) => {
-        let index = DocListCast(this.props.Document[this.props.fieldKey]).indexOf(doc);
+        const index = DocListCast(this.props.Document[this.props.fieldKey]).indexOf(doc);
         index !== -1 && this.gotoDocument(index, NumCast(this.props.Document.selectedDoc));
     }
 

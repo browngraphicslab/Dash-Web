@@ -19,7 +19,7 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { OmitKeys, JSONUtils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -35,10 +35,10 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting, CompileScript } from "../util/Scripting";
+import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
@@ -50,8 +50,12 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
-var requestImageSize = require('../util/request-image-size');
-var path = require('path');
+import { DocumentBox } from "../views/nodes/DocumentBox";
+import { InkingStroke } from "../views/InkingStroke";
+import { InkField } from "../../new_fields/InkField";
+import { InkingControl } from "../views/InkingControl";
+const requestImageSize = require('../util/request-image-size');
+const path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -68,6 +72,8 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     fitWidth?: boolean;
+    fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
+    isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
@@ -78,7 +84,8 @@ export interface DocumentOptions {
     viewType?: number;
     backgroundColor?: string;
     ignoreClick?: boolean;
-    lockedPosition?: boolean;
+    lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
+    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
@@ -95,9 +102,10 @@ export interface DocumentOptions {
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     autoHeight?: boolean;
+    annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
-    unchecked?: ScriptField; // returns whether a check box is unchecked
+    ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
@@ -109,6 +117,12 @@ export interface DocumentOptions {
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
+    strokeWidth?: number;
+    color?: string;
+    treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewOpen?: boolean; // whether this document is expanded in a tree view
+    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
+    limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
 }
 
@@ -167,6 +181,10 @@ export namespace Docs {
                 layout: { view: KeyValueBox, dataField: data },
                 options: { height: 150 }
             }],
+            [DocumentType.DOCUMENT, {
+                layout: { view: DocumentBox, dataField: data },
+                options: { height: 250 }
+            }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: data },
                 options: { currentTimecode: 0 },
@@ -177,7 +195,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
-                options: { nativeWidth: 1200, curPage: 1 }
+                options: { curPage: 1 }
             }],
             [DocumentType.ICON, {
                 layout: { view: IconBox, dataField: data },
@@ -214,6 +232,10 @@ export namespace Docs {
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: data }
             }],
+            [DocumentType.INK, {
+                layout: { view: InkingStroke, dataField: data },
+                options: { backgroundColor: "transparent" }
+            }]
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -235,16 +257,16 @@ export namespace Docs {
             ProxyField.initPlugin();
             ComputedField.initPlugin();
             // non-guid string ids for each document prototype
-            let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
+            const prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
-            let actualProtos = await DocServer.GetRefFields(prototypeIds);
+            const actualProtos = await DocServer.GetRefFields(prototypeIds);
 
             // update this object to include any default values: DocumentOptions for all prototypes
             prototypeIds.map(id => {
-                let existing = actualProtos[id] as Doc;
-                let type = id.replace(suffix, "") as DocumentType;
+                const existing = actualProtos[id] as Doc;
+                const type = id.replace(suffix, "") as DocumentType;
                 // get or create prototype of the specified type...
-                let target = existing || buildPrototype(type, id);
+                const target = existing || buildPrototype(type, id);
                 // ...and set it if not undefined (can be undefined only if TemplateMap does not contain
                 // an entry dedicated to the given DocumentType)
                 target && PrototypeMap.set(type, target);
@@ -262,6 +284,9 @@ export namespace Docs {
             return PrototypeMap.get(type)!;
         }
 
+        /**
+         * A collection of all links in the database.  Ideally, this would be a search, but for now all links are cached here.
+         */
         export function MainLinkDocument() {
             return Prototypes.get(DocumentType.LINKDOC);
         }
@@ -280,19 +305,19 @@ export namespace Docs {
          */
         function buildPrototype(type: DocumentType, prototypeId: string): Opt<Doc> {
             // load template from type
-            let template = TemplateMap.get(type);
+            const template = TemplateMap.get(type);
             if (!template) {
                 return undefined;
             }
-            let layout = template.layout;
+            const layout = template.layout;
             // create title
-            let upper = suffix.toUpperCase();
-            let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
+            const upper = suffix.toUpperCase();
+            const title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
-            let options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
+            const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view.LayoutString(layout.dataField);
-            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: options.layout });
+            return Doc.assign(new Doc(prototypeId, true), { ...options });
         }
 
     }
@@ -303,7 +328,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "forceActive", "fitWidth"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -336,12 +361,12 @@ export namespace Docs {
 
             protoProps.isPrototype = true;
 
-            let dataDoc = MakeDataDelegate(proto, protoProps, data);
-            let viewDoc = Doc.MakeDelegate(dataDoc, delegId);
+            const dataDoc = MakeDataDelegate(proto, protoProps, data);
+            const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
             AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
 
-            return Doc.assign(viewDoc, delegateProps);
+            return Doc.assign(viewDoc, delegateProps, true);
         }
 
         /**
@@ -363,17 +388,16 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let imgField = new ImageField(new URL(url));
-            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
+            const imgField = new ImageField(new URL(url));
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
             let target = imgField.url.href;
             if (new RegExp(window.location.origin).test(target)) {
-                let extension = path.extname(target);
+                const extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            // if (target !== "http://www.cs.brown.edu/") {
             requestImageSize(target)
                 .then((size: any) => {
-                    let aspect = size.height / size.width;
+                    const aspect = size.height / size.width;
                     if (!inst.nativeWidth) {
                         inst.nativeWidth = size.width;
                     }
@@ -420,6 +444,14 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
+        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
+            doc.color = color;
+            doc.strokeWidth = strokeWidth;
+            doc.tool = tool;
+            return doc;
+        }
+
         export function IconDocument(icon: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.ICON), new IconField(icon), options);
         }
@@ -429,12 +461,12 @@ export namespace Docs {
         }
 
         export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
-            let schemaName = options.title ? options.title : "-no schema-";
-            let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
+            const schemaName = options.title ? options.title : "-no schema-";
+            const ctlog = await Gateway.Instance.GetSchema(url, schemaName);
             if (ctlog && ctlog.schemas) {
-                let schema = ctlog.schemas[0];
-                let schemaDoc = Docs.Create.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
-                let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
+                const schema = ctlog.schemas[0];
+                const schemaDoc = Docs.Create.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
+                const schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
                 if (!schemaDocuments) {
                     return;
                 }
@@ -445,8 +477,8 @@ export namespace Docs {
                         if (field instanceof Doc) {
                             docs.push(field);
                         } else {
-                            var atmod = new ColumnAttributeModel(attr);
-                            let histoOp = new HistogramOperation(schema.displayName!,
+                            const atmod = new ColumnAttributeModel(attr);
+                            const histoOp = new HistogramOperation(schema.displayName!,
                                 new AttributeTransformationModel(atmod, AggregateFunction.None),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
@@ -469,6 +501,10 @@ export namespace Docs {
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
+        }
+
+        export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCUMENT), document, { title: document ? document.title + "" : "container", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -513,7 +549,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            Doc.GetProto(inst).data = new List<Doc>(documents);
+            return inst;
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
@@ -522,16 +560,17 @@ export namespace Docs {
 
         export type DocConfig = {
             doc: Doc,
-            initialWidth?: number
+            initialWidth?: number,
+            path?: Doc[]
         };
 
         export function StandardCollectionDockingDocument(configs: Array<DocConfig>, options: DocumentOptions, id?: string, type: string = "row") {
-            let layoutConfig = {
+            const layoutConfig = {
                 content: [
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth, config.path))
                         ]
                     }
                 ]
@@ -591,7 +630,8 @@ export namespace Docs {
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
         const convertObject = (object: any, title?: string): Doc => {
-            let target = new Doc(), result: Opt<Field>;
+            const target = new Doc();
+            let result: Opt<Field>;
             Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
             title && !target.title && (target.title = title);
             return target;
@@ -605,7 +645,8 @@ export namespace Docs {
          * might involve arbitrary recursion (since toField might itself call convertList)
          */
         const convertList = (list: Array<any>): List<Field> => {
-            let target = new List(), result: Opt<Field>;
+            const target = new List();
+            let result: Opt<Field>;
             list.map(item => (result = toField(item)) && target.push(result));
             return target;
         };
@@ -624,21 +665,65 @@ export namespace Docs {
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };
 
+        export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
+            let created: Doc | undefined;
+            let layout: ((fieldKey: string) => string) | undefined;
+            const field = target[fieldKey];
+            const resolved = options || {};
+            if (field instanceof ImageField) {
+                created = Docs.Create.ImageDocument((field as ImageField).url.href, resolved);
+                layout = ImageBox.LayoutString;
+            } else if (field instanceof Doc) {
+                created = field;
+            } else if (field instanceof VideoField) {
+                created = Docs.Create.VideoDocument((field as VideoField).url.href, resolved);
+                layout = VideoBox.LayoutString;
+            } else if (field instanceof PdfField) {
+                created = Docs.Create.PdfDocument((field as PdfField).url.href, resolved);
+                layout = PDFBox.LayoutString;
+            } else if (field instanceof IconField) {
+                created = Docs.Create.IconDocument((field as IconField).icon, resolved);
+                layout = IconBox.LayoutString;
+            } else if (field instanceof AudioField) {
+                created = Docs.Create.AudioDocument((field as AudioField).url.href, resolved);
+                layout = AudioBox.LayoutString;
+            } else if (field instanceof HistogramField) {
+                created = Docs.Create.HistogramDocument((field as HistogramField).HistoOp, resolved);
+                layout = HistogramBox.LayoutString;
+            } else if (field instanceof InkField) {
+                const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field as InkField).inkData, resolved);
+                layout = InkingStroke.LayoutString;
+            } else if (field instanceof List && field[0] instanceof Doc) {
+                created = Docs.Create.StackingDocument(DocListCast(field), resolved);
+                layout = CollectionView.LayoutString;
+            } else {
+                created = Docs.Create.TextDocument({ ...{ width: 200, height: 25, autoHeight: true }, ...resolved });
+                layout = FormattedTextBox.LayoutString;
+            }
+            created.layout = layout?.(fieldKey);
+            proto && (created.proto = Doc.GetProto(proto));
+            return created;
+        }
+
         export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {
                 ctor = Docs.Create.ImageDocument;
+                if (!options.width) options.width = 300;
             }
             if (type.indexOf("video") !== -1) {
                 ctor = Docs.Create.VideoDocument;
+                if (!options.width) options.width = 600;
+                if (!options.height) options.height = options.width * 2 / 3;
             }
             if (type.indexOf("audio") !== -1) {
                 ctor = Docs.Create.AudioDocument;
             }
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
-                options.nativeWidth = 1200;
-                options.nativeHeight = 1200;
+                if (!options.width) options.width = 400;
+                if (!options.height) options.height = options.width * 1200 / 927;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
@@ -646,11 +731,11 @@ export namespace Docs {
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes(window.location.hostname)) {
-                    let s = path.split('/');
-                    let id = s[s.length - 1];
+                    const s = path.split('/');
+                    const id = s[s.length - 1];
                     return DocServer.GetRefField(id).then(field => {
                         if (field instanceof Doc) {
-                            let alias = Doc.MakeAlias(field);
+                            const alias = Doc.MakeAlias(field);
                             alias.x = options.x || 0;
                             alias.y = options.y || 0;
                             alias.width = options.width || 300;
@@ -687,9 +772,9 @@ export namespace DocUtils {
                     DocListCastAsync(promoteDoc.links).then(links => {
                         links && links.map(async link => {
                             if (link) {
-                                let a1 = await Cast(link.anchor1, Doc);
+                                const a1 = await Cast(link.anchor1, Doc);
                                 if (a1 && Doc.AreProtosEqual(a1, promoteDoc)) link.anchor1 = copy;
-                                let a2 = await Cast(link.anchor2, Doc);
+                                const a2 = await Cast(link.anchor2, Doc);
                                 if (a2 && Doc.AreProtosEqual(a2, promoteDoc)) link.anchor2 = copy;
                                 LinkManager.Instance.deleteLink(link);
                                 LinkManager.Instance.addLink(link);
@@ -702,16 +787,17 @@ export namespace DocUtils {
     }
 
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
-        let sv = DocumentManager.Instance.getDocumentView(source.doc);
+        const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDocProto = new Doc(id, true);
+        const linkDocProto = new Doc(id, true);
         UndoManager.RunInBatch(() => {
             linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
             linkDocProto.linkDescription = description;
+            linkDocProto.isPrototype = true;
 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
@@ -723,7 +809,6 @@ export namespace DocUtils {
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
             linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
             linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
-            linkDocProto.borderRounding = "20";
             linkDocProto.width = linkDocProto.height = 0;
             linkDocProto.isBackground = true;
             linkDocProto.isButton = true;

@@ -13,7 +13,6 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
-import { DocLike } from "../MetadataEntryMenu";
 import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
@@ -33,7 +32,7 @@ interface Filter {
     contains: boolean;
 }
 
-let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
+const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
@@ -80,11 +79,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     getFilters = (script: string) => {
-        let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
-        let arr: any[] = re.exec(script);
-        let toReturn: Filter[] = [];
+        const re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
+        const arr: any[] = re.exec(script);
+        const toReturn: Filter[] = [];
         if (arr !== null) {
-            let filter: Filter = {
+            const filter: Filter = {
                 key: arr[2],
                 value: arr[3],
                 contains: (arr[1] === "!") ? false : true,
@@ -120,14 +119,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
         let fields: Filter[] = [];
         if (this.filterValue) {
-            let string = this.filterValue.script.originalScript;
+            const string = this.filterValue.script.originalScript;
             fields = this.getFilters(string);
         }
 
         runInAction(() => {
             this.addKeyRestrictions(fields);
             // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-            let chromeStatus = this.props.CollectionView.props.Document.chromeStatus;
+            const chromeStatus = this.props.CollectionView.props.Document.chromeStatus;
             if (chromeStatus) {
                 if (chromeStatus === "disabled") {
                     throw new Error("how did you get here, if chrome status is 'disabled' on a collection, a chrome shouldn't even be instantiated!");
@@ -183,7 +182,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action
     addKeyRestriction = (e: React.MouseEvent) => {
-        let index = this._keyRestrictions.length;
+        const index = this._keyRestrictions.length;
         this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
 
         this.openViewSpecs(e);
@@ -194,31 +193,36 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
         this.openViewSpecs(e);
 
-        let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
-        let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
-        let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
-        let weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
-        let dayOffset = (this._dateWithinValue[1] === 'd' ? parseInt(this._dateWithinValue[0]) : 0) + weekOffset * 7;
+        const keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
+        const yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
+        const monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
+        const weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
+        const dayOffset = (this._dateWithinValue[1] === 'd' ? parseInt(this._dateWithinValue[0]) : 0) + weekOffset * 7;
         let dateRestrictionScript = "";
         if (this._dateValue instanceof Date) {
-            let lowerBound = new Date(this._dateValue.getFullYear() - yearOffset, this._dateValue.getMonth() - monthOffset, this._dateValue.getDate() - dayOffset);
-            let upperBound = new Date(this._dateValue.getFullYear() + yearOffset, this._dateValue.getMonth() + monthOffset, this._dateValue.getDate() + dayOffset + 1);
+            const lowerBound = new Date(this._dateValue.getFullYear() - yearOffset, this._dateValue.getMonth() - monthOffset, this._dateValue.getDate() - dayOffset);
+            const upperBound = new Date(this._dateValue.getFullYear() + yearOffset, this._dateValue.getMonth() + monthOffset, this._dateValue.getDate() + dayOffset + 1);
             dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
         }
         else {
-            let createdDate = new Date(this._dateValue);
+            const createdDate = new Date(this._dateValue);
             if (!isNaN(createdDate.getTime())) {
-                let lowerBound = new Date(createdDate.getFullYear() - yearOffset, createdDate.getMonth() - monthOffset, createdDate.getDate() - dayOffset);
-                let upperBound = new Date(createdDate.getFullYear() + yearOffset, createdDate.getMonth() + monthOffset, createdDate.getDate() + dayOffset + 1);
+                const lowerBound = new Date(createdDate.getFullYear() - yearOffset, createdDate.getMonth() - monthOffset, createdDate.getDate() - dayOffset);
+                const upperBound = new Date(createdDate.getFullYear() + yearOffset, createdDate.getMonth() + monthOffset, createdDate.getDate() + dayOffset + 1);
                 dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
             }
         }
-        let fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
+        const fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
             `${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
             `(${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "true";
 
-        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(fullScript, { doc: Doc.name });
+        const docFilter = Cast(this.props.CollectionView.props.Document.docFilter, listSpec("string"), []);
+        const docFilterText = Doc.MakeDocFilter(docFilter);
+        const finalScript = docFilterText && !fullScript.startsWith("(())") ? `${fullScript} ${docFilterText ? "&&" : ""} (${docFilterText})` :
+            docFilterText ? docFilterText : fullScript;
+
+        this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(finalScript, { doc: Doc.name });
     }
 
     @action
@@ -270,7 +274,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             value={this.pivotKeyDisplay}
             onChange={action((e: React.ChangeEvent<HTMLInputElement>) => this.pivotKeyDisplay = e.currentTarget.value)}
             onKeyPress={action((e: React.KeyboardEvent<HTMLInputElement>) => {
-                let value = e.currentTarget.value;
+                const value = e.currentTarget.value;
                 if (e.which === 13) {
                     this.pivotKey = value;
                     this.pivotKeyDisplay = "";
@@ -289,15 +293,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer && this.dropDisposer();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.data instanceof DragManager.DocumentDragData && de.data.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.data.draggedDocuments));
+        if (de.complete.docDragData && de.complete.docDragData.draggedDocuments.length) {
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData?.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;
@@ -357,7 +361,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     dragPointerMove = (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        let [dx, dy] = [e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y];
+        const [dx, dy] = [e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y];
         if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
             this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c =>
                 DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
@@ -373,7 +377,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     render() {
-        let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
+        const collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
             <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
                 <div className="collectionViewChrome">
@@ -480,7 +484,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
-        let docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
+        const docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
         if (docs instanceof Doc) {
             return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
         } else {
@@ -571,31 +575,31 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 
     @undoBatch
     togglePreview = () => {
-        let dividerWidth = 4;
-        let borderWidth = Number(COLLECTION_BORDER_WIDTH);
-        let panelWidth = this.props.CollectionView.props.PanelWidth();
-        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
-        let tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
+        const dividerWidth = 4;
+        const borderWidth = Number(COLLECTION_BORDER_WIDTH);
+        const panelWidth = this.props.CollectionView.props.PanelWidth();
+        const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        const tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
     }
 
     @undoBatch
     @action
     toggleTextwrap = async () => {
-        let textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+        const textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
         if (textwrappedRows.length) {
             this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>([]);
         } else {
-            let docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
-            let allRows = docs instanceof Doc ? [docs[Id]] : docs.map(doc => doc[Id]);
+            const docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
+            const allRows = docs instanceof Doc ? [docs[Id]] : docs.map(doc => doc[Id]);
             this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
         }
     }
 
 
     render() {
-        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
-        let textWrapped = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+        const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        const textWrapped = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
         return (
             <div className="collectionSchemaViewChrome-cont">
@@ -624,12 +628,19 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 @observer
 export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
 
-    @computed private get descending() { return Cast(this.props.CollectionView.props.Document.sortAscending, "boolean", null); }
+    get dataExtension() {
+        return this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "_ext"] as Doc;
+    }
+    @computed private get descending() {
+        return this.dataExtension && Cast(this.dataExtension.sortAscending, "boolean", null);
+    }
 
     @action toggleSort = () => {
-        if (this.props.CollectionView.props.Document.sortAscending) this.props.CollectionView.props.Document.sortAscending = undefined;
-        else if (this.props.CollectionView.props.Document.sortAscending === undefined) this.props.CollectionView.props.Document.sortAscending = false;
-        else this.props.CollectionView.props.Document.sortAscending = true;
+        if (this.dataExtension) {
+            if (this.dataExtension.sortAscending) this.dataExtension.sortAscending = undefined;
+            else if (this.dataExtension.sortAscending === undefined) this.dataExtension.sortAscending = false;
+            else this.dataExtension.sortAscending = true;
+        }
     }
 
     render() {

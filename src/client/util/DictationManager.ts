@@ -11,7 +11,6 @@ import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
-import { MainView } from "../views/MainView";
 import { Utils } from "../../Utils";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { DictationOverlay } from "../views/DictationOverlay";
@@ -48,7 +47,7 @@ export namespace DictationManager {
 
         export const Infringed = "unable to process: dictation manager still involved in previous session";
         const browser = (() => {
-            let identifier = navigator.userAgent.toLowerCase();
+            const identifier = navigator.userAgent.toLowerCase();
             if (identifier.indexOf("safari") >= 0) {
                 return "Safari";
             }
@@ -90,7 +89,7 @@ export namespace DictationManager {
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
 
-            let overlay = options !== undefined && options.useOverlay;
+            const overlay = options !== undefined && options.useOverlay;
             if (overlay) {
                 DictationOverlay.Instance.dictationOverlayVisible = true;
                 DictationOverlay.Instance.isListening = { interim: false };
@@ -102,7 +101,7 @@ export namespace DictationManager {
                     Utils.CopyText(results);
                     if (overlay) {
                         DictationOverlay.Instance.isListening = false;
-                        let execute = options && options.tryExecute;
+                        const execute = options && options.tryExecute;
                         DictationOverlay.Instance.dictatedPhrase = execute ? results.toLowerCase() : results;
                         DictationOverlay.Instance.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
                     }
@@ -131,12 +130,12 @@ export namespace DictationManager {
             }
             isListening = true;
 
-            let handler = options ? options.interimHandler : undefined;
-            let continuous = options ? options.continuous : undefined;
-            let indefinite = continuous && continuous.indefinite;
-            let language = options ? options.language : undefined;
-            let intra = options && options.delimiters ? options.delimiters.intra : undefined;
-            let inter = options && options.delimiters ? options.delimiters.inter : undefined;
+            const handler = options ? options.interimHandler : undefined;
+            const continuous = options ? options.continuous : undefined;
+            const indefinite = continuous && continuous.indefinite;
+            const language = options ? options.language : undefined;
+            const intra = options && options.delimiters ? options.delimiters.intra : undefined;
+            const inter = options && options.delimiters ? options.delimiters.inter : undefined;
 
             recognizer.onstart = () => console.log("initiating speech recognition session...");
             recognizer.interimResults = handler !== undefined;
@@ -177,7 +176,7 @@ export namespace DictationManager {
                     recognizer.start();
                 };
 
-                let complete = () => {
+                const complete = () => {
                     if (indefinite) {
                         current && sessionResults.push(current);
                         sessionResults.length && resolve(sessionResults.join(inter || interSession));
@@ -213,8 +212,8 @@ export namespace DictationManager {
         };
 
         const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
-            let results = e.results;
-            let transcripts: string[] = [];
+            const results = e.results;
+            const transcripts: string[] = [];
             for (let i = 0; i < results.length; i++) {
                 transcripts.push(results.item(i).item(0).transcript.trim());
             }
@@ -238,18 +237,18 @@ export namespace DictationManager {
 
         export const execute = async (phrase: string) => {
             return UndoManager.RunInBatch(async () => {
-                let targets = SelectionManager.SelectedDocuments();
+                const targets = SelectionManager.SelectedDocuments();
                 if (!targets || !targets.length) {
                     return;
                 }
 
                 phrase = phrase.toLowerCase();
-                let entry = Independent.get(phrase);
+                const entry = Independent.get(phrase);
 
                 if (entry) {
                     let success = false;
-                    let restrictTo = entry.restrictTo;
-                    for (let target of targets) {
+                    const restrictTo = entry.restrictTo;
+                    for (const target of targets) {
                         if (!restrictTo || validate(target, restrictTo)) {
                             await entry.action(target);
                             success = true;
@@ -258,14 +257,14 @@ export namespace DictationManager {
                     return success;
                 }
 
-                for (let entry of Dependent) {
-                    let regex = entry.expression;
-                    let matches = regex.exec(phrase);
+                for (const entry of Dependent) {
+                    const regex = entry.expression;
+                    const matches = regex.exec(phrase);
                     regex.lastIndex = 0;
                     if (matches !== null) {
                         let success = false;
-                        let restrictTo = entry.restrictTo;
-                        for (let target of targets) {
+                        const restrictTo = entry.restrictTo;
+                        for (const target of targets) {
                             if (!restrictTo || validate(target, restrictTo)) {
                                 await entry.action(target, matches);
                                 success = true;
@@ -289,7 +288,7 @@ export namespace DictationManager {
         ]);
 
         const tryCast = (view: DocumentView, type: DocumentType) => {
-            let ctor = ConstructorMap.get(type);
+            const ctor = ConstructorMap.get(type);
             if (!ctor) {
                 return false;
             }
@@ -297,7 +296,7 @@ export namespace DictationManager {
         };
 
         const validate = (target: DocumentView, types: DocumentType[]) => {
-            for (let type of types) {
+            for (const type of types) {
                 if (tryCast(target, type)) {
                     return true;
                 }
@@ -306,11 +305,11 @@ export namespace DictationManager {
         };
 
         const interpretNumber = (number: string) => {
-            let initial = parseInt(number);
+            const initial = parseInt(number);
             if (!isNaN(initial)) {
                 return initial;
             }
-            let converted = interpreter.wordsToNumbers(number, { fuzzy: true });
+            const converted = interpreter.wordsToNumbers(number, { fuzzy: true });
             if (converted === null) {
                 return NaN;
             }
@@ -326,20 +325,20 @@ export namespace DictationManager {
 
             ["open fields", {
                 action: (target: DocumentView) => {
-                    let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
+                    const kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
                     target.props.addDocTab(kvp, target.props.DataDoc, "onRight");
                 }
             }],
 
             ["new outline", {
                 action: (target: DocumentView) => {
-                    let newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
+                    const newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
                     newBox.autoHeight = true;
-                    let proto = newBox.proto!;
-                    let prompt = "Press alt + r to start dictating here...";
-                    let head = 3;
-                    let anchor = head + prompt.length;
-                    let proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
+                    const proto = newBox.proto!;
+                    const prompt = "Press alt + r to start dictating here...";
+                    const head = 3;
+                    const anchor = head + prompt.length;
+                    const proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
                     proto.data = new RichTextField(proseMirrorState);
                     proto.backgroundColor = "#eeffff";
                     target.props.addDocTab(newBox, proto, "onRight");
@@ -353,10 +352,10 @@ export namespace DictationManager {
             {
                 expression: /create (\w+) documents of type (image|nested collection)/g,
                 action: (target: DocumentView, matches: RegExpExecArray) => {
-                    let count = interpretNumber(matches[1]);
-                    let what = matches[2];
-                    let dataDoc = Doc.GetProto(target.props.Document);
-                    let fieldKey = "data";
+                    const count = interpretNumber(matches[1]);
+                    const what = matches[2];
+                    const dataDoc = Doc.GetProto(target.props.Document);
+                    const fieldKey = "data";
                     if (isNaN(count)) {
                         return;
                     }
@@ -379,7 +378,7 @@ export namespace DictationManager {
             {
                 expression: /view as (freeform|stacking|masonry|schema|tree)/g,
                 action: (target: DocumentView, matches: RegExpExecArray) => {
-                    let mode = CollectionViewType.valueOf(matches[1]);
+                    const mode = CollectionViewType.valueOf(matches[1]);
                     mode && (target.props.Document.viewType = mode);
                 },
                 restrictTo: [DocumentType.COL]

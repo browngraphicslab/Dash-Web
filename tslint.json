@@ -1,32 +1,18 @@
 {
+    "linterOptions": {
+        "exclude": ["./src/client/northstar/**", "**/*.js"]
+    },
     "rules": {
-        // "no-non-null-assertion": true,
         "no-return-await": true,
         "no-string-literal": true,
-        // "no-var-keyword": true,
-        // "no-var-requires": true,
         "prefer-object-spread": true,
         "prefer-for-of": true,
         "no-unnecessary-type-assertion": true,
-        // "no-void-expression": [
-        //     true,
-        //     "ignore-arrow-function-shorthand"
-        // ],
         "triple-equals": true,
-        // "prefer-const": true,
+        "prefer-const": true,
         "no-unnecessary-callback-wrapper": true,
-        // "align": [
-        //     true,
-        //     "parameters",
-        //     "arguments",
-        //     "statements",
-        //     "members",
-        //     "elements"
-        // ],
         "class-name": true,
         "arrow-return-shorthand": true,
-        // "object-literal-shorthand": true,
-        // "object-literal-sort-keys": true,
         "semicolon": [
             true,
             "always"
@@ -35,13 +21,6 @@
             true,
             "ignore-same-line"
         ],
-        // "quotemark": [
-        //     true,
-        //     "double",
-        //     "jsx-double",
-        //     "avoid-template",
-        //     "avoid-escape"
-        // ],
         "no-tautology-expression": true,
         "unnecessary-constructor": true
         // "trailing-comma": [
@@ -52,6 +31,33 @@
         //     }
         // ],
         // "ordered-imports": true
+        // "quotemark": [
+        //     true,
+        //     "double",
+        //     "jsx-double",
+        //     "avoid-template",
+        //     "avoid-escape"
+        // ],
+        // "object-literal-shorthand": true,
+        // "object-literal-sort-keys": true,
+        // "align": [
+        //     true,
+        //     "parameters",
+        //     "arguments",
+        //     "statements",
+        //     "members",
+        //     "elements"
+        // ],
+        // "no-void-expression": [
+        //     true,
+        //     "ignore-arrow-function-shorthand"
+        // ],
+        // "no-non-null-assertion": true,
+        // "no-var-keyword": true,
+        // "no-var-requires": true,
     },
-    "defaultSeverity": "warning"
+    "defaultSeverity": "warning",
+    "jsRules": {
+
+    }
 }

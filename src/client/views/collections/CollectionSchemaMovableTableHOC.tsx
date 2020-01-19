@@ -1,18 +1,18 @@
 import React = require("react");
-import { ReactTableDefaults, TableCellRenderer, ComponentPropsGetterR, ComponentPropsGetter0, RowInfo } from "react-table";
+import { ReactTableDefaults, TableCellRenderer, RowInfo } from "react-table";
 import "./CollectionSchemaView.scss";
 import { Transform } from "../../util/Transform";
 import { Doc } from "../../../new_fields/Doc";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue } from "../../../new_fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { action } from "mobx";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DocumentManager } from "../../util/DocumentManager";
-import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 
 library.add(faGripVertical, faTrash);
@@ -43,10 +43,10 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         document.removeEventListener("pointermove", this.onPointerMove);
     }
     onDragMove = (e: PointerEvent): void => {
-        let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
-        let rect = this._header!.current!.getBoundingClientRect();
-        let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left + ((rect.right - rect.left) / 2), rect.top);
-        let before = x[0] < bounds[0];
+        const x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
+        const rect = this._header!.current!.getBoundingClientRect();
+        const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left + ((rect.right - rect.left) / 2), rect.top);
+        const before = x[0] < bounds[0];
         this._header!.current!.className = "collectionSchema-col-wrapper";
         if (before) this._header!.current!.className += " col-before";
         if (!before) this._header!.current!.className += " col-after";
@@ -56,39 +56,39 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     createColDropTarget = (ele: HTMLDivElement) => {
         this._colDropDisposer && this._colDropDisposer();
         if (ele) {
-            this._colDropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.colDrop.bind(this) } });
+            this._colDropDisposer = DragManager.MakeDropTarget(ele, this.colDrop.bind(this));
         }
     }
 
     colDrop = (e: Event, de: DragManager.DropEvent) => {
         document.removeEventListener("pointermove", this.onDragMove, true);
-        let x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
-        let rect = this._header!.current!.getBoundingClientRect();
-        let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left + ((rect.right - rect.left) / 2), rect.top);
-        let before = x[0] < bounds[0];
-        if (de.data instanceof DragManager.ColumnDragData) {
-            this.props.reorderColumns(de.data.colKey, this.props.columnValue, before, this.props.allColumns);
+        const x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
+        const rect = this._header!.current!.getBoundingClientRect();
+        const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left + ((rect.right - rect.left) / 2), rect.top);
+        const before = x[0] < bounds[0];
+        if (de.complete.columnDragData) {
+            this.props.reorderColumns(de.complete.columnDragData.colKey, this.props.columnValue, before, this.props.allColumns);
             return true;
         }
         return false;
     }
 
     onPointerMove = (e: PointerEvent) => {
-        let onRowMove = (e: PointerEvent) => {
+        const onRowMove = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
 
             document.removeEventListener("pointermove", onRowMove);
             document.removeEventListener('pointerup', onRowUp);
-            let dragData = new DragManager.ColumnDragData(this.props.columnValue);
+            const dragData = new DragManager.ColumnDragData(this.props.columnValue);
             DragManager.StartColumnDrag(this._dragRef.current!, dragData, e.x, e.y);
         };
-        let onRowUp = (): void => {
+        const onRowUp = (): void => {
             document.removeEventListener("pointermove", onRowMove);
             document.removeEventListener('pointerup', onRowUp);
         };
         if (e.buttons === 1) {
-            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
+            const [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
             if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 e.stopPropagation();
@@ -106,14 +106,14 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     @action
     onPointerDown = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         this._dragRef = ref;
-        let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX, e.clientY);
+        const [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
         document.addEventListener("pointermove", this.onPointerMove);
     }
 
 
     render() {
-        let reference = React.createRef<HTMLDivElement>();
+        const reference = React.createRef<HTMLDivElement>();
 
         return (
             <div className="collectionSchema-col" ref={this.createColDropTarget}>
@@ -152,10 +152,10 @@ export class MovableRow extends React.Component<MovableRowProps> {
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {
-        let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
-        let rect = this._header!.current!.getBoundingClientRect();
-        let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
-        let before = x[1] < bounds[1];
+        const x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
+        const rect = this._header!.current!.getBoundingClientRect();
+        const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
+        const before = x[1] < bounds[1];
         this._header!.current!.className = "collectionSchema-row-wrapper";
         if (before) this._header!.current!.className += " row-above";
         if (!before) this._header!.current!.className += " row-below";
@@ -165,7 +165,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     createRowDropTarget = (ele: HTMLDivElement) => {
         this._rowDropDisposer && this._rowDropDisposer();
         if (ele) {
-            this._rowDropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
+            this._rowDropDisposer = DragManager.MakeDropTarget(ele, this.rowDrop.bind(this));
         }
     }
 
@@ -173,38 +173,39 @@ export class MovableRow extends React.Component<MovableRowProps> {
         const rowDoc = FieldValue(Cast(this.props.rowInfo.original, Doc));
         if (!rowDoc) return false;
 
-        let x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
-        let rect = this._header!.current!.getBoundingClientRect();
-        let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
-        let before = x[1] < bounds[1];
+        const x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
+        const rect = this._header!.current!.getBoundingClientRect();
+        const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
+        const before = x[1] < bounds[1];
 
-        if (de.data instanceof DragManager.DocumentDragData) {
+        const docDragData = de.complete.docDragData;
+        if (docDragData) {
             e.stopPropagation();
-            if (de.data.draggedDocuments[0] === rowDoc) return true;
-            let addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
-            let movedDocs = de.data.draggedDocuments;
-            return (de.data.dropAction || de.data.userDropAction) ?
-                de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
-                : (de.data.moveDocument) ?
-                    movedDocs.reduce((added: boolean, d) => de.data.moveDocument(d, rowDoc, addDocument) || added, false)
-                    : de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before), false);
+            if (docDragData.draggedDocuments[0] === rowDoc) return true;
+            const addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
+            const movedDocs = docDragData.draggedDocuments;
+            return (docDragData.dropAction || docDragData.userDropAction) ?
+                docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
+                : (docDragData.moveDocument) ?
+                    movedDocs.reduce((added: boolean, d) => docDragData.moveDocument?.(d, rowDoc, addDocument) || added, false)
+                    : docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before), false);
         }
         return false;
     }
 
     onRowContextMenu = (e: React.MouseEvent): void => {
-        let description = this.props.rowWrapped ? "Unwrap text on row" : "Text wrap row";
+        const description = this.props.rowWrapped ? "Unwrap text on row" : "Text wrap row";
         ContextMenu.Instance.addItem({ description: description, event: () => this.props.textWrapRow(this.props.rowInfo.original), icon: "file-pdf" });
     }
 
     @undoBatch
     @action
-    move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
-        let targetView = DocumentManager.Instance.getDocumentView(target);
+    move: DragManager.MoveFunction = (doc: Doc, targetCollection: Doc | undefined, addDoc) => {
+        const targetView = targetCollection && DocumentManager.Instance.getDocumentView(targetCollection);
         if (targetView && targetView.props.ContainingCollectionDoc) {
-            return doc !== target && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
+            return doc !== targetCollection && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
         }
-        return doc !== target && this.props.removeDoc(doc) && addDoc(doc);
+        return doc !== targetCollection && this.props.removeDoc(doc) && addDoc(doc);
     }
 
     render() {
@@ -217,8 +218,8 @@ export class MovableRow extends React.Component<MovableRowProps> {
         const doc = FieldValue(Cast(original, Doc));
         if (!doc) return <></>;
 
-        let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => doc, this.move);
+        const reference = React.createRef<HTMLDivElement>();
+        const onItemDown = SetupDrag(reference, () => doc, this.move);
 
         let className = "collectionSchema-row";
         if (this.props.rowFocused) className += " row-focused";

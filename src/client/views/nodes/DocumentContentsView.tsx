@@ -14,6 +14,7 @@ import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
+import { DocumentBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
@@ -30,13 +31,11 @@ import { DocuLinkBox } from "./DocuLinkBox";
 import { PresElementBox } from "../presentationview/PresElementBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
+import { InkingStroke } from "../InkingStroke";
 import React = require("react");
-import { NumCast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { fromPromise } from "mobx-utils";
-import { DashWebCam } from "../../views/webcam/DashWebCam";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 
+import { TraceMobx } from "../../../new_fields/util";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -55,13 +54,14 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 
 @observer
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
-    isSelected: () => boolean,
+    isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     onClick?: ScriptField,
     layoutKey: string,
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
+        TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
         const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
@@ -84,11 +84,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return this.props.DataDoc;
     }
     get layoutDoc() {
-        return this.props.DataDoc === undefined ? Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document) : Doc.Layout(this.props.Document);
+        return Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document);
     }
 
     CreateBindings(): JsxBindings {
-        let list = {
+        const list = {
             ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,
@@ -97,13 +97,15 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        TraceMobx();
         return (this.props.renderDepth > 7 || !this.layout) ? (null) :
             <ObserverJsxParser
                 blacklistedAttrs={[]}
                 components={{
                     FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox, ColorBox, DocuLinkBox, DashWebRTCVideo
+                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
+                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

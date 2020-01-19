@@ -3,7 +3,7 @@
     height: 100%;
     pointer-events: all;
     border-radius: inherit;
-    display:flex;
+    display: flex;
     flex-direction: column;
 }
 
@@ -15,19 +15,22 @@
     display: table;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
+
 .buttonBox-mainButtonCenter {
     height: 100%;
-    display:table-cell;
+    display: table-cell;
     vertical-align: middle;
 }
 
 .buttonBox-params {
-     display:flex;
-     flex-direction: row;
+    display: flex;
+    flex-direction: row;
 }
 
 .buttonBox-missingParam {
-    width:100%;
+    width: 100%;
     background: lightgray;
 }

@@ -1,46 +1,50 @@
-import { observable, action, runInAction, IReactionDisposer, reaction, autorun } from "mobx";
-import { Doc, Opt } from "../../new_fields/Doc";
+import { observable, action, runInAction, ObservableMap } from "mobx";
+import { Doc } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { NumCast, StrCast } from "../../new_fields/Types";
-import { InkingControl } from "../views/InkingControl";
+import { computedFn } from "mobx-utils";
+import { List } from "../../new_fields/List";
+import { DocumentDecorations } from "../views/DocumentDecorations";
+import RichTextMenu from "./RichTextMenu";
 
 export namespace SelectionManager {
 
     class Manager {
 
         @observable IsDragging: boolean = false;
-        @observable SelectedDocuments: Array<DocumentView> = [];
+        SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
 
 
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
-            if (manager.SelectedDocuments.indexOf(docView) === -1) {
+            if (!manager.SelectedDocuments.get(docView)) {
                 if (!ctrlPressed) {
                     this.DeselectAll();
                 }
 
-                manager.SelectedDocuments.push(docView);
+                manager.SelectedDocuments.set(docView, true);
                 // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
-            } else if (!ctrlPressed && manager.SelectedDocuments.length > 1) {
-                manager.SelectedDocuments.map(dv => dv !== docView && dv.props.whenActiveChanged(false));
-                manager.SelectedDocuments = [docView];
+            } else if (!ctrlPressed && Array.from(manager.SelectedDocuments.entries()).length > 1) {
+                Array.from(manager.SelectedDocuments.keys()).map(dv => dv !== docView && dv.props.whenActiveChanged(false));
+                manager.SelectedDocuments.clear();
+                manager.SelectedDocuments.set(docView, true);
             }
+            Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         }
         @action
         DeselectDoc(docView: DocumentView): void {
-            let ind = manager.SelectedDocuments.indexOf(docView);
-            if (ind !== -1) {
-                manager.SelectedDocuments.splice(ind, 1);
+            if (manager.SelectedDocuments.get(docView)) {
+                manager.SelectedDocuments.delete(docView);
                 docView.props.whenActiveChanged(false);
+                Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
             }
         }
         @action
         DeselectAll(): void {
-            manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
-            manager.SelectedDocuments = [];
+            Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
+            manager.SelectedDocuments.clear();
+            Doc.UserDoc().SelectedDocs = new List<Doc>([]);
         }
     }
 
@@ -53,14 +57,18 @@ export namespace SelectionManager {
         manager.SelectDoc(docView, ctrlPressed);
     }
 
-    export function IsSelected(doc: DocumentView): boolean {
-        return manager.SelectedDocuments.indexOf(doc) !== -1;
+    export function IsSelected(doc: DocumentView, outsideReaction?: boolean): boolean {
+        return outsideReaction ?
+            manager.SelectedDocuments.get(doc) ? true : false :
+            computedFn(function isSelected(doc: DocumentView) {
+                return manager.SelectedDocuments.get(doc) ? true : false;
+            })(doc);
     }
 
     export function DeselectAll(except?: Doc): void {
         let found: DocumentView | undefined = undefined;
         if (except) {
-            for (const view of manager.SelectedDocuments) {
+            for (const view of Array.from(manager.SelectedDocuments.keys())) {
                 if (view.props.Document === except) found = view;
             }
         }
@@ -73,6 +81,7 @@ export namespace SelectionManager {
     export function GetIsDragging() { return manager.IsDragging; }
 
     export function SelectedDocuments(): Array<DocumentView> {
-        return manager.SelectedDocuments.slice();
+        return Array.from(manager.SelectedDocuments.keys());
     }
 }
+
