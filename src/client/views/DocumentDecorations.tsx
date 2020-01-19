@@ -85,6 +85,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @action titleChanged = (event: any) => this._accumulatedTitle = event.target.value;
 
+    addCloseCall = (handler: CloseCall) => {
+        const currentOffset = this.addedCloseCalls.length - 1;
+        this.addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
+            this.addedCloseCalls.splice(currentOffset, 1);
+            handler(toBeDeleted);
+        });
+    }
+
     titleBlur = undoBatch(action((commit: boolean) => {
         this._edtingTitle = false;
         if (commit) {
@@ -241,6 +249,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
+            this.addedCloseCalls.forEach(handler => handler(selected));
+
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
