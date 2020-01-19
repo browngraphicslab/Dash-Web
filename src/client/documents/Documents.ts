@@ -664,6 +664,8 @@ export namespace Docs {
             if (field instanceof ImageField) {
                 created = Docs.Create.ImageDocument((field as ImageField).url.href, resolved);
                 layout = ImageBox.LayoutString;
+            } else if (field instanceof Doc) {
+                created = field;
             } else if (field instanceof VideoField) {
                 created = Docs.Create.VideoDocument((field as VideoField).url.href, resolved);
                 layout = VideoBox.LayoutString;
@@ -690,7 +692,7 @@ export namespace Docs {
                 created = Docs.Create.TextDocument({ ...{ width: 200, height: 25, autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
-            created.layout = layout(fieldKey);
+            created.layout = layout?.(fieldKey);
             proto && (created.proto = Doc.GetProto(proto));
             return created;
         }
