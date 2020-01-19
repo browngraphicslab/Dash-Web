@@ -13,7 +13,8 @@ import math
 import sys
 
 source = "./source"
-dist = "../../server/public/files"
+filesPath = "../../server/public/files"
+image_dist = filesPath + "/images/buxton"
 
 db = MongoClient("localhost", 27017)["Dash"]
 target_collection = db.newDocuments
@@ -167,12 +168,12 @@ def write_text_doc(content):
 
 
 def write_image(folder, name):
-    path = f"http://localhost:1050/files/{folder}/{name}"
+    path = f"http://localhost:1050/files/images/buxton/{folder}/{name}"
 
     data_doc_guid = guid()
     view_doc_guid = guid()
 
-    image = Image.open(f"{dist}/{folder}/{name}")
+    image = Image.open(f"{image_dist}/{folder}/{name}")
     native_width, native_height = image.size
 
     view_doc = {
@@ -222,7 +223,8 @@ def parse_document(file_name: str):
 
     result = {}
 
-    dir_path = dist + "/" + pure_name
+    dir_path = image_dist + "/" + pure_name
+    print(dir_path)
     mkdir_if_absent(dir_path)
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
@@ -232,10 +234,11 @@ def parse_document(file_name: str):
     for image in os.listdir(dir_path):
         count += 1
         view_guids.append(write_image(pure_name, image))
-        copyfile(dir_path + "/" + image, dir_path +
-                 "/" + image.replace(".", "_o.", 1))
-        copyfile(dir_path + "/" + image, dir_path +
-                 "/" + image.replace(".", "_m.", 1))
+        resolved = dir_path + "/" + image
+        original = dir_path + "/" + image.replace(".", "_o.", 1)
+        medium = dir_path + "/" + image.replace(".", "_m.", 1)
+        copyfile(resolved, original)
+        copyfile(resolved, medium)
     print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
@@ -366,11 +369,11 @@ def write_common_proto():
     return id
 
 
-if os.path.exists(dist):
-    shutil.rmtree(dist)
-while os.path.exists(dist):
+if os.path.exists(image_dist):
+    shutil.rmtree(image_dist)
+while os.path.exists(image_dist):
     pass
-os.mkdir(dist)
+os.mkdir(image_dist)
 mkdir_if_absent(source)
 
 common_proto_id = write_common_proto()
@@ -400,7 +403,7 @@ target_collection.update_one(
 
 print("rewriting .gitignore...\n")
 lines = ['*', '!.gitignore']
-with open(dist + "/.gitignore", 'w') as f:
+with open(filesPath + "/.gitignore", 'w') as f:
     f.write('\n'.join(lines))
 
 suffix = "" if candidates == 1 else "s"
