@@ -1,5 +1,5 @@
 import ApiManager, { Registration } from "./ApiManager";
-import { Method, _permission_denied } from "../RouteManager";
+import { Method, _permission_denied, PublicHandler } from "../RouteManager";
 import { WebSocket } from "../Websocket/Websocket";
 import { Database } from "../database";
 
@@ -30,6 +30,21 @@ export default class DeleteManager extends ApiManager {
                 res.redirect("/home");
             }
         });
+
+        const hi: PublicHandler = async ({ res, isRelease }) => {
+            if (isRelease) {
+                return _permission_denied(res, deletionPermissionError);
+            }
+            await Database.Instance.deleteAll('users');
+            res.redirect("/home");
+        };
+
+        // register({
+        //     method: Method.GET,
+        //     subscription: "/deleteUsers",
+        //     onValidation: hi,
+        //     onUnauthenticated: hi
+        // });
 
 
         register({

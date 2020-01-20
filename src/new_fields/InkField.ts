@@ -8,7 +8,8 @@ export enum InkTool {
     Pen,
     Highlighter,
     Eraser,
-    Scrubber
+    Scrubber,
+    Stamp
 }
 
 export interface PointData {

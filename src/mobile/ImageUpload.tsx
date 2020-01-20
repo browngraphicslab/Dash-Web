@@ -11,6 +11,8 @@ import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
+import MobileInterface from './MobileInterface';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 
 
@@ -104,10 +106,25 @@ class Uploader extends React.Component {
 }
 
 
-DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
-
-ReactDOM.render((
-    <Uploader />
-),
-    document.getElementById('root')
-);
+// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
+(async () => {
+    const info = await CurrentUserUtils.loadCurrentUser();
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + "mobile");
+    await Docs.Prototypes.initialize();
+    if (info.id !== "__guest__") {
+        // a guest will not have an id registered
+        await CurrentUserUtils.loadUserDocument(info);
+    }
+    document.getElementById('root')!.addEventListener('wheel', event => {
+        if (event.ctrlKey) {
+            event.preventDefault();
+        }
+    }, true);
+    ReactDOM.render((
+        // <Uploader />
+        <MobileInterface />
+    ),
+        document.getElementById('root')
+    );
+}
+)();

@@ -20,6 +20,8 @@ export const documentSchema = createSchema({
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
+    onPointerDown: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
+    onPointerUp: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
@@ -55,6 +57,8 @@ export const documentSchema = createSchema({
     yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     LODarea: "number",          // area (width*height) where CollectionFreeFormViews switch from a label to rendering contents
     LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
+    letterSpacing: "string",
+    textTransform: "string"
 });
 
 export const positionSchema = createSchema({

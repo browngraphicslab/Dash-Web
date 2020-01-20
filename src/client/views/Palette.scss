@@ -1,0 +1,21 @@
+.palette-container {
+    .palette-thumb {
+        touch-action: pan-x;
+        overflow: scroll;
+        position: absolute;
+        width: 90px;
+        height: 70px;
+
+        .palette-thumbContent {
+            transition: transform .3s;
+
+            .collectionView {
+                overflow: visible;
+
+                .collectionLinearView-outer {
+                    overflow: visible;
+                }
+            }
+        }
+    }
+}

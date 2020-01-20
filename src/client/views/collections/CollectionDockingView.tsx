@@ -174,7 +174,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
     //
     @undoBatch
     @action
@@ -207,6 +207,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         instance.layoutChanged();
         return true;
     }
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //

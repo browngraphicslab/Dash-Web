@@ -44,6 +44,10 @@ import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
 import { List } from '../../../new_fields/List';
 import { FormattedTextBoxComment } from './FormattedTextBoxComment';
+import { GestureUtils } from '../../../pen-gestures/GestureUtils';
+import { RadialMenu } from './RadialMenu';
+import { RadialMenuProps } from './RadialMenuItem';
+
 import { CollectionStackingView } from '../collections/CollectionStackingView';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
@@ -58,6 +62,8 @@ export interface DocumentViewProps {
     LibraryPath: Doc[];
     fitToBox?: boolean;
     onClick?: ScriptField;
+    onPointerDown?: ScriptField;
+    onPointerUp?: ScriptField;
     dragDivName?: string;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
@@ -82,8 +88,8 @@ export interface DocumentViewProps {
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
+    radialMenu?: String[];
 }
-
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
@@ -94,7 +100,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _titleRef = React.createRef<EditableView>();
+
+    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
@@ -103,10 +112,74 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.layoutDoc.nativeWidth || 0; }
     @computed get nativeHeight() { return this.layoutDoc.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
+
+    private _firstX: number = 0;
+    private _firstY: number = 0;
+
+
+    // handle1PointerHoldStart = (e: React.TouchEvent): any => {
+    //     this.onRadialMenu(e);
+    //     const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
+    //     this._firstX = pt.pageX;
+    //     this._firstY = pt.pageY;
+    //     e.stopPropagation();
+    //     e.preventDefault();
+
+    //     document.removeEventListener("touchmove", this.onTouch);
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
+
+    // handle1PointerHoldMove = (e: TouchEvent): void => {
+    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+    //     if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+    //         this.handleRelease();
+    //     }
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
+
+    // handleRelease() {
+    //     RadialMenu.Instance.closeMenu();
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
+
+    // handle1PointerHoldEnd = (e: TouchEvent): void => {
+    //     RadialMenu.Instance.closeMenu();
+    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
+    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
+    // }
+
+    // @action
+    // onRadialMenu = (e: React.TouchEvent): void => {
+    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+
+    //     RadialMenu.Instance.openMenu();
+
+    //     RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
+
+    //     RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
+    //     if (!SelectionManager.IsSelected(this, true)) {
+    //         SelectionManager.SelectDoc(this, false);
+    //     }
+    //     e.stopPropagation();
+    // }
 
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
+        this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
+        this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
 
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
@@ -114,7 +187,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentDidUpdate() {
         this._dropDisposer && this._dropDisposer();
+        this._gestureEventDisposer && this._gestureEventDisposer();
+        this.multiTouchDisposer && this.multiTouchDisposer();
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
+        this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
+        this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
     }
 
     @action
@@ -177,7 +254,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onClick = async (e: React.MouseEvent) => {
+    onClick = async (e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
@@ -236,9 +313,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    handle1PointerDown = (e: React.TouchEvent) => {
+    handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
+        if (this.Document.onPointerDown) return;
         if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             this._hitTemplateDrag = false;
@@ -248,25 +326,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }
             }
             if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
-            if ((e.nativeEvent as any).formattedHandled) e.stopPropagation();
+            this.removeMoveListeners();
+            this.addMoveListeners();
+            this.removeEndListeners();
+            this.addEndListeners();
+            e.stopPropagation();
         }
     }
 
-    handle1PointerMove = (e: TouchEvent) => {
+    handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
         if ((e as any).formattedHandled) { e.stopPropagation; return; }
         if (e.cancelBubble && this.active) {
-            document.removeEventListener("touchmove", this.onTouch);
+            this.removeMoveListeners();
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
-            const touch = InteractionUtils.GetMyTargetTouches(e, this.prevPoints)[0];
+            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
             if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
-                    document.removeEventListener("touchmove", this.onTouch);
-                    document.removeEventListener("touchend", this.onTouchEnd);
+                    this.cleanUpInteractions();
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
@@ -276,21 +353,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    handle2PointersDown = (e: React.TouchEvent) => {
+    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
             e.stopPropagation();
             e.preventDefault();
 
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
+            this.removeMoveListeners();
+            this.addMoveListeners();
+            this.removeEndListeners();
+            this.addEndListeners();
         }
     }
 
     @action
-    handle2PointersMove = (e: TouchEvent) => {
-        const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+    handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
+        const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
         const pt1 = myTouches[0];
         const pt2 = myTouches[1];
         const oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -323,6 +400,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
                 if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
                     layoutDoc.ignoreAspect = false;
+
                     layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
                     layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
                 }
@@ -353,32 +431,28 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
                 }
             }
-            // let newWidth = Math.max(Math.abs(oldPoint1!.clientX - oldPoint2!.clientX), Math.abs(pt1.clientX - pt2.clientX))
-            // this.props.Document.width = newWidth;
             e.stopPropagation();
             e.preventDefault();
         }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        if (this.onPointerDownHandler && this.onPointerDownHandler.script) {
+            this.onPointerDownHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+            return;
+        }
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
-        if (!InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
             }
             return;
         }
-        if ((!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart)) {
-            // if ((e.nativeEvent.cancelBubble && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)))
-            //     // return if we're inking, and not selecting a button document
-            //     || (InkingControl.Instance.selectedTool !== InkTool.None && !this.Document.onClick)
-            //     // return if using pen or eraser
-            //     || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InteractionUtils.IsType(e, InteractionUtils.ERASERTYPE)) {
-            //     return;
-            // }
-
+        if (!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart) {
             this._downX = e.clientX;
             this._downY = e.clientY;
             this._hitTemplateDrag = false;
@@ -394,12 +468,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
+
             if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
         }
     }
 
     onPointerMove = (e: PointerEvent): void => {
+
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
@@ -417,10 +494,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerUp = (e: PointerEvent): void => {
+        if (this.onPointerUpHandler && this.onPointerUpHandler.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            this.onPointerUpHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            return;
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
         this._lastTap = Date.now();
+    }
+
+    onGesture = (e: Event, ge: GestureUtils.GestureEvent) => {
+        switch (ge.gesture) {
+            case GestureUtils.Gestures.Line:
+                ge.callbackFn && ge.callbackFn(this.props.Document);
+                e.stopPropagation();
+                break;
+        }
     }
 
     @undoBatch
@@ -909,7 +1000,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 width: animwidth,
                 height: animheight,
                 opacity: this.Document.opacity
-            }} onTouchStart={this.onTouchStart}>
+            }}>
             {this.innards}
         </div>;
     }
