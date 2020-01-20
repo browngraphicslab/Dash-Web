@@ -29,6 +29,8 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { ScriptBox } from '../ScriptBox';
+import { ImageBox } from '../nodes/ImageBox';
+import { makeTemplate } from '../../util/DropConverter';
 
 
 export interface TreeViewProps {
@@ -628,6 +630,21 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             layoutItems.push({ description: (this.props.Document.hideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.props.Document.hideHeaderFields = !this.props.Document.hideHeaderFields, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Treeview Options ...", subitems: layoutItems, icon: "eye" });
         }
+        ContextMenu.Instance.addItem({
+            description: "Buxton Layout", icon: "eye", event: () => {
+                // const [first, second, third] = new Array(3).map(() => Docs.Create.MulticolumnDocument([], {}));
+                const year = Docs.Create.FreeformDocument([], { title: "year" });
+                const wrapper = Docs.Create.FreeformDocument([year], {});
+                makeTemplate(wrapper);
+                const detailedLayout = Doc.MakeAlias(wrapper);
+                const cardLayout = ImageBox.LayoutString("hero");
+                this.childLayoutPairs.forEach(({ layout }) => {
+                    layout.layout = cardLayout;
+                    layout.detailedDeviceView = detailedLayout;
+                    // Doc.ApplyTemplateTo(wrapper, layout, "detailedDeviceView");
+                });
+            }
+        });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document, "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean" }) });

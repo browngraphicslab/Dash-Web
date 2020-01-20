@@ -7,8 +7,7 @@ import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
 import { ScriptField } from "../../new_fields/ScriptField";
 
-
-function makeTemplate(doc: Doc): boolean {
+export function makeTemplate(doc: Doc): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
     const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");

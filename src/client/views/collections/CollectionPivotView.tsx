@@ -34,7 +34,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 facetCollection.onCheckedClick = new ScriptField(script);
             }
 
-            const openDocText = "const alias = getAlias(this); alias.layoutKey = 'layoutCustom'; useRightSplit(alias); ";
+            const openDocText = "const alias = getAlias(this); alias.layoutKey = 'detailedDeviceView'; useRightSplit(alias); ";
             const openDocScript = CompileScript(openDocText, {
                 params: { this: Doc.name, heading: "boolean", checked: "boolean", context: Doc.name },
                 typecheck: false,

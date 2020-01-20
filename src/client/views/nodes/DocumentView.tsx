@@ -562,7 +562,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.Document.viewType = CollectionViewType.Stacking;
             this.props.Document.layoutKey = "layout_narrative";
         } else {
-            DocumentView.makeNativeViewClicked(this.props.Document)
+            DocumentView.makeNativeViewClicked(this.props.Document);
         }
     }
 
