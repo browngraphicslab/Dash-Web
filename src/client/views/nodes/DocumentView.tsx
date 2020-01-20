@@ -48,6 +48,7 @@ import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { RadialMenu } from './RadialMenu';
 import { RadialMenuProps } from './RadialMenuItem';
 
+import { CollectionStackingView } from '../collections/CollectionStackingView';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -639,6 +640,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, portalID, "portal link");
                 this.Document.isButton = true;
             });
+        }
+    }
+
+    @undoBatch
+    @action
+    setNarrativeView = (custom: boolean): void => {
+        if (custom) {
+            this.props.Document.layout_narrative = CollectionView.LayoutString("narrative");
+            this.props.Document.nativeWidth = this.props.Document.nativeHeight = undefined;
+            !this.props.Document.narrative && (Doc.GetProto(this.props.Document).narrative = new List<Doc>([]));
+            this.props.Document.viewType = CollectionViewType.Stacking;
+            this.props.Document.layoutKey = "layout_narrative";
+        } else {
+            DocumentView.makeNativeViewClicked(this.props.Document);
         }
     }
 

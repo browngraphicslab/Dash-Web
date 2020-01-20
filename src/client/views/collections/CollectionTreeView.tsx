@@ -29,6 +29,9 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { ScriptBox } from '../ScriptBox';
+import { ImageBox } from '../nodes/ImageBox';
+import { makeTemplate } from '../../util/DropConverter';
+import { CollectionDockingView } from './CollectionDockingView';
 
 
 export interface TreeViewProps {
@@ -628,9 +631,35 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             layoutItems.push({ description: (this.props.Document.hideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.props.Document.hideHeaderFields = !this.props.Document.hideHeaderFields, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Treeview Options ...", subitems: layoutItems, icon: "eye" });
         }
+        ContextMenu.Instance.addItem({
+            description: "Buxton Layout", icon: "eye", event: () => {
+                const { TextDocument, ImageDocument } = Docs.Create;
+                const wrapper = Docs.Create.StackingDocument([
+                    ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "hero" }),
+                    TextDocument({ title: "year" }),
+                    TextDocument({ title: "degrees_of_freedom" }),
+                    TextDocument({ title: "company" }),
+                    TextDocument({ title: "short_description" }),
+                ], { autoHeight: true, chromeStatus: "disabled" });
+                wrapper.disableLOD = true;
+                makeTemplate(wrapper, true);
+                const detailedLayout = Doc.MakeAlias(wrapper);
+                const cardLayout = ImageBox.LayoutString("hero");
+                this.childLayoutPairs.forEach(({ layout }) => {
+                    const proto = Doc.GetProto(layout);
+                    proto.layout = cardLayout;
+                    proto.layout_detailed = detailedLayout;
+                    layout.showTitle = "title";
+                    layout.showTitleHover = "titlehover";
+                });
+            }
+        });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-        onClicks.push({ description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document, "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean" }) });
+        onClicks.push({
+            description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document,
+                "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean", context: Doc.name })
+        });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);

@@ -7,8 +7,7 @@ import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
 import { ScriptField } from "../../new_fields/ScriptField";
 
-
-function makeTemplate(doc: Doc): boolean {
+export function makeTemplate(doc: Doc, suppressTitle = false): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
     const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
@@ -17,7 +16,7 @@ function makeTemplate(doc: Doc): boolean {
     docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
             any = true;
-            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
+            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc), suppressTitle);
         } else if (d.type === DocumentType.COL) {
             any = makeTemplate(d) || any;
         }
@@ -27,7 +26,8 @@ function makeTemplate(doc: Doc): boolean {
 export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
     data && data.draggedDocuments.map((doc, i) => {
         let dbox = doc;
-        if (!doc.onDragStart && !doc.onClick && doc.viewType !== CollectionViewType.Linear) {
+        // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
+        if (!doc.onDragStart && !doc.onClick && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
             if (layoutDoc.type === DocumentType.COL) {
                 layoutDoc.isTemplateDoc = makeTemplate(layoutDoc);
@@ -38,7 +38,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
             dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
-        } else if (doc.viewType === CollectionViewType.Linear) {
+        } else if (doc.isButtonBar) {
             dbox.ignoreClick = true;
         }
         data.droppedDocuments[i] = dbox;

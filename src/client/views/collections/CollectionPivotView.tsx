@@ -20,7 +20,7 @@ import { Set } from "typescript-collections";
 export class CollectionPivotView extends CollectionSubView(doc => doc) {
     componentDidMount = () => {
         this.props.Document.freeformLayoutEngine = "pivot";
-        if (!this.props.Document.facetCollection) {
+        if (true || !this.props.Document.facetCollection) {
             const facetCollection = Docs.Create.FreeformDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
 
@@ -34,7 +34,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 facetCollection.onCheckedClick = new ScriptField(script);
             }
 
-            const openDocText = "const alias = getAlias(this); alias.layoutKey = 'layoutCustom'; useRightSplit(alias); ";
+            const openDocText = "const alias = getAlias(this); alias.layoutKey = 'layout_detailed'; useRightSplit(alias); ";
             const openDocScript = CompileScript(openDocText, {
                 params: { this: Doc.name, heading: "boolean", checked: "boolean", context: Doc.name },
                 typecheck: false,
