@@ -1,0 +1,136 @@
+@import "../views/globalCssVariables";
+
+.dialogue-box {
+    background-color: whitesmoke !important;
+    color: grey;
+    width: 450px;
+    height: 300px;
+
+    button {
+        background: $lighter-alt-accent;
+        outline: none;
+        border-radius: 5px;
+        border: 0px;
+        color: #fcfbf7;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 75%;
+        padding: 10px;
+        margin: 10px;
+        transition: transform 0.2s;
+        margin: 2px;
+    }
+}
+
+.settings-interface {
+    display: flex;
+    flex-direction: column;
+
+    button {
+        width: 100%;
+        align-self: center;
+        background: $darker-alt-accent;
+        margin-top: 4px;
+    }
+
+    .delete-button {
+        background: rgb(227, 86, 86);
+    }
+
+    .close-button {
+        position: absolute;
+        right: 1em;
+        top: 1em;
+    }
+
+    .settings-heading {
+        letter-spacing: .5em;
+    }
+
+
+    .settings-body {
+        display: flex;
+        justify-content: space-between;
+
+        .settings-type {
+            display: flex;
+            flex-direction: column;
+            flex-basis: 30%;
+
+        }
+
+        .settings-content {
+            padding-left: 1em;
+            padding-right: 1em;
+            display: flex;
+            flex-direction: column;
+            flex-basis: 70%;
+            justify-content: space-around;
+            text-align: left;
+
+            ::placeholder {
+                color: $intermediate-color;
+            }
+
+            input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
+                min-width: 100%;
+                margin: 2px 0;
+            }
+
+            .error-text {
+                color: #C40233;
+            }
+
+            .success-text {
+                color: #009F6B;
+            }
+
+            p {
+                padding: 0 0 .1em .2em;
+            }
+
+        }
+    }
+
+    .focus-span {
+        text-decoration: underline;
+    }
+
+    h1 {
+        color: $dark-color;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 120%;
+    }
+
+    .container {
+        display: block;
+        position: relative;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        font-size: 22px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        width: 700px;
+        min-width: 700px;
+        max-width: 700px;
+        text-align: left;
+        font-style: normal;
+        font-size: 15;
+        font-weight: normal;
+        padding: 0;
+
+        .padding {
+            padding: 0 0 0 20px;
+            color: black;
+        }
+
+
+
+    }
+}

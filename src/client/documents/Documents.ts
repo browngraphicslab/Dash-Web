@@ -29,7 +29,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -80,7 +80,7 @@ export interface DocumentOptions {
     isTemplateDoc?: boolean;
     templates?: List<string>;
     viewType?: number;
-    backgroundColor?: string;
+    backgroundColor?: string | ScriptField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
@@ -106,8 +106,11 @@ export interface DocumentOptions {
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    onPointerDown?: ScriptField;
+    onPointerUp?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
+    clipboard?: Doc; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
     gridGap?: number; // gap between items in masonry view
     xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
@@ -122,6 +125,10 @@ export interface DocumentOptions {
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
+    pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    isExpanded?: boolean; // is linear view expanded
+    textTransform?: string; // is linear view expanded
+    letterSpacing?: string; // is linear view expanded
 }
 
 class EmptyBox {
@@ -781,6 +788,7 @@ export namespace DocUtils {
         });
     }
 
+    @undoBatch
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;

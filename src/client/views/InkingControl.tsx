@@ -4,19 +4,19 @@ import { Doc } from "../../new_fields/Doc";
 import { InkTool } from "../../new_fields/InkField";
 import { List } from "../../new_fields/List";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast, FieldValue } from "../../new_fields/Types";
 import { Utils } from "../../Utils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-
+import GestureOverlay from "./GestureOverlay";
 
 export class InkingControl {
     @observable static Instance: InkingControl;
-    @observable private _selectedTool: InkTool = InkTool.None;
-    @observable private _selectedColor: string = "rgb(244, 67, 54)";
-    @observable private _selectedWidth: string = "5";
+    @computed private get _selectedTool(): InkTool { return FieldValue(NumCast(CurrentUserUtils.UserDocument.inkTool)) ?? InkTool.None; }
+    @computed private get _selectedColor(): string { return GestureOverlay.Instance.Color ?? FieldValue(StrCast(CurrentUserUtils.UserDocument.inkColor)) ?? "rgb(244, 67, 54)"; }
+    @computed private get _selectedWidth(): string { return GestureOverlay.Instance.Width?.toString() ?? FieldValue(StrCast(CurrentUserUtils.UserDocument.inkWidth)) ?? "5"; }
     @observable public _open: boolean = false;
 
     constructor() {
@@ -24,7 +24,8 @@ export class InkingControl {
     }
 
     switchTool = action((tool: InkTool): void => {
-        this._selectedTool = tool;
+        // this._selectedTool = tool;
+        CurrentUserUtils.UserDocument.inkTool = tool;
     });
     decimalToHexString(number: number) {
         if (number < 0) {
@@ -36,7 +37,7 @@ export class InkingControl {
 
     @undoBatch
     switchColor = action((color: ColorState): void => {
-        this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+        CurrentUserUtils.UserDocument.inkColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
 
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             const selected = SelectionManager.SelectedDocuments();
@@ -99,7 +100,8 @@ export class InkingControl {
     });
     @action
     switchWidth = (width: string): void => {
-        this._selectedWidth = width;
+        // this._selectedWidth = width;
+        CurrentUserUtils.UserDocument.inkWidth = width;
     }
 
     @computed
@@ -114,7 +116,8 @@ export class InkingControl {
 
     @action
     updateSelectedColor(value: string) {
-        this._selectedColor = value;
+        // this._selectedColor = value;
+        CurrentUserUtils.UserDocument.inkColor = value;
     }
 
     @computed
@@ -127,6 +130,7 @@ Scripting.addGlobal(function activatePen(pen: any, width: any, color: any) { Ink
 Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Highlighter : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
 Scripting.addGlobal(function activateEraser(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Eraser : InkTool.None); });
 Scripting.addGlobal(function activateScrubber(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Scrubber : InkTool.None); });
+Scripting.addGlobal(function activateStamp(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Stamp : InkTool.None); });
 Scripting.addGlobal(function deactivateInk() { return InkingControl.Instance.switchTool(InkTool.None); });
 Scripting.addGlobal(function setInkWidth(width: any) { return InkingControl.Instance.switchWidth(width); });
 Scripting.addGlobal(function setInkColor(color: any) { return InkingControl.Instance.updateSelectedColor(color); });

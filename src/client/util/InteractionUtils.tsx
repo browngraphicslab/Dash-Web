@@ -8,12 +8,69 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
-    export function GetMyTargetTouches(e: TouchEvent | React.TouchEvent, prevPoints: Map<number, React.Touch>): React.Touch[] {
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
+        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        return (
+            <polyline
+                points={pts}
+                style={{
+                    fill: "none",
+                    stroke: color,
+                    strokeWidth: width
+                }}
+            />
+        );
+    }
+
+    export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
+        constructor(
+            readonly fingers: number,
+            // readonly points: T extends React.TouchEvent ? React.TouchList : TouchList,
+            readonly targetTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
+            readonly touches: T extends React.TouchEvent ? React.Touch[] : Touch[],
+            readonly changedTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
+            readonly touchEvent: T extends React.TouchEvent ? React.TouchEvent : TouchEvent
+        ) { }
+    }
+
+    export interface MultiTouchEventDisposer { (): void; }
+
+    export function MakeMultiTouchTarget(
+        element: HTMLElement,
+        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void,
+    ): MultiTouchEventDisposer {
+        const onMultiTouchStartHandler = (e: Event) => startFunc(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
+        // const onMultiTouchMoveHandler = moveFunc ? (e: Event) => moveFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
+        // const onMultiTouchEndHandler = endFunc ? (e: Event) => endFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
+        element.addEventListener("dashOnTouchStart", onMultiTouchStartHandler);
+        // if (onMultiTouchMoveHandler) {
+        //     element.addEventListener("dashOnTouchMove", onMultiTouchMoveHandler);
+        // }
+        // if (onMultiTouchEndHandler) {
+        //     element.addEventListener("dashOnTouchEnd", onMultiTouchEndHandler);
+        // }
+        return () => {
+            element.removeEventListener("dashOnTouchStart", onMultiTouchStartHandler);
+            // if (onMultiTouchMoveHandler) {
+            //     element.removeEventListener("dashOnTouchMove", onMultiTouchMoveHandler);
+            // }
+            // if (onMultiTouchEndHandler) {
+            //     element.removeEventListener("dashOnTouchend", onMultiTouchEndHandler);
+            // }
+        };
+    }
+
+    export function GetMyTargetTouches(mte: InteractionUtils.MultiTouchEvent<React.TouchEvent | TouchEvent>, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
-        for (let i = 0; i < e.targetTouches.length; i++) {
-            const pt = e.targetTouches.item(i);
-            if (pt && prevPoints.has(pt.identifier)) {
-                myTouches.push(pt);
+        for (const pt of mte.touches) {
+            if (!ignorePen || (pt.radiusX > 1 && pt.radiusY > 1)) {
+                for (const tPt of mte.targetTouches) {
+                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                        if (pt && prevPoints.has(pt.identifier)) {
+                            myTouches.push(pt);
+                        }
+                    }
+                }
             }
         }
         return myTouches;
@@ -23,7 +80,7 @@ export namespace InteractionUtils {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2
             case PENTYPE:
-                return e.pointerType === PENTYPE && e.button === (e instanceof PointerEvent ? POINTER_PEN_BUTTON : REACT_POINTER_PEN_BUTTON);
+                return e.pointerType === PENTYPE && (e.button === -1 || e.button === 0);
             case ERASERTYPE:
                 return e.pointerType === PENTYPE && e.button === (e instanceof PointerEvent ? ERASER_BUTTON : ERASER_BUTTON);
             default:
