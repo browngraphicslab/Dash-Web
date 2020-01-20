@@ -61,7 +61,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     @computed get layout(): string {
         TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
-        const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
+        const layout = Cast(this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")], "string");
         if (layout === undefined) {
             return this.props.Document.data ?
                 "<FieldView {...props} fieldKey='data' />" :

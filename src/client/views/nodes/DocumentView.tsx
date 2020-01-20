@@ -764,7 +764,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (typeof layoutKey === "string") {
             return layoutKey;
         }
-        // return "layout";
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";
     }
