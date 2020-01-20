@@ -31,6 +31,7 @@ import { CurrentUserUtils } from '../../../server/authentication/models/current_
 import { ScriptBox } from '../ScriptBox';
 import { ImageBox } from '../nodes/ImageBox';
 import { makeTemplate } from '../../util/DropConverter';
+import { CollectionDockingView } from './CollectionDockingView';
 
 
 export interface TreeViewProps {
@@ -634,9 +635,12 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             description: "Buxton Layout", icon: "eye", event: () => {
                 // const [first, second, third] = new Array(3).map(() => Docs.Create.MulticolumnDocument([], {}));
                 const year = Docs.Create.TextDocument({ title: "year" });
-                const wrapper = Docs.Create.FreeformDocument([year], {});
+                const wrapper = Docs.Create.StackingDocument([year], { autoHeight: true, chromeStatus: "disabled" });
                 wrapper.disableLOD = true;
                 makeTemplate(wrapper);
+                delete Doc.GetProto(year).showTitle;
+                delete year.showTitle;
+
                 const detailedLayout = Doc.MakeAlias(wrapper);
                 const cardLayout = ImageBox.LayoutString("hero");
                 this.childLayoutPairs.forEach(({ layout }) => {
@@ -644,6 +648,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     Doc.GetProto(layout).layout_detailed = detailedLayout;
                     // Doc.ApplyTemplateTo(wrapper, layout, "layout_detailed");
                 });
+                CollectionDockingView.AddRightSplit(wrapper, undefined);
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
