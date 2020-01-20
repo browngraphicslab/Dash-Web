@@ -76,7 +76,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                     facetValues.add(child[facet]?.toString() || "(null)");
                 });
 
-                const newFacetVals = facetValues.toArray().map(val => Docs.Create.TextDocument({ title: val.toString() }));
+                const newFacetVals = facetValues.toArray().sort().map(val => Docs.Create.TextDocument({ title: val.toString() }));
                 const newFacet = Docs.Create.FreeformDocument(newFacetVals, { title: facet, treeViewOpen: true, isFacetFilter: true });
                 Doc.AddDocToList(facetCollection, "data", newFacet);
             }

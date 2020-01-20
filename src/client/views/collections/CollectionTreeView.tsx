@@ -634,11 +634,10 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
+                const { TextDocument, ImageDocument } = Docs.Create;
                 const wrapper = Docs.Create.StackingDocument([
                     ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "hero" }),
-                    // MulticolumnDocument([], { title: "data", height: 100 }),
-                    ...["year", "company", "degrees_of_freedom", "short_description"].map(key => TextDocument({ title: key }))
+                    ...["short_description", "year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key }))
                 ], { autoHeight: true, chromeStatus: "disabled" });
                 wrapper.disableLOD = true;
                 makeTemplate(wrapper, true);

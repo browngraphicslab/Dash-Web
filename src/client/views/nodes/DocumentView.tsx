@@ -759,7 +759,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (showTitle && !showTitleHover ? 0 : 0) + 1;
     }
 
-    @computed get finalLayoutKey() { return this.props.layoutKey || "layout"; }
+    @computed get finalLayoutKey() {
+        const { layoutKey } = this.props;
+        if (typeof layoutKey === "string") {
+            return layoutKey;
+        }
+        // return "layout";
+        const fallback = Cast(this.props.Document.layoutKey, "string");
+        return typeof fallback === "string" ? fallback : "layout";
+    }
     childScaling = () => (this.layoutDoc.fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
