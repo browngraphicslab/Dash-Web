@@ -28,7 +28,7 @@ export namespace WebSocket {
 
     function initialize(isRelease: boolean) {
         const endpoint = io();
-        endpoint.on("connection", function(socket: Socket) {
+        endpoint.on("connection", function (socket: Socket) {
             _socket = socket;
 
             socket.use((_packet, next) => {
@@ -88,6 +88,11 @@ export namespace WebSocket {
         }
         await Database.Instance.deleteAll('newDocuments');
     }
+
+    // export async function deleteUserDocuments() {
+    //     await Database.Instance.deleteAll();
+    //     await Database.Instance.deleteAll('newDocuments');
+    // }
 
     export async function deleteAll() {
         await Database.Instance.deleteAll();

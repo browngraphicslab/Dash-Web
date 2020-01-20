@@ -39,6 +39,7 @@ import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsM
 import GestureOverlay from './GestureOverlay';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
+import SettingsManager from '../util/SettingsManager';
 import { TraceMobx } from '../../new_fields/util';
 import { RadialMenu } from './nodes/RadialMenu';
 import RichTextMenu from '../util/RichTextMenu';
@@ -417,6 +418,9 @@ export class MainView extends React.Component {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}>
                 </DocumentView>
+                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                    Settings
+                </button>
                 <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
@@ -513,6 +517,7 @@ export class MainView extends React.Component {
         return (<div id="mainView-container">
             <DictationOverlay />
             <SharingManager />
+            <SettingsManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
             <GestureOverlay>
