@@ -633,15 +633,16 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
                 // const [first, second, third] = new Array(3).map(() => Docs.Create.MulticolumnDocument([], {}));
-                const year = Docs.Create.FreeformDocument([], { title: "year" });
+                const year = Docs.Create.TextDocument({ title: "year" });
                 const wrapper = Docs.Create.FreeformDocument([year], {});
+                wrapper.disableLOD = true;
                 makeTemplate(wrapper);
                 const detailedLayout = Doc.MakeAlias(wrapper);
                 const cardLayout = ImageBox.LayoutString("hero");
                 this.childLayoutPairs.forEach(({ layout }) => {
-                    layout.layout = cardLayout;
-                    layout.detailedDeviceView = detailedLayout;
-                    // Doc.ApplyTemplateTo(wrapper, layout, "detailedDeviceView");
+                    Doc.GetProto(layout).layout = cardLayout;
+                    Doc.GetProto(layout).layout_detailed = detailedLayout;
+                    // Doc.ApplyTemplateTo(wrapper, layout, "layout_detailed");
                 });
             }
         });
