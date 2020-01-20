@@ -15,7 +15,7 @@ import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import Palette from "./Palette";
-import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue } from "../../Utils";
+import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange } from "../../Utils";
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
@@ -28,6 +28,7 @@ export default class GestureOverlay extends Touchable {
     @observable public Width: number = 5;
     @observable public SavedColor?: string;
     @observable public SavedWidth?: number;
+    @observable public Tool: ToolglassTools = ToolglassTools.None;
 
     @observable private _thumbX?: number;
     @observable private _thumbY?: number;
@@ -35,9 +36,9 @@ export default class GestureOverlay extends Touchable {
     @observable private _points: { X: number, Y: number }[] = [];
     @observable private _palette?: JSX.Element;
     @observable private _clipboardDoc?: JSX.Element;
-    @observable private _showBounds: boolean = false;
 
     @computed private get height(): number { return Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
+    @computed private get showBounds() { return this.Tool !== ToolglassTools.None; }
 
     private _d1: Doc | undefined;
     private _thumbDoc: Doc | undefined;
@@ -357,50 +358,61 @@ export default class GestureOverlay extends Touchable {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
-            const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
-            let actionPerformed = false;
-            if (result && result.Score > 0.7) {
-                switch (result.Name) {
-                    case GestureUtils.Gestures.Box:
-                        const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                        target?.dispatchEvent(new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+            const xInGlass = points[0].X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && points[0].X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+            const yInGlass = points[0].Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && points[0].Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+
+            if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
+                switch (this.Tool) {
+                    case ToolglassTools.InkToText:
+                        break;
+                }
+            }
+            else {
+                const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
+                let actionPerformed = false;
+                if (result && result.Score > 0.7) {
+                    switch (result.Name) {
+                        case GestureUtils.Gestures.Box:
+                            const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
+                            target?.dispatchEvent(new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+                                {
+                                    bubbles: true,
+                                    detail: {
+                                        points: this._points,
+                                        gesture: GestureUtils.Gestures.Box,
+                                        bounds: B
+                                    }
+                                }));
+                            actionPerformed = true;
+                            break;
+                        case GestureUtils.Gestures.Line:
+                            actionPerformed = this.handleLineGesture();
+                            break;
+                        case GestureUtils.Gestures.Scribble:
+                            console.log("scribble");
+                            break;
+                    }
+                    if (actionPerformed) {
+                        this._points = [];
+                    }
+                }
+
+                if (!actionPerformed) {
+                    const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
+                    target?.dispatchEvent(
+                        new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                             {
                                 bubbles: true,
                                 detail: {
                                     points: this._points,
-                                    gesture: GestureUtils.Gestures.Box,
+                                    gesture: GestureUtils.Gestures.Stroke,
                                     bounds: B
                                 }
-                            }));
-                        actionPerformed = true;
-                        break;
-                    case GestureUtils.Gestures.Line:
-                        actionPerformed = this.handleLineGesture();
-                        break;
-                    case GestureUtils.Gestures.Scribble:
-                        console.log("scribble");
-                        break;
-                }
-                if (actionPerformed) {
+                            }
+                        )
+                    );
                     this._points = [];
                 }
-            }
-
-            if (!actionPerformed) {
-                const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                target?.dispatchEvent(
-                    new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
-                        {
-                            bubbles: true,
-                            detail: {
-                                points: this._points,
-                                gesture: GestureUtils.Gestures.Stroke,
-                                bounds: B
-                            }
-                        }
-                    )
-                );
-                this._points = [];
             }
         }
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -491,16 +503,24 @@ export default class GestureOverlay extends Touchable {
                     transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
                     height: this.height,
                     width: this.height,
-                    pointerEvents: this._showBounds ? "unset" : "none",
-                    touchAction: this._showBounds ? "unset" : "none",
-                    display: this._showBounds ? "unset" : "none",
+                    pointerEvents: "none",
+                    touchAction: "none",
+                    display: this.showBounds ? "unset" : "none",
                 }}>
                 </div>
             </div >);
     }
 }
 
+export enum ToolglassTools {
+    InkToText = "inktotext",
+    None = "none",
+}
+
 Scripting.addGlobal("GestureOverlay", GestureOverlay);
+Scripting.addGlobal(function setToolglass(tool: any) {
+    runInAction(() => GestureOverlay.Instance.Tool = tool);
+});
 Scripting.addGlobal(function setPen(width: any, color: any) {
     runInAction(() => {
         GestureOverlay.Instance.SavedColor = GestureOverlay.Instance.Color;
