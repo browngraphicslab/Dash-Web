@@ -31,6 +31,9 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         this._dropDisposer && this._dropDisposer();
         this._widthDisposer && this._widthDisposer();
         this._selectedDisposer && this._selectedDisposer();
+        this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
+            Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
+        });
     }
 
     componentDidMount() {
@@ -42,7 +45,22 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
         this._selectedDisposer = reaction(
             () => NumCast(this.props.Document.selectedIndex),
-            (i) => runInAction(() => this._selectedIndex = i),
+            (i) => runInAction(() => {
+                this._selectedIndex = i;
+                let selected: any = undefined;
+                this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
+                    const isSelected = this._selectedIndex === ind;
+                    if (isSelected) {
+                        selected = pair;
+                    }
+                    else {
+                        Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
+                    }
+                });
+                if (selected && selected.layout) {
+                    Cast(selected.layout.proto?.onPointerDown, ScriptField)?.script.run({ this: selected.layout.proto }, console.log);
+                }
+            }),
             { fireImmediately: true }
         );
     }
@@ -76,10 +94,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         const dref = React.createRef<HTMLDivElement>();
                         const nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
                         const deltaSize = nativeWidth * .15 / 2;
-                        const isSelected = this._selectedIndex === ind;
-                        if (isSelected) {
-                            Cast(pair.layout.proto?.onPointerDown, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
-                        }
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,

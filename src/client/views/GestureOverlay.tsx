@@ -2,7 +2,7 @@ import React = require("react");
 import { Touchable } from "./Touchable";
 import { observer } from "mobx-react";
 import "./GestureOverlay.scss";
-import { computed, observable, action, runInAction } from "mobx";
+import { computed, observable, action, runInAction, IReactionDisposer, reaction } from "mobx";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { InkingControl } from "./InkingControl";
@@ -12,11 +12,13 @@ import { LinkManager } from "../util/LinkManager";
 import { DocUtils } from "../documents/Documents";
 import { undoBatch } from "../util/UndoManager";
 import { Scripting } from "../util/Scripting";
-import { FieldValue, Cast, NumCast } from "../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import Palette from "./Palette";
-import { Utils, emptyPath, emptyFunction } from "../../Utils";
+import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue } from "../../Utils";
 import { DocumentView } from "./nodes/DocumentView";
+import { Transform } from "../util/Transform";
+import { DocumentContentsView } from "./nodes/DocumentContentsView";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -24,13 +26,16 @@ export default class GestureOverlay extends Touchable {
 
     @observable private _points: { X: number, Y: number }[] = [];
     @observable private _palette?: JSX.Element;
-    @observable private _elements: JSX.Element[];
+    @observable private _clipboardDoc?: JSX.Element;
     @observable public Color: string = "rgb(244, 67, 54)";
     @observable public Width: number = 5;
+    @observable public SavedColor?: string;
+    @observable public SavedWidth?: number;
 
     private _d1: Doc | undefined;
     private _thumbDoc: Doc | undefined;
-    private _thumbX?: number;
+    @observable private _thumbX?: number;
+    @observable private _thumbY?: number;
     private thumbIdentifier?: number;
     private _hands: Map<number, React.Touch[]> = new Map<number, React.Touch[]>();
 
@@ -191,6 +196,7 @@ export default class GestureOverlay extends Touchable {
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
         if (thumb.identifier === this.thumbIdentifier) {
             this._thumbX = thumb.clientX;
+            this._thumbY = thumb.clientY;
             this._hands.set(thumb.identifier, fingers);
             return;
         }
@@ -208,6 +214,7 @@ export default class GestureOverlay extends Touchable {
             runInAction(() => {
                 this._thumbDoc = thumbDoc;
                 this._thumbX = thumb.clientX;
+                this._thumbY = thumb.clientY;
                 this._palette = <Palette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
             });
         }
@@ -407,32 +414,76 @@ export default class GestureOverlay extends Touchable {
     @computed get elements() {
         return [
             this.props.children,
-            this._elements,
+            // this._clipboardDoc,
             this._palette,
             this.currentStroke
-        ]
+        ];
     }
 
     @action
-    openFloatingDoc = (doc: Doc) => {
-        // this._elements.push(
-        //     <DocumentView 
-        //     Document={doc}
-        //     LibraryPath={emptyPath}
-        //     addDocument={undefined}
-        //     addDocTab={emptyFunction}
-        //     />
-        // )
+    public openFloatingDoc = (doc: Doc) => {
+        // const t = new Transform(-(this._clipboardDoc ? (this._thumbX ?? 0) : -350), -(this._thumbY ?? 0) + 350, 1);
+        // let t =
+        this._clipboardDoc =
+            <DocumentView
+                Document={doc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={returnFalse}
+                pinToPres={emptyFunction}
+                onClick={undefined}
+                ruleProvider={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + 350, 1)}
+                ContentScaling={returnOne}
+                PanelWidth={() => 300}
+                PanelHeight={() => 300}
+                renderDepth={0}
+                backgroundColor={returnEmptyString}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+            />;
+    }
+
+    @action
+    public closeFloatingDoc = () => {
+        this._clipboardDoc = undefined;
     }
 
     render() {
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.elements}
+                <div className="clipboardDoc-cont" style={{
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - 350}px)`,
+                    pointerEvents: this._clipboardDoc ? "unset" : "none",
+                    touchAction: this._clipboardDoc ? "unset" : "none"
+                }}>
+                    {this._clipboardDoc}
+                </div>
             </div>);
     }
 }
 
 Scripting.addGlobal("GestureOverlay", GestureOverlay);
-Scripting.addGlobal(function setPen(width: any, color: any) { runInAction(() => { GestureOverlay.Instance.Color = color; GestureOverlay.Instance.Width = width; }); });
-Scripting.addGlobal(function resetPen() { runInAction(() => { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; }); }); });
+Scripting.addGlobal(function setPen(width: any, color: any) {
+    runInAction(() => {
+        GestureOverlay.Instance.SavedColor = GestureOverlay.Instance.Color;
+        GestureOverlay.Instance.Color = color;
+        GestureOverlay.Instance.SavedWidth = GestureOverlay.Instance.Width;
+        GestureOverlay.Instance.Width = width;
+    });
+});
+Scripting.addGlobal(function resetPen() {
+    runInAction(() => {
+        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(244, 67, 54)";
+        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 5;
+    });
+});

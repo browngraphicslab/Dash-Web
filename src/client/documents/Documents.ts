@@ -109,6 +109,7 @@ export interface DocumentOptions {
     onPointerUp?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
+    clipboard?: Doc; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
     gridGap?: number; // gap between items in masonry view
     xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
