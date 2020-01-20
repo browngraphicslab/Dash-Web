@@ -633,27 +633,33 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                // const [first, second, third] = new Array(3).map(() => Docs.Create.MulticolumnDocument([], {}));
-                const year = Docs.Create.TextDocument({ title: "year" });
-                const wrapper = Docs.Create.StackingDocument([year], { autoHeight: true, chromeStatus: "disabled" });
+                const { TextDocument, ImageDocument } = Docs.Create;
+                const wrapper = Docs.Create.StackingDocument([
+                    ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "hero" }),
+                    TextDocument({ title: "year" }),
+                    TextDocument({ title: "degrees_of_freedom" }),
+                    TextDocument({ title: "company" }),
+                    TextDocument({ title: "short_description" }),
+                ], { autoHeight: true, chromeStatus: "disabled" });
                 wrapper.disableLOD = true;
-                makeTemplate(wrapper);
-                delete Doc.GetProto(year).showTitle;
-                delete year.showTitle;
-
+                makeTemplate(wrapper, true);
                 const detailedLayout = Doc.MakeAlias(wrapper);
                 const cardLayout = ImageBox.LayoutString("hero");
                 this.childLayoutPairs.forEach(({ layout }) => {
-                    Doc.GetProto(layout).layout = cardLayout;
-                    Doc.GetProto(layout).layout_detailed = detailedLayout;
-                    // Doc.ApplyTemplateTo(wrapper, layout, "layout_detailed");
+                    const proto = Doc.GetProto(layout);
+                    proto.layout = cardLayout;
+                    proto.layout_detailed = detailedLayout;
+                    layout.showTitle = "title";
+                    layout.showTitleHover = "titlehover";
                 });
-                CollectionDockingView.AddRightSplit(wrapper, undefined);
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-        onClicks.push({ description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document, "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean" }) });
+        onClicks.push({
+            description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document,
+                "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean", context: Doc.name })
+        });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);

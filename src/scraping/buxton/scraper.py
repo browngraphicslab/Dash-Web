@@ -100,9 +100,9 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
-    fields["scale"] = 0.5
     fields["viewType"] = 2
     fields["author"] = "Bill Buxton"
+    fielsd["disableLOD"] = True,
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
         "__type": "date"
