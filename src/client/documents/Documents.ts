@@ -666,28 +666,28 @@ export namespace Docs {
             const field = target[fieldKey];
             const resolved = options || {};
             if (field instanceof ImageField) {
-                created = Docs.Create.ImageDocument((field as ImageField).url.href, resolved);
+                created = Docs.Create.ImageDocument((field).url.href, resolved);
                 layout = ImageBox.LayoutString;
             } else if (field instanceof Doc) {
                 created = field;
             } else if (field instanceof VideoField) {
-                created = Docs.Create.VideoDocument((field as VideoField).url.href, resolved);
+                created = Docs.Create.VideoDocument((field).url.href, resolved);
                 layout = VideoBox.LayoutString;
             } else if (field instanceof PdfField) {
-                created = Docs.Create.PdfDocument((field as PdfField).url.href, resolved);
+                created = Docs.Create.PdfDocument((field).url.href, resolved);
                 layout = PDFBox.LayoutString;
             } else if (field instanceof IconField) {
-                created = Docs.Create.IconDocument((field as IconField).icon, resolved);
+                created = Docs.Create.IconDocument((field).icon, resolved);
                 layout = IconBox.LayoutString;
             } else if (field instanceof AudioField) {
-                created = Docs.Create.AudioDocument((field as AudioField).url.href, resolved);
+                created = Docs.Create.AudioDocument((field).url.href, resolved);
                 layout = AudioBox.LayoutString;
             } else if (field instanceof HistogramField) {
-                created = Docs.Create.HistogramDocument((field as HistogramField).HistoOp, resolved);
+                created = Docs.Create.HistogramDocument((field).HistoOp, resolved);
                 layout = HistogramBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field as InkField).inkData, resolved);
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
                 layout = InkingStroke.LayoutString;
             } else if (field instanceof List && field[0] instanceof Doc) {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);

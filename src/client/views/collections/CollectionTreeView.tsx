@@ -32,6 +32,7 @@ import { ScriptBox } from '../ScriptBox';
 import { ImageBox } from '../nodes/ImageBox';
 import { makeTemplate } from '../../util/DropConverter';
 import { CollectionDockingView } from './CollectionDockingView';
+import { CollectionViewType } from './CollectionView';
 
 
 export interface TreeViewProps {
@@ -633,13 +634,11 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
                 const wrapper = Docs.Create.StackingDocument([
                     ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "hero" }),
-                    TextDocument({ title: "year" }),
-                    TextDocument({ title: "degrees_of_freedom" }),
-                    TextDocument({ title: "company" }),
-                    TextDocument({ title: "short_description" }),
+                    // MulticolumnDocument([], { title: "data", height: 100 }),
+                    ...["year", "company", "degrees_of_freedom", "short_description"].map(key => TextDocument({ title: key }))
                 ], { autoHeight: true, chromeStatus: "disabled" });
                 wrapper.disableLOD = true;
                 makeTemplate(wrapper, true);
