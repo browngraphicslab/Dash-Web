@@ -46,7 +46,7 @@ import RichTextMenu from '../util/RichTextMenu';
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 75;
+    private _buttonBarHeight = 35;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();

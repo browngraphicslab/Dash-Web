@@ -24,19 +24,25 @@ import { DocumentContentsView } from "./nodes/DocumentContentsView";
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable private _points: { X: number, Y: number }[] = [];
-    @observable private _palette?: JSX.Element;
-    @observable private _clipboardDoc?: JSX.Element;
     @observable public Color: string = "rgb(244, 67, 54)";
     @observable public Width: number = 5;
     @observable public SavedColor?: string;
     @observable public SavedWidth?: number;
 
-    private _d1: Doc | undefined;
-    private _thumbDoc: Doc | undefined;
     @observable private _thumbX?: number;
     @observable private _thumbY?: number;
+    @observable private _pointerY?: number;
+    @observable private _points: { X: number, Y: number }[] = [];
+    @observable private _palette?: JSX.Element;
+    @observable private _clipboardDoc?: JSX.Element;
+    @observable private _showBounds: boolean = false;
+
+    @computed private get height(): number { return Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
+
+    private _d1: Doc | undefined;
+    private _thumbDoc: Doc | undefined;
     private thumbIdentifier?: number;
+    private pointerIdentifier?: number;
     private _hands: Map<number, React.Touch[]> = new Map<number, React.Touch[]>();
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -178,7 +184,7 @@ export default class GestureOverlay extends Touchable {
         e.stopPropagation();
     }
 
-    handleHandDown = (e: React.TouchEvent) => {
+    handleHandDown = async (e: React.TouchEvent) => {
         const fingers = new Array<React.Touch>();
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
@@ -194,6 +200,22 @@ export default class GestureOverlay extends Touchable {
             }
         }
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+        const rightMost = Math.max(...fingers.map(f => f.clientX));
+        const leftMost = Math.min(...fingers.map(f => f.clientX));
+        let pointer: React.Touch | undefined;
+        // left hand
+        if (thumb.clientX === rightMost) {
+            pointer = fingers.reduce((a, v) => a.clientX > v.clientX || v.identifier === thumb.identifier ? a : v);
+        }
+        // right hand
+        else if (thumb.clientX === leftMost) {
+            pointer = fingers.reduce((a, v) => a.clientX < v.clientX || v.identifier === thumb.identifier ? a : v);
+        }
+        else {
+            console.log("not hand");
+        }
+        this.pointerIdentifier = pointer?.identifier;
+        runInAction(() => this._pointerY = pointer?.clientY);
         if (thumb.identifier === this.thumbIdentifier) {
             this._thumbX = thumb.clientX;
             this._thumbY = thumb.clientY;
@@ -201,15 +223,12 @@ export default class GestureOverlay extends Touchable {
             return;
         }
         this.thumbIdentifier = thumb?.identifier;
-        // fingers.forEach((f) => this.prevPoints.delete(f.identifier));
         this._hands.set(thumb.identifier, fingers);
         const others = fingers.filter(f => f !== thumb);
         const minX = Math.min(...others.map(f => f.clientX));
         const minY = Math.min(...others.map(f => f.clientY));
-        // const t = this.getTransform().transformPoint(minX, minY);
-        // const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
 
-        const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
+        const thumbDoc = await Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc);
         if (thumbDoc) {
             runInAction(() => {
                 this._thumbDoc = thumbDoc;
@@ -247,7 +266,7 @@ export default class GestureOverlay extends Touchable {
             }
         }
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
-        if (thumb?.identifier === this.thumbIdentifier) {
+        if (thumb?.identifier && thumb?.identifier === this.thumbIdentifier) {
             this._hands.set(thumb.identifier, fingers);
         }
 
@@ -258,6 +277,9 @@ export default class GestureOverlay extends Touchable {
                     this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
                     this._thumbX = pt.clientX;
                 }
+            }
+            if (pt && pt.identifier === this.pointerIdentifier) {
+                this._pointerY = pt.clientY;
             }
         }
     }
@@ -328,8 +350,6 @@ export default class GestureOverlay extends Touchable {
         target2?.dispatchEvent(ge);
         return actionPerformed;
     }
-
-
 
     @action
     onPointerUp = (e: PointerEvent) => {
@@ -414,7 +434,6 @@ export default class GestureOverlay extends Touchable {
     @computed get elements() {
         return [
             this.props.children,
-            // this._clipboardDoc,
             this._palette,
             this.currentStroke
         ];
@@ -422,8 +441,6 @@ export default class GestureOverlay extends Touchable {
 
     @action
     public openFloatingDoc = (doc: Doc) => {
-        // const t = new Transform(-(this._clipboardDoc ? (this._thumbX ?? 0) : -350), -(this._thumbY ?? 0) + 350, 1);
-        // let t =
         this._clipboardDoc =
             <DocumentView
                 Document={doc}
@@ -435,7 +452,7 @@ export default class GestureOverlay extends Touchable {
                 onClick={undefined}
                 ruleProvider={undefined}
                 removeDocument={undefined}
-                ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + 350, 1)}
+                ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1)}
                 ContentScaling={returnOne}
                 PanelWidth={() => 300}
                 PanelHeight={() => 300}
@@ -462,13 +479,24 @@ export default class GestureOverlay extends Touchable {
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.elements}
                 <div className="clipboardDoc-cont" style={{
-                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - 350}px)`,
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
+                    height: this.height,
+                    width: this.height,
                     pointerEvents: this._clipboardDoc ? "unset" : "none",
-                    touchAction: this._clipboardDoc ? "unset" : "none"
+                    touchAction: this._clipboardDoc ? "unset" : "none",
                 }}>
                     {this._clipboardDoc}
                 </div>
-            </div>);
+                <div className="filter-cont" style={{
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
+                    height: this.height,
+                    width: this.height,
+                    pointerEvents: this._showBounds ? "unset" : "none",
+                    touchAction: this._showBounds ? "unset" : "none",
+                    display: this._showBounds ? "unset" : "none",
+                }}>
+                </div>
+            </div >);
     }
 }
 

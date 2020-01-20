@@ -48,7 +48,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             (i) => runInAction(() => {
                 this._selectedIndex = i;
                 let selected: any = undefined;
-                this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
+                this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map(async (pair, ind) => {
                     const isSelected = this._selectedIndex === ind;
                     if (isSelected) {
                         selected = pair;

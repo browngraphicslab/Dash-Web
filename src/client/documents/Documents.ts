@@ -80,7 +80,7 @@ export interface DocumentOptions {
     isTemplateDoc?: boolean;
     templates?: List<string>;
     viewType?: number;
-    backgroundColor?: string;
+    backgroundColor?: string | ScriptField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
@@ -127,6 +127,8 @@ export interface DocumentOptions {
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
     isExpanded?: boolean; // is linear view expanded
+    textTransform?: string; // is linear view expanded
+    letterSpacing?: string; // is linear view expanded
 }
 
 class EmptyBox {

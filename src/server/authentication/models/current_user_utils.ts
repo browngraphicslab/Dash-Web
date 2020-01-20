@@ -129,7 +129,7 @@ export class CurrentUserUtils {
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
             userDoc.thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
-                width: 100, height: 50, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5, isExpanded: true
+                width: 100, height: 50, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5, isExpanded: true, backgroundColor: "white"
             });
         }
         return userDoc.thumbDoc;
@@ -154,7 +154,8 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 35, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
+            width: 35, height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
+            letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 width: 500, height: 800, lockedPosition: true, chromeStatus: "disabled", title: "tools stack"
             }),
@@ -179,9 +180,10 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            width: 50, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Library", fontSize: 10,
+            width: 50, height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Library", fontSize: 10,
+            letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
-                title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true
+                title: "Library", xMargin: 5, yMargin: 5, gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0",
             }),
             targetContainer: sidebarContainer,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
@@ -191,7 +193,8 @@ export class CurrentUserUtils {
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            width: 50, height: 35, backgroundColor: "#222222", color: "lightgrey", title: "Search", fontSize: 10,
+            width: 50, height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Search", fontSize: 10,
+            letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
             }),
@@ -214,7 +217,8 @@ export class CurrentUserUtils {
         // Finally, setup the list of buttons to display in the sidebar
         doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
             width: 500, height: 80, boxShadow: "0 0", sectionFilter: "title", hideHeadings: true, ignoreClick: true,
-            backgroundColor: "lightgrey", chromeStatus: "disabled", title: "library stack"
+            backgroundColor: "rgb(100, 100, 100)", chromeStatus: "disabled", title: "library stack",
+            yMargin: 10,
         });
     }
 

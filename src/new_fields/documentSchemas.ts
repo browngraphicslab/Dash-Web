@@ -57,6 +57,8 @@ export const documentSchema = createSchema({
     yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     LODarea: "number",          // area (width*height) where CollectionFreeFormViews switch from a label to rendering contents
     LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
+    letterSpacing: "string",
+    textTransform: "string"
 });
 
 export const positionSchema = createSchema({
