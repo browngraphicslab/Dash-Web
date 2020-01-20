@@ -102,7 +102,7 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     fields["backgroundColor"] = "white"
     fields["viewType"] = 2
     fields["author"] = "Bill Buxton"
-    fields["disableLOD"] = True,
+    fields["disableLOD"] = True
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
         "__type": "date"
