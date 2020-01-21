@@ -5,11 +5,11 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { NumCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { TooltipTextMenuManager } from "../util/TooltipTextMenu";
 import { Docs, DocUtils } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
 import { DocServer } from "../DocServer";
 import { returnFalse, Utils } from "../../Utils";
+import RichTextMenu from "./RichTextMenu";
 
 export const inpRules = {
     rules: [
@@ -264,7 +264,7 @@ export const inpRules = {
             new RegExp(/%[a-z]+$/),
             (state, match, start, end) => {
                 const color = match[0].substring(1, match[0].length);
-                const marks = TooltipTextMenuManager.Instance._brushMap.get(color);
+                const marks = RichTextMenu.Instance._brushMap.get(color);
                 if (marks) {
                     const tr = state.tr.deleteRange(start, end);
                     return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;

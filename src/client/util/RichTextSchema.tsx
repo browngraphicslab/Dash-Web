@@ -855,7 +855,8 @@ export class FootnoteView {
                 }),
                 new Plugin({
                     view(newView) {
-                        return FormattedTextBox.getToolTip(newView);
+                        // TODO -- make this work with RichTextMenu
+                        // return FormattedTextBox.getToolTip(newView);
                     }
                 })
                 ],

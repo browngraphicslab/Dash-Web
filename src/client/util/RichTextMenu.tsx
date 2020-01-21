@@ -32,8 +32,9 @@ export default class RichTextMenu extends AntimodeMenu {
     public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
 
     private view?: EditorView;
-    private editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
+    public editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
 
+    public _brushMap: Map<string, Set<Mark>> = new Map();
     private fontSizeOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean, style?: {} }[];
     private fontFamilyOptions: { mark: Mark | null, title: string, label: string, command: any, hidden?: boolean, style?: {} }[];
     private listTypeOptions: { node: NodeType | any | null, title: string, label: string, command: any, style?: {} }[];
@@ -140,6 +141,17 @@ export default class RichTextMenu extends AntimodeMenu {
 
     update(view: EditorView, lastState: EditorState | undefined) {
         this.updateFromDash(view, lastState, this.editorProps);
+    }
+
+
+    public MakeLinkToSelection = (linkDocId: string, title: string, location: string, targetDocId: string): string => {
+        if (this.view) {
+            const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, targetId: targetDocId });
+            this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
+                addMark(this.view.state.selection.from, this.view.state.selection.to, link));
+            return this.view.state.selection.$from.nodeAfter?.text || "";
+        }
+        return "";
     }
 
     @action
@@ -417,6 +429,15 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action toggleBrushDropdown() { this.showBrushDropdown = !this.showBrushDropdown; }
 
+    // todo: add brushes to brushMap to save with a style name
+    onBrushNameKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            RichTextMenu.Instance.brushMarks && RichTextMenu.Instance._brushMap.set(this._brushNameRef.current!.value, RichTextMenu.Instance.brushMarks);
+            this._brushNameRef.current!.style.background = "lightGray";
+        }
+    }
+    _brushNameRef = React.createRef<HTMLInputElement>();
+
     createBrushButton() {
         const self = this;
         function onBrushClick(e: React.PointerEvent) {
@@ -447,7 +468,7 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="dropdown">
                 <p>{label}</p>
                 <button onPointerDown={this.clearBrush}>Clear brush</button>
-                {/* <input placeholder="Enter URL"></input> */}
+                <input placeholder="-brush name-" ref={this._brushNameRef} onKeyPress={this.onBrushNameKeyPress}></input>
             </div>;
 
         return (

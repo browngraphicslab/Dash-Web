@@ -20,6 +20,7 @@ import React = require("react");
 import { DocumentView } from './nodes/DocumentView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import RichTextMenu from '../util/RichTextMenu';
 import { Id } from '../../new_fields/FieldSymbols';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -112,14 +113,15 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             const linkDrag = UndoManager.StartBatch("Drag Link");
             this.view0 && DragManager.StartLinkDrag(this._linkButton.current, this.view0.props.Document, e.pageX, e.pageY, {
                 dragComplete: dropEv => {
-                    const linkDoc = dropEv.linkDragData?.linkDocument; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
-                    if (this.view0 && linkDoc && FormattedTextBox.ToolTipTextMenu) {
+                    const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
+                    if (this.view0 && linkDoc) {
                         const proto = Doc.GetProto(linkDoc);
                         proto.sourceContext = this.view0.props.ContainingCollectionDoc;
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
+                        const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
+                        const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
                         if (linkDoc.anchor2 instanceof Doc) {
-                            const text = FormattedTextBox.ToolTipTextMenu.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", linkDoc.anchor2[Id]);
                             proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
                         }
                     }

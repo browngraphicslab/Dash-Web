@@ -151,14 +151,14 @@ export class CurrentUserUtils {
         });
         // setup a color picker
         const color = Docs.Create.ColorDocument({
-            title: "color picker", width: 400, dropAction: "alias", forceActive: true, removeDropProperties: new List<string>(["dropAction", "forceActive"])
+            title: "color picker", width: 300, dropAction: "alias", forceActive: true, removeDropProperties: new List<string>(["dropAction", "forceActive"])
         });
 
         return Docs.Create.ButtonDocument({
             width: 35, height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
-                width: 500, height: 800, lockedPosition: true, chromeStatus: "disabled", title: "tools stack"
+                width: 500, lockedPosition: true, chromeStatus: "disabled", title: "tools stack"
             }),
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });

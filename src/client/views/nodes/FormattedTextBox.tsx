@@ -29,8 +29,6 @@ import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
 import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
-import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
-import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
@@ -77,7 +75,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
-    public static ToolTipTextMenu: TooltipTextMenu | undefined = undefined;
     public ProseRef?: HTMLDivElement;
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -125,10 +122,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             return docid;
         }
         return "";
-    }
-
-    public static getToolTip(ev: EditorView) {
-        return this.ToolTipTextMenu ? this.ToolTipTextMenu : this.ToolTipTextMenu = new TooltipTextMenu(ev);
     }
 
     @undoBatch
@@ -485,11 +478,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             schema,
             plugins: [
                 inputRules(inpRules),
-                this.tooltipTextMenuPlugin(),
+                this.richTextMenuPlugin(),
                 history(),
                 keymap(this._keymap),
                 keymap(baseKeymap),
-                // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
                     props: {
                         attributes: { class: "ProseMirror-example-setup-style" }
@@ -1038,25 +1030,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
-    tooltipTextMenuPlugin() {
+    richTextMenuPlugin() {
         const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                // return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
                 RichTextMenu.Instance.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });
     }
 
-    tooltipLinkingMenuPlugin() {
-        const myprops = this.props;
-        return new Plugin({
-            view(_editorView) {
-                return new TooltipLinkingMenu(_editorView, myprops);
-            }
-        });
-    }
     onBlur = (e: any) => {
         //DictationManager.Controls.stop(false);
         if (this._undoTyping) {
@@ -1138,7 +1121,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this.props.isSelected()) {
             // TODO: ftong --> update from dash in richtextmenu
             RichTextMenu.Instance.updateFromDash(this._editorView!, undefined, this.props);
-            // FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }

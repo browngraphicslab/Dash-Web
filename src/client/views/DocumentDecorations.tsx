@@ -14,7 +14,6 @@ import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { TooltipTextMenu } from '../util/TooltipTextMenu';
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
@@ -26,8 +25,6 @@ import { IconBox } from "./nodes/IconBox";
 import React = require("react");
 import { DocumentType } from '../documents/DocumentTypes';
 import { ScriptField } from '../../new_fields/ScriptField';
-import { render } from 'react-dom';
-import RichTextMenu from '../util/RichTextMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -544,11 +541,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private setTextBar = (ele: HTMLDivElement) => {
         if (ele) {
             this.TextBar = ele;
-        }
-    }
-    public showTextBar = () => {
-        if (this.TextBar && TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1) {
-            this.TextBar.appendChild(TooltipTextMenu.Toolbar);
         }
     }
     render() {
