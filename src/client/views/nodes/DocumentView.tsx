@@ -930,9 +930,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
             }}>
                 <EditableView ref={this._titleRef}
-                    contents={(this.props.DataDoc || this.props.Document)[showTitle]}
+                    contents={(this.props.DataDoc || this.props.Document)[showTitle]?.toString()}
                     display={"block"} height={72} fontSize={12}
-                    GetValue={() => StrCast((this.props.DataDoc || this.props.Document)[showTitle])}
+                    GetValue={() => (this.props.DataDoc || this.props.Document)[showTitle]?.toString()}
                     SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[showTitle] = value) ? true : true)}
                 />
             </div>);

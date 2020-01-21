@@ -78,7 +78,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, any>();
 
-    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
+    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
 
@@ -973,7 +973,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     @computed get placeholder() {
         return <div className="collectionfreeformview-placeholder" style={{ background: this.Document.backgroundColor }}>
-            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title}</span>
+            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title?.toString()}</span>
         </div>;
     }
     @computed get marqueeView() {
