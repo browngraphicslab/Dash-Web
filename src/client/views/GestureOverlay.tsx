@@ -24,8 +24,8 @@ import { DocumentContentsView } from "./nodes/DocumentContentsView";
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable public Color: string = "rgb(244, 67, 54)";
-    @observable public Width: number = 5;
+    @observable public Color?: string;
+    @observable public Width?: number;
     @observable public SavedColor?: string;
     @observable public SavedWidth?: number;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
@@ -438,7 +438,7 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color ?? InkingControl.Instance.selectedColor, this.Width ?? parseInt(InkingControl.Instance.selectedWidth))}
             </svg>
         );
     }
@@ -514,6 +514,7 @@ export default class GestureOverlay extends Touchable {
 
 export enum ToolglassTools {
     InkToText = "inktotext",
+    IgnoreGesture = "ignoregesture",
     None = "none",
 }
 
@@ -531,7 +532,7 @@ Scripting.addGlobal(function setPen(width: any, color: any) {
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(244, 67, 54)";
-        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 5;
+        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? undefined;
+        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? undefined;
     });
 });
