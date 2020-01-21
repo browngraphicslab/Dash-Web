@@ -92,7 +92,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
     @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
-    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.Document, this.props.fieldKey); }
 
     get collectionViewType(): CollectionViewType | undefined {
         if (!this.extensionDoc) return CollectionViewType.Invalid;

@@ -608,6 +608,8 @@ export namespace Doc {
         if (fieldTemplate.layout instanceof Doc) {
             fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
         }
+        const fieldLayoutKey = StrCast(Doc.LayoutField(fieldLayoutDoc))?.split("'")[1]
+        const fieldLayoutExt = fieldLayoutKey && Doc.MakeDelegate(fieldTemplate[fieldLayoutKey + "_ext"] as Doc);
 
         fieldTemplate.templateField = metadataFieldName;
         fieldTemplate.title = metadataFieldName;
@@ -629,6 +631,7 @@ export namespace Doc {
         !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
         const layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldName}'}`);
         const layoutDelegate = Doc.Layout(fieldTemplate);
+        layoutDelegate[metadataFieldName + "_ext"] = fieldLayoutExt;
         layoutDelegate.layout = layout;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
@@ -672,7 +675,7 @@ export namespace Doc {
 
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document  
-    export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? doc[StrCast(doc.layoutKey, "layout")] as Doc : doc; }
+    export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? Doc.LayoutField(doc) as Doc : doc; }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     const manager = new DocData();
