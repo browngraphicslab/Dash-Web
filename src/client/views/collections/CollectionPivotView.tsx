@@ -10,7 +10,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, Scripting } from "../../util/Scripting";
 import { anchorPoints, Flyout } from "../TemplateMenu";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../../new_fields/List";
@@ -43,9 +43,8 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 (childDetailed) =>
                     DocCastAsync(childDetailed).then(childDetailed => {
                         if (childDetailed instanceof Doc) {
-                            const targetKey = "childDetailed";
                             const captured: { [name: string]: Field } = {};
-                            captured[targetKey] = new PrefetchProxy(childDetailed);
+                            captured.childDetailed = new PrefetchProxy(childDetailed);
                             const openDocText = "const alias = getAlias(this); Doc.ApplyTemplateTo(childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
                             const openDocScript = CompileScript(openDocText, {
                                 params: { this: Doc.name, heading: "boolean", context: Doc.name },
@@ -76,6 +75,9 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         return facets.toArray();
     }
 
+    /**
+     * Responds to clicking the check box in the flyout menu
+     */
     facetClick = (facet: string) => {
         const facetCollection = this.props.Document.facetCollection;
         if (facetCollection instanceof Doc) {
@@ -84,15 +86,9 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 //Doc.RemoveDocFromList(facetCollection, "data", DocListCast(facetCollection.data)[found]);
                 (facetCollection.data as List<Doc>).splice(found, 1);
             } else {
-                const facetValues = new Set<string>();
-                this.childDocs.forEach(child => {
-                    Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facet]?.toString() || "(null)"));
-                    facetValues.add(child[facet]?.toString() || "(null)");
-                });
-
-                const newFacetVals = facetValues.toArray().sort().map(val => Docs.Create.TextDocument({ title: val.toString() }));
-                const newFacet = Docs.Create.FreeformDocument(newFacetVals, { title: facet, treeViewOpen: true, isFacetFilter: true });
+                const newFacet = Docs.Create.FreeformDocument([], { title: facet, treeViewOpen: true, isFacetFilter: true });
                 Doc.AddDocToList(facetCollection, "data", newFacet);
+                newFacet.data = ScriptField.MakeFunction("readFacetData()", { params: {} });
             }
         }
     }

@@ -129,6 +129,7 @@ export interface DocumentOptions {
     isExpanded?: boolean; // is linear view expanded
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
+    treeViewChecked?: ScriptField; // computes whether or not the checkbox for this facet is checked
 }
 
 class EmptyBox {

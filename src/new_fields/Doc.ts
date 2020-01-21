@@ -16,6 +16,7 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
+import { Docs } from "../client/documents/Documents";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -823,4 +824,33 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
     }
     const docFilterText = Doc.MakeDocFilter(docFilters);
     container.viewSpecScript = docFilterText ? ScriptField.MakeFunction(docFilterText, { doc: Doc.name }) : undefined;
+});
+
+Scripting.addGlobal(function readFacetData(target: Doc, facet: string) {
+    const facetValues = new Set<string>();
+    DocListCast(target.dataField).forEach(child => {
+        Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facet]?.toString() || "(null)"));
+        facetValues.add(child[facet]?.toString() || "(null)");
+    });
+    return Array.from(facetValues).sort().map(val => {
+        const capturedVariables: { [name: string]: Field } = {};
+        capturedVariables.facet = val;
+        capturedVariables.container = target;
+        return Docs.Create.TextDocument({
+            title: val.toString(),
+            treeViewChecked: ScriptField.MakeFunction("readCheckedState(container, facetValue)", { capturedVariables })
+        });
+    });
+});
+
+Scripting.addGlobal(function readCheckedState(container: Doc, facetValue: string) {
+    const docFilters = Cast(container.docFilter, listSpec("string"), []);
+    for (let i = 0; i < docFilters.length; i += 3) {
+        const key = docFilters[i];
+        const value = docFilters[i + 1];
+        if (key === facetValue) {
+            return value;
+        }
+    }
+    return false;
 });
