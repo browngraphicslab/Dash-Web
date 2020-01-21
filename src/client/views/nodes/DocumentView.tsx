@@ -315,10 +315,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (this.Document.onPointerDown) return;
+        const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        this._downX = touch.clientX;
+        this._downY = touch.clientY;
         if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-            this._downX = touch.clientX;
-            this._downY = touch.clientY;
             this._hitTemplateDrag = false;
             for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
                 if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
