@@ -634,22 +634,27 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
+                const { Document } = this.props;
+                const fallback = "http://www.cs.brown.edu/~bcz/face.gif";
                 const wrapper = Docs.Create.StackingDocument([
-                    ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "hero" }),
+                    ImageDocument(fallback, { title: "hero" }),
+                    MulticolumnDocument([], { title: "data", height: 100 }),
                     ...["short_description", "year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key }))
                 ], { autoHeight: true, chromeStatus: "disabled" });
                 wrapper.disableLOD = true;
-                makeTemplate(wrapper, true);
-                const detailedLayout = Doc.MakeAlias(wrapper);
-                const cardLayout = ImageBox.LayoutString("hero");
-                this.childLayoutPairs.forEach(({ layout }) => {
-                    const proto = Doc.GetProto(layout);
-                    proto.layout = cardLayout;
-                    proto.layout_detailed = detailedLayout;
-                    layout.showTitle = "title";
-                    layout.showTitleHover = "titlehover";
-                });
+                wrapper.isTemplateDoc = makeTemplate(wrapper, true);
+
+                const cardLayout = ImageDocument(fallback);
+                const proto = Doc.GetProto(cardLayout);
+                proto.layout = ImageBox.LayoutString("hero");
+                cardLayout.showTitle = "title";
+                cardLayout.showTitleHover = "titlehover";
+                cardLayout.isTemplateField = true; // make this document act like a template field
+                cardLayout.isTemplateDoc = true; // but it's also a template doc itself... a little weird
+
+                Document.childLayout = cardLayout;
+                Document.childDetailed = wrapper;
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");

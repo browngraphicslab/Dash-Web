@@ -43,8 +43,9 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 (childDetailed) =>
                     DocCastAsync(childDetailed).then(childDetailed => {
                         if (childDetailed instanceof Doc) {
-                            let captured: { [name: string]: Field } = {};
-                            captured["childDetailed"] = new PrefetchProxy(childDetailed);
+                            const targetKey = "childDetailed";
+                            const captured: { [name: string]: Field } = {};
+                            captured[targetKey] = new PrefetchProxy(childDetailed);
                             const openDocText = "const alias = getAlias(this); Doc.ApplyTemplateTo(childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
                             const openDocScript = CompileScript(openDocText, {
                                 params: { this: Doc.name, heading: "boolean", context: Doc.name },
