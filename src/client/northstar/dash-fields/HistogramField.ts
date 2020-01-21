@@ -7,7 +7,7 @@ import { ObjectField } from "../../../new_fields/ObjectField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { OmitKeys } from "../../../Utils";
 import { Deserializable } from "../../util/SerializationHelper";
-import { Copy, ToScriptString } from "../../../new_fields/FieldSymbols";
+import { Copy, ToScriptString, ToString } from "../../../new_fields/FieldSymbols";
 
 function serialize(field: HistogramField) {
     const obj = OmitKeys(field, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit;
@@ -58,6 +58,9 @@ export class HistogramField extends ObjectField {
     }
 
     [ToScriptString]() {
+        return this.toString();
+    }
+    [ToString]() {
         return this.toString();
     }
 }

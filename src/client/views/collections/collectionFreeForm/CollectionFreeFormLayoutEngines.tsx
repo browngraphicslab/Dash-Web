@@ -7,8 +7,10 @@ import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { emptyFunction } from "../../../../Utils";
 import React = require("react");
 import { ObservableMap, runInAction } from "mobx";
-import { Id } from "../../../../new_fields/FieldSymbols";
+import { Id, ToString } from "../../../../new_fields/FieldSymbols";
 import { DateField } from "../../../../new_fields/DateField";
+import { ObjectField } from "../../../../new_fields/ObjectField";
+import { RefField } from "../../../../new_fields/RefField";
 
 interface PivotData {
     type: string;
@@ -35,11 +37,8 @@ export interface ViewDefResult {
 }
 
 function toLabel(target: FieldResult<Field>) {
-    if (target instanceof DateField) {
-        const date = DateCast(target).date;
-        if (date) {
-            return `${date.toDateString()} ${date.toTimeString()}`;
-        }
+    if (target instanceof ObjectField || target instanceof RefField) {
+        return target[ToString]();
     }
     return String(target);
 }

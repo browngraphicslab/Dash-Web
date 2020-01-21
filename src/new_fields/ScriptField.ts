@@ -1,6 +1,6 @@
 import { ObjectField } from "./ObjectField";
 import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions } from "../client/util/Scripting";
-import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
+import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Doc } from "../new_fields/Doc";
@@ -99,6 +99,9 @@ export class ScriptField extends ObjectField {
     }
 
     [ToScriptString]() {
+        return "script field";
+    }
+    [ToString]() {
         return "script field";
     }
     public static CompileScript(script: string, params: object = {}, addReturn = false) {

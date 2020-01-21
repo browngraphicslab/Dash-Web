@@ -4,7 +4,7 @@ import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
-import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, Update } from "./FieldSymbols";
+import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
@@ -35,6 +35,18 @@ export namespace Field {
         } else {
             return field[ToScriptString]();
         }
+    }
+    export function toString(field: Field): string {
+        if (typeof field === "string") {
+            return `"${field}"`;
+        } else if (typeof field === "number" || typeof field === "boolean") {
+            return String(field);
+        } else if (field instanceof ObjectField) {
+            return field[ToString]();
+        } else if (field instanceof RefField) {
+            return field[ToString]();
+        }
+        return "-invalid field-";
     }
     export function IsField(field: any): field is Field;
     export function IsField(field: any, includeUndefined: true): field is Field | undefined;
@@ -155,6 +167,9 @@ export class Doc extends RefField {
 
     [ToScriptString]() {
         return "invalid";
+    }
+    [ToString]() {
+        return "Doc";
     }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};

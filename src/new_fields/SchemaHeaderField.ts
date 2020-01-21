@@ -1,7 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, primitive } from "serializr";
 import { ObjectField } from "./ObjectField";
-import { Copy, ToScriptString, OnUpdate } from "./FieldSymbols";
+import { Copy, ToScriptString, ToString, OnUpdate } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { ColumnType } from "../client/views/collections/CollectionSchemaView";
 
@@ -115,5 +115,8 @@ export class SchemaHeaderField extends ObjectField {
 
     [ToScriptString]() {
         return `invalid`;
+    }
+    [ToString]() {
+        return `SchemaHeaderField`;
     }
 }

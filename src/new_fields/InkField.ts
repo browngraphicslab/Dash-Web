@@ -1,7 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
 import { ObjectField } from "./ObjectField";
-import { Copy, ToScriptString } from "./FieldSymbols";
+import { Copy, ToScriptString, ToString } from "./FieldSymbols";
 
 export enum InkTool {
     None,
@@ -44,5 +44,8 @@ export class InkField extends ObjectField {
 
     [ToScriptString]() {
         return "invalid";
+    }
+    [ToString]() {
+        return "InkField";
     }
 }
