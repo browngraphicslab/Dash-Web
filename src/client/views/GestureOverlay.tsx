@@ -358,12 +358,29 @@ export default class GestureOverlay extends Touchable {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
-            const xInGlass = points[0].X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && points[0].X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
-            const yInGlass = points[0].Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && points[0].Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+            const initialPoint = this._points[0];
+            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
 
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
+                        break;
+                    case ToolglassTools.IgnoreGesture:
+                        const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
+                        target?.dispatchEvent(
+                            new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+                                {
+                                    bubbles: true,
+                                    detail: {
+                                        points: this._points,
+                                        gesture: GestureUtils.Gestures.Stroke,
+                                        bounds: B
+                                    }
+                                }
+                            )
+                        );
+                        this._points = [];
                         break;
                 }
             }
@@ -514,6 +531,7 @@ export default class GestureOverlay extends Touchable {
 
 export enum ToolglassTools {
     InkToText = "inktotext",
+    IgnoreGesture = "ignoregesture",
     None = "none",
 }
 
