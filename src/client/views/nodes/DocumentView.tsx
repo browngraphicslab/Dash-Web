@@ -659,7 +659,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    setCustomView = (custom: boolean): void => {
+    setCustomView = 
+    (custom: boolean): void => {
         if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
         } else {

@@ -746,6 +746,11 @@ export namespace Doc {
             source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
             source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
     }
+    export function setChildDetailed(target: Doc, source?: Doc) {
+        target.childDetailed = source && source.isTemplateDoc ? source : source &&
+            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
+            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
+    }
 
     export function MakeDocFilter(docFilters: string[]) {
         let docFilterText = "";

@@ -2,7 +2,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
 import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, DocCastAsync } from "../../../new_fields/Doc";
 import "./CollectionPivotView.scss";
 import { observer } from "mobx-react";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
@@ -15,10 +15,15 @@ import { anchorPoints, Flyout } from "../TemplateMenu";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../../new_fields/List";
 import { Set } from "typescript-collections";
+import { PrefetchProxy } from "../../../new_fields/Proxy";
 
 @observer
 export class CollectionPivotView extends CollectionSubView(doc => doc) {
-    componentDidMount = () => {
+    private _narrativeDisposer: IReactionDisposer | undefined;
+    componentWillUnmount() {
+        this._narrativeDisposer?.();
+    }
+    componentDidMount() {
         this.props.Document.freeformLayoutEngine = "pivot";
         if (true || !this.props.Document.facetCollection) {
             const facetCollection = Docs.Create.FreeformDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
@@ -34,16 +39,24 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 facetCollection.onCheckedClick = new ScriptField(script);
             }
 
-            const openDocText = "const alias = getAlias(this); alias.layoutKey = 'layout_detailed'; useRightSplit(alias); ";
-            const openDocScript = CompileScript(openDocText, {
-                params: { this: Doc.name, heading: "boolean", checked: "boolean", context: Doc.name },
-                typecheck: false,
-                editable: true,
-            });
-            if (openDocScript.compiled) {
-                this.props.Document.onChildClick = new ScriptField(openDocScript);
-            }
-
+            this._narrativeDisposer = reaction(() => this.props.Document.childDetailed,
+                (childDetailed) =>
+                    DocCastAsync(childDetailed).then(childDetailed => {
+                        if (childDetailed instanceof Doc) {
+                            let captured: { [name: string]: Field } = {};
+                            captured["childDetailed"] = new PrefetchProxy(childDetailed);
+                            const openDocText = "const alias = getAlias(this); Doc.ApplyTemplateTo(childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
+                            const openDocScript = CompileScript(openDocText, {
+                                params: { this: Doc.name, heading: "boolean", context: Doc.name },
+                                typecheck: false,
+                                editable: true,
+                                capturedVariables: captured
+                            });
+                            if (openDocScript.compiled) {
+                                this.props.Document.onChildClick = new ScriptField(openDocScript);
+                            }
+                        }
+                    }), { fireImmediately: true });
             this.props.Document.facetCollection = facetCollection;
             this.props.Document.fitToBox = true;
         }

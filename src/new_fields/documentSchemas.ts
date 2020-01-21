@@ -68,6 +68,13 @@ export const positionSchema = createSchema({
     z: "number",
 });
 
+export const collectionSchema = createSchema({
+    childLayout: Doc, // layout template for children of a collecion
+    childDetailed: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to use this field)
+    onChildClick: ScriptField, // script to run for each child when its clicked
+    onCheckedClick: ScriptField, // script to run when a checkbox is clicked next to a child in a tree view
+});
+
 export type Document = makeInterface<[typeof documentSchema]>;
 export const Document = makeInterface(documentSchema);
 
