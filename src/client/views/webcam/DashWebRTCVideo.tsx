@@ -8,7 +8,6 @@ import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
 import "./DashWebRTC.scss";
 import adapter from 'webrtc-adapter';
-import { DashWebRTC } from "./DashWebRTC";
 import { DocServer } from "../../DocServer";
 import { DocumentView } from "../nodes/DocumentView";
 import { Utils } from "../../../Utils";
@@ -34,305 +33,335 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
 
     @observable private localVideoEl: HTMLVideoElement | undefined;
     @observable private peerVideoEl: HTMLVideoElement | undefined;
-    @observable private localStream: MediaStream | undefined;
-    @observable private startTime: any = null;
-    @observable private remoteStream: MediaStream | undefined;
-    @observable private localPeerConnection: any;
-    @observable private remotePeerConnection: any;
-    private callButton: HTMLButtonElement | undefined;
-    private startButton: HTMLButtonElement | undefined;
-    private hangupButton: HTMLButtonElement | undefined;
     private roomText: HTMLInputElement | undefined;
     private roomOfCam: string = "";
-    private webRTCManager: DashWebRTC | undefined;
+    private isChannelReady = false;
+    private isInitiator = false;
+    private isStarted = false;
+    localStream: MediaStream | undefined;
+    private pc: any;
+    remoteStream: MediaStream | undefined;
+    private turnReady: boolean | undefined;
+    //localVideo: HTMLVideoElement | undefined;
+    //remoteVideo: HTMLVideoElement | undefined;
+    curRoom: string = "";
+
+
+    private pcConfig = {
+        'iceServers': [{
+            'urls': 'stun:stun.l.google.com:19302'
+        }]
+    };
+
+    // Set up audio and video regardless of what devices are present.
+    private sdpConstraints = {
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+    };
 
     componentDidMount() {
         DocumentDecorations.Instance.addCloseCall(this.closeConnection);
-        this.webRTCManager = new DashWebRTC();
         let self = this;
         window.onbeforeunload = function () {
-            self.webRTCManager!.sendMessage('bye');
+            self.sendMessage('bye');
         };
     }
 
     closeConnection: CloseCall = () => {
-        //Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: 'bye', room: this.roomOfCam });
-        this.webRTCManager!.hangup();
+        this.hangup();
     }
 
     componentWillUnmount() {
-        // DocumentDecorations.Instance.removeCloseCall(this.closeConnection);
     }
 
 
-    // componentDidMount() {
-    //     // DashWebRTC.setVideoObjects(this.localVideoEl!, this.peerVideoEl!);
-    //     //DashWebRTC.init();
+    init(room: string) {
+
+        this.curRoom = room;
+        let self = this;
+
+        if (room !== '') {
+            DocServer._socket.emit('create or join', room);
+            console.log('Attempted to create or  join room', room);
+
+        }
+
+        DocServer._socket.on('created', function (room: string) {
+            console.log('Created room ' + room);
+            self.isInitiator = true;
+        });
+
+        DocServer._socket.on('full', function (room: string) {
+            console.log('Room ' + room + ' is full');
+        });
+
+        DocServer._socket.on('join', function (room: string) {
+            console.log('Another peer made a request to join room ' + room);
+            console.log('This peer is the initiator of room ' + room + '!');
+            self.isChannelReady = true;
+        });
+
+
+        DocServer._socket.on('joined', function (room: string) {
+            console.log('joined: ' + room);
+            self.isChannelReady = true;
+        });
+
+
+        DocServer._socket.on('log', function (array: any) {
+            console.log.apply(console, array);
+        });
+
+        // This client receives a message
+        DocServer._socket.on('message', function (message: any) {
+            console.log('Client received message:', message);
+            if (message.message === 'got user media') {
+                self.maybeStart();
+            } else if (message.message.type === 'offer') {
+                if (!self.isInitiator && !self.isStarted) {
+                    self.maybeStart();
+                }
+                self.pc.setRemoteDescription(new RTCSessionDescription(message.message));
+                self.doAnswer();
+            } else if (message.message.type === 'answer' && self.isStarted) {
+                self.pc.setRemoteDescription(new RTCSessionDescription(message.message));
+            } else if (message.message.type === 'candidate' && self.isStarted) {
+                let candidate = new RTCIceCandidate({
+                    sdpMLineIndex: message.message.label,
+                    candidate: message.message.candidate
+                });
+                self.pc.addIceCandidate(candidate);
+            } else if (message === 'bye' && self.isStarted) {
+                self.handleRemoteHangup();
+            }
+        });
+
+        navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: true
+        })
+            .then(this.gotStream)
+            .catch(function (e) {
+                alert('getUserMedia() error: ' + e.name);
+            });
+
+        //Trying this one out!!!
+        console.log('Getting user media with constraints', this.constraints);
+
+        if (location.hostname !== 'localhost') {
+            this.requestTurn(
+                'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+            );
+        }
+
+
+    }
+
+
+    private sendMessage = (message: any) => {
+        console.log('Client sending message: ', message);
+        Utils.Emit(DocServer._socket, MessageStore.NotifyRoommates, { message: message, room: this.curRoom });
+        //DocServer._socket.emit('message', message);
+    }
+
+
+
+
+
+    // setVideoObjects(localVideo: HTMLVideoElement, remoteVideo: HTMLVideoElement) {
+    //     this.localVideo = localVideo;
+    //     this.remoteVideo = remoteVideo;
     // }
 
-
-    // componentDidMount() {
-    //     this.callButton!.disabled = true;
-    //     this.hangupButton!.disabled = true;
-    //     // navigator.mediaDevices.getUserMedia(mediaStreamConstraints).then(this.gotLocalMediaStream).catch(this.handleLocalMediaStreamError);
-    //     this.localVideoEl!.addEventListener('loadedmetadata', this.logVideoLoaded);
-    //     this.peerVideoEl!.addEventListener('loadedmetadata', this.logVideoLoaded);
-    //     this.peerVideoEl!.addEventListener('onresize', this.logResizedVideo);
-    // }
-
-
-    // gotLocalMediaStream = (mediaStream: MediaStream) => {
-    //     this.localStream = mediaStream;
-    //     if (this.localVideoEl) {
-    //         this.localVideoEl.srcObject = mediaStream;
-    //     }
-    //     this.trace('Received local stream.');
-    //     this.callButton!.disabled = false;
-
-    // }
-
-    // gotRemoteMediaStream = (event: MediaStreamEvent) => {
-    //     let mediaStream = event.stream;
-    //     this.peerVideoEl!.srcObject = mediaStream;
-    //     this.remoteStream = mediaStream!;
-
-    // }
-
-    // handleLocalMediaStreamError = (error: string) => {
-    //     //console.log("navigator.getUserMedia error: ", error);
-    //     this.trace(`navigator.getUserMedia error: ${error.toString()}.`);
-
-    // }
-
-    // logVideoLoaded = (event: any) => {
-    //     let video = event.target;
-    //     this.trace(`${video.id} videoWidth: ${video.videoWidth}px, ` +
-    //         `videoHeight: ${video.videoHeight}px.`);
-    // }
-
-    // logResizedVideo = (event: any) => {
-    //     this.logVideoLoaded(event);
-
-    //     if (this.startTime) {
-    //         let elapsedTime = window.performance.now() - this.startTime;
-    //         this.startTime = null;
-    //         this.trace(`Setup time: ${elapsedTime.toFixed(3)}ms.`);
-    //     }
-
-    // }
-
-    // handleConnection = (event: any) => {
-    //     let peerConnection = event.target;
-    //     let iceCandidate = event.candidate;
-
-    //     if (iceCandidate) {
-    //         let newIceCandidate: RTCIceCandidate = new RTCIceCandidate(iceCandidate);
-    //         let otherPeer: any = this.getOtherPeer(peerConnection);
-
-    //         otherPeer.addIceCandidate(newIceCandidate).then(() => {
-    //             this.handleConnectionSuccess(peerConnection);
-    //         }).catch((error: any) => {
-    //             this.handleConnectionFailure(peerConnection, error);
-    //         });
-
-    //         this.trace(`${this.getPeerName(peerConnection)} ICE candidate:\n` +
-    //             `${event.candidate.candidate}.`);
-
-    //     }
-    // }
-
-    // // Logs that the connection succeeded.
-    // handleConnectionSuccess = (peerConnection: any) => {
-    //     this.trace(`${this.getPeerName(peerConnection)} addIceCandidate success.`);
-    // }
-
-    // handleConnectionFailure = (peerConnection: any, error: any) => {
-    //     this.trace(`${this.getPeerName(peerConnection)} failed to add ICE Candidate:\n` +
-    //         `${error.toString()}.`);
-    // }
-
-    // // Logs changes to the connection state.
-    // handleConnectionChange = (event: any) => {
-    //     let peerConnection = event.target;
-    //     console.log('ICE state change event: ', event);
-    //     this.trace(`${this.getPeerName(peerConnection)} ICE state: ` +
-    //         `${peerConnection.iceConnectionState}.`);
-    // }
-
-    // // Logs error when setting session description fails.
-    // setSessionDescriptionError = (error: any) => {
-    //     this.trace(`Failed to create session description: ${error.toString()}.`);
-    // }
-
-    // // Logs success when setting session description.
-    // setDescriptionSuccess = (peerConnection: any, functionName: any) => {
-    //     let peerName = this.getPeerName(peerConnection);
-    //     this.trace(`${peerName} ${functionName} complete.`);
-    // }
-
-
-    // // Logs success when localDescription is set.
-    // setLocalDescriptionSuccess = (peerConnection: any) => {
-    //     this.setDescriptionSuccess(peerConnection, 'setLocalDescription');
-    // }
-
-    // // Logs success when remoteDescription is set.
-    // setRemoteDescriptionSuccess = (peerConnection: any) => {
-    //     this.setDescriptionSuccess(peerConnection, 'setRemoteDescription');
-    // }
-
-    // createdOffer = (description: any) => {
-    //     this.trace(`Offer from localPeerConnection:\n${description.sdp}`);
-    //     this.trace('localPeerConnection setLocalDescription start.');
-
-    //     this.localPeerConnection.setLocalDescription(description).then(() => {
-    //         this.setLocalDescriptionSuccess(this.localPeerConnection);
-    //     }).catch(this.setSessionDescriptionError);
-
-
-    //     this.trace('remotePeerConnection setRemoteDescription start.');
-    //     this.remotePeerConnection.setRemoteDescription(description)
-    //         .then(() => {
-    //             this.setRemoteDescriptionSuccess(this.remotePeerConnection);
-    //         }).catch(this.setSessionDescriptionError);
-
-    //     this.trace('remotePeerConnection createAnswer start.');
-    //     this.remotePeerConnection.createAnswer()
-    //         .then(this.createdAnswer)
-    //         .catch(this.setSessionDescriptionError);
+    // setLocalVideoObject(localVideoRef: HTMLVideoElement) {
+    //     this.localVideo = localVideoRef;
 
     // }
 
-    // createdAnswer = (description: any) => {
-    //     this.trace(`Answer from remotePeerConnection:\n${description.sdp}.`);
-
-    //     this.trace('remotePeerConnection setLocalDescription start.');
-    //     this.remotePeerConnection.setLocalDescription(description)
-    //         .then(() => {
-    //             this.setLocalDescriptionSuccess(this.remotePeerConnection);
-    //         }).catch(this.setSessionDescriptionError);
-
-    //     this.trace('localPeerConnection setRemoteDescription start.');
-    //     this.localPeerConnection.setRemoteDescription(description)
-    //         .then(() => {
-    //             this.setRemoteDescriptionSuccess(this.localPeerConnection);
-    //         }).catch(this.setSessionDescriptionError);
+    // setRemoteVideoObject(remoteVideoRef: HTMLVideoElement) {
+    //     this.remoteVideo = remoteVideoRef;
     // }
 
 
-    // startAction = () => {
-    //     this.startButton!.disabled = true;
-    //     navigator.mediaDevices.getUserMedia(mediaStreamConstraints)
-    //         .then(this.gotLocalMediaStream).catch(this.handleLocalMediaStreamError);
-    //     this.trace('Requesting local stream.');
-    // }
 
 
-    // // Handles call button action: creates peer connection.
-    // callAction = () => {
-    //     this.callButton!.disabled = true;
-    //     this.hangupButton!.disabled = false;
+    private gotStream = (stream: any) => {
+        console.log('Adding local stream.');
+        this.localStream = stream;
+        this.localVideoEl!.srcObject = stream;
+        this.sendMessage('got user media');
+        if (this.isInitiator) {
+            this.maybeStart();
+        }
+    }
 
-    //     this.trace('Starting call.');
-    //     this.startTime = window.performance.now();
-
-    //     // Get local media stream tracks.
-    //     const videoTracks = this.localStream!.getVideoTracks();
-    //     const audioTracks = this.localStream!.getAudioTracks();
-    //     if (videoTracks.length > 0) {
-    //         this.trace(`Using video device: ${videoTracks[0].label}.`);
-    //     }
-    //     if (audioTracks.length > 0) {
-    //         this.trace(`Using audio device: ${audioTracks[0].label}.`);
-    //     }
-
-    //     let servers: RTCConfiguration | undefined = undefined;  // Allows for RTC server configuration.
-
-    //     // Create peer connections and add behavior.
-    //     this.localPeerConnection = new RTCPeerConnection(servers);
-    //     this.trace('Created local peer connection object localPeerConnection.');
-
-    //     this.localPeerConnection.addEventListener('icecandidate', this.handleConnection);
-    //     this.localPeerConnection.addEventListener(
-    //         'iceconnectionstatechange', this.handleConnectionChange);
-
-    //     this.remotePeerConnection = new RTCPeerConnection(servers);
-    //     this.trace('Created remote peer connection object remotePeerConnection.');
-
-    //     this.remotePeerConnection.addEventListener('icecandidate', this.handleConnection);
-    //     this.remotePeerConnection.addEventListener(
-    //         'iceconnectionstatechange', this.handleConnectionChange);
-    //     this.remotePeerConnection.addEventListener('addstream', this.gotRemoteMediaStream);
-
-    //     // Add local stream to connection and create offer to connect.
-    //     this.localPeerConnection.addStream(this.localStream);
-    //     this.trace('Added local stream to localPeerConnection.');
-
-    //     this.trace('localPeerConnection createOffer start.');
-    //     this.localPeerConnection.createOffer(offerOptions)
-    //         .then(this.createdOffer).catch(this.setSessionDescriptionError);
-    // }
+    constraints = {
+        video: true,
+        audio: true
+    };
 
 
-    // // Handles hangup action: ends up call, closes connections and resets peers.
-    // hangupAction = () => {
-    //     this.localPeerConnection.close();
-    //     this.remotePeerConnection.close();
-    //     this.localPeerConnection = null;
-    //     this.remotePeerConnection = null;
-    //     this.hangupButton!.disabled = true;
-    //     this.callButton!.disabled = false;
-    //     this.trace('Ending call.');
-    // }
 
-    // // Gets the "other" peer connection.
-    // getOtherPeer = (peerConnection: any) => {
-    //     return (peerConnection === this.localPeerConnection) ?
-    //         this.remotePeerConnection : this.localPeerConnection;
-    // }
 
-    // // Gets the name of a certain peer connection.
-    // getPeerName = (peerConnection: any) => {
-    //     return (peerConnection === this.localPeerConnection) ?
-    //         'localPeerConnection' : 'remotePeerConnection';
-    // }
 
-    // // Logs an action (text) and the time when it happened on the console.
-    // trace = (text: string) => {
-    //     text = text.trim();
-    //     const now = (window.performance.now() / 1000).toFixed(3);
+    private maybeStart = () => {
+        console.log('>>>>>>> maybeStart() ', this.isStarted, this.localStream, this.isChannelReady);
+        if (!this.isStarted && typeof this.localStream !== 'undefined' && this.isChannelReady) {
+            console.log('>>>>>> creating peer connection');
+            this.createPeerConnection();
+            this.pc.addStream(this.localStream);
+            this.isStarted = true;
+            console.log('isInitiator', this.isInitiator);
+            if (this.isInitiator) {
+                this.doCall();
+            }
+        }
+    }
 
-    //     console.log(now, text);
-    // }
+
+    // //this will need to be changed to our version of hangUp
+    // window.onbeforeunload = function () {
+    //     sendMessage('bye');
+    // };
+
+    private createPeerConnection = () => {
+        try {
+            this.pc = new RTCPeerConnection(undefined);
+            this.pc.onicecandidate = this.handleIceCandidate;
+            this.pc.onaddstream = this.handleRemoteStreamAdded;
+            this.pc.onremovestream = this.handleRemoteStreamRemoved;
+            console.log('Created RTCPeerConnnection');
+        } catch (e) {
+            console.log('Failed to create PeerConnection, exception: ' + e.message);
+            alert('Cannot create RTCPeerConnection object.');
+            return;
+        }
+    }
+
+    private handleIceCandidate = (event: any) => {
+        console.log('icecandidate event: ', event);
+        if (event.candidate) {
+            this.sendMessage({
+                type: 'candidate',
+                label: event.candidate.sdpMLineIndex,
+                id: event.candidate.sdpMid,
+                candidate: event.candidate.candidate
+            });
+        } else {
+            console.log('End of candidates.');
+        }
+    }
+
+    private handleCreateOfferError = (event: any) => {
+        console.log('createOffer() error: ', event);
+    }
+
+    private doCall = () => {
+        console.log('Sending offer to peer');
+        this.pc.createOffer(this.setLocalAndSendMessage, this.handleCreateOfferError);
+    }
+
+    private doAnswer = () => {
+        console.log('Sending answer to peer.');
+        this.pc.createAnswer().then(
+            this.setLocalAndSendMessage,
+            this.onCreateSessionDescriptionError
+        );
+    }
+
+    private setLocalAndSendMessage = (sessionDescription: any) => {
+        this.pc.setLocalDescription(sessionDescription);
+        console.log('setLocalAndSendMessage sending message', sessionDescription);
+        this.sendMessage(sessionDescription);
+    }
+
+    private onCreateSessionDescriptionError = (error: any) => {
+        console.log('Failed to create session description: ' + error.toString());
+    }
+
+
+    private requestTurn = (turnURL: any) => {
+        var turnExists = false;
+        let self = this;
+        for (var i in this.pcConfig.iceServers) {
+            if (this.pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
+                turnExists = true;
+                this.turnReady = true;
+                break;
+            }
+        }
+        if (!turnExists) {
+            console.log('Getting TURN server from ', turnURL);
+            // No TURN server. Get one from computeengineondemand.appspot.com:
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var turnServer = JSON.parse(xhr.responseText);
+                    console.log('Got TURN server: ', turnServer);
+                    self.pcConfig.iceServers.push({
+                        'urls': 'turn:' + turnServer.username + '@' + turnServer.turn,
+                        //'credential': turnServer.password
+                    });
+                    self.turnReady = true;
+                }
+            };
+            xhr.open('GET', turnURL, true);
+            xhr.send();
+        }
+    }
+
+    private handleRemoteStreamAdded = (event: MediaStreamEvent) => {
+        console.log('Remote stream added.');
+        this.remoteStream = event.stream!;
+        this.peerVideoEl!.srcObject = this.remoteStream;
+    }
+
+    private handleRemoteStreamRemoved = (event: MediaStreamEvent) => {
+        console.log('Remote stream removed. Event: ', event);
+    }
+
+    private hangup = () => {
+        console.log('Hanging up.');
+        if (this.pc) {
+            stop();
+            this.sendMessage('bye');
+        }
+
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
+        }
+
+    }
+
+    private handleRemoteHangup = () => {
+        console.log('Session terminated.');
+        stop();
+        this.isInitiator = false;
+    }
+
+    private stop = () => {
+        this.isStarted = false;
+        this.pc.close();
+        this.pc = null;
+    }
+
+
+
+
 
 
     /**
       * Function that submits the title entered by user on enter press.
       */
-    onEnterKeyDown = (e: React.KeyboardEvent) => {
+    private onEnterKeyDown = (e: React.KeyboardEvent) => {
         if (e.keyCode === 13) {
             let submittedTitle = this.roomText!.value;
             this.roomText!.value = "";
             this.roomText!.blur();
             this.roomOfCam = submittedTitle;
-            this.webRTCManager!.init(submittedTitle);
+            this.init(submittedTitle);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DashWebRTCVideo, fieldKey); }
@@ -365,11 +394,11 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
                 <input type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
                 <video id="localVideo" autoPlay playsInline ref={(e) => {
                     this.localVideoEl = e!;
-                    this.webRTCManager!.setLocalVideoObject(e!);
+                    //this.setLocalVideoObject(e!);
                 }}></video>
                 <video id="remoteVideo" autoPlay playsInline ref={(e) => {
                     this.peerVideoEl = e!;
-                    this.webRTCManager!.setRemoteVideoObject(e!);
+                    //this.setRemoteVideoObject(e!);
                 }}></video>
                 {/* <button id="startButton" ref={(e) => this.startButton = e!} onClick={this.startAction}>Start</button>
                 <button id="callButton" ref={(e) => this.callButton = e!} onClick={this.callAction}>Call</button>
