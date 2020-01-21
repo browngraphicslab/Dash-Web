@@ -5,6 +5,7 @@ import "./EditableView.scss";
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
 import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
+import { ObjectField } from '../../new_fields/ObjectField';
 
 export interface EditableProps {
     /**
@@ -152,7 +153,7 @@ export class EditableView extends React.Component<EditableProps> {
                 />;
         } else {
             if (this.props.autosuggestProps) this.props.autosuggestProps.resetValue();
-            return (
+            return (this.props.contents instanceof ObjectField ? (null) :
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick}>
