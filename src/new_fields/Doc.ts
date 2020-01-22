@@ -609,7 +609,7 @@ export namespace Doc {
         if (fieldTemplate.layout instanceof Doc) {
             fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
         }
-        const fieldLayoutKey = StrCast(Doc.LayoutField(fieldLayoutDoc))?.split("'")[1]
+        const fieldLayoutKey = StrCast(Doc.LayoutField(fieldLayoutDoc))?.split("'")[1];
         const fieldLayoutExt = fieldLayoutKey && Doc.MakeDelegate(fieldTemplate[fieldLayoutKey + "_ext"] as Doc);
 
         fieldTemplate.templateField = metadataFieldName;
