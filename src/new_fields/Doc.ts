@@ -470,7 +470,7 @@ export namespace Doc {
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             const extensionDoc = fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)));
             layoutDoc = Doc.expandTemplateLayout(childDocLayout, extensionDoc !== resolvedDataDoc ? extensionDoc : undefined);
-            setTimeout(() => layoutDoc && (layoutDoc.resolvedDataDoc = resolvedDataDoc), 0);
+            setTimeout(async () => layoutDoc && (layoutDoc.resolvedDataDoc = await resolvedDataDoc), 0);
         } else layoutDoc = childDocLayout;
         return { layout: layoutDoc, data: resolvedDataDoc };
     }
@@ -494,16 +494,19 @@ export namespace Doc {
     }
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        const docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-        docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
-        docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-        docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
-        docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
         while (proto && !Doc.IsPrototype(proto) && proto.proto) {
             proto = proto.proto;
         }
-        (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        let docExtensionForField = ((proto || doc)[fieldKey + "_ext"] as Doc);
+        if (!docExtensionForField) {
+            docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+            docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
+            docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+            docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
+            docExtensionForField.type = DocumentType.EXTENSION;
+            (proto || doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        }
         return docExtensionForField;
     }
 

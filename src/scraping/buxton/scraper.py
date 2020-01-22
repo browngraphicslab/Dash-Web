@@ -372,7 +372,7 @@ def parse_document(file_name: str):
 
 
 def proxify_guids(guids):
-    return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
+    return list(map(lambda guid: {"fieldId": guid, "__type": "prefetch_proxy"}, guids))
 
 
 def write_common_proto():

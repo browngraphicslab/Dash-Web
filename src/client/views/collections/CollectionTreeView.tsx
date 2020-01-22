@@ -634,13 +634,13 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, MulticolumnDocument, TreeDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
 
                 const detailedLayout = Docs.Create.StackingDocument([
                     ImageDocument(fallbackImg, { title: "activeHero" }),
-                    MulticolumnDocument([], { title: "data", height: 100, onChildClick: ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.activeHero = copyField(this.data)`, { containingCollection: Doc.name }) }),
+                    TreeDocument([], { title: "data", height: 100, onChildClick: ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.activeHero = copyField(this.data)`, { containingCollection: Doc.name }) }),
                     TextDocument({ title: "short_description", autoHeight: true }),
                     ...["year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key, height: 30 }))
                 ], { autoHeight: true, chromeStatus: "disabled", title: "detailed layout stack" });

@@ -209,7 +209,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     @action onError = () => {
         const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
         if (timeout < 10) {
-            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+            // setTimeout(this.retryPath, 500);
         }
     }
     _curSuffix = "_m";
