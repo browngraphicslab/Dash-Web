@@ -307,8 +307,10 @@ export class MainView extends React.Component {
         </Measure>;
     }
 
+    _canClick = false;
     onPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
+            this._canClick = true;
             this._flyoutSizeOnDown = e.clientX;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -339,11 +341,12 @@ export class MainView extends React.Component {
     @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
+        Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
         this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4) {
+        if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
             this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
             this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
         }

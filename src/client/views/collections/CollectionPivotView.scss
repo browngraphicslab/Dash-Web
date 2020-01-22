@@ -45,7 +45,7 @@
         }
         .collectionPivotView-tree {
             display:inline-block;
-            width: 200px;
+            width: 100%;
             height: calc(100% - 30px);
         }
     }
@@ -53,5 +53,16 @@
         display:inline-block;
         width: calc(100% - 200px);
         height: 100%;
+    }
+    .collectionPivotView-dragger {
+        background-color: lightgray;
+        height: 40px;
+        width: 20px;
+        position: absolute;
+        border-radius: 10px;
+        top: 55%;
+        border: 1px black solid;
+        z-index: 2;
+        left:-10px;
     }
 }
