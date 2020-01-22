@@ -73,7 +73,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "9pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14pt", command: this.changeFontSize },
@@ -312,22 +312,22 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         return (
-            <button className={"antimodeMenu-button" + (isActive ? " active" : "")} title={title} onPointerDown={onClick}>
+            <button className={"antimodeMenu-button" + (isActive ? " active" : "")} key={title} title={title} onPointerDown={onClick}>
                 <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
             </button>
         );
     }
 
-    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[]): JSX.Element {
+    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[], key: string): JSX.Element {
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
-                    <option value={label} title={title} style={style ? style : {}} selected hidden>{label}</option> :
-                    <option value={label} title={title} style={style ? style : {}} hidden>{label}</option>;
+                    <option value={label} title={title} key={label} style={style ? style : {}} selected hidden>{label}</option> :
+                    <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
             }
             return label === activeOption ?
-                <option value={label} title={title} style={style ? style : {}} selected>{label}</option> :
-                <option value={label} title={title} style={style ? style : {}}>{label}</option>;
+                <option value={label} title={title} key={label} style={style ? style : {}} selected>{label}</option> :
+                <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option>;
         });
 
         const self = this;
@@ -340,19 +340,19 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        return <select onChange={onChange}>{items}</select>;
+        return <select onChange={onChange} key={key}>{items}</select>;
     }
 
-    createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[]): JSX.Element {
+    createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[], key: string): JSX.Element {
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
-                    <option value={label} title={title} style={style ? style : {}} selected hidden>{label}</option> :
-                    <option value={label} title={title} style={style ? style : {}} hidden>{label}</option>;
+                    <option value={label} title={title} key={label} style={style ? style : {}} selected hidden>{label}</option> :
+                    <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
             }
             return label === activeOption ?
-                <option value={label} title={title} style={style ? style : {}} selected>{label}</option> :
-                <option value={label} title={title} style={style ? style : {}}>{label}</option>;
+                <option value={label} title={title} key={label} style={style ? style : {}} selected>{label}</option> :
+                <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option>;
         });
 
         const self = this;
@@ -363,7 +363,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        return <select onChange={e => onChange(e.target.value)}>{items}</select>;
+        return <select onChange={e => onChange(e.target.value)} key={key}>{items}</select>;
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
@@ -472,7 +472,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} dropdownContent={dropdownContent} />
         );
     }
 
@@ -535,21 +535,21 @@ export default class RichTextMenu extends AntimodeMenu {
             </button>;
 
         const dropdownContent =
-            <div className="dropdown">
+            <div className="dropdown" >
                 <p>Change font color:</p>
                 <div className="color-wrapper">
                     {this.fontColors.map(color => {
                         if (color) {
                             return this.activeFontColor === color ?
-                                <button className="color-button active" style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button> :
-                                <button className="color-button" style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button>;
+                                <button className="color-button active" key={"active" + color} style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button> :
+                                <button className="color-button" key={"other" + color} style={{ backgroundColor: color }} onPointerDown={e => changeColor(e, color)}></button>;
                         }
                     })}
                 </div>
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"color dropdown"} button={button} dropdownContent={dropdownContent} />
         );
     }
 
@@ -582,7 +582,7 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         const button =
-            <button className="antimodeMenu-button color-preview-button" title="" onPointerDown={onHighlightClick}>
+            <button className="antimodeMenu-button color-preview-button" title="" key="highilghter-button" onPointerDown={onHighlightClick}>
                 <FontAwesomeIcon icon="highlighter" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeHighlightColor }}></div>
             </button>;
@@ -594,15 +594,15 @@ export default class RichTextMenu extends AntimodeMenu {
                     {this.highlightColors.map(color => {
                         if (color) {
                             return this.activeHighlightColor === color ?
-                                <button className="color-button active" style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button> :
-                                <button className="color-button" style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button>;
+                                <button className="color-button active" key={`active ${color}`} style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button> :
+                                <button className="color-button" key={`inactive ${color}`} style={{ backgroundColor: color }} onPointerDown={e => changeHighlight(e, color)}>{color === "transparent" ? "X" : ""}</button>;
                         }
                     })}
                 </div>
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"highlighter"} button={button} dropdownContent={dropdownContent} />
         );
     }
 
@@ -635,7 +635,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
+            <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -773,7 +773,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     render() {
 
-        const row1 = <div className="antimodeMenu-row">{[
+        const row1 = <div className="antimodeMenu-row" key="row1">{[
             this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
             this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
             this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
@@ -787,14 +787,14 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
         ]}</div>;
 
-        const row2 = <div className="antimodeMenu-row row-2">
-            <div>
-                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions),
-                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions),
-                this.createNodesDropdown(this.activeListType, this.listTypeOptions)]}
+        const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
+            <div key="row">
+                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
+                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
+                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes")]}
             </div>
-            <div>
-                <button className="antimodeMenu-button" title="Pin menu" onClick={this.toggleMenuPin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
+            <div key="button">
+                <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
                 </button>
                 {this.getDragger()}
@@ -864,12 +864,12 @@ class ButtonDropdown extends React.Component<ButtonDropdownProps> {
                     </button> :
                     <>
                         {this.props.button}
-                        <button className="dropdown-button antimodeMenu-button" onPointerDown={this.onDropdownClick}>
+                        <button className="dropdown-button antimodeMenu-button" key="antimodebutton" onPointerDown={this.onDropdownClick}>
                             <FontAwesomeIcon icon="caret-down" size="sm" />
                         </button>
                     </>}
 
-                {this.showDropdown ? this.props.dropdownContent : <></>}
+                {this.showDropdown ? this.props.dropdownContent : (null)}
             </div>
         );
     }

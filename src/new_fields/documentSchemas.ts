@@ -18,6 +18,7 @@ export const documentSchema = createSchema({
     creationDate: DateField,     // when the document was created
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    dontCopyOnAlias: "boolean", // whether the document should not be copied when it is a field of a document that is being aliased
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
     onPointerDown: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)

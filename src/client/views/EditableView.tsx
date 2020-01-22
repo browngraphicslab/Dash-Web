@@ -66,7 +66,7 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     @action
-    componentWillReceiveProps(nextProps: EditableProps) {
+    componentDidUpdate(nextProps: EditableProps) {
         // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
         // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
         // to false. this will no longer do so -syip

@@ -64,7 +64,7 @@ export class MainView extends React.Component {
 
     public isPointerDown = false;
 
-    componentWillMount() {
+    componentDidMount() {
         const tag = document.createElement('script');
 
         tag.src = "https://www.youtube.com/iframe_api";

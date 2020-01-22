@@ -416,8 +416,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 placeholder="FILTER"
                                 value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
-                                onPointerDown={this.openViewSpecs}
-                                id="viewSpecsInput" />
+                                onPointerDown={this.openViewSpecs} />
                             {this.getPivotInput()}
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}

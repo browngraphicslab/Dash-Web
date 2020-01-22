@@ -28,6 +28,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         if (!this.props.Document.facetCollection) {
             const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
+            facetCollection.dontCopyOnAlias = true;
 
             const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
             const script = CompileScript(scriptText, {
@@ -122,8 +123,8 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         const facetCollection = Cast(this.props.Document?.facetCollection, Doc, null);
         const flyout = (
             <div className="collectionPivotView-flyout" style={{ width: `${this._facetWidth}` }}>
-                {this._allFacets.map(facet => <label className="collectionPivotView-flyout-item" onClick={e => this.facetClick(facet)}>
-                    <input type="checkbox" checked={this.props.Document.facetCollection instanceof Doc && DocListCast(this.props.Document.facetCollection.data).some(d => {
+                {this._allFacets.map(facet => <label className="collectionPivotView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+                    <input type="checkbox" onChange={e => { }} checked={this.props.Document.facetCollection instanceof Doc && DocListCast(this.props.Document.facetCollection.data).some(d => {
                         return d.title === facet;
                     })} />
                     <span className="checkmark" />
@@ -133,7 +134,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         );
         return !facetCollection ? (null) :
             <div className="collectionPivotView">
-                <div className="collectionPivotView-dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
+                <div className="collectionPivotView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
                     <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
                 </div>
                 <div className="collectionPivotView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
@@ -145,11 +146,11 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                             </div>
                         </Flyout>
                     </div>
-                    <div className="collectionPivotView-tree">
+                    <div className="collectionPivotView-tree" key="tree">
                         <CollectionTreeView {...this.props} Document={facetCollection} />
                     </div>
                 </div>
-                <div className="collectionPivotView-pivot" style={{ width: this.bodyPanelWidth() }}>
+                <div className="collectionPivotView-pivot" key="pivot" style={{ width: this.bodyPanelWidth() }}>
                     <CollectionFreeFormView  {...this.props} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
                 </div>
             </div>;

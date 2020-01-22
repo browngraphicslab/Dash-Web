@@ -38,7 +38,7 @@ export namespace Field {
     }
     export function toString(field: Field): string {
         if (typeof field === "string") {
-            return `"${field}"`;
+            return field;
         } else if (typeof field === "number" || typeof field === "boolean") {
             return String(field);
         } else if (field instanceof ObjectField) {
@@ -544,6 +544,7 @@ export namespace Doc {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                } else if (doc[key] instanceof Doc && (doc[key] as Doc).dontCopyOnAlias) {
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
@@ -800,13 +801,12 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
 });
 Scripting.addGlobal(function matchFieldValue(doc: Doc, key: string, value: any) {
     const fieldVal = doc[key] ? doc[key] : doc[key + "_ext"];
-    if (StrCast(fieldVal, null) !== undefined) return StrCast(fieldVal) === value;
-    if (NumCast(fieldVal, null) !== undefined) return NumCast(fieldVal) === value;
     if (Cast(fieldVal, listSpec("string"), []).length) {
         const vals = Cast(fieldVal, listSpec("string"), []);
         return vals.some(v => v === value);
     }
-    return false;
+    const fieldStr = Field.toString(fieldVal as Field);
+    return fieldStr == value;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
     const docFilters = Cast(container.docFilter, listSpec("string"), []);
@@ -818,7 +818,7 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
     }
     if (modifiers !== undefined) {
         docFilters.push(key);
-        docFilters.push(value);
+        docFilters.push(value)
         docFilters.push(modifiers);
         container.docFilter = new List<string>(docFilters);
     }

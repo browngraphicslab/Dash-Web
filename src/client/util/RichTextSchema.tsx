@@ -306,7 +306,7 @@ export const marks: { [index: string]: MarkSpec } = {
             }
         }],
         toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
+            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
         }
     },
 

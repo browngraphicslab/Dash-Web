@@ -720,7 +720,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey
     const facetValues = new Set<string>();
     DocListCast(dataDoc[dataKey]).forEach(child => {
         Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facetHeader]?.toString() || "(null)"));
-        facetValues.add(child[facetHeader]?.toString() || "(null)");
+        facetValues.add(Field.toString(child[facetHeader] as Field));
     });
     const text = "determineCheckedState(layoutDoc, facetHeader, facetValue)";
     const params = {

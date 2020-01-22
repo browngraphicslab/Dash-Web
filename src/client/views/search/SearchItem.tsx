@@ -260,7 +260,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onPointerMoved = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._downX) > Utils.DRAG_THRESHOLD ||
             Math.abs(e.clientY - this._downY) > Utils.DRAG_THRESHOLD) {
-            console.log("DRAGGIGNG");
             document.removeEventListener("pointermove", this.onPointerMoved);
             document.removeEventListener("pointerup", this.onPointerUp);
             const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;

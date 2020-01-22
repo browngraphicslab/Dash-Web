@@ -3,7 +3,7 @@ import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
@@ -737,7 +737,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const fontSize = Cast(viewDef.fontSize, "number");
             return [text, x, y, width, height].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customText" style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
+                    ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z} style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
                     bounds: { x: x!, y: y!, z: z, width: width!, height: height! }
