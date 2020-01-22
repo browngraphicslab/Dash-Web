@@ -9,7 +9,7 @@ import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormV
 import { CollectionTreeView } from "./CollectionTreeView";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { CompileScript, Scripting } from "../../util/Scripting";
 import { anchorPoints, Flyout } from "../TemplateMenu";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -25,7 +25,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
     }
     componentDidMount() {
         this.props.Document.freeformLayoutEngine = "pivot";
-        if (true || !this.props.Document.facetCollection) {
+        if (!this.props.Document.facetCollection) {
             const facetCollection = Docs.Create.FreeformDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
 
@@ -38,7 +38,6 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
             if (script.compiled) {
                 facetCollection.onCheckedClick = new ScriptField(script);
             }
-
             this._narrativeDisposer = reaction(() => this.props.Document.childDetailed,
                 (childDetailed) =>
                     DocCastAsync(childDetailed).then(childDetailed => {
@@ -78,17 +77,32 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
     /**
      * Responds to clicking the check box in the flyout menu
      */
-    facetClick = (facet: string) => {
-        const facetCollection = this.props.Document.facetCollection;
+    facetClick = (facetHeader: string) => {
+        const { Document, fieldKey } = this.props;
+        const facetCollection = Document.facetCollection;
         if (facetCollection instanceof Doc) {
-            const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facet);
+            const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facetHeader);
             if (found !== -1) {
                 //Doc.RemoveDocFromList(facetCollection, "data", DocListCast(facetCollection.data)[found]);
                 (facetCollection.data as List<Doc>).splice(found, 1);
             } else {
-                const newFacet = Docs.Create.FreeformDocument([], { title: facet, treeViewOpen: true, isFacetFilter: true });
+                const newFacet = Docs.Create.FreeformDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
                 Doc.AddDocToList(facetCollection, "data", newFacet);
-                newFacet.data = ScriptField.MakeFunction("readFacetData()", { params: {} });
+                const { dataDoc } = this;
+                const capturedVariables = {
+                    layoutDoc: Document,
+                    dataDoc,
+                    dataKey: fieldKey,
+                    facetHeader
+                };
+                const params = {
+                    layoutDoc: Doc.name,
+                    dataDoc: Doc.name,
+                    dataKey: "string",
+                    facetHeader: "string"
+                };
+                newFacet.container = dataDoc;
+                newFacet.data = ComputedField.MakeFunction("readFacetData(layoutDoc, dataDoc, dataKey, facetHeader)", params, capturedVariables);
             }
         }
     }

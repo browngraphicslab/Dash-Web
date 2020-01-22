@@ -129,7 +129,6 @@ export interface DocumentOptions {
     isExpanded?: boolean; // is linear view expanded
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
-    treeViewChecked?: ScriptField; // computes whether or not the checkbox for this facet is checked
 }
 
 class EmptyBox {
@@ -789,7 +788,6 @@ export namespace DocUtils {
         });
     }
 
-    @undoBatch
     export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;

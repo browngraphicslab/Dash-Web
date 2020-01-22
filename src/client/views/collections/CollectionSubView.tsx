@@ -90,7 +90,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            return this.props.annotationsKey ? (this.extensionDoc ? this.extensionDoc[this.props.annotationsKey] : undefined) : this.dataDoc[this.props.fieldKey];
+            const { annotationsKey, fieldKey } = this.props;
+            const { extensionDoc, dataDoc } = this;
+            if (annotationsKey) {
+                if (extensionDoc) {
+                    return extensionDoc[annotationsKey];
+                }
+                return undefined;
+            }
+            return dataDoc[fieldKey];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {

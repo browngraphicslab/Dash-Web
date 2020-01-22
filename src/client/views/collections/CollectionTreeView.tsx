@@ -377,7 +377,7 @@ class TreeView extends React.Component<TreeViewProps> {
             ScriptCast(this.props.onCheckedClick).script.run({
                 this: this.props.document.isTemplateField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
                 heading: this.props.containingCollection.title,
-                checked: this.props.document.treeViewChecked === "check" ? false : this.props.document.treeViewChecked === "x" ? "x" : "none",
+                checked: this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check",
                 context: this.props.treeViewId,
             }, console.log);
         } else {

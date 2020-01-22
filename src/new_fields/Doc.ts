@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction, action, untracked } from "mobx";
+import { observable, ObservableMap, runInAction } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -11,7 +11,7 @@ import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { listSpec } from "./Schema";
 import { ComputedField, ScriptField } from "./ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstructor } from "./Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
@@ -807,16 +807,15 @@ Scripting.addGlobal(function matchFieldValue(doc: Doc, key: string, value: any) 
     }
     return false;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers: string) {
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
     const docFilters = Cast(container.docFilter, listSpec("string"), []);
-    let found = false;
-    for (let i = 0; i < docFilters.length && !found; i += 3) {
+    for (let i = 0; i < docFilters.length; i += 3) {
         if (docFilters[i] === key && docFilters[i + 1] === value) {
-            found = true;
             docFilters.splice(i, 3);
+            break;
         }
     }
-    if (!found || modifiers !== "none") {
+    if (modifiers !== undefined) {
         docFilters.push(key);
         docFilters.push(value);
         docFilters.push(modifiers);
@@ -826,31 +825,33 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
     container.viewSpecScript = docFilterText ? ScriptField.MakeFunction(docFilterText, { doc: Doc.name }) : undefined;
 });
 
-Scripting.addGlobal(function readFacetData(target: Doc, facet: string) {
+Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
     const facetValues = new Set<string>();
-    DocListCast(target.dataField).forEach(child => {
-        Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facet]?.toString() || "(null)"));
-        facetValues.add(child[facet]?.toString() || "(null)");
+    DocListCast(dataDoc[dataKey]).forEach(child => {
+        Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facetHeader]?.toString() || "(null)"));
+        facetValues.add(child[facetHeader]?.toString() || "(null)");
     });
-    return Array.from(facetValues).sort().map(val => {
-        const capturedVariables: { [name: string]: Field } = {};
-        capturedVariables.facet = val;
-        capturedVariables.container = target;
-        return Docs.Create.TextDocument({
-            title: val.toString(),
-            treeViewChecked: ScriptField.MakeFunction("readCheckedState(container, facetValue)", { capturedVariables })
-        });
-    });
+    const text = "determineCheckedState(layoutDoc, facetHeader, facetValue)";
+    const params = {
+        layoutDoc: Doc.name,
+        facetHeader: "string",
+        facetValue: "string"
+    };
+    const capturedVariables = { layoutDoc, facetHeader };
+    return new List<Doc>(Array.from(facetValues).sort().map(facetValue => {
+        const value = Docs.Create.TextDocument({ title: facetValue.toString() });
+        value.treeViewChecked = ComputedField.MakeFunction(text, params, { ...capturedVariables, facetValue });
+        return value;
+    }));
 });
 
-Scripting.addGlobal(function readCheckedState(container: Doc, facetValue: string) {
-    const docFilters = Cast(container.docFilter, listSpec("string"), []);
+Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
+    const docFilters = Cast(layoutDoc.docFilter, listSpec("string"), []);
     for (let i = 0; i < docFilters.length; i += 3) {
-        const key = docFilters[i];
-        const value = docFilters[i + 1];
-        if (key === facetValue) {
-            return value;
+        const [header, value, state] = docFilters.slice(i, i + 3);
+        if (header === facetHeader && value === facetValue) {
+            return state;
         }
     }
-    return false;
+    return undefined;
 });
