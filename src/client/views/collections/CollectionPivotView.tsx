@@ -26,36 +26,33 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
     componentDidMount() {
         this.props.Document.freeformLayoutEngine = "pivot";
         if (!this.props.Document.facetCollection) {
-            const facetCollection = Docs.Create.FreeformDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
+            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
 
-            const scriptText = "setDocFilter(context.target, heading, this.title, checked)";
+            const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
             const script = CompileScript(scriptText, {
-                params: { this: Doc.name, heading: "boolean", checked: "boolean", context: Doc.name },
+                params: { this: Doc.name, heading: "boolean", checked: "boolean", containingTreeView: Doc.name },
                 typecheck: false,
                 editable: true,
             });
             if (script.compiled) {
                 facetCollection.onCheckedClick = new ScriptField(script);
             }
-            this._narrativeDisposer = reaction(() => this.props.Document.childDetailed,
-                (childDetailed) =>
-                    DocCastAsync(childDetailed).then(childDetailed => {
-                        if (childDetailed instanceof Doc) {
-                            const captured: { [name: string]: Field } = {};
-                            captured.childDetailed = new PrefetchProxy(childDetailed);
-                            const openDocText = "const alias = getAlias(this); Doc.ApplyTemplateTo(childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
-                            const openDocScript = CompileScript(openDocText, {
-                                params: { this: Doc.name, heading: "boolean", context: Doc.name },
-                                typecheck: false,
-                                editable: true,
-                                capturedVariables: captured
-                            });
-                            if (openDocScript.compiled) {
-                                this.props.Document.onChildClick = new ScriptField(openDocScript);
-                            }
+            const openDocText = "const alias = getAlias(this); Doc.ApplyTemplateTo(childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
+            this._narrativeDisposer = reaction(() => DocCastAsync(this.props.Document.childDetailed),
+                (childDetailedPromise) => childDetailedPromise.then(childDetailed => {
+                    if (childDetailed) {
+                        const openDocScript = CompileScript(openDocText, {
+                            params: { this: Doc.name, heading: "boolean", containingTreeView: Doc.name },
+                            capturedVariables: { childDetailed: new PrefetchProxy(childDetailed) },
+                            typecheck: false,
+                            editable: true,
+                        });
+                        if (openDocScript.compiled) {
+                            this.props.Document.onChildClick = new ScriptField(openDocScript);
                         }
-                    }), { fireImmediately: true });
+                    }
+                }), { fireImmediately: true });
             this.props.Document.facetCollection = facetCollection;
             this.props.Document.fitToBox = true;
         }
@@ -84,7 +81,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
             if (found !== -1) {
                 (facetCollection.data as List<Doc>).splice(found, 1);
             } else {
-                const newFacet = Docs.Create.FreeformDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
+                const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
                 const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
                 const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);

@@ -32,6 +32,7 @@ import { Templates } from '../Templates';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { CollectionViewType } from './CollectionView';
 
 
 export interface TreeViewProps {
@@ -377,7 +378,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 this: this.props.document.isTemplateField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
                 heading: this.props.containingCollection.title,
                 checked: this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check",
-                context: this.props.treeViewId,
+                containingTreeView: this.props.treeViewId,
             }, console.log);
         } else {
             this.treeViewOpen = !this.treeViewOpen;
@@ -635,32 +636,32 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             description: "Buxton Layout", icon: "eye", event: () => {
                 const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
                 const { Document } = this.props;
-                const fallback = "http://www.cs.brown.edu/~bcz/face.gif";
-                const imageRack = MulticolumnDocument([], { title: "data", height: 100 });
-                const wrapper = Docs.Create.StackingDocument([
-                    ImageDocument(fallback, { title: "hero" }),
-                    imageRack,
-                    ...["short_description", "year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key }))
-                ], { autoHeight: true, chromeStatus: "disabled", disableLOD: true, title: "detailed layout stack" });
-                wrapper.isTemplateDoc = makeTemplate(wrapper);
-                imageRack.onChildClick = ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.hero = copyField(this.data)`, { containingCollection: Doc.name });
+                const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
 
-                const cardLayout = ImageDocument(fallback);
+                const detailedLayout = Docs.Create.StackingDocument([
+                    ImageDocument(fallbackImg, { title: "activeHero" }),
+                    MulticolumnDocument([], { title: "data", height: 100, onChildClick: ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.activeHero = copyField(this.data)`, { containingCollection: Doc.name }) }),
+                    TextDocument({ title: "short_description", autoHeight: true }),
+                    ...["year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key, height: 30 }))
+                ], { autoHeight: true, chromeStatus: "disabled", title: "detailed layout stack" });
+                detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
+
+                const cardLayout = ImageDocument(fallbackImg, { isTemplateDoc: true, isTemplateField: true }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 cardLayout.proto!.layout = ImageBox.LayoutString("hero");
                 cardLayout.showTitle = "title";
                 cardLayout.showTitleHover = "titlehover";
-                cardLayout.isTemplateField = true; // make this document act like a template field
-                cardLayout.isTemplateDoc = true; // but it's also a template doc itself... a little weird
 
                 Document.childLayout = cardLayout;
-                Document.childDetailed = wrapper;
+                Document.childDetailed = detailedLayout;
+                Document.viewType = CollectionViewType.Pivot;
+                Document.pivotField = "company";
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({
             description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document,
-                "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean", context: Doc.name })
+                "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean", treeViewContainer: Doc.name })
         });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }

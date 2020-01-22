@@ -88,7 +88,7 @@ export interface DocumentOptions {
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     chromeStatus?: string;
-    disableLOD?: boolean;
+    LODdisable?: boolean;
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
@@ -107,6 +107,7 @@ export interface DocumentOptions {
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
