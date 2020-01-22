@@ -373,12 +373,12 @@ class TreeView extends React.Component<TreeViewProps> {
     @action
     bulletClick = (e: React.MouseEvent) => {
         if (this.props.onCheckedClick && this.props.document.type !== DocumentType.COL) {
-            this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
+            // this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
             ScriptCast(this.props.onCheckedClick).script.run({
                 this: this.props.document.isTemplateField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
                 heading: this.props.containingCollection.title,
-                checked: this.props.document.treeViewChecked === "check" ? false : this.props.document.treeViewChecked === "x" ? "x" : "none",
-                context: this.props.treeViewId
+                checked: this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check",
+                context: this.props.treeViewId,
             }, console.log);
         } else {
             this.treeViewOpen = !this.treeViewOpen;
@@ -634,12 +634,11 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
+                const { TextDocument, ImageDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallback = "http://www.cs.brown.edu/~bcz/face.gif";
                 const wrapper = Docs.Create.StackingDocument([
                     ImageDocument(fallback, { title: "hero" }),
-                    MulticolumnDocument([], { title: "data", height: 100 }),
                     ...["short_description", "year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key }))
                 ], { autoHeight: true, chromeStatus: "disabled" });
                 wrapper.disableLOD = true;
