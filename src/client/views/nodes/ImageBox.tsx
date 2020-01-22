@@ -223,7 +223,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 const aspect = realsize.height / realsize.width;
                 if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
                     setTimeout(action(() => {
-                        if (this.pathInfos.srcpath === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
+                        if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
                             this._resized = imgPath;
                             this.Document.height = this.Document[WidthSym]() * aspect;
                             this.Document.nativeHeight = realsize.height;
@@ -278,24 +278,20 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return { nativeWidth, nativeHeight };
     }
 
-    @computed get pathInfos() {
+    @computed get paths() {
         const extensionDoc = this.extensionDoc!;
-        const { nativeWidth, nativeHeight } = this.nativeSize;
-        let paths = [[Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png"), nativeWidth / nativeHeight]];
+        let paths = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
         const alts = DocListCast(extensionDoc.Alternates);
-        const altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => [this.choosePath((doc.data as ImageField).url), doc[WidthSym]() / doc[HeightSym]()]);
+        const altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         const field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
         // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
         // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
-        if (field instanceof ImageField) paths = [[this.choosePath(field.url), nativeWidth / nativeHeight]];
+        if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
-        const srcpath = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][0] as string;
-        const srcaspect = paths[Math.min(paths.length - 1, (this.Document.curPage || 0))][1] as number;
-        const fadepath = paths[Math.min(paths.length - 1, 1)][0] as string;
-        return { srcpath, srcaspect, fadepath };
+        return paths;
     }
 
     @computed get content() {
@@ -303,7 +299,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const extensionDoc = this.extensionDoc;
         if (!extensionDoc) return (null);
 
-        const { srcpath, srcaspect, fadepath } = this.pathInfos;
+        const srcpath = this.paths[NumCast(this.props.Document.curPage, 0)];
+        const fadepath = this.paths[Math.min(1, this.paths.length - 1)];
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const rotation = NumCast(this.Document.rotation, 0);
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
