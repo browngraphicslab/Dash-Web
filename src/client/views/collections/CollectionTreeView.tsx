@@ -633,19 +633,20 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, MulticolumnDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallback = "http://www.cs.brown.edu/~bcz/face.gif";
+                const imageRack = MulticolumnDocument([], { title: "data", height: 100 });
                 const wrapper = Docs.Create.StackingDocument([
                     ImageDocument(fallback, { title: "hero" }),
+                    imageRack,
                     ...["short_description", "year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key }))
-                ], { autoHeight: true, chromeStatus: "disabled" });
-                wrapper.disableLOD = true;
-                wrapper.isTemplateDoc = makeTemplate(wrapper, true);
+                ], { autoHeight: true, chromeStatus: "disabled", disableLOD: true, title: "detailed layout stack" });
+                wrapper.isTemplateDoc = makeTemplate(wrapper);
+                imageRack.onChildClick = ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.hero = copyField(this.data)`, { containingCollection: Doc.name });
 
                 const cardLayout = ImageDocument(fallback);
-                const proto = Doc.GetProto(cardLayout);
-                proto.layout = ImageBox.LayoutString("hero");
+                cardLayout.proto!.layout = ImageBox.LayoutString("hero");
                 cardLayout.showTitle = "title";
                 cardLayout.showTitleHover = "titlehover";
                 cardLayout.isTemplateField = true; // make this document act like a template field

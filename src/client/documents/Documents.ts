@@ -88,6 +88,7 @@ export interface DocumentOptions {
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     chromeStatus?: string;
+    disableLOD?: boolean;
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
@@ -330,7 +331,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth", "diableLOD"];
 
         /**
          * This function receives the relevant document prototype and uses

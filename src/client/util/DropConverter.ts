@@ -7,7 +7,7 @@ import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
 import { ScriptField } from "../../new_fields/ScriptField";
 
-export function makeTemplate(doc: Doc, suppressTitle = false): boolean {
+export function makeTemplate(doc: Doc): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateField ? doc.layout : doc;
     const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
@@ -16,7 +16,7 @@ export function makeTemplate(doc: Doc, suppressTitle = false): boolean {
     docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
             any = true;
-            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc), suppressTitle);
+            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
         } else if (d.type === DocumentType.COL) {
             any = makeTemplate(d) || any;
         }

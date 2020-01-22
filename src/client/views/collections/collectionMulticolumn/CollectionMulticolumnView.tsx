@@ -4,7 +4,7 @@ import { documentSchema } from '../../../../new_fields/documentSchemas';
 import { CollectionSubView, SubCollectionViewProps } from '../CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
-import { NumCast, StrCast, BoolCast } from '../../../../new_fields/Types';
+import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { Utils } from '../../../../Utils';
 import "./collectionMulticolumnView.scss";
@@ -186,6 +186,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return Transform.Identity(); // type coersion, this case should never be hit
     }
 
+    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
@@ -206,9 +208,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         {...this.props}
                         Document={layout}
                         DataDocument={layout.resolvedDataDoc as Doc}
+                        CollectionDoc={this.props.Document}
                         PanelWidth={() => this.lookupPixels(layout)}
                         PanelHeight={() => PanelHeight() - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
                         getTransform={() => this.lookupIndividualTransform(layout)}
+                        onClick={this.onChildClickHandler}
                     />
                     <WidthLabel
                         layout={layout}

@@ -614,7 +614,7 @@ export namespace Doc {
         templateField.templateField = metadataFieldKey;
         templateField.isTemplateField = true;
         templateField.title = metadataFieldKey;
-        templateField.showTitle = suppressTitle ? undefined : "title";
+        // templateField.showTitle = suppressTitle ? undefined : "title";
 
         // move any data that the template field had been rendering over to the template doc so that things will 
         // appear the same after the conversion to a template has completed.  (otherwise, there would be no data for the template to render)
@@ -636,9 +636,6 @@ export namespace Doc {
             templateField.defaultBackgroundColor = templateField.backgroundColor;
         }
 
-        // finally, make the templateField be a delegate of the templateDoc so that it can find all the fields needed to render itselt
-        // (note that this is only useful to see the template doc itself which may not be necessary for many use cases)
-        templateField.proto = templateDoc;
         return true;
     }
 

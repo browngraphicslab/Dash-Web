@@ -145,7 +145,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             if (created) {
                 created.title = fieldKey;
                 if (this.props.parent.Document.isTemplateDoc) {
-                    Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document, true);
+                    Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
                 }
             }
             return created ? addDocument(created) : false;
