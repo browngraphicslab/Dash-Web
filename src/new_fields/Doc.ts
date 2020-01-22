@@ -535,7 +535,9 @@ export namespace Doc {
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
+            if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
@@ -547,7 +549,6 @@ export namespace Doc {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
-                } else if (doc[key] instanceof Doc && (doc[key] as Doc).dontCopyOnAlias) {
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {

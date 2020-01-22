@@ -28,7 +28,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         if (!this.props.Document.facetCollection) {
             const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
-            facetCollection.dontCopyOnAlias = true;
+            this.props.Document.excludeFields = new List<string>(["facetCollection", "docFilter", "viewSpecScript"]);
 
             const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
             const script = CompileScript(scriptText, {
