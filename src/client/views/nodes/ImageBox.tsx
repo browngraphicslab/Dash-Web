@@ -319,7 +319,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
-                {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker" style={{ width: nativeWidth, height: nativeWidth / srcaspect }}>
+                {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker">
                     <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}

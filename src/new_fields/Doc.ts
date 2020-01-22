@@ -46,7 +46,7 @@ export namespace Field {
         } else if (field instanceof RefField) {
             return field[ToString]();
         }
-        return "-invalid field-";
+        return "(null)";
     }
     export function IsField(field: any): field is Field;
     export function IsField(field: any, includeUndefined: true): field is Field | undefined;
@@ -601,42 +601,44 @@ export namespace Doc {
         return target;
     }
 
-    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false): boolean {
-        // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-        const metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
-        let fieldLayoutDoc = fieldTemplate;
-        if (fieldTemplate.layout instanceof Doc) {
-            fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
-        }
-        const fieldLayoutKey = StrCast(Doc.LayoutField(fieldLayoutDoc))?.split("'")[1];
-        const fieldLayoutExt = fieldLayoutKey && Doc.MakeDelegate(fieldTemplate[fieldLayoutKey + "_ext"] as Doc);
+    //
+    //  This function converts a generic field layout display into a field layout that displays a specific
+    // metadata field indicated by the title of the template field (not the default field that it was rendering)
+    //
+    export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Doc, suppressTitle: boolean = false): boolean {
 
-        fieldTemplate.templateField = metadataFieldName;
-        fieldTemplate.title = metadataFieldName;
-        fieldTemplate.isTemplateField = true;
-        /* move certain layout properties from the original data doc to the template layout to avoid
-           inheriting them from the template's data doc which may also define these fields for its own use.
-        */
-        fieldTemplate.ignoreAspect = fieldTemplate.ignoreAspect === undefined ? undefined : BoolCast(fieldTemplate.ignoreAspect);
-        fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
-        fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
-        fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
-        fieldTemplate.type = fieldTemplate.type;
-        fieldTemplate.panX = 0;
-        fieldTemplate.panY = 0;
-        fieldTemplate.scale = 1;
-        fieldTemplate.showTitle = suppressTitle ? undefined : "title";
-        const data = fieldTemplate.data;
-        // setTimeout(action(() => {
-        !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
-        const layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldName}'}`);
-        const layoutDelegate = Doc.Layout(fieldTemplate);
-        layoutDelegate[metadataFieldName + "_ext"] = fieldLayoutExt;
-        layoutDelegate.layout = layout;
-        fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
-        if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
-        fieldTemplate.proto = templateDataDoc;
-        // }), 0);
+        // find the metadata field key that this template field doc will display (indicated by its title)
+        const metadataFieldKey = StrCast(templateField.title).replace(/^-/, "");
+
+        // update the original template to mark it as a template
+        templateField.templateField = metadataFieldKey;
+        templateField.isTemplateField = true;
+        templateField.title = metadataFieldKey;
+        templateField.showTitle = suppressTitle ? undefined : "title";
+
+        // move any data that the template field had been rendering over to the template doc so that things will 
+        // appear the same after the conversion to a template has completed.  (otherwise, there would be no data for the template to render)
+        // note: this will not overwrite any field that already exists on the template doc at the field key
+        if (!templateDoc[metadataFieldKey] && templateField.data instanceof ObjectField) {
+            (Doc.GetProto(templateDoc)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
+        }
+
+        // get the layout string that the template uses to specify its layout
+        const templateFieldLayoutString = StrCast(Doc.LayoutField(Doc.Layout(templateField)));
+
+        // change itto render the target metadata field instead of what it was rendering before and assign it to the template field layout document.
+        Doc.Layout(templateField).layout = templateFieldLayoutString.replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldKey}'}`);
+
+        // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)
+        Doc.Layout(templateField)[metadataFieldKey + "_ext"] = Doc.MakeDelegate(templateField[templateFieldLayoutString?.split("'")[1] + "_ext"] as Doc);
+
+        if (templateField.backgroundColor !== templateDoc.defaultBackgroundColor) {
+            templateField.defaultBackgroundColor = templateField.backgroundColor;
+        }
+
+        // finally, make the templateField be a delegate of the templateDoc so that it can find all the fields needed to render itselt
+        // (note that this is only useful to see the template doc itself which may not be necessary for many use cases)
+        templateField.proto = templateDoc;
         return true;
     }
 

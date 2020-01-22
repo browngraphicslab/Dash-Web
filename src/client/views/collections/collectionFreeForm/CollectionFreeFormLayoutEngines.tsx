@@ -8,7 +8,6 @@ import { emptyFunction } from "../../../../Utils";
 import React = require("react");
 import { ObservableMap, runInAction } from "mobx";
 import { Id, ToString } from "../../../../new_fields/FieldSymbols";
-import { DateField } from "../../../../new_fields/DateField";
 import { ObjectField } from "../../../../new_fields/ObjectField";
 import { RefField } from "../../../../new_fields/RefField";
 
@@ -47,8 +46,9 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
     const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
 
+    const pivotFieldKey = toLabel(pivotDoc.pivotField);
     for (const doc of childDocs) {
-        const val = doc[StrCast(pivotDoc.pivotField, "title")];
+        const val = Field.toString(doc[pivotFieldKey] as Field);
         if (val) {
             !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, []);
             pivotColumnGroups.get(val)!.push(doc);
