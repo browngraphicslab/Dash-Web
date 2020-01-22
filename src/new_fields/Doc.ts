@@ -16,7 +16,6 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
-import { Docs } from "../client/documents/Documents";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -826,35 +825,4 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
     }
     const docFilterText = Doc.MakeDocFilter(docFilters);
     container.viewSpecScript = docFilterText ? ScriptField.MakeFunction(docFilterText, { doc: Doc.name }) : undefined;
-});
-
-Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
-    const facetValues = new Set<string>();
-    DocListCast(dataDoc[dataKey]).forEach(child => {
-        Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facetHeader]?.toString() || "(null)"));
-        facetValues.add(child[facetHeader]?.toString() || "(null)");
-    });
-    const text = "determineCheckedState(layoutDoc, facetHeader, facetValue)";
-    const params = {
-        layoutDoc: Doc.name,
-        facetHeader: "string",
-        facetValue: "string"
-    };
-    const capturedVariables = { layoutDoc, facetHeader };
-    return new List<Doc>(Array.from(facetValues).sort().map(facetValue => {
-        const value = Docs.Create.TextDocument({ title: facetValue.toString() });
-        value.treeViewChecked = ComputedField.MakeFunction(text, params, { ...capturedVariables, facetValue });
-        return value;
-    }));
-});
-
-Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
-    const docFilters = Cast(layoutDoc.docFilter, listSpec("string"), []);
-    for (let i = 0; i < docFilters.length; i += 3) {
-        const [header, value, state] = docFilters.slice(i, i + 3);
-        if (header === facetHeader && value === facetValue) {
-            return state;
-        }
-    }
-    return undefined;
 });

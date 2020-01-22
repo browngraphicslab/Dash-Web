@@ -1,19 +1,22 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faExpand, faMinus, faPlus, faTrash, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, untracked, runInAction } from "mobx";
+import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, Field, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
-import { emptyFunction, Utils, returnFalse, emptyPath } from '../../../Utils';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { emptyFunction, emptyPath, returnFalse, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
+import { makeTemplate } from '../../util/DropConverter';
+import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
@@ -21,18 +24,14 @@ import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
 import { MainView } from '../MainView';
-import { KeyValueBox } from '../nodes/KeyValueBox';
-import { Templates } from '../Templates';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { ImageBox } from '../nodes/ImageBox';
+import { KeyValueBox } from '../nodes/KeyValueBox';
+import { ScriptBox } from '../ScriptBox';
+import { Templates } from '../Templates';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { ScriptBox } from '../ScriptBox';
-import { ImageBox } from '../nodes/ImageBox';
-import { makeTemplate } from '../../util/DropConverter';
-import { CollectionDockingView } from './CollectionDockingView';
-import { CollectionViewType } from './CollectionView';
 
 
 export interface TreeViewProps {
@@ -714,3 +713,34 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         );
     }
 }
+
+Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
+    const facetValues = new Set<string>();
+    DocListCast(dataDoc[dataKey]).forEach(child => {
+        Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facetHeader]?.toString() || "(null)"));
+        facetValues.add(child[facetHeader]?.toString() || "(null)");
+    });
+    const text = "determineCheckedState(layoutDoc, facetHeader, facetValue)";
+    const params = {
+        layoutDoc: Doc.name,
+        facetHeader: "string",
+        facetValue: "string"
+    };
+    const capturedVariables = { layoutDoc, facetHeader };
+    return new List<Doc>(Array.from(facetValues).sort().map(facetValue => {
+        const value = Docs.Create.TextDocument({ title: facetValue.toString() });
+        value.treeViewChecked = ComputedField.MakeFunction(text, params, { ...capturedVariables, facetValue });
+        return value;
+    }));
+});
+
+Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
+    const docFilters = Cast(layoutDoc.docFilter, listSpec("string"), []);
+    for (let i = 0; i < docFilters.length; i += 3) {
+        const [header, value, state] = docFilters.slice(i, i + 3);
+        if (header === facetHeader && value === facetValue) {
+            return state;
+        }
+    }
+    return undefined;
+});
