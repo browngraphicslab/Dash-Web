@@ -214,7 +214,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     _resized = "";
     resize = (imgPath: string) => {
-        if (!this.dataDoc[this.props.fieldKey + "-nativeHeight"])
+        if (!this.dataDoc[this.props.fieldKey + "-nativeHeight"]) {
             requestImageSize(imgPath)
                 .then((size: any) => {
                     const rotation = NumCast(this.dataDoc[this.props.fieldKey + "-rotation"]) % 180;
@@ -225,13 +225,19 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                             if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
                                 this._resized = imgPath;
                                 this.Document._height = this.Document[WidthSym]() * aspect;
-                                this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.dataDoc._nativeHeight = realsize.height;
-                                this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.dataDoc._nativeWidth = realsize.width;
+                                this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = realsize.height;
+                                this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = realsize.width;
                             }
                         }), 0);
                     } else this._resized = imgPath;
                 })
                 .catch((err: any) => console.log(err));
+        } else {
+            setTimeout(() => {
+                this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"]);
+                this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]);
+            }, 0);
+        }
     }
 
     @action

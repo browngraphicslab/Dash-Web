@@ -703,7 +703,7 @@ export namespace Docs {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);
                 layout = CollectionView.LayoutString;
             } else {
-                created = Docs.Create.TextDocument({ ...{ width: 200, height: 25, autoHeight: true }, ...resolved });
+                created = Docs.Create.TextDocument({ ...{ _width: 200, _height: 25, autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
             created.layout = layout?.(fieldKey);

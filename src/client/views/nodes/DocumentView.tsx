@@ -524,8 +524,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const batch = UndoManager.StartBatch("CustomViewClicked");
         const customName = "layout-" + name;
         if (doc[customName] === undefined) {
-            const _width = NumCast(doc.width);
-            const _height = NumCast(doc.height);
+            const _width = NumCast(doc._width);
+            const _height = NumCast(doc._height);
             const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, };
 
             let fieldTemplate: Doc;
