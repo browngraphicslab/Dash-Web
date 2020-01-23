@@ -148,8 +148,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @undoBatch
     viewChanged = (e: React.ChangeEvent) => {
+        let extDoc = this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "_ext"] as Doc;
         //@ts-ignore
-        this.props.CollectionView.props.Document.viewType = parseInt(e.target.selectedOptions[0].value);
+        extDoc && (extDoc.viewType = parseInt(e.target.selectedOptions[0].value));
     }
 
     @action
@@ -402,7 +403,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             className="collectionViewBaseChrome-viewPicker"
                             onPointerDown={stopPropagation}
                             onChange={this.viewChanged}
-                            value={NumCast(this.props.CollectionView.props.Document.viewType)}>
+                            value={NumCast((this.props.CollectionView.props.Document.data_ext as Doc)?.viewType)}>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
