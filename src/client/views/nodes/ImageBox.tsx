@@ -39,7 +39,6 @@ library.add(faFileAudio, faAsterisk);
 export const pageSchema = createSchema({
     curPage: "number",
     fitWidth: "boolean",
-    rotation: "number",
     googlePhotosUrl: "string",
     googlePhotosTags: "string"
 });
@@ -78,7 +77,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 e.stopPropagation();
             }
             de.metaKey && de.complete.docDragData.droppedDocuments.forEach(action((drop: Doc) => {
-                this.extensionDoc && Doc.AddDocToList(Doc.GetProto(this.extensionDoc), "Alternates", drop);
+                Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-alternates", drop);
                 e.stopPropagation();
             }));
         }
@@ -88,8 +87,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         let gumStream: any;
         let recorder: any;
         const self = this;
-        const extensionDoc = this.extensionDoc;
-        extensionDoc && navigator.mediaDevices.getUserMedia({
+        navigator.mediaDevices.getUserMedia({
             audio: true
         }).then(function (stream) {
             gumStream = stream;
@@ -104,11 +102,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 const files = await res.json();
                 const url = Utils.prepend(files[0].path);
                 // upload to server with known URL 
-                const audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", width: 200, height: 32 });
+                const audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", _width: 200, _height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
-                const audioAnnos = Cast(extensionDoc.audioAnnotations, listSpec(Doc));
+                const audioAnnos = Cast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"], listSpec(Doc));
                 if (audioAnnos === undefined) {
-                    extensionDoc.audioAnnotations = new List([audioDoc]);
+                    this.dataDoc[this.props.fieldKey + "-audioAnnotations"] = new List([audioDoc]);
                 } else {
                     audioAnnos.push(audioDoc);
                 }
@@ -125,15 +123,15 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     @undoBatch
     rotate = action(() => {
-        const nw = this.Document.nativeWidth;
-        const nh = this.Document.nativeHeight;
-        const w = this.Document.width;
-        const h = this.Document.height;
-        this.Document.rotation = ((this.Document.rotation || 0) + 90) % 360;
-        this.Document.nativeWidth = nh;
-        this.Document.nativeHeight = nw;
-        this.Document.width = h;
-        this.Document.height = w;
+        const nw = NumCast(this.Document[this.props.fieldKey + "-nativeWidth"]);
+        const nh = NumCast(this.Document[this.props.fieldKey + "-nativeHeight"]);
+        const w = this.Document._width;
+        const h = this.Document._height;
+        this.dataDoc[this.props.fieldKey + "-rotation"] = (NumCast(this.dataDoc[this.props.fieldKey + "-rotation"]) + 90) % 360;
+        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = nh;
+        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = nw;
+        this.Document._width = h;
+        this.Document._height = w;
     });
 
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -159,7 +157,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             results.reduce((face: CognitiveServices.Image.Face, faceDocs: List<Doc>) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!), new List<Doc>());
             return faceDocs;
         };
-        this.url && this.extensionDoc && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+        this.url && CognitiveServices.Image.Appliers.ProcessImage(this.dataDoc, [this.props.fieldKey + "-faces"], this.url, Service.Face, converter);
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
@@ -171,12 +169,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 const sanitized = tag.name.replace(" ", "_");
                 tagDoc[sanitized] = ComputedField.MakeFunction(`(${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`);
             });
-            this.extensionDoc && (this.extensionDoc.generatedTags = tagsList);
+            this.dataDoc[this.props.fieldKey + "-generatedTags"] = tagsList;
             tagDoc.title = "Generated Tags Doc";
             tagDoc.confidence = threshold;
             return tagDoc;
         };
-        this.url && this.extensionDoc && CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
+        this.url && CognitiveServices.Image.Appliers.ProcessImage(this.dataDoc, [this.props.fieldKey + "-generatedTagsDoc"], this.url, Service.ComputerVision, converter);
     }
 
     @computed private get url() {
@@ -216,29 +214,30 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     _resized = "";
     resize = (imgPath: string) => {
-        requestImageSize(imgPath)
-            .then((size: any) => {
-                const rotation = NumCast(this.dataDoc.rotation) % 180;
-                const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
-                const aspect = realsize.height / realsize.width;
-                if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
-                    setTimeout(action(() => {
-                        if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
-                            this._resized = imgPath;
-                            this.Document.height = this.Document[WidthSym]() * aspect;
-                            this.Document.nativeHeight = realsize.height;
-                            this.Document.nativeWidth = realsize.width;
-                        }
-                    }), 0);
-                } else this._resized = imgPath;
-            })
-            .catch((err: any) => console.log(err));
+        if (!this.dataDoc[this.props.fieldKey + "-nativeHeight"])
+            requestImageSize(imgPath)
+                .then((size: any) => {
+                    const rotation = NumCast(this.dataDoc[this.props.fieldKey + "-rotation"]) % 180;
+                    const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
+                    const aspect = realsize.height / realsize.width;
+                    if (this.Document._width && (Math.abs(1 - NumCast(this.Document._height) / NumCast(this.Document._width) / (realsize.height / realsize.width)) > 0.1)) {
+                        setTimeout(action(() => {
+                            if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
+                                this._resized = imgPath;
+                                this.Document._height = this.Document[WidthSym]() * aspect;
+                                this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.dataDoc._nativeHeight = realsize.height;
+                                this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.dataDoc._nativeWidth = realsize.width;
+                            }
+                        }), 0);
+                    } else this._resized = imgPath;
+                })
+                .catch((err: any) => console.log(err));
     }
 
     @action
     onPointerEnter = () => {
         const self = this;
-        const audioAnnos = this.extensionDoc && DocListCast(this.extensionDoc.audioAnnotations);
+        const audioAnnos = DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]);
         if (audioAnnos && audioAnnos.length && this._audioState === 0) {
             const anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
             anno.data instanceof AudioField && new Howl({
@@ -273,17 +272,16 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     @computed get nativeSize() {
         const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
-        const nativeWidth = (this.Document.nativeWidth || pw);
-        const nativeHeight = (this.Document.nativeHeight || 1);
+        const nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], pw);
+        const nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], 1);
         return { nativeWidth, nativeHeight };
     }
 
     @computed get paths() {
-        const extensionDoc = this.extensionDoc!;
         let paths = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
-        const alts = DocListCast(extensionDoc.Alternates);
+        const alts = DocListCast(this.dataDoc[this.props.fieldKey + "-alternates"]);
         const altpaths = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         const field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
@@ -296,13 +294,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     @computed get content() {
         TraceMobx();
-        const extensionDoc = this.extensionDoc;
-        if (!extensionDoc) return (null);
 
         const srcpath = this.paths[NumCast(this.props.Document.curPage, 0)];
         const fadepath = this.paths[Math.min(1, this.paths.length - 1)];
         const { nativeWidth, nativeHeight } = this.nativeSize;
-        const rotation = NumCast(this.Document.rotation, 0);
+        const rotation = NumCast(this.dataDoc[this.props.fieldKey + "-rotation"]);
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
 
@@ -331,10 +327,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
             >
                 <FontAwesomeIcon className="imageBox-audioFont"
-                    style={{ color: [DocListCast(extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={!DocListCast(extensionDoc.audioAnnotations).length ? "microphone" : faFileAudio} size="sm" />
+                    style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                    icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
             </div>
             {this.considerGooglePhotosLink()}
-            <FaceRectangles document={extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
+            <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
         </div>;
     }
 

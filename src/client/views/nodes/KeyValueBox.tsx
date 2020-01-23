@@ -179,7 +179,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        const parent = Docs.Create.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        const parent = Docs.Create.StackingDocument([], { _width: 800, _height: 800, title: "Template" });
         parent.singleColumn = false;
         parent.columnWidth = 100;
         for (const row of this.rows.filter(row => row.isChecked)) {
@@ -200,15 +200,15 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         if (!fieldTemplate) {
             return;
         }
-        const previousViewType = fieldTemplate.viewType;
+        const previousViewType = fieldTemplate._viewType;
         Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(parentStackingDoc));
-        previousViewType && (fieldTemplate.viewType = previousViewType);
+        previousViewType && (fieldTemplate._viewType = previousViewType);
 
         Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
     }
 
     inferType = async (data: FieldResult, metaKey: string) => {
-        const options = { width: 300, height: 300, title: metaKey };
+        const options = { _width: 300, _height: 300, title: metaKey };
         if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
             return Docs.Create.TextDocument(options);
         } else if (data instanceof List) {

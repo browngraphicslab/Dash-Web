@@ -79,7 +79,7 @@ export const inpRules = {
                 const value = state.doc.textBetween(start, end);
                 if (value) {
                     DocServer.GetRefField(value).then(docx => {
-                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500, }, value);
+                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500, }, value);
                         DocUtils.Publish(target, value, returnFalse, returnFalse);
                         DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
                     });
@@ -196,7 +196,7 @@ export const inpRules = {
         new InputRule(
             new RegExp(/%#$/),
             (state, match, start, end) => {
-                const target = Docs.Create.TextDocument({ width: 75, height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, autoHeight: true, fontSize: 9, title: "inline comment" });
+                const target = Docs.Create.TextDocument({ _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, autoHeight: true, fontSize: 9, title: "inline comment" });
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const newNode = schema.nodes.dashComment.create({ docid: target[Id] });
                 const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });

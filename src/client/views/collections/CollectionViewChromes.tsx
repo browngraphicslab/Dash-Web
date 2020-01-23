@@ -55,9 +55,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         immediate: (draggedDocs: Doc[]) => Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(draggedDocs.map((d: any) => Doc.MakeAlias(d)))
     };
     _viewCommand = {
-        title: "restore view", script: "this.target.panX = this.restoredPanX; this.target.panY = this.restoredPanY; this.target.scale = this.restoredScale;", params: ["target"],
-        immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document.panX = 0; this.props.CollectionView.props.Document.panY = 0; this.props.CollectionView.props.Document.scale = 1; },
-        initialize: (button: Doc) => { button.restoredPanX = this.props.CollectionView.props.Document.panX; button.restoredPanY = this.props.CollectionView.props.Document.panY; button.restoredScale = this.props.CollectionView.props.Document.scale; }
+        title: "restore view", script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;", params: ["target"],
+        immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document._panX = 0; this.props.CollectionView.props.Document._panY = 0; this.props.CollectionView.props.Document.scale = 1; },
+        initialize: (button: Doc) => { button.restoredPanX = this.props.CollectionView.props.Document._panX; button.restoredPanY = this.props.CollectionView.props.Document._panY; button.restoredScale = this.props.CollectionView.props.Document.scale; }
     };
     _freeform_commands = [this._contentCommand, this._templateCommand, this._narrativeCommand, this._viewCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
@@ -132,7 +132,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         runInAction(() => {
             this.addKeyRestrictions(fields);
             // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-            const chromeStatus = this.props.CollectionView.props.Document.chromeStatus;
+            const chromeStatus = this.props.CollectionView.props.Document._chromeStatus;
             if (chromeStatus) {
                 if (chromeStatus === "disabled") {
                     throw new Error("how did you get here, if chrome status is 'disabled' on a collection, a chrome shouldn't even be instantiated!");
@@ -149,7 +149,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @undoBatch
     viewChanged = (e: React.ChangeEvent) => {
         //@ts-ignore
-        this.props.CollectionView.props.Document.viewType = parseInt(e.target.selectedOptions[0].value);
+        this.props.CollectionView.props.Document._viewType = parseInt(e.target.selectedOptions[0].value);
     }
 
     @action
@@ -223,7 +223,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             `(${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "true";
 
-        const docFilter = Cast(this.props.CollectionView.props.Document.docFilter, listSpec("string"), []);
+        const docFilter = Cast(this.props.CollectionView.props.Document._docFilter, listSpec("string"), []);
         const docFilterText = Doc.MakeDocFilter(docFilter);
         const finalScript = docFilterText && !fullScript.startsWith("(())") ? `${fullScript} ${docFilterText ? "&&" : ""} (${docFilterText})` :
             docFilterText ? docFilterText : fullScript;
@@ -242,9 +242,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action
     toggleCollapse = () => {
-        this.props.CollectionView.props.Document.chromeStatus = this.props.CollectionView.props.Document.chromeStatus === "enabled" ? "collapsed" : "enabled";
+        this.props.CollectionView.props.Document._chromeStatus = this.props.CollectionView.props.Document._chromeStatus === "enabled" ? "collapsed" : "enabled";
         if (this.props.collapse) {
-            this.props.collapse(this.props.CollectionView.props.Document.chromeStatus !== "enabled");
+            this.props.collapse(this.props.CollectionView.props.Document._chromeStatus !== "enabled");
         }
     }
 
@@ -272,7 +272,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @observable private pivotKeyDisplay = this.pivotKey;
     getPivotInput = () => {
-        if (StrCast(this.document.freeformLayoutEngine) !== "pivot") {
+        if (StrCast(this.document._freeformLayoutEngine) !== "pivot") {
             return (null);
         }
         return (<input className="collectionViewBaseChrome-viewSpecsInput"
@@ -383,7 +383,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     render() {
-        const collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
+        const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
         return (
             <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
                 <div className="collectionViewChrome">
@@ -402,7 +402,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             className="collectionViewBaseChrome-viewPicker"
                             onPointerDown={stopPropagation}
                             onChange={this.viewChanged}
-                            value={NumCast(this.props.CollectionView.props.Document.viewType)}>
+                            value={NumCast(this.props.CollectionView.props.Document._viewType)}>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>

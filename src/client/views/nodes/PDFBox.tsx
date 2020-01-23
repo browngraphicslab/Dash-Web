@@ -50,9 +50,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     constructor(props: any) {
         super(props);
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
-        const nw = this.Document.nativeWidth = NumCast(this.extensionDocSync.nativeWidth, NumCast(this.Document.nativeWidth, 927));
-        const nh = this.Document.nativeHeight = NumCast(this.extensionDocSync.nativeHeight, NumCast(this.Document.nativeHeight, 1200));
-        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
+        const nw = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 927));
+        const nh = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, 1200));
+        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
 
         const backup = "oldPath";
         const { Document } = this.props;
@@ -90,10 +90,10 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     }
 
     loaded = (nw: number, nh: number, np: number) => {
-        this.extensionDocSync.numPages = np;
-        this.extensionDocSync.nativeWidth = this.Document.nativeWidth = nw * 96 / 72;
-        this.extensionDocSync.nativeHeight = this.Document.nativeHeight = nh * 96 / 72;
-        !this.Document.fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
+        this.dataDoc[this.props.fieldKey + "-numPages"] = np;
+        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = nw * 96 / 72;
+        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
+        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
@@ -211,7 +211,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         const funcs: ContextMenuProps[] = [];
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Fit Width " + (this.Document.fitWidth ? "Off" : "On"), event: () => this.Document.fitWidth = !this.Document.fitWidth, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Fit Width " + (this.Document._fitWidth ? "Off" : "On"), event: () => this.Document._fitWidth = !this.Document._fitWidth, icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
@@ -220,8 +220,8 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
-            width: !this.props.Document.fitWidth ? this.Document.nativeWidth || 0 : `${100 / this.contentScaling}%`,
-            height: !this.props.Document.fitWidth ? this.Document.nativeHeight || 0 : `${100 / this.contentScaling}%`,
+            width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,
+            height: !this.props.Document._fitWidth ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
             transform: `scale(${this.contentScaling})`
         }}  >
             <div className="pdfBox-title-outer">
@@ -252,7 +252,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        if (pdfUrl && this.extensionDoc && (this._everActive || (this.extensionDoc.nativeWidth && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+        if (pdfUrl && (this._everActive || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;
             }

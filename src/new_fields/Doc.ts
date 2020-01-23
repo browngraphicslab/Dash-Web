@@ -162,8 +162,8 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this[SelfProxy].width);
-    public [HeightSym] = () => NumCast(this[SelfProxy].height);
+    public [WidthSym] = () => NumCast(this[SelfProxy]._width);
+    public [HeightSym] = () => NumCast(this[SelfProxy]._height);
 
     [ToScriptString]() {
         return "invalid";
@@ -447,19 +447,18 @@ export namespace Doc {
         if (!WillExpandTemplateLayout(templateLayoutDoc, dataDoc) || !dataDoc) return templateLayoutDoc;
 
         const templateField = StrCast(templateLayoutDoc.isTemplateForField);  // the field that the template renders
-        const extensionDoc = fieldExtensionDoc(dataDoc, templateField); // an extension doc for the field that the template renders
         // First it checks if an expanded layout already exists -- if so it will be stored on the dataDoc
         // using the template layout doc's id as the field key.
         // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
         // saves it on the data doc indexed by the template layout's id.
         //
-        const expandedLayoutFieldKey = "Layout[" + templateLayoutDoc[Id] + "]";
-        const expandedTemplateLayout = extensionDoc?.[expandedLayoutFieldKey];
-        if (expandedTemplateLayout === undefined && extensionDoc) {
+        const expandedLayoutFieldKey = templateField + "-layout[" + templateLayoutDoc[Id] + "]";
+        const expandedTemplateLayout = dataDoc?.[expandedLayoutFieldKey];
+        if (expandedTemplateLayout === undefined) {
             setTimeout(() => {
-                if (!extensionDoc[expandedLayoutFieldKey]) {
+                if (!dataDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
-                    extensionDoc[expandedLayoutFieldKey] = newLayoutDoc;
+                    dataDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     newLayoutDoc.resolvedDataDoc = dataDoc;
                 }
             }, 0);
@@ -473,26 +472,6 @@ export namespace Doc {
         const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc ? undefined : Doc.GetDataDoc(containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
     }
-
-    //
-    // Resolves a reference to a field by returning 'doc' if no field extension is specified,
-    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
-    // This mechanism allows any fields to be extended with an extension document that can
-    // be used to capture field-specific metadata.  For example, an image field can be extended
-    // to store annotations, ink, and other data.
-    //
-    export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
-        if (!fieldKey) return undefined;
-        const extension = doc[fieldKey + "_ext"];
-        if (doc instanceof Doc && extension === undefined) {
-            setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-        }
-        return extension ? extension as Doc : undefined;
-    }
-    export function fieldExtensionDocSync(doc: Doc, fieldKey: string) {
-        return (doc[fieldKey + "_ext"] as Doc) || CreateDocumentExtensionForField(doc, fieldKey);
-    }
-
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let proto: Doc | undefined = doc;
         while (proto && !Doc.IsPrototype(proto) && proto.proto) {
@@ -586,8 +565,8 @@ export namespace Doc {
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined = undefined) {
         if (!templateDoc) {
             target.layout = undefined;
-            target.nativeWidth = undefined;
-            target.nativeHeight = undefined;
+            target._nativeWidth = undefined;
+            target._nativeHeight = undefined;
             target.onClick = undefined;
             target.type = undefined;
             return;
@@ -648,12 +627,12 @@ export namespace Doc {
         const doc1Layout = Doc.Layout(doc1);
         const x2 = NumCast(doc2.x) - clusterDistance;
         const y2 = NumCast(doc2.y) - clusterDistance;
-        const w2 = NumCast(doc2Layout.width) + clusterDistance;
-        const h2 = NumCast(doc2Layout.height) + clusterDistance;
+        const w2 = NumCast(doc2Layout._width) + clusterDistance;
+        const h2 = NumCast(doc2Layout._height) + clusterDistance;
         const x = NumCast(doc1.x) - clusterDistance;
         const y = NumCast(doc1.y) - clusterDistance;
-        const w = NumCast(doc1Layout.width) + clusterDistance;
-        const h = NumCast(doc1Layout.height) + clusterDistance;
+        const w = NumCast(doc1Layout._width) + clusterDistance;
+        const h = NumCast(doc1Layout._height) + clusterDistance;
         return doc1.z === doc2.z && intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 });
     }
 
@@ -812,7 +791,7 @@ Scripting.addGlobal(function matchFieldValue(doc: Doc, key: string, value: any) 
     return fieldStr == value;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
-    const docFilters = Cast(container.docFilter, listSpec("string"), []);
+    const docFilters = Cast(container._docFilter, listSpec("string"), []);
     for (let i = 0; i < docFilters.length; i += 3) {
         if (docFilters[i] === key && docFilters[i + 1] === value) {
             docFilters.splice(i, 3);
@@ -823,7 +802,7 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
         docFilters.push(key);
         docFilters.push(value)
         docFilters.push(modifiers);
-        container.docFilter = new List<string>(docFilters);
+        container._docFilter = new List<string>(docFilters);
     }
     const docFilterText = Doc.MakeDocFilter(docFilters);
     container.viewSpecScript = docFilterText ? ScriptField.MakeFunction(docFilterText, { doc: Doc.name }) : undefined;

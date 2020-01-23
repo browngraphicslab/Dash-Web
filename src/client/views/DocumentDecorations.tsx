@@ -317,8 +317,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         IconBox.AutomaticTitle(iconDoc);
         //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
-        iconDoc.width = Number(MINIMIZED_ICON_SIZE);
-        iconDoc.height = Number(MINIMIZED_ICON_SIZE);
+        iconDoc._width = Number(MINIMIZED_ICON_SIZE);
+        iconDoc._height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
@@ -454,10 +454,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = PositionDocument(element.props.Document);
                 const layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
-                let nwidth = layoutDoc.nativeWidth || 0;
-                let nheight = layoutDoc.nativeHeight || 0;
-                const width = (layoutDoc.width || 0);
-                const height = (layoutDoc.height || (nheight / nwidth * width));
+                let nwidth = layoutDoc._nativeWidth || 0;
+                let nheight = layoutDoc._nativeHeight || 0;
+                const width = (layoutDoc._width || 0);
+                const height = (layoutDoc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
@@ -466,33 +466,33 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
                 if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
                     layoutDoc.ignoreAspect = false;
-                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
-                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
+                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
-                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
+                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
                 if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            layoutDoc.nativeWidth = actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0);
+                            layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
                         }
-                        layoutDoc.width = actualdW;
-                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
-                        else layoutDoc.height = actualdH;
+                        layoutDoc._width = actualdW;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
+                        else layoutDoc._height = actualdH;
                     }
                     else {
                         if (!fixedAspect) {
-                            layoutDoc.nativeHeight = actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0);
+                            layoutDoc._nativeHeight = actualdH / (layoutDoc._height || 1) * (doc._nativeHeight || 0);
                         }
-                        layoutDoc.height = actualdH;
-                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
-                        else layoutDoc.width = actualdW;
+                        layoutDoc._height = actualdH;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
+                        else layoutDoc._width = actualdW;
                     }
                 } else {
-                    dW && (layoutDoc.width = actualdW);
-                    dH && (layoutDoc.height = actualdH);
+                    dW && (layoutDoc._width = actualdW);
+                    dH && (layoutDoc._height = actualdH);
                     dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
                 }
             }

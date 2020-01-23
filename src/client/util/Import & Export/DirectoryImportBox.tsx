@@ -145,8 +145,8 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         const offset: number = this.persistent ? (height === 0 ? 0 : height + 30) : 0;
         const options: DocumentOptions = {
             title: `Import of ${directory}`,
-            width: 1105,
-            height: 500,
+            _width: 1105,
+            _height: 500,
             x: NumCast(doc.x),
             y: NumCast(doc.y) + offset
         };

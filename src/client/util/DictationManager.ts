@@ -325,14 +325,14 @@ export namespace DictationManager {
 
             ["open fields", {
                 action: (target: DocumentView) => {
-                    const kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
+                    const kvp = Docs.Create.KVPDocument(target.props.Document, { _width: 300, _height: 300 });
                     target.props.addDocTab(kvp, target.props.DataDoc, "onRight");
                 }
             }],
 
             ["new outline", {
                 action: (target: DocumentView) => {
-                    const newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
+                    const newBox = Docs.Create.TextDocument({ _width: 400, _height: 200, title: "My Outline" });
                     newBox.autoHeight = true;
                     const proto = newBox.proto!;
                     const prompt = "Press alt + r to start dictating here...";
@@ -379,7 +379,7 @@ export namespace DictationManager {
                 expression: /view as (freeform|stacking|masonry|schema|tree)/g,
                 action: (target: DocumentView, matches: RegExpExecArray) => {
                     const mode = CollectionViewType.valueOf(matches[1]);
-                    mode && (target.props.Document.viewType = mode);
+                    mode && (target.props.Document._viewType = mode);
                 },
                 restrictTo: [DocumentType.COL]
             }

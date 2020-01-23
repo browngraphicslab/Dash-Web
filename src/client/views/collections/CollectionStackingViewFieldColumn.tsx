@@ -136,7 +136,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
         if (value === ":freeForm") {
-            return this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { width: 200, height: 200 }));
+            return this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200 }));
         } else if (value.startsWith(":")) {
             const { Document, addDocument } = this.props.parent.props;
             const fieldKey = value.substring(1);
@@ -152,7 +152,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         }
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
-        const newDoc = Docs.Create.TextDocument({ height: 18, width: 200, documentText: "@@@" + value, title: value, autoHeight: true });
+        const newDoc = Docs.Create.TextDocument({ _height: 18, _width: 200, documentText: "@@@" + value, title: value, autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
@@ -310,7 +310,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 style={{
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
-                            ((this.props.parent.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
+                            ((this.props.parent.props.Document._chromeStatus !== 'view-mode' && this.props.parent.props.Document._chromeStatus !== 'disabled') ? 1 : 0)) || 1)
                 }}>
                 <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
@@ -350,7 +350,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
-        const chromeStatus = this.props.parent.props.Document.chromeStatus;
+        const chromeStatus = this.props.parent.props.Document._chromeStatus;
         return (
             <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>

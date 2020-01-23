@@ -82,7 +82,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
-        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
@@ -90,14 +89,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
             const { annotationsKey, fieldKey } = this.props;
-            const { extensionDoc, dataDoc } = this;
             if (annotationsKey) {
-                if (extensionDoc) {
-                    return extensionDoc[annotationsKey];
-                }
-                return undefined;
+                return this.dataDoc[fieldKey + "-" + annotationsKey];
             }
-            return dataDoc[fieldKey];
+            return this.dataDoc[fieldKey];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
@@ -216,7 +211,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, _width: 100, _height: 25, documentText: "@@@" + text }));
                 }
                 return;
             }
@@ -226,7 +221,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
                     const split = img.split("src=\"")[1].split("\"")[0];
-                    const doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
+                    const doc = Docs.Create.ImageDocument(split, { ...options, _width: 300 });
                     ImageUtils.ExtractExif(doc);
                     this.props.addDocument(doc);
                     return;
@@ -241,7 +236,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", width: 300, height: 300, documentText: text });
+                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300, documentText: text });
                         this.props.addDocument(htmlDoc);
                     }
                     return;
@@ -249,12 +244,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, _width: 400, _height: 315, _nativeWidth: 600, _nativeHeight: 472.5 }));
                 return;
             }
             let matches: RegExpExecArray | null;
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                const newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
+                const newBox = Docs.Create.TextDocument({ ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
                 const proto = newBox.proto!;
                 const documentId = matches[2];
                 proto[GoogleRef] = documentId;
@@ -303,7 +298,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const dropFileName = file ? file.name : "-empty-";
                     promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
                         results.map(action(({ clientAccessPath }: any) => {
-                            const full = { ...options, width: 300, title: dropFileName };
+                            const full = { ...options, _width: 300, title: dropFileName };
                             const pathname = Utils.prepend(clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 doc && (Doc.GetProto(doc).fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
@@ -318,7 +313,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
                 if (text && !text.includes("https://")) {
-                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, _width: 400, _height: 315 }));
                 }
                 batch.end();
             }

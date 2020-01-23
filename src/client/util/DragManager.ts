@@ -205,7 +205,7 @@ export namespace DragManager {
     // drag a button template and drop a new button 
     export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         const finishDrag = (e: DragCompleteEvent) => {
-            const bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
+            const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: title });
             bd.onClick = ScriptField.MakeScript(script);
             params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
             initialize && initialize(bd);

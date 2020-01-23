@@ -176,9 +176,9 @@ export class MainView extends React.Component {
         } else {
             if (received && this._urlState.sharing) {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
-                    initialized => initialized && received && DocServer.GetRefField(received).then(field => {
-                        if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
-                            CollectionDockingView.AddRightSplit(field, undefined);
+                    initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
+                        if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
+                            CollectionDockingView.AddRightSplit(docField, undefined);
                         }
                     }),
                 );
@@ -199,8 +199,8 @@ export class MainView extends React.Component {
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            width: this._panelWidth * .7,
-            height: this._panelHeight,
+            _width: this._panelWidth * .7,
+            _height: this._panelHeight,
             title: "Collection " + workspaceCount,
             backgroundColor: "white"
         };

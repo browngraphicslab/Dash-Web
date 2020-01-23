@@ -703,7 +703,7 @@ export class DashDocView {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
-    contentScaling = () => NumCast(this._dashDoc!.nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!.nativeWidth) : 1;
+    contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBox = tbox;
@@ -758,7 +758,7 @@ export class DashDocView {
                 ReactDOM.render(<DocumentView
                     Document={dashDoc}
                     LibraryPath={tbox.props.LibraryPath}
-                    fitToBox={BoolCast(dashDoc.fitToBox)}
+                    fitToBox={BoolCast(dashDoc._fitToBox)}
                     addDocument={returnFalse}
                     removeDocument={removeDoc}
                     ScreenToLocalTransform={this.getDocTransform}

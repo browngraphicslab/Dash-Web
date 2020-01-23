@@ -31,8 +31,8 @@ export class PreviewCursor extends React.Component<{}> {
                 if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
                     const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
                     return PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
-                        title: url, width: 400, height: 315,
-                        nativeWidth: 600, nativeHeight: 472.5,
+                        title: url, _width: 400, _height: 315,
+                        _nativeWidth: 600, _nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     }));
                 }

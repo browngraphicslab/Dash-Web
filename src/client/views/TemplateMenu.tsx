@@ -104,7 +104,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     toggleChrome = (): void => {
         this.props.docs.map(dv => {
             const layout = Doc.Layout(dv.Document);
-            layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
     onAliasButtonUp = (e: PointerEvent): void => {
@@ -150,7 +150,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"narrative"} name={"Narrative"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_narrative"} toggle={this.toggleNarrative} />);
-        templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
+        templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         return (
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<ul className="template-list" ref={this._dragRef} style={{ display: "block" }}>

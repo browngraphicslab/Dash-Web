@@ -24,11 +24,11 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         this._narrativeDisposer?.();
     }
     componentDidMount() {
-        this.props.Document.freeformLayoutEngine = "pivot";
-        if (!this.props.Document.facetCollection) {
-            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", yMargin: 0, treeViewHideTitle: true });
+        this.props.Document._freeformLayoutEngine = "pivot";
+        if (!this.props.Document._facetCollection) {
+            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
-            this.props.Document.excludeFields = new List<string>(["facetCollection", "docFilter", "viewSpecScript"]);
+            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilter", "viewSpecScript"]);
 
             const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
             const script = CompileScript(scriptText, {
@@ -54,15 +54,10 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                         }
                     }
                 }), { fireImmediately: true });
-            this.props.Document.facetCollection = facetCollection;
-            this.props.Document.fitToBox = true;
+            this.props.Document._facetCollection = facetCollection;
+            this.props.Document._fitToBox = true;
         }
     }
-
-    @computed get fieldExtensionDoc() {
-        return Doc.fieldExtensionDoc(this.props.DataDoc || this.props.Document, this.props.fieldKey);
-    }
-
     bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-200, 0);
 
@@ -76,7 +71,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
-        const facetCollection = this.props.Document.facetCollection;
+        const facetCollection = this.props.Document._facetCollection;
         if (facetCollection instanceof Doc) {
             const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facetHeader);
             if (found !== -1) {
@@ -120,11 +115,11 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        const facetCollection = Cast(this.props.Document?.facetCollection, Doc, null);
+        const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
             <div className="collectionPivotView-flyout" style={{ width: `${this._facetWidth}` }}>
                 {this._allFacets.map(facet => <label className="collectionPivotView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
-                    <input type="checkbox" onChange={e => { }} checked={this.props.Document.facetCollection instanceof Doc && DocListCast(this.props.Document.facetCollection.data).some(d => {
+                    <input type="checkbox" onChange={e => { }} checked={this.props.Document._facetCollection instanceof Doc && DocListCast(this.props.Document._facetCollection.data).some(d => {
                         return d.title === facet;
                     })} />
                     <span className="checkmark" />

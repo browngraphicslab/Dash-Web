@@ -79,7 +79,7 @@ export class IconBox extends React.Component<FieldViewProps> {
                 <Measure offset onResize={(r) => runInAction(() => {
                     if (r.offset!.width || this.props.Document.hideLabel) {
                         this.props.Document.iconWidth = (r.offset!.width + Number(MINIMIZED_ICON_SIZE));
-                        if (this.props.Document.height === Number(MINIMIZED_ICON_SIZE)) this.props.Document.width = this.props.Document.iconWidth;
+                        if (this.props.Document._height === Number(MINIMIZED_ICON_SIZE)) this.props.Document._width = this.props.Document.iconWidth;
                     }
                 })}>
                     {({ measureRef }) =>

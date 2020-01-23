@@ -235,7 +235,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             if (found) {
                 Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
             } else {
-                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" });
+                const stackView = Docs.Create.FreeformDocument([document], { _fitToBox: true, isDisplayPanel: true, title: "document viewer" });
                 CollectionDockingView.AddRightSplit(stackView, undefined, []);
             }
         }
@@ -505,7 +505,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         stack.header.element[0].style.backgroundColor = DocServer.Control.isReadOnly() ? "#228540" : undefined;
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
-                this.AddTab(stack, Docs.Create.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
+                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
             }
         });
 
@@ -665,19 +665,19 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
+    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) : this._panelWidth;
     panelHeight = () => this._panelHeight;
 
-    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
         if (this.layoutDoc!.type === DocumentType.PDF) {
-            if ((this.layoutDoc && this.layoutDoc.fitWidth) ||
-                this._panelHeight / NumCast(this.layoutDoc!.nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!.nativeWidth)) {
-                return this._panelWidth / NumCast(this.layoutDoc!.nativeWidth);
+            if ((this.layoutDoc && this.layoutDoc._fitWidth) ||
+                this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+                return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
             } else {
-                return this._panelHeight / NumCast(this.layoutDoc!.nativeHeight);
+                return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
             }
         }
         const nativeH = this.nativeHeight();
@@ -745,7 +745,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%",
+                    height: this.layoutDoc && this.layoutDoc._fitWidth ? undefined : "100%",
                     width: this.widthpercent
                 }}>
                 {this.docView}

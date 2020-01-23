@@ -152,7 +152,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
             DocServer.GetRefField(value).then(doc => {
                 DocServer.GetRefField(id).then(linkDoc => {
-                    this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                    this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
                     if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
                     else DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: this.dataDoc[key] as Doc }, "Ref:" + value, "link to named target", id);
@@ -193,8 +193,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
-            this.extensionDoc && !this.extensionDoc.lastModified && (this.extensionDoc.backgroundColor = "lightGray");
-            this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
+            this.dataDoc[this.props.fieldKey + "-lastModified"] && (this.dataDoc[this.props.fieldKey + "-backgroundColor"] = "lightGray");
+            this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
             this.updateTitle();
@@ -271,7 +271,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 const target = de.complete.docDragData.droppedDocuments[0];
                 // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
                 // if (link) {
-                target.fitToBox = true;
+                target._fitToBox = true;
                 const node = schema.nodes.dashDoc.create({
                     width: target[WidthSym](), height: target[HeightSym](),
                     title: "dashDoc", docid: target[Id],
@@ -704,11 +704,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
                     if ((pdfDoc instanceof Doc) && (pdfRegion instanceof Doc)) {
                         setTimeout(async () => {
-                            const extension = Doc.fieldExtensionDoc(pdfDoc, "data");
-                            if (extension) {
-                                const targetAnnotations = await DocListCastAsync(extension.annotations);// bcz: NO... this assumes the pdf is using its 'data' field.  need to have the PDF's view handle updating its own annotations
-                                targetAnnotations && targetAnnotations.push(pdfRegion);
-                            }
+                            const targetAnnotations = await DocListCastAsync(pdfDoc["data-annotations"]);// bcz: NO... this assumes the pdf is using its 'data' field.  need to have the PDF's view handle updating its own annotations
+                            targetAnnotations && targetAnnotations.push(pdfRegion);
                         });
 
                         const link = DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: pdfRegion, ctx: pdfDoc }, "note on " + pdfDoc.title, "pasted PDF link");
@@ -1069,12 +1066,12 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc.autoHeight = false;
             }
-            const nh = this.Document.isTemplateForField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
-            const dh = NumCast(this.layoutDoc.height, 0);
+            const nh = this.Document.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
+            const dh = NumCast(this.layoutDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
-                this.layoutDoc.height = newHeight;
-                this.dataDoc.nativeHeight = nh ? scrollHeight : undefined;
+                this.layoutDoc._height = newHeight;
+                this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
             }
         }
     }
@@ -1082,6 +1079,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidthPercent, "0%"); }
     @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
     @computed get annotationsKey() { return "annotations"; }
+    @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
@@ -1122,7 +1120,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} /> :
                     <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
-                        style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${StrCast(this.extensionDoc?.backgroundColor, "transparent")}` }}>
+                        style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
                         <CollectionFreeFormView {...this.props}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={() => this.sidebarWidth}

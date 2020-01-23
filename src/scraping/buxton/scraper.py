@@ -85,13 +85,14 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "proto": protofy(data_doc["_id"]),
             "x": 10,
             "y": 10,
-            "width": 900,
-            "height": 600,
-            "panX": 0,
-            "panY": 0,
+            "_width": 900,
+            "_height": 600,
+            "_panX": 0,
+            "_panY": 0,
             "zIndex": 2,
             "libraryBrush": False,
-            "viewType": viewType
+            "_viewType": viewType,
+            "_LODdisable": True
         },
         "__type": "Doc"
     }
@@ -100,9 +101,8 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
-    fields["viewType"] = 2
+    fields["_viewType"] = 2
     fields["author"] = "Bill Buxton"
-    fields["LODdisable"] = True
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
         "__type": "date"

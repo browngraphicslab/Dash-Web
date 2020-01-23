@@ -273,7 +273,7 @@ export namespace RichTextUtils {
             const guid = Utils.GenerateDeterministicGuid(src);
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
-                const backingDoc = Docs.Create.ImageDocument(src, { width: 300, height: 300 });
+                const backingDoc = Docs.Create.ImageDocument(src, { _width: 300, _height: 300 });
                 DocumentView.makeCustomViewClicked(backingDoc, undefined);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;

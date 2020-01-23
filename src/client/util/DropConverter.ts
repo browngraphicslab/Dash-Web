@@ -1,5 +1,4 @@
 import { DragManager } from "./DragManager";
-import { CollectionViewType } from "../views/collections/CollectionView";
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { DocumentType } from "../documents/DocumentTypes";
 import { ObjectField } from "../../new_fields/ObjectField";
@@ -34,7 +33,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
             } else {
                 layoutDoc.isTemplateDoc = (layoutDoc.type === DocumentType.TEXT || layoutDoc.layout instanceof Doc) && !data.userDropAction;
             }
-            dbox = Docs.Create.FontIconDocument({ nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
+            dbox = Docs.Create.FontIconDocument({ _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
             dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
