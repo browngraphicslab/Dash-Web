@@ -467,12 +467,10 @@ export namespace Doc {
         return expandedTemplateLayout instanceof Doc ? expandedTemplateLayout : undefined; // layout is undefined if the expandedTemplate is pending.
     }
 
-    // returns the layout/data doc pair to render for the specified childDoc of a collection.
-    // The containerDoc is treated as a template if its containerDataDoc has a value.  If so, 
-    // the childDoc is treated as a layout description for some field of the container doc's data doc.
+    // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
+    // otherwise, it just returns the childDoc
     export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
-        const resolvedDataDoc = containerDoc.isTemplateForField || containerDataDoc === containerDoc || !containerDataDoc ?
-            undefined : Doc.GetDataDoc(containerDataDoc);
+        const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc ? undefined : Doc.GetDataDoc(containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
     }
 

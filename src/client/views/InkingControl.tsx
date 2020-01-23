@@ -57,31 +57,31 @@ export class InkingControl {
                 let matchedColor = this._selectedColor;
                 const cvd = view.props.ContainingCollectionDoc;
                 let ruleProvider = view.props.ruleProvider;
-                if (cvd) {
-                    if (!cvd.colorPalette) {
-                        const defaultPalette = ["rg(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
-                            "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
-                        const colorPalette = Cast(cvd.colorPalette, listSpec("string"));
-                        if (!colorPalette) cvd.colorPalette = new List<string>(defaultPalette);
-                    }
-                    const cp = Cast(cvd.colorPalette, listSpec("string")) as string[];
-                    let closest = 0;
-                    let dist = 10000000;
-                    const ccol = Utils.fromRGBAstr(StrCast(targetDoc.backgroundColor));
-                    for (let i = 0; i < cp.length; i++) {
-                        const cpcol = Utils.fromRGBAstr(cp[i]);
-                        const d = Math.sqrt((ccol.r - cpcol.r) * (ccol.r - cpcol.r) + (ccol.b - cpcol.b) * (ccol.b - cpcol.b) + (ccol.g - cpcol.g) * (ccol.g - cpcol.g));
-                        if (d < dist) {
-                            dist = d;
-                            closest = i;
-                        }
-                    }
-                    cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
-                    cvd.colorPalette = new List(cp);
-                    matchedColor = cp[closest];
-                    ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
-                    ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
-                }
+                // if (cvd) {
+                //     if (!cvd.colorPalette) {
+                //         const defaultPalette = ["rg(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
+                //             "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
+                //         const colorPalette = Cast(cvd.colorPalette, listSpec("string"));
+                //         if (!colorPalette) cvd.colorPalette = new List<string>(defaultPalette);
+                //     }
+                //     const cp = Cast(cvd.colorPalette, listSpec("string")) as string[];
+                //     let closest = 0;
+                //     let dist = 10000000;
+                //     const ccol = Utils.fromRGBAstr(StrCast(targetDoc.backgroundColor));
+                //     for (let i = 0; i < cp.length; i++) {
+                //         const cpcol = Utils.fromRGBAstr(cp[i]);
+                //         const d = Math.sqrt((ccol.r - cpcol.r) * (ccol.r - cpcol.r) + (ccol.b - cpcol.b) * (ccol.b - cpcol.b) + (ccol.g - cpcol.g) * (ccol.g - cpcol.g));
+                //         if (d < dist) {
+                //             dist = d;
+                //             closest = i;
+                //         }
+                //     }
+                //     cp[closest] = "rgba(" + color.rgb.r + "," + color.rgb.g + "," + color.rgb.b + "," + color.rgb.a + ")";
+                //     cvd.colorPalette = new List(cp);
+                //     matchedColor = cp[closest];
+                //     ruleProvider = (view.props.Document.heading && ruleProvider) ? ruleProvider : undefined;
+                //     ruleProvider && ((Doc.GetProto(ruleProvider)["ruleColor_" + NumCast(view.props.Document.heading)] = Utils.toRGBAstr(color.rgb)));
+                // }
                 (!ruleProvider && targetDoc) && (Doc.Layout(view.props.Document).backgroundColor = matchedColor);
 
                 return {
