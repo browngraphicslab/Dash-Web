@@ -3,7 +3,7 @@ import { faBell, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObj
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, Opt, WidthSym, HeightSym, Field } from "../../../new_fields/Doc";
 import { ProxyField } from "../../../new_fields/Proxy";
 import { RichTextField, ToPlainText } from "../../../new_fields/RichTextField";
 import { Cast, NumCast, ScriptCast } from "../../../new_fields/Types";
@@ -61,7 +61,6 @@ export class
         return (
             <div className="collectionSchemaView-previewDoc">
                 <ContentFittingDocumentView
-                    ruleProvider={undefined}
                     pinToPres={this.props.pinToPres}
                     Document={d}
                     LibraryPath={emptyPath}
@@ -145,8 +144,7 @@ export class
     //Displays numerical value of thubmnail on ruler when selected with marquee.
     private calculatepreview() {
         if (!this.props.rangeval) {
-            console.log(this.props.doc[this.props.sortstate]);
-            return this.props.doc[this.props.sortstate];
+            return Field.toString(this.props.doc[this.props.sortstate] as Field);
         }
         return Math.round(NumCast(this.props.doc[this.props.sortstate]));
     }

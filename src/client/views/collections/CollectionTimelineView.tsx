@@ -1,7 +1,7 @@
 import React = require("react");
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, Field } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -397,15 +397,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 case "boolean":
                     partitioned.booleans.push({ childDoc, value });
                     break;
-                case "string":
-                    partitioned.strings.push({ childDoc, value });
-                    break;
                 case "number":
                     partitioned.numbers.push({ childDoc, value });
                     break;
-                default:
-                    alert(`${this.currentSortingKey} is not a valid sorting key for this collection, since ${childDoc[Id]} has a non-primitive field type at this key!`);
-                    return;
+                default: {
+                    const stuff = Field.toString(value as Field);
+                    partitioned.strings.push({ childDoc, value: stuff });
+                    break;
+                }
             }
         });
 
