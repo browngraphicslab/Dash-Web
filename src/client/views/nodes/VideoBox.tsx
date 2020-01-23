@@ -353,7 +353,6 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                     addDocument={this.addDocumentWithTimestamp}
                     CollectionView={undefined}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                    ruleProvider={undefined}
                     renderDepth={this.props.renderDepth + 1}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     chromeCollapsed={true}>

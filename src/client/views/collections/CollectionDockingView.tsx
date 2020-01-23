@@ -723,7 +723,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             bringToFront={emptyFunction}
             addDocument={undefined}
             removeDocument={undefined}
-            ruleProvider={undefined}
             ContentScaling={this.contentScaling}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}

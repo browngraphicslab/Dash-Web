@@ -761,7 +761,6 @@ export class DashDocView {
                     fitToBox={BoolCast(dashDoc.fitToBox)}
                     addDocument={returnFalse}
                     removeDocument={removeDoc}
-                    ruleProvider={undefined}
                     ScreenToLocalTransform={this.getDocTransform}
                     addDocTab={self._textBox.props.addDocTab}
                     pinToPres={returnFalse}

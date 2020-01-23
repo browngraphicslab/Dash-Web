@@ -362,14 +362,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onRadiusMove = (e: PointerEvent): void => {
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         dist = dist < 3 ? 0 : dist;
-        let usingRule = false;
-        SelectionManager.SelectedDocuments().map(dv => {
-            const ruleProvider = dv.props.ruleProvider;
-            const heading = NumCast(dv.props.Document.heading);
-            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
-            usingRule = usingRule || (ruleProvider && heading ? true : false);
-        });
-        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateForField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateForField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();

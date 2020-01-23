@@ -72,7 +72,6 @@ export interface DocumentViewProps {
     renderDepth: number;
     showOverlays?: (doc: Doc) => { title?: string, titleHover?: string, caption?: string };
     ContentScaling: () => number;
-    ruleProvider: Doc | undefined;
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => void;
@@ -875,7 +874,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             renderDepth={this.props.renderDepth}
             showOverlays={this.props.showOverlays}
             ContentScaling={this.childScaling}
-            ruleProvider={this.props.ruleProvider}
             PanelWidth={this.props.PanelWidth}
             PanelHeight={this.props.PanelHeight}
             focus={this.props.focus}
@@ -967,16 +965,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
-        const ruleColor = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleColor_" + this.Document.heading]) : undefined;
-        const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
         const colorSet = this.setsLayoutProp("backgroundColor");
         const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
         const backgroundColor = (clusterCol && !colorSet) ?
             this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
-            ruleColor && !colorSet ? ruleColor : StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
+            StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
 
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        const borderRounding = this.getLayoutPropStr("borderRounding") || ruleRounding;
+        const borderRounding = this.getLayoutPropStr("borderRounding");
         const localScale = fullDegree;
 
         const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;

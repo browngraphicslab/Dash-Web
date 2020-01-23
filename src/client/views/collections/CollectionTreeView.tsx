@@ -43,7 +43,6 @@ export interface TreeViewProps {
     prevSibling?: Doc;
     renderDepth: number;
     deleteDoc: (doc: Doc) => boolean;
-    ruleProvider: Doc | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string, libraryPath?: Doc[]) => boolean;
@@ -352,7 +351,6 @@ class TreeView extends React.Component<TreeViewProps> {
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     showOverlays={this.noOverlays}
-                    ruleProvider={this.props.document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.document : this.props.ruleProvider}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     PanelWidth={this.docWidth}
                     PanelHeight={this.docHeight}
@@ -559,7 +557,6 @@ class TreeView extends React.Component<TreeViewProps> {
                 containingCollection={containingCollection}
                 prevSibling={docs[i]}
                 treeViewId={treeViewId}
-                ruleProvider={containingCollection.isRuleProvider && pair.layout.type !== DocumentType.TEXT ? containingCollection : containingCollection.ruleProvider as Doc}
                 key={child[Id]}
                 indentDocument={indent}
                 outdentDocument={outdent}

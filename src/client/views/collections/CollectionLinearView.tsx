@@ -108,7 +108,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 addDocTab={this.props.addDocTab}
                                 pinToPres={emptyFunction}
                                 removeDocument={this.props.removeDocument}
-                                ruleProvider={undefined}
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}

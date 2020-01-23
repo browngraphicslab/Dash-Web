@@ -54,7 +54,6 @@ export const panZoomSchema = createSchema({
     arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
-    isRuleProvider: "boolean",
     fitToBox: "boolean",
     xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
@@ -103,14 +102,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-        const maxHeading = this.childDocs.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
-        let heading = maxHeading === 0 || this.childDocs.length === 0 ? 1 : maxHeading === 1 ? 2 : 0;
-        if (heading === 0) {
-            const sorted = this.childDocs.filter(d => d.type === DocumentType.TEXT && d.data_ext instanceof Doc && d.data_ext.lastModified).sort((a, b) => DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date > DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? 1 :
-                DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date < DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? -1 : 0);
-            heading = !sorted.length ? Math.max(1, maxHeading) : NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
-        }
-        !this.Document.isRuleProvider && (newBox.heading = heading);
         this.addDocument(newBox);
     }
     private addDocument = (newBox: Doc) => {
@@ -412,16 +403,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         if (!this.isAnnotationOverlay) {
             PDFMenu.Instance.fadeOut(true);
-            const minx = docs.length ? NumCast(docs[0].x) : 0;
-            const maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
-            const miny = docs.length ? NumCast(docs[0].y) : 0;
-            const maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+            const minx = this.childDataProvider(docs[0]).x;//docs.length ? NumCast(docs[0].x) : 0;
+            const miny = this.childDataProvider(docs[0]).y;//docs.length ? NumCast(docs[0].y) : 0;
+            const maxx = this.childDataProvider(docs[0]).width + minx;//docs.length ? NumCast(docs[0].width) + minx : minx;
+            const maxy = this.childDataProvider(docs[0]).height + miny;//docs.length ? NumCast(docs[0].height) + miny : miny;
             const ranges = docs.filter(doc => doc).reduce((range, doc) => {
                 const layoutDoc = Doc.Layout(doc);
-                const x = NumCast(doc.x);
-                const xe = x + NumCast(layoutDoc.width);
-                const y = NumCast(doc.y);
-                const ye = y + NumCast(layoutDoc.height);
+                const x = this.childDataProvider(doc).x;//NumCast(doc.x);
+                const y = this.childDataProvider(doc).y;//NumCast(doc.y);
+                const xe = this.childDataProvider(doc).width + x;//x + NumCast(layoutDoc.width);
+                const ye = this.childDataProvider(doc).height + y; //y + NumCast(layoutDoc.height);
                 return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                 [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
             }, [[minx, maxx], [miny, maxy]]);
@@ -694,7 +685,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             Document: childLayout,
             LibraryPath: this.libraryPath,
             layoutKey: undefined,
-            ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
@@ -779,7 +769,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             computedElementData.elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
-                    ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || this.Document.freeformLayoutEngine === "pivot"} />,
                 bounds: this.childDataProvider(pair.layout)
@@ -827,20 +816,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }, "arrange contents");
     }
 
-    autoFormat = () => {
-        this.Document.isRuleProvider = !this.Document.isRuleProvider;
-        // find rule colorations when rule providing is turned on by looking at each document to see if it has a coloring -- if so, use it's color as the rule for its associated heading.
-        this.Document.isRuleProvider && this.childLayoutPairs.map(pair =>
-            // iterate over the children of a displayed document (or if the displayed document is a template, iterate over the children of that template)
-            DocListCast(Doc.Layout(pair.layout).data).map(heading => {
-                const headingPair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, heading);
-                const headingLayout = headingPair.layout && (pair.layout.data_ext instanceof Doc) && (pair.layout.data_ext[`Layout[${headingPair.layout[Id]}]`] as Doc) || headingPair.layout;
-                if (headingLayout && NumCast(headingLayout.heading) > 0 && headingLayout.backgroundColor !== headingLayout.defaultBackgroundColor) {
-                    Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(headingLayout.heading)] = headingLayout.backgroundColor;
-                }
-            })
-        );
-    }
 
     analyzeStrokes = async () => {
         const children = await DocListCastAsync(this.dataDoc.data);
@@ -908,7 +883,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         layoutItems.push({ description: `${this.Document.LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document.LODdisable = !this.Document.LODdisable, icon: "table" });
         layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document.fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        layoutItems.push({ description: `${this.Document.isRuleProvider ? "Stop Auto Format" : "Auto Format"}`, event: this.autoFormat, icon: "chalkboard" });
         layoutItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });

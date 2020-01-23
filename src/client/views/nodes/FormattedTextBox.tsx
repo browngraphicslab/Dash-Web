@@ -89,7 +89,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
-    private _rulesReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
@@ -549,36 +548,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
-        this._rulesReactionDisposer = reaction(() => {
-            const ruleProvider = this.props.ruleProvider;
-            const heading = NumCast(this.layoutDoc.heading);
-            if (ruleProvider instanceof Doc) {
-                return {
-                    align: StrCast(ruleProvider["ruleAlign_" + heading], ""),
-                    font: StrCast(ruleProvider["ruleFont_" + heading], "Arial"),
-                    size: NumCast(ruleProvider["ruleSize_" + heading], 13)
-                };
-            }
-            return undefined;
-        },
-            action((rules: any) => {
-                this._ruleFontFamily = rules ? rules.font : "Arial";
-                this._ruleFontSize = rules ? rules.size : 0;
-                rules && setTimeout(() => {
-                    const view = this._editorView!;
-                    if (this.ProseRef) {
-                        const n = new NodeSelection(view.state.doc.resolve(0));
-                        if (this._editorView!.state.doc.textContent === "") {
-                            view.dispatch(view.state.tr.setSelection(new TextSelection(view.state.doc.resolve(0), view.state.doc.resolve(2))).
-                                replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true));
-                        } else if (n.node && n.node.type === view.state.schema.nodes.paragraph) {
-                            view.dispatch(view.state.tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align }));
-                        }
-                        this.tryUpdateHeight();
-                    }
-                }, 0);
-            }), { fireImmediately: true }
-        );
         this._scrollToRegionReactionDisposer = reaction(
             () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
@@ -849,7 +818,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     componentWillUnmount() {
         this._scrollToRegionReactionDisposer && this._scrollToRegionReactionDisposer();
-        this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._pushReactionDisposer && this._pushReactionDisposer();
@@ -1171,7 +1139,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             addDocument={(doc: Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
                             CollectionView={undefined}
                             ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
-                            ruleProvider={undefined}
                             renderDepth={this.props.renderDepth + 1}
                             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                             chromeCollapsed={true}>

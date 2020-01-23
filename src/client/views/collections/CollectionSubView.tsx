@@ -40,7 +40,6 @@ export interface CollectionViewProps extends FieldViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
-    ruleProvider: Doc | undefined;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     isAnnotationOverlay?: boolean;
     annotationsKey: string;

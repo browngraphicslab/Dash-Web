@@ -276,7 +276,6 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             onClick={undefined}
-            ruleProvider={undefined}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
@@ -377,7 +376,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
-                    ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}
@@ -404,7 +402,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={returnFalse}
-                    ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={this.mainContainerXf}
                     ContentScaling={returnOne}
@@ -500,7 +497,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
-                    ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
                     ContentScaling={returnOne}

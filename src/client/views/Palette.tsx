@@ -56,7 +56,6 @@ export default class Palette extends React.Component<PaletteProps> {
                             addDocTab={returnFalse}
                             pinToPres={emptyFunction}
                             removeDocument={undefined}
-                            ruleProvider={undefined}
                             onClick={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}

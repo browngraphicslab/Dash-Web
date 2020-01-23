@@ -161,7 +161,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
-                    ruleProvider={undefined}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     getTransform={Transform.Identity}

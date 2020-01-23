@@ -462,7 +462,6 @@ export default class GestureOverlay extends Touchable {
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
                 onClick={undefined}
-                ruleProvider={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1)}
                 ContentScaling={returnOne}

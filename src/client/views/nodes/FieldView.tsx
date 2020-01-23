@@ -27,7 +27,6 @@ export interface FieldViewProps {
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
-    ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;
     LibraryPath: Doc[];

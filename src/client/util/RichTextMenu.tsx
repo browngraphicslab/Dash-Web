@@ -367,27 +367,11 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
-        const size = mark.attrs.fontSize;
-        if (this.editorProps) {
-            const ruleProvider = this.editorProps.ruleProvider;
-            const heading = NumCast(this.editorProps.Document.heading);
-            if (ruleProvider && heading) {
-                ruleProvider["ruleSize_" + heading] = size;
-            }
-        }
-        this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: size }), view.state, view.dispatch);
+        this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch);
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
-        const fontName = mark.attrs.family;
-        if (this.editorProps) {
-            const ruleProvider = this.editorProps.ruleProvider;
-            const heading = NumCast(this.editorProps.Document.heading);
-            if (ruleProvider && heading) {
-                ruleProvider["ruleFont_" + heading] = fontName;
-            }
-        }
-        this.setMark(view.state.schema.marks.pFontFamily.create({ family: fontName }), view.state, view.dispatch);
+        this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch);
     }
 
     // TODO: remove doesn't work
