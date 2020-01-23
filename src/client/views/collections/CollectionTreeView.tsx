@@ -375,7 +375,7 @@ class TreeView extends React.Component<TreeViewProps> {
         if (this.props.onCheckedClick && this.props.document.type !== DocumentType.COL) {
             // this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
             ScriptCast(this.props.onCheckedClick).script.run({
-                this: this.props.document.isTemplateField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
+                this: this.props.document.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
                 heading: this.props.containingCollection.title,
                 checked: this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check",
                 containingTreeView: this.props.treeViewId,
@@ -519,7 +519,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
         const rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
-            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
+            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child);
             if (!pair.layout || pair.data instanceof Promise) {
                 return (null);
             }
@@ -646,7 +646,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 ], { autoHeight: true, chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
 
-                const cardLayout = ImageDocument(fallbackImg, { isTemplateDoc: true, isTemplateField: true }); // this acts like a template doc and a template field ... a little weird, but seems to work?
+                const cardLayout = ImageDocument(fallbackImg, { isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 cardLayout.proto!.layout = ImageBox.LayoutString("hero");
                 cardLayout.showTitle = "title";
                 cardLayout.showTitleHover = "titlehover";

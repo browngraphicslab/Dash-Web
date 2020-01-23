@@ -268,7 +268,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
-                this.onClickHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc }, console.log);
+                this.onClickHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc }, console.log);
             } else if (this.Document.type === DocumentType.BUTTON) {
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
@@ -438,7 +438,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (this.onPointerDownHandler && this.onPointerDownHandler.script) {
-            this.onPointerDownHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            this.onPointerDownHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             return;
@@ -495,7 +495,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onPointerUp = (e: PointerEvent): void => {
         if (this.onPointerUpHandler && this.onPointerUpHandler.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-            this.onPointerUpHandler.script.run({ this: this.Document.isTemplateField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            this.onPointerUpHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             return;
         }
@@ -996,7 +996,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 color: StrCast(this.Document.color),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: this.props.Document.isTemplateField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
+                boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc.viewType === CollectionViewType.Linear ? undefined : backgroundColor,
                 width: animwidth,
                 height: animheight,

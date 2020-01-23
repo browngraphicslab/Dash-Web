@@ -44,7 +44,7 @@ export class InkingControl {
             const oldColors = selected.map(view => {
                 const targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :
                     view.props.Document.layout instanceof Doc ? view.props.Document.layout :
-                        view.props.Document.isTemplateField ? view.props.Document : Doc.GetProto(view.props.Document);
+                        view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
                 const sel = window.getSelection();
                 if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
                     targetDoc.color = this._selectedColor;

@@ -1101,7 +1101,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc.autoHeight = false;
             }
-            const nh = this.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
+            const nh = this.Document.isTemplateForField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             const dh = NumCast(this.layoutDoc.height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle

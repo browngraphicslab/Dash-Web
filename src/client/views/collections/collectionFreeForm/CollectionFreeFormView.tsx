@@ -833,7 +833,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.Document.isRuleProvider && this.childLayoutPairs.map(pair =>
             // iterate over the children of a displayed document (or if the displayed document is a template, iterate over the children of that template)
             DocListCast(Doc.Layout(pair.layout).data).map(heading => {
-                const headingPair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, heading);
+                const headingPair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, heading);
                 const headingLayout = headingPair.layout && (pair.layout.data_ext instanceof Doc) && (pair.layout.data_ext[`Layout[${headingPair.layout[Id]}]`] as Doc) || headingPair.layout;
                 if (headingLayout && NumCast(headingLayout.heading) > 0 && headingLayout.backgroundColor !== headingLayout.defaultBackgroundColor) {
                     Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(headingLayout.heading)] = headingLayout.backgroundColor;

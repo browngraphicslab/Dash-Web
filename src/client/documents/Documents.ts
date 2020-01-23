@@ -76,7 +76,7 @@ export interface DocumentOptions {
     preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
-    isTemplateField?: boolean;
+    isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     templates?: List<string>;
     viewType?: number;

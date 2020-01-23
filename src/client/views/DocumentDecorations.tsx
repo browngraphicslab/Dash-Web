@@ -369,7 +369,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
             usingRule = usingRule || (ruleProvider && heading ? true : false);
         });
-        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateForField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();

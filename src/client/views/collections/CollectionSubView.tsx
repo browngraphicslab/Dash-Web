@@ -73,7 +73,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), "layoutFromParent"));
                     }
                     else if (!(args[1] instanceof Promise)) {
-                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
+                        this.childDocs.filter(d => !d.isTemplateForField).map(async doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
                     }
                 });
 
@@ -82,7 +82,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
         @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
@@ -102,8 +102,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
-            const { Document, DataDoc, fieldKey } = this.props;
-            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, fieldKey, doc)).filter(pair => pair.layout);
+            const { Document, DataDoc } = this.props;
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, doc)).filter(pair => pair.layout);
             return validPairs.map(({ data, layout }) => ({ data: data!, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {

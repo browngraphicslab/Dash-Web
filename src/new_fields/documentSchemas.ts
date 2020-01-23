@@ -26,7 +26,7 @@ export const documentSchema = createSchema({
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
     autoHeight: "boolean",      // whether the height of the document should be computed automatically based on its contents
-    isTemplateField: "boolean", // whether this document acts as a template layout for describing how other documents should be displayed
+    isTemplateForField: "string",// when specifies a field key, then the containing document is a template that renders the specified field
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     type: "string",             // enumerated type of document
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden

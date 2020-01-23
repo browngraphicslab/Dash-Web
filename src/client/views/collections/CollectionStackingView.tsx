@@ -39,7 +39,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
-    @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized).map(d => (Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d).layout as Doc) || d); }
+    @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized).map(d => (Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, d).layout as Doc) || d); }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return Math.max(this.props.Document.showTitle && !this.props.Document.showTitleHover ? 30 : 0, NumCast(this.props.Document.yMargin, 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }

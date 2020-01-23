@@ -36,7 +36,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
 
     @computed get dataDoc() {
         return this.props.DataDoc &&
-            (this.Document.isTemplateField || BoolCast(this.props.DataDoc.isTemplateField) ||
+            (this.Document.isTemplateForField || BoolCast(this.props.DataDoc.isTemplateForField) ||
                 this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document);
     }
 
