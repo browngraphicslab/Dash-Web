@@ -5,22 +5,14 @@
 .mainView-tabButtons {
     position: relative;
     width: 100%;
-    .documentView-node-topmost {
-        height: 200% !important;
-    }
 }
 
 .mainContent-div {
     position: relative;
-    width:100%;
-    height:100%;
+    width: 100%;
+    height: 100%;
 }
 
-.mainView-contentArea {
-    .documentView-node-topmost {
-        height: 200% !important;
-    }
-}
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 .mainView-docButtons {
     position: absolute;
@@ -36,6 +28,7 @@
     top: 0;
     left: 0;
     z-index: 1;
+    touch-action: none;
 }
 
 .mainView-mainContent {
@@ -65,16 +58,32 @@
     overflow: hidden;
 }
 
+
+.mainView-settings {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    font-size: 8px;
+}
+
+.mainView-settings:hover {
+    transform: none !important;
+}
+
 .mainView-logout {
     position: absolute;
-    right: 5;
-    bottom: 5;
+    right: 0;
+    bottom: 0;
     font-size: 8px;
+}
+
+.mainView-logout:hover {
+    transform: none !important;
 }
 
 .mainView-libraryFlyout {
     height: 100%;
-    width:100%;
+    width: 100%;
     position: absolute;
     display: flex;
     flex-direction: column;

@@ -29,8 +29,6 @@ import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
 import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
-import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
-import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
@@ -77,7 +75,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
-    public static ToolTipTextMenu: TooltipTextMenu | undefined = undefined;
     public ProseRef?: HTMLDivElement;
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -92,7 +89,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
-    private _rulesReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
@@ -125,10 +121,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             return docid;
         }
         return "";
-    }
-
-    public static getToolTip(ev: EditorView) {
-        return this.ToolTipTextMenu ? this.ToolTipTextMenu : this.ToolTipTextMenu = new TooltipTextMenu(ev);
     }
 
     @undoBatch
@@ -485,11 +477,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             schema,
             plugins: [
                 inputRules(inpRules),
-                this.tooltipTextMenuPlugin(),
+                this.richTextMenuPlugin(),
                 history(),
                 keymap(this._keymap),
                 keymap(baseKeymap),
-                // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
                     props: {
                         attributes: { class: "ProseMirror-example-setup-style" }
@@ -557,36 +548,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
-        this._rulesReactionDisposer = reaction(() => {
-            const ruleProvider = this.props.ruleProvider;
-            const heading = NumCast(this.layoutDoc.heading);
-            if (ruleProvider instanceof Doc) {
-                return {
-                    align: StrCast(ruleProvider["ruleAlign_" + heading], ""),
-                    font: StrCast(ruleProvider["ruleFont_" + heading], "Arial"),
-                    size: NumCast(ruleProvider["ruleSize_" + heading], 13)
-                };
-            }
-            return undefined;
-        },
-            action((rules: any) => {
-                this._ruleFontFamily = rules ? rules.font : "Arial";
-                this._ruleFontSize = rules ? rules.size : 0;
-                rules && setTimeout(() => {
-                    const view = this._editorView!;
-                    if (this.ProseRef) {
-                        const n = new NodeSelection(view.state.doc.resolve(0));
-                        if (this._editorView!.state.doc.textContent === "") {
-                            view.dispatch(view.state.tr.setSelection(new TextSelection(view.state.doc.resolve(0), view.state.doc.resolve(2))).
-                                replaceSelectionWith(this._editorView!.state.schema.nodes.paragraph.create({ align: rules.align }), true));
-                        } else if (n.node && n.node.type === view.state.schema.nodes.paragraph) {
-                            view.dispatch(view.state.tr.setNodeMarkup(0, n.node.type, { ...n.node.attrs, align: rules.align }));
-                        }
-                        this.tryUpdateHeight();
-                    }
-                }, 0);
-            }), { fireImmediately: true }
-        );
         this._scrollToRegionReactionDisposer = reaction(
             () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
@@ -857,7 +818,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     componentWillUnmount() {
         this._scrollToRegionReactionDisposer && this._scrollToRegionReactionDisposer();
-        this._rulesReactionDisposer && this._rulesReactionDisposer();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._pushReactionDisposer && this._pushReactionDisposer();
@@ -1038,25 +998,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
-    tooltipTextMenuPlugin() {
+    richTextMenuPlugin() {
         const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                // return self.ToolTipTextMenu = FormattedTextBox.getToolTip(newView);
                 RichTextMenu.Instance.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });
     }
 
-    tooltipLinkingMenuPlugin() {
-        const myprops = this.props;
-        return new Plugin({
-            view(_editorView) {
-                return new TooltipLinkingMenu(_editorView, myprops);
-            }
-        });
-    }
     onBlur = (e: any) => {
         //DictationManager.Controls.stop(false);
         if (this._undoTyping) {
@@ -1118,7 +1069,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc.autoHeight = false;
             }
-            const nh = this.Document.isTemplateField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
+            const nh = this.Document.isTemplateForField ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             const dh = NumCast(this.layoutDoc.height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
@@ -1138,7 +1089,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this.props.isSelected()) {
             // TODO: ftong --> update from dash in richtextmenu
             RichTextMenu.Instance.updateFromDash(this._editorView!, undefined, this.props);
-            // FormattedTextBox.ToolTipTextMenu!.updateFromDash(this._editorView!, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }
@@ -1189,7 +1139,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             addDocument={(doc: Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
                             CollectionView={undefined}
                             ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
-                            ruleProvider={undefined}
                             renderDepth={this.props.renderDepth + 1}
                             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                             chromeCollapsed={true}>

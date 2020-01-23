@@ -1,6 +1,6 @@
 import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
-import * as express from 'express';
+import { Request, Response, Express } from 'express';
 import { cyan, red, green } from 'colors';
 
 export enum Method {
@@ -9,8 +9,8 @@ export enum Method {
 }
 
 export interface CoreArguments {
-    req: express.Request;
-    res: express.Response;
+    req: Request;
+    res: Response;
     isRelease: boolean;
 }
 
@@ -35,7 +35,7 @@ enum RegistrationError {
 }
 
 export default class RouteManager {
-    private server: express.Express;
+    private server: Express;
     private _isRelease: boolean;
     private failedRegistrations: { route: string, reason: RegistrationError }[] = [];
 
@@ -43,7 +43,7 @@ export default class RouteManager {
         return this._isRelease;
     }
 
-    constructor(server: express.Express, isRelease: boolean) {
+    constructor(server: Express, isRelease: boolean) {
         this.server = server;
         this._isRelease = isRelease;
     }
@@ -68,7 +68,7 @@ export default class RouteManager {
                 console.log('please remove all duplicate routes before continuing');
             }
             if (malformedCount) {
-                console.log(`please ensure all routes adhere to ^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?]+)*$`);
+                console.log(`please ensure all routes adhere to ^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?_]+)*$`);
             }
             process.exit(1);
         } else {
@@ -83,9 +83,10 @@ export default class RouteManager {
      * @param initializer 
      */
     addSupervisedRoute = (initializer: RouteInitializer): void => {
-        const { method, subscription, secureHandler: onValidation, publicHandler: onUnauthenticated, errorHandler: onError } = initializer;
+        const { method, subscription, secureHandler, publicHandler, errorHandler } = initializer;
+
         const isRelease = this._isRelease;
-        const supervised = async (req: express.Request, res: express.Response) => {
+        const supervised = async (req: Request, res: Response) => {
             let { user } = req;
             const { originalUrl: target } = req;
             if (process.env.DB === "MEM" && !user) {
@@ -97,19 +98,19 @@ export default class RouteManager {
                     await toExecute(args);
                 } catch (e) {
                     console.log(red(target), user && ("email" in user) ? "<user logged out>" : undefined);
-                    if (onError) {
-                        onError({ ...core, error: e });
+                    if (errorHandler) {
+                        errorHandler({ ...core, error: e });
                     } else {
                         _error(res, `The server encountered an internal error when serving ${target}.`, e);
                     }
                 }
             };
             if (user) {
-                await tryExecute(onValidation, { ...core, user });
+                await tryExecute(secureHandler, { ...core, user });
             } else {
                 req.session!.target = target;
-                if (onUnauthenticated) {
-                    await tryExecute(onUnauthenticated, core);
+                if (publicHandler) {
+                    await tryExecute(publicHandler, core);
                     if (!res.headersSent) {
                         res.redirect("/login");
                     }
@@ -132,7 +133,7 @@ export default class RouteManager {
             } else {
                 route = subscriber.build;
             }
-            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?]+)*$/g.test(route)) {
+            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?_]+)*$/g.test(route)) {
                 this.failedRegistrations.push({
                     reason: RegistrationError.Malformed,
                     route
@@ -178,24 +179,24 @@ export const STATUS = {
     PERMISSION_DENIED: 403
 };
 
-export function _error(res: express.Response, message: string, error?: any) {
+export function _error(res: Response, message: string, error?: any) {
     console.error(message);
     res.statusMessage = message;
     res.status(STATUS.EXECUTION_ERROR).send(error);
 }
 
-export function _success(res: express.Response, body: any) {
+export function _success(res: Response, body: any) {
     res.status(STATUS.OK).send(body);
 }
 
-export function _invalid(res: express.Response, message: string) {
+export function _invalid(res: Response, message: string) {
     res.statusMessage = message;
     res.status(STATUS.BAD_REQUEST).send();
 }
 
-export function _permission_denied(res: express.Response, message?: string) {
+export function _permission_denied(res: Response, message?: string) {
     if (message) {
         res.statusMessage = message;
     }
-    res.status(STATUS.BAD_REQUEST).send("Permission Denied!");
+    res.status(STATUS.PERMISSION_DENIED).send("Permission Denied!");
 }

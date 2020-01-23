@@ -174,7 +174,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
     //
     @undoBatch
     @action
@@ -209,7 +209,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     @action
-    public AddBottomSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
+    public AddBottomSplit = (document: Doc, dataDoc: Doc | undefined) => {
         const docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -260,17 +260,45 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             rowlayout.config.height = 50;
             newContentItem.config.height = 50;
         }
-        if (minimize) {
-            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
-            // newContentItem.config.width = 10;
-            // newContentItem.config.height = 10;
-        }
         newContentItem.callDownwards('_$init');
         this.layoutChanged();
 
         return newContentItem;
     }
 
+
+    //
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //
+    @undoBatch
+    @action
+    public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        if (instance._goldenLayout.root.contentItems[0].isRow) {
+            let found: DocumentView | undefined;
+            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.props.Document.isDisplayPanel) {
+                    found = DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!;
+                } else {
+                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.props.Document.isDisplayPanel) {
+                            found = DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!;
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+            });
+            if (found) {
+                Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
+            } else {
+                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" });
+                CollectionDockingView.AddRightSplit(stackView, undefined, []);
+            }
+        }
+    }
 
     @undoBatch
     @action
@@ -756,7 +784,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             bringToFront={emptyFunction}
             addDocument={undefined}
             removeDocument={undefined}
-            ruleProvider={undefined}
             ContentScaling={this.contentScaling}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
@@ -787,3 +814,4 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 }
 Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc, undefined); });
+Scripting.addGlobal(function useRightSplit(doc: any) { CollectionDockingView.UseRightSplit(doc, undefined); });

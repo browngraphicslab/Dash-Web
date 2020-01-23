@@ -306,7 +306,7 @@ export const marks: { [index: string]: MarkSpec } = {
             }
         }],
         toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
+            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
         }
     },
 
@@ -761,7 +761,6 @@ export class DashDocView {
                     fitToBox={BoolCast(dashDoc.fitToBox)}
                     addDocument={returnFalse}
                     removeDocument={removeDoc}
-                    ruleProvider={undefined}
                     ScreenToLocalTransform={this.getDocTransform}
                     addDocTab={self._textBox.props.addDocTab}
                     pinToPres={returnFalse}
@@ -855,7 +854,8 @@ export class FootnoteView {
                 }),
                 new Plugin({
                     view(newView) {
-                        return FormattedTextBox.getToolTip(newView);
+                        // TODO -- make this work with RichTextMenu
+                        // return FormattedTextBox.getToolTip(newView);
                     }
                 })
                 ],

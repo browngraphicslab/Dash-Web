@@ -1,6 +1,6 @@
 import { Doc } from "./Doc";
 import { RefField } from "./RefField";
-import { OnUpdate, Parent, Copy, ToScriptString } from "./FieldSymbols";
+import { OnUpdate, Parent, Copy, ToScriptString, ToString } from "./FieldSymbols";
 import { Scripting } from "../client/util/Scripting";
 
 export abstract class ObjectField {
@@ -9,6 +9,7 @@ export abstract class ObjectField {
     abstract [Copy](): ObjectField;
 
     abstract [ToScriptString](): string;
+    abstract [ToString](): string;
 }
 
 export namespace ObjectField {

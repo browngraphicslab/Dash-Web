@@ -34,7 +34,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
-    componentWillMount() {
+    componentDidMount() {
 
         const field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field && field.url.href.indexOf("youtube") !== -1) {
@@ -211,7 +211,6 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                ruleProvider={undefined}
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 chromeCollapsed={true}>

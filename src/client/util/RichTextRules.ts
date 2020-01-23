@@ -5,11 +5,11 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { NumCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { TooltipTextMenuManager } from "../util/TooltipTextMenu";
 import { Docs, DocUtils } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
 import { DocServer } from "../DocServer";
 import { returnFalse, Utils } from "../../Utils";
+import RichTextMenu from "./RichTextMenu";
 
 export const inpRules = {
     rules: [
@@ -67,12 +67,6 @@ export const inpRules = {
             new RegExp(/^%([0-9]+)\s$/),
             (state, match, start, end) => {
                 const size = Number(match[1]);
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    (Cast(FormattedTextBox.FocusedBox!.props.Document, Doc) as Doc).heading = size;
-                    return state.tr.deleteRange(start, end);
-                }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
 
@@ -175,12 +169,6 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleAlign_" + heading] = "center";
-                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
@@ -191,12 +179,6 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleAlign_" + heading] = "left";
-                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
@@ -207,12 +189,6 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleAlign_" + heading] = "right";
-                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
@@ -264,7 +240,7 @@ export const inpRules = {
             new RegExp(/%[a-z]+$/),
             (state, match, start, end) => {
                 const color = match[0].substring(1, match[0].length);
-                const marks = TooltipTextMenuManager.Instance._brushMap.get(color);
+                const marks = RichTextMenu.Instance._brushMap.get(color);
                 if (marks) {
                     const tr = state.tr.deleteRange(start, end);
                     return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;

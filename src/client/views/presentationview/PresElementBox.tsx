@@ -175,7 +175,6 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                     fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
-                    ruleProvider={undefined}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     PanelWidth={() => this.props.PanelWidth() - 20}

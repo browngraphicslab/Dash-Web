@@ -24,7 +24,6 @@ interface ContentFittingDocumentViewProps {
     fitToBox?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    ruleProvider: Doc | undefined;
     focus?: (doc: Doc) => void;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView;
@@ -97,7 +96,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
-                        ruleProvider={this.props.ruleProvider}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}

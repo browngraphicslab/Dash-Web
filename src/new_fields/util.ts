@@ -1,7 +1,7 @@
 import { UndoManager } from "../client/util/UndoManager";
 import { Doc, Field, FieldResult, UpdatingFromServer } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
-import { ProxyField } from "./Proxy";
+import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
@@ -52,7 +52,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         value = new ProxyField(value);
     }
     if (value instanceof ObjectField) {
-        if (value[Parent] && value[Parent] !== receiver) {
+        if (value[Parent] && value[Parent] !== receiver && !(value instanceof PrefetchProxy)) {
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
         value[Parent] = receiver;

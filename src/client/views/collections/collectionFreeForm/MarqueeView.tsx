@@ -331,6 +331,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             defaultBackgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
             width: bounds.width,
             height: bounds.height,
+            LODdisable: true,
             title: "a nested collection",
         });
         // const dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");

@@ -1,42 +1,42 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
+import Lightbox from 'react-image-lightbox-with-rotate';
+import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
+import { DateField } from '../../../new_fields/DateField';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { StrCast, BoolCast, Cast } from '../../../new_fields/Types';
+import { listSpec } from '../../../new_fields/Schema';
+import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { ImageField } from '../../../new_fields/URLField';
+import { TraceMobx } from '../../../new_fields/util';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { Utils } from '../../../Utils';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { DocumentManager } from '../../util/DocumentManager';
+import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from "../ContextMenu";
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import { ScriptBox } from '../ScriptBox';
+import { Touchable } from '../Touchable';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
+import { CollectionPivotView } from './CollectionPivotView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
-import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CollectionTimelineView } from './CollectionTimelineView';
-import { CollectionLinearView } from '../CollectionLinearView';
 import { CollectionStaffView } from './CollectionStaffView';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { ImageField } from '../../../new_fields/URLField';
-import { DocListCast } from '../../../new_fields/Doc';
-import Lightbox from 'react-image-lightbox-with-rotate';
-import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
-export const COLLECTION_BORDER_WIDTH = 2;
-import { DateField } from '../../../new_fields/DateField';
-import { Doc, } from '../../../new_fields/Doc';
-import { listSpec } from '../../../new_fields/Schema';
-import { DocumentManager } from '../../util/DocumentManager';
-import { SelectionManager } from '../../util/SelectionManager';
+import { CollectionTimelineView } from './CollectionTimelineView';
+import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { FieldViewProps, FieldView } from '../nodes/FieldView';
-import { Touchable } from '../Touchable';
-import { TraceMobx } from '../../../new_fields/util';
-import { Utils } from '../../../Utils';
-import { ScriptBox } from '../ScriptBox';
-import CollectionMulticolumnView from '../CollectionMulticolumnView';
-import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { CollectionViewBaseChrome } from './CollectionViewChromes';
+export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
@@ -52,7 +52,8 @@ export enum CollectionViewType {
     Linear,
     Timeline,
     Staff,
-    Multicolumn
+    Multicolumn,
+    Timeline
 }
 
 export namespace CollectionViewType {
@@ -93,8 +94,17 @@ export class CollectionView extends Touchable<FieldViewProps> {
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
+    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.Document, this.props.fieldKey); }
+
     get collectionViewType(): CollectionViewType | undefined {
-        const viewField = Cast(this.props.Document.viewType, "number");
+        if (!this.extensionDoc) return CollectionViewType.Invalid;
+        NumCast(this.props.Document.viewType) && setTimeout(() => {
+            if (this.props.Document.viewType) {
+                this.extensionDoc!.viewType = NumCast(this.props.Document.viewType);
+            }
+            Doc.GetProto(this.props.Document).viewType = this.props.Document.viewType = undefined;
+        });
+        const viewField = NumCast(this.extensionDoc.viewType, Cast(this.props.Document.viewType, "number"));
         if (CollectionView._safeMode) {
             if (viewField === CollectionViewType.Freeform) {
                 return CollectionViewType.Tree;
@@ -184,7 +194,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Pivot: { this.props.Document.freeformLayoutEngine = "pivot"; return (<CollectionFreeFormView key="collview" {...props} />); }
+            case CollectionViewType.Pivot: { return (<CollectionPivotView key="collview" {...props} />); }
             case CollectionViewType.Freeform:
             default: { this.props.Document.freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -238,6 +248,12 @@ export class CollectionView extends Touchable<FieldViewProps> {
             const existing = ContextMenu.Instance.findByDescription("Layout...");
             const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            if (this.props.Document.childLayout instanceof Doc) {
+                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, undefined, "onRight"), icon: "project-diagram" });
+            }
+            if (this.props.Document.childDetailed instanceof Doc) {
+                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailed as Doc, undefined, "onRight"), icon: "project-diagram" });
+            }
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
 
             const more = ContextMenu.Instance.findByDescription("More...");

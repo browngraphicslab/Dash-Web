@@ -46,7 +46,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      * When component mounts, last search's results are laoded in based on the back up stored
      * in the document of the props.
      */
-    async componentWillMount() {
+    async componentDidMount() {
         //DocServer.getYoutubeChannels();
         const castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
         const awaitedBackUp = await castedSearchBackUp;

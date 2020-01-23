@@ -178,7 +178,6 @@ export class OverlayView extends React.Component {
                     // select={emptyFunction}
                     // layoutKey={"layout"}
                     bringToFront={emptyFunction}
-                    ruleProvider={undefined}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={returnOne}

@@ -650,7 +650,6 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
-                ruleProvider={undefined}
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionView?.props.Document}
                 chromeCollapsed={true}>

@@ -7,9 +7,9 @@
     border-radius: inherit;
     box-sizing: border-box;
     height: 100%;
-    width:100%;
+    width: 100%;
     position: relative;
-    top:0;
+    top: 0;
     padding-left: 10px;
     padding-right: 10px;
     background: $light-color-secondary;
@@ -17,6 +17,7 @@
     overflow: auto;
     user-select: none;
     cursor: default;
+    touch-action: pan-y;
 
     ul {
         list-style: none;
@@ -115,6 +116,7 @@
 .treeViewItem-header {
     border: transparent 1px solid;
     display: flex;
+
     .editableView-container-editing-oneLine {
         min-width: 15px;
     }

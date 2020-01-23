@@ -267,10 +267,11 @@ export class SearchBox extends React.Component {
 
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
+        if (!this.resultsRef.current) return;
         const scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
         const itemHght = 53;
         const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
-        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current!.getBoundingClientRect().height / itemHght)));
+        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current.getBoundingClientRect().height / itemHght)));
 
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 

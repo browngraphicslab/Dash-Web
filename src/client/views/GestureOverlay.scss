@@ -1,0 +1,20 @@
+.gestureOverlay-cont {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    touch-action: none;
+}
+
+.clipboardDoc-cont {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+}
+
+.filter-cont {
+    position: absolute;
+    background-color: transparent;
+    border: 1px solid black;
+}

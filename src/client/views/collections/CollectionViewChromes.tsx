@@ -46,9 +46,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
     _templateCommand = {
-        title: "set template", script: "setChildLayout(this.target, this.source && this.source.length ? this.source[0]:undefined)", params: ["target", "source"],
+        title: "set template", script: "setChildLayout(this.target, this.source?.[0])", params: ["target", "source"],
         initialize: emptyFunction,
         immediate: (draggedDocs: Doc[]) => Doc.setChildLayout(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
+    };
+    _narrativeCommand = {
+        title: "set detailed template", script: "setChildLayout(this.target, this.source?.[0])", params: ["target", "source"],
+        initialize: emptyFunction,
+        immediate: (draggedDocs: Doc[]) => Doc.setChildDetailed(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
     };
     _contentCommand = {
         // title: "set content", script: "getProto(this.target).data = aliasDocs(this.source.map(async p => await p));", params: ["target", "source"],  // bcz: doesn't look like we can do async stuff in scripting...
@@ -61,7 +66,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document.panX = 0; this.props.CollectionView.props.Document.panY = 0; this.props.CollectionView.props.Document.scale = 1; },
         initialize: (button: Doc) => { button.restoredPanX = this.props.CollectionView.props.Document.panX; button.restoredPanY = this.props.CollectionView.props.Document.panY; button.restoredScale = this.props.CollectionView.props.Document.scale; }
     };
-    _freeform_commands = [this._contentCommand, this._templateCommand, this._viewCommand];
+    _freeform_commands = [this._contentCommand, this._templateCommand, this._narrativeCommand, this._viewCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _tree_commands = [];
@@ -71,6 +76,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Stacking: return this._stacking_commands;
             case CollectionViewType.Masonry: return this._stacking_commands;
             case CollectionViewType.Freeform: return this._freeform_commands;
+            case CollectionViewType.Pivot: return this._freeform_commands;
         }
         return [];
     }
@@ -420,8 +426,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 placeholder="FILTER"
                                 value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
-                                onPointerDown={this.openViewSpecs}
-                                id="viewSpecsInput" />
+                                onPointerDown={this.openViewSpecs} />
                             {this.getPivotInput()}
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}

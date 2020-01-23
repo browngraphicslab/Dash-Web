@@ -14,7 +14,6 @@ import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { TooltipTextMenu } from '../util/TooltipTextMenu';
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
@@ -26,8 +25,6 @@ import { IconBox } from "./nodes/IconBox";
 import React = require("react");
 import { DocumentType } from '../documents/DocumentTypes';
 import { ScriptField } from '../../new_fields/ScriptField';
-import { render } from 'react-dom';
-import RichTextMenu from '../util/RichTextMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -365,14 +362,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onRadiusMove = (e: PointerEvent): void => {
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         dist = dist < 3 ? 0 : dist;
-        let usingRule = false;
-        SelectionManager.SelectedDocuments().map(dv => {
-            const ruleProvider = dv.props.ruleProvider;
-            const heading = NumCast(dv.props.Document.heading);
-            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
-            usingRule = usingRule || (ruleProvider && heading ? true : false);
-        });
-        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateForField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
@@ -544,11 +534,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private setTextBar = (ele: HTMLDivElement) => {
         if (ele) {
             this.TextBar = ele;
-        }
-    }
-    public showTextBar = () => {
-        if (this.TextBar && TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1) {
-            this.TextBar.appendChild(TooltipTextMenu.Toolbar);
         }
     }
     render() {

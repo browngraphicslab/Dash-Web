@@ -19,7 +19,7 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { OmitKeys, JSONUtils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync } from "../../new_fields/Doc";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -29,7 +29,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -51,6 +51,7 @@ import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
 import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
+import { InkingControl } from "../views/InkingControl";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -69,15 +70,17 @@ export interface DocumentOptions {
     page?: number;
     scale?: number;
     fitWidth?: boolean;
+    fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
+    isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
-    isTemplateField?: boolean;
+    isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     templates?: List<string>;
     viewType?: number;
-    backgroundColor?: string;
+    backgroundColor?: string | ScriptField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
@@ -85,6 +88,7 @@ export interface DocumentOptions {
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     chromeStatus?: string;
+    LODdisable?: boolean;
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
@@ -103,8 +107,12 @@ export interface DocumentOptions {
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
+    onPointerDown?: ScriptField;
+    onPointerUp?: ScriptField;
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
+    clipboard?: Doc; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
     gridGap?: number; // gap between items in masonry view
     xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
@@ -114,8 +122,15 @@ export interface DocumentOptions {
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
+    treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewOpen?: boolean; // whether this document is expanded in a tree view
+    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
+    pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    isExpanded?: boolean; // is linear view expanded
+    textTransform?: string; // is linear view expanded
+    letterSpacing?: string; // is linear view expanded
 }
 
 class EmptyBox {
@@ -317,7 +332,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth", "diableLOD"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -512,6 +527,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Stacking });
         }
 
+        export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Multicolumn });
+        }
+
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Masonry });
         }
@@ -649,6 +668,47 @@ export namespace Docs {
             }
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };
+
+        export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
+            let created: Doc | undefined;
+            let layout: ((fieldKey: string) => string) | undefined;
+            const field = target[fieldKey];
+            const resolved = options || {};
+            if (field instanceof ImageField) {
+                created = Docs.Create.ImageDocument((field).url.href, resolved);
+                layout = ImageBox.LayoutString;
+            } else if (field instanceof Doc) {
+                created = field;
+            } else if (field instanceof VideoField) {
+                created = Docs.Create.VideoDocument((field).url.href, resolved);
+                layout = VideoBox.LayoutString;
+            } else if (field instanceof PdfField) {
+                created = Docs.Create.PdfDocument((field).url.href, resolved);
+                layout = PDFBox.LayoutString;
+            } else if (field instanceof IconField) {
+                created = Docs.Create.IconDocument((field).icon, resolved);
+                layout = IconBox.LayoutString;
+            } else if (field instanceof AudioField) {
+                created = Docs.Create.AudioDocument((field).url.href, resolved);
+                layout = AudioBox.LayoutString;
+            } else if (field instanceof HistogramField) {
+                created = Docs.Create.HistogramDocument((field).HistoOp, resolved);
+                layout = HistogramBox.LayoutString;
+            } else if (field instanceof InkField) {
+                const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
+                layout = InkingStroke.LayoutString;
+            } else if (field instanceof List && field[0] instanceof Doc) {
+                created = Docs.Create.StackingDocument(DocListCast(field), resolved);
+                layout = CollectionView.LayoutString;
+            } else {
+                created = Docs.Create.TextDocument({ ...{ width: 200, height: 25, autoHeight: true }, ...resolved });
+                layout = FormattedTextBox.LayoutString;
+            }
+            created.layout = layout?.(fieldKey);
+            proto && (created.proto = Doc.GetProto(proto));
+            return created;
+        }
 
         export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;

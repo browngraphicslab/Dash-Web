@@ -3,7 +3,7 @@ import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
@@ -26,7 +26,6 @@ import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss"
 import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
-import { CreatePolyline } from "../../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
@@ -44,6 +43,7 @@ import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { LinkManager } from "../../../util/LinkManager";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import CollectionPaletteVIew from "../../Palette";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -54,7 +54,6 @@ export const panZoomSchema = createSchema({
     arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
-    isRuleProvider: "boolean",
     fitToBox: "boolean",
     xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
@@ -78,7 +77,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, any>();
 
-    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
+    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
 
@@ -103,14 +102,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-        const maxHeading = this.childDocs.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
-        let heading = maxHeading === 0 || this.childDocs.length === 0 ? 1 : maxHeading === 1 ? 2 : 0;
-        if (heading === 0) {
-            const sorted = this.childDocs.filter(d => d.type === DocumentType.TEXT && d.data_ext instanceof Doc && d.data_ext.lastModified).sort((a, b) => DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date > DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? 1 :
-                DateCast((Cast(a.data_ext, Doc) as Doc).lastModified).date < DateCast((Cast(b.data_ext, Doc) as Doc).lastModified).date ? -1 : 0);
-            heading = !sorted.length ? Math.max(1, maxHeading) : NumCast(sorted[sorted.length - 1].heading) === 1 ? 2 : NumCast(sorted[sorted.length - 1].heading);
-        }
-        !this.Document.isRuleProvider && (newBox.heading = heading);
         this.addDocument(newBox);
     }
     private addDocument = (newBox: Doc) => {
@@ -279,11 +270,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return clusterColor;
     }
 
-    @observable private _points: { X: number, Y: number }[] = [];
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.nativeEvent.cancelBubble) return;
+        if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+            return;
+        }
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
         if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
             document.removeEventListener("pointermove", this.onPointerMove);
@@ -291,14 +283,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
             // if physically using a pen or we're in pen or highlighter mode
-            if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
-                e.stopPropagation();
-                e.preventDefault();
-                const point = this.getTransform().transformPoint(e.pageX, e.pageY);
-                this._points.push({ X: point[0], Y: point[1] });
-            }
+            // if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+            //     e.stopPropagation();
+            //     e.preventDefault();
+            //     const point = this.getTransform().transformPoint(e.pageX, e.pageY);
+            //     this._points.push({ X: point[0], Y: point[1] });
+            // }
             // if not using a pen and in no ink mode
-            else if (InkingControl.Instance.selectedTool === InkTool.None) {
+            if (InkingControl.Instance.selectedTool === InkTool.None) {
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;
             }
@@ -330,106 +322,79 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    handle1PointerDown = (e: React.TouchEvent) => {
-        const pt = e.targetTouches.item(0);
-        if (pt) {
-            this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
-            if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
-                document.removeEventListener("touchmove", this.onTouch);
-                document.addEventListener("touchmove", this.onTouch);
-                document.removeEventListener("touchend", this.onTouchEnd);
-                document.addEventListener("touchend", this.onTouchEnd);
-                if (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const point = this.getTransform().transformPoint(pt.pageX, pt.pageY);
-                    this._points.push({ X: point[0], Y: point[1] });
-                }
-                else if (InkingControl.Instance.selectedTool === InkTool.None) {
-                    this._lastX = pt.pageX;
-                    this._lastY = pt.pageY;
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
-                else {
-                    e.stopPropagation();
-                    e.preventDefault();
+    handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
+        if (!e.nativeEvent.cancelBubble) {
+            // const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
+            const pt = me.changedTouches[0];
+            if (pt) {
+                this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+                if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+                    this.removeMoveListeners();
+                    this.addMoveListeners();
+                    this.removeEndListeners();
+                    this.addEndListeners();
+                    // if (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen) {
+                    //     e.stopPropagation();
+                    //     e.preventDefault();
+                    //     const point = this.getTransform().transformPoint(pt.pageX, pt.pageY);
+                    //     this._points.push({ X: point[0], Y: point[1] });
+                    // }
+                    if (InkingControl.Instance.selectedTool === InkTool.None) {
+                        this._lastX = pt.pageX;
+                        this._lastY = pt.pageY;
+                        e.preventDefault();
+                    }
+                    else {
+                        e.preventDefault();
+                    }
                 }
             }
         }
     }
 
+    @undoBatch
+    onGesture = (e: Event, ge: GestureUtils.GestureEvent) => {
+        switch (ge.gesture) {
+            case GestureUtils.Gestures.Stroke:
+                const points = ge.points;
+                const B = this.getTransform().transformBounds(ge.bounds.left, ge.bounds.top, ge.bounds.width, ge.bounds.height);
+                const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { x: B.x, y: B.y, width: B.width, height: B.height });
+                this.addDocument(inkDoc);
+                e.stopPropagation();
+                break;
+            case GestureUtils.Gestures.Box:
+                const lt = this.getTransform().transformPoint(Math.min(...ge.points.map(p => p.X)), Math.min(...ge.points.map(p => p.Y)));
+                const rb = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
+                const bounds = { x: lt[0], r: rb[0], y: lt[1], b: rb[1] };
+                const bWidth = bounds.r - bounds.x;
+                const bHeight = bounds.b - bounds.y;
+                const sel = this.getActiveDocuments().filter(doc => {
+                    const l = NumCast(doc.x);
+                    const r = l + doc[WidthSym]();
+                    const t = NumCast(doc.y);
+                    const b = t + doc[HeightSym]();
+                    const pass = !(bounds.x > r || bounds.r < l || bounds.y > b || bounds.b < t);
+                    if (pass) {
+                        doc.x = l - bounds.x - bWidth / 2;
+                        doc.y = t - bounds.y - bHeight / 2;
+                    }
+                    return pass;
+                });
+                this.addDocument(Docs.Create.FreeformDocument(sel, { x: bounds.x, y: bounds.y, width: bWidth, height: bHeight, panX: 0, panY: 0 }));
+                sel.forEach(d => this.props.removeDocument(d));
+                break;
+
+        }
+    }
+
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && this._points.length <= 1) return;
-
-        if (this._points.length > 1) {
-            const B = this.svgBounds;
-            const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
-
-            const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
-            let actionPerformed = false;
-            if (result && result.Score > 0.7) {
-                switch (result.Name) {
-                    case GestureUtils.Gestures.Box:
-                        const bounds = { x: Math.min(...this._points.map(p => p.X)), r: Math.max(...this._points.map(p => p.X)), y: Math.min(...this._points.map(p => p.Y)), b: Math.max(...this._points.map(p => p.Y)) };
-                        const sel = this.getActiveDocuments().filter(doc => {
-                            const l = NumCast(doc.x);
-                            const r = l + doc[WidthSym]();
-                            const t = NumCast(doc.y);
-                            const b = t + doc[HeightSym]();
-                            const pass = !(bounds.x > r || bounds.r < l || bounds.y > b || bounds.b < t);
-                            if (pass) {
-                                doc.x = l - B.left - B.width / 2;
-                                doc.y = t - B.top - B.height / 2;
-                            }
-                            return pass;
-                        });
-                        this.addDocument(Docs.Create.FreeformDocument(sel, { x: B.left, y: B.top, width: B.width, height: B.height, panX: 0, panY: 0 }));
-                        sel.forEach(d => this.props.removeDocument(d));
-                        actionPerformed = true;
-                        break;
-                    case GestureUtils.Gestures.Line:
-                        const ep1 = this._points[0];
-                        const ep2 = this._points[this._points.length - 1];
-                        let d1: Doc | undefined;
-                        let d2: Doc | undefined;
-                        this.getActiveDocuments().map(doc => {
-                            const l = NumCast(doc.x);
-                            const r = l + doc[WidthSym]();
-                            const t = NumCast(doc.y);
-                            const b = t + doc[HeightSym]();
-                            if (!d1 && l < ep1.X && r > ep1.X && t < ep1.Y && b > ep1.Y) {
-                                d1 = doc;
-                            }
-                            else if (!d2 && l < ep2.X && r > ep2.X && t < ep2.Y && b > ep2.Y) {
-                                d2 = doc;
-                            }
-                        });
-                        if (d1 && d2) {
-                            if (!LinkManager.Instance.doesLinkExist(d1, d2)) {
-                                DocUtils.MakeLink({ doc: d1 }, { doc: d2 });
-                                actionPerformed = true;
-                            }
-                        }
-                        break;
-                }
-                if (actionPerformed) {
-                    this._points = [];
-                }
-            }
-
-            if (!actionPerformed) {
-                const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { width: B.width, height: B.height, x: B.left, y: B.top });
-                this.addDocument(inkDoc);
-                this._points = [];
-            }
-        }
+        if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
+        this.removeMoveListeners();
+        this.removeEndListeners();
     }
 
     @action
@@ -443,16 +408,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         if (!this.isAnnotationOverlay) {
             PDFMenu.Instance.fadeOut(true);
-            const minx = docs.length ? NumCast(docs[0].x) : 0;
-            const maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
-            const miny = docs.length ? NumCast(docs[0].y) : 0;
-            const maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+            const minx = this.childDataProvider(docs[0]).x;//docs.length ? NumCast(docs[0].x) : 0;
+            const miny = this.childDataProvider(docs[0]).y;//docs.length ? NumCast(docs[0].y) : 0;
+            const maxx = this.childDataProvider(docs[0]).width + minx;//docs.length ? NumCast(docs[0].width) + minx : minx;
+            const maxy = this.childDataProvider(docs[0]).height + miny;//docs.length ? NumCast(docs[0].height) + miny : miny;
             const ranges = docs.filter(doc => doc).reduce((range, doc) => {
                 const layoutDoc = Doc.Layout(doc);
-                const x = NumCast(doc.x);
-                const xe = x + NumCast(layoutDoc.width);
-                const y = NumCast(doc.y);
-                const ye = y + NumCast(layoutDoc.height);
+                const x = this.childDataProvider(doc).x;//NumCast(doc.x);
+                const y = this.childDataProvider(doc).y;//NumCast(doc.y);
+                const xe = this.childDataProvider(doc).width + x;//x + NumCast(layoutDoc.width);
+                const ye = this.childDataProvider(doc).height + y; //y + NumCast(layoutDoc.height);
                 return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                 [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
             }, [[minx, maxx], [miny, maxy]]);
@@ -478,13 +443,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             return;
         }
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            return;
+        }
         if (!e.cancelBubble) {
             const selectedTool = InkingControl.Instance.selectedTool;
-            if (selectedTool === InkTool.Highlighter || selectedTool === InkTool.Pen || InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-                const point = this.getTransform().transformPoint(e.clientX, e.clientY);
-                this._points.push({ X: point[0], Y: point[1] });
-            }
-            else if (selectedTool === InkTool.None) {
+            if (selectedTool === InkTool.None) {
                 if (this._hitCluster && this.tryDragCluster(e)) {
                     e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                     e.preventDefault();
@@ -499,10 +463,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
     }
 
-    handle1PointerMove = (e: TouchEvent) => {
+    handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
         // panning a workspace
         if (!e.cancelBubble) {
-            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt = myTouches[0];
             if (pt) {
                 if (InkingControl.Instance.selectedTool === InkTool.None) {
@@ -515,20 +479,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     this.pan(pt);
                 }
-                else if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
-                    const point = this.getTransform().transformPoint(pt.clientX, pt.clientY);
-                    this._points.push({ X: point[0], Y: point[1] });
-                }
             }
-            e.stopPropagation();
+            // e.stopPropagation();
             e.preventDefault();
         }
     }
 
-    handle2PointersMove = (e: TouchEvent) => {
+    handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
         // pinch zooming
         if (!e.cancelBubble) {
-            const myTouches = InteractionUtils.GetMyTargetTouches(e, this.prevPoints);
+            const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt1 = myTouches[0];
             const pt2 = myTouches[1];
 
@@ -565,35 +525,39 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                 }
             }
-            e.stopPropagation();
+            // e.stopPropagation();
             e.preventDefault();
         }
     }
 
     @action
-    handle2PointersDown = (e: React.TouchEvent) => {
+    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
-            const pt1: React.Touch | null = e.targetTouches.item(0);
-            const pt2: React.Touch | null = e.targetTouches.item(1);
-            if (!pt1 || !pt2) return;
-
-            const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
-            const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-            this._lastX = centerX;
-            this._lastY = centerY;
-            document.removeEventListener("touchmove", this.onTouch);
-            document.addEventListener("touchmove", this.onTouch);
-            document.removeEventListener("touchend", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
-            e.stopPropagation();
+            // const pt1: React.Touch | null = e.targetTouches.item(0);
+            // const pt2: React.Touch | null = e.targetTouches.item(1);
+            // // if (!pt1 || !pt2) return;
+            const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
+            const pt1 = myTouches[0];
+            const pt2 = myTouches[1];
+            if (pt1 && pt2) {
+                const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+                const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                this._lastX = centerX;
+                this._lastY = centerY;
+                this.removeMoveListeners();
+                this.addMoveListeners();
+                this.removeEndListeners();
+                this.addEndListeners();
+                e.stopPropagation();
+            }
         }
     }
 
     cleanUpInteractions = () => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        document.removeEventListener("touchmove", this.onTouch);
-        document.removeEventListener("touchend", this.onTouchEnd);
+        this.removeMoveListeners();
+        this.removeEndListeners();
     }
 
     @action
@@ -726,7 +690,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             Document: childLayout,
             LibraryPath: this.libraryPath,
             layoutKey: undefined,
-            ruleProvider: this.Document.isRuleProvider && childLayout.type !== DocumentType.TEXT ? this.props.Document : this.props.ruleProvider, //bcz: hack! - currently ruleProviders apply to documents in nested colleciton, not direct children of themselves
             //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
@@ -769,7 +732,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const fontSize = Cast(viewDef.fontSize, "number");
             return [text, x, y, width, height].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customText" style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
+                    ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z} style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
                     bounds: { x: x!, y: y!, z: z, width: width!, height: height! }
@@ -811,7 +774,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             computedElementData.elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
-                    ruleProvider={this.Document.isRuleProvider ? this.props.Document : this.props.ruleProvider}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || this.Document.freeformLayoutEngine === "pivot"} />,
                 bounds: this.childDataProvider(pair.layout)
@@ -859,20 +821,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }, "arrange contents");
     }
 
-    autoFormat = () => {
-        this.Document.isRuleProvider = !this.Document.isRuleProvider;
-        // find rule colorations when rule providing is turned on by looking at each document to see if it has a coloring -- if so, use it's color as the rule for its associated heading.
-        this.Document.isRuleProvider && this.childLayoutPairs.map(pair =>
-            // iterate over the children of a displayed document (or if the displayed document is a template, iterate over the children of that template)
-            DocListCast(Doc.Layout(pair.layout).data).map(heading => {
-                const headingPair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, heading);
-                const headingLayout = headingPair.layout && (pair.layout.data_ext instanceof Doc) && (pair.layout.data_ext[`Layout[${headingPair.layout[Id]}]`] as Doc) || headingPair.layout;
-                if (headingLayout && NumCast(headingLayout.heading) > 0 && headingLayout.backgroundColor !== headingLayout.defaultBackgroundColor) {
-                    Doc.GetProto(this.props.Document)["ruleColor_" + NumCast(headingLayout.heading)] = headingLayout.backgroundColor;
-                }
-            })
-        );
-    }
 
     analyzeStrokes = async () => {
         const children = await DocListCastAsync(this.dataDoc.data);
@@ -890,17 +838,56 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], inkData);
     }
 
+    private thumbIdentifier?: number;
+
+    // @action
+    // handleHandDown = (e: React.TouchEvent) => {
+    //     const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
+    //     const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
+    //     this.thumbIdentifier = thumb?.identifier;
+    //     const others = fingers.filter(f => f !== thumb);
+    //     const minX = Math.min(...others.map(f => f.clientX));
+    //     const minY = Math.min(...others.map(f => f.clientY));
+    //     const t = this.getTransform().transformPoint(minX, minY);
+    //     const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
+
+    //     const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
+    //     if (thumbDoc) {
+    //         this._palette = <Palette x={t[0]} y={t[1]} thumb={th} thumbDoc={thumbDoc} />;
+    //     }
+
+    //     document.removeEventListener("touchmove", this.onTouch);
+    //     document.removeEventListener("touchmove", this.handleHandMove);
+    //     document.addEventListener("touchmove", this.handleHandMove);
+    //     document.removeEventListener("touchend", this.handleHandUp);
+    //     document.addEventListener("touchend", this.handleHandUp);
+    // }
+
+    // @action
+    // handleHandMove = (e: TouchEvent) => {
+    //     for (let i = 0; i < e.changedTouches.length; i++) {
+    //         const pt = e.changedTouches.item(i);
+    //         if (pt?.identifier === this.thumbIdentifier) {
+    //         }
+    //     }
+    // }
+
+    // @action
+    // handleHandUp = (e: TouchEvent) => {
+    //     this.onTouchEnd(e);
+    //     if (this.prevPoints.size < 3) {
+    //         this._palette = undefined;
+    //         document.removeEventListener("touchend", this.handleHandUp);
+    //     }
+    // }
+
     onContextMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
 
-        if (this.childDocs.some(d => BoolCast(d.isTemplateDoc))) {
-            layoutItems.push({ description: "Template Layout Instance", event: () => this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
-        }
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document.LODdisable = !this.Document.LODdisable, icon: "table" });
         layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document.fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        layoutItems.push({ description: `${this.Document.isRuleProvider ? "Stop Auto Format" : "Auto Format"}`, event: this.autoFormat, icon: "chalkboard" });
         layoutItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
@@ -953,40 +940,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ];
     }
 
-    @computed get svgBounds() {
-        const xs = this._points.map(p => p.X);
-        const ys = this._points.map(p => p.Y);
-        const right = Math.max(...xs);
-        const left = Math.min(...xs);
-        const bottom = Math.max(...ys);
-        const top = Math.min(...ys);
-        return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
-    }
-
-    @computed get currentStroke() {
-        if (this._points.length <= 1) {
-            return (null);
-        }
-
-        const B = this.svgBounds;
-
-        return (
-            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, position: "absolute", zIndex: 30000 }}>
-                {CreatePolyline(this._points, B.left, B.top)}
-            </svg>
-        );
-    }
+    // @observable private _palette?: JSX.Element;
 
     children = () => {
         const eles: JSX.Element[] = [];
         this.extensionDoc && (eles.push(...this.childViews()));
-        this.currentStroke && (eles.push(this.currentStroke));
+        // this._palette && (eles.push(this._palette));
+        // this.currentStroke && (eles.push(this.currentStroke));
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;
     }
     @computed get placeholder() {
         return <div className="collectionfreeformview-placeholder" style={{ background: this.Document.backgroundColor }}>
-            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title}</span>
+            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title?.toString()}</span>
         </div>;
     }
     @computed get marqueeView() {
@@ -1015,9 +981,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (!this.extensionDoc) return (null);
         // let lodarea = this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale;
         return <div className={"collectionfreeformview-container"}
-            ref={this.createDropTarget}
+            ref={this.createDashEventsTarget}
             onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
-            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onTouchStart={this.onTouchStart}
+            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
                 transform: this.contentScaling ? `scale(${this.contentScaling})` : "",

@@ -185,7 +185,6 @@ export class FormattedTextBoxComment {
                                     active={returnFalse}
                                     addDocument={returnFalse}
                                     removeDocument={returnFalse}
-                                    ruleProvider={undefined}
                                     addDocTab={returnFalse}
                                     pinToPres={returnFalse}
                                     dontRegisterView={true}

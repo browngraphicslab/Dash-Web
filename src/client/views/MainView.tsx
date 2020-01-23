@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
     faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
-    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt
+    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt, faPhone, faStamp, faClipboard
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
@@ -22,7 +22,7 @@ import { Docs, DocumentOptions } from '../documents/Documents';
 import { HistoryUtil } from '../util/History';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
-import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionViewType, CollectionView } from './collections/CollectionView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
@@ -36,16 +36,18 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import InkSelectDecorations from './InkSelectDecorations';
+import GestureOverlay from './GestureOverlay';
 import { Scripting } from '../util/Scripting';
 import { AudioBox } from './nodes/AudioBox';
+import SettingsManager from '../util/SettingsManager';
 import { TraceMobx } from '../../new_fields/util';
+import { RadialMenu } from './nodes/RadialMenu';
 import RichTextMenu from '../util/RichTextMenu';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 75;
+    private _buttonBarHeight = 35;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
@@ -62,7 +64,7 @@ export class MainView extends React.Component {
 
     public isPointerDown = false;
 
-    componentWillMount() {
+    componentDidMount() {
         const tag = document.createElement('script');
 
         tag.src = "https://www.youtube.com/iframe_api";
@@ -136,6 +138,9 @@ export class MainView extends React.Component {
         library.add(faChevronRight);
         library.add(faEllipsisV);
         library.add(faMusic);
+        library.add(faPhone);
+        library.add(faClipboard);
+        library.add(faStamp);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -271,7 +276,6 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             onClick={undefined}
-            ruleProvider={undefined}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
@@ -302,8 +306,10 @@ export class MainView extends React.Component {
         </Measure>;
     }
 
+    _canClick = false;
     onPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
+            this._canClick = true;
             this._flyoutSizeOnDown = e.clientX;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -334,11 +340,12 @@ export class MainView extends React.Component {
     @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
+        Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
         this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4) {
+        if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
             this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
             this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
         }
@@ -369,7 +376,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
-                    ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}
@@ -396,7 +402,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={returnFalse}
-                    ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={this.mainContainerXf}
                     ContentScaling={returnOne}
@@ -413,6 +418,9 @@ export class MainView extends React.Component {
                     zoomToScale={emptyFunction}
                     getScale={returnOne}>
                 </DocumentView>
+                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                    Settings
+                </button>
                 <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
@@ -489,7 +497,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
-                    ruleProvider={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
                     ContentScaling={returnOne}
@@ -509,12 +516,15 @@ export class MainView extends React.Component {
         return (<div id="mainView-container">
             <DictationOverlay />
             <SharingManager />
+            <SettingsManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
-            <InkSelectDecorations />
-            {this.mainContent}
+            <GestureOverlay>
+                {this.mainContent}
+            </GestureOverlay>
             <PreviewCursor />
             <ContextMenu />
+            <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
             <RichTextMenu />

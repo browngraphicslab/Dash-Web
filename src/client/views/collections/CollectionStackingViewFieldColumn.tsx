@@ -18,6 +18,9 @@ import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
 import { TraceMobx } from "../../../new_fields/util";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { ImageField } from "../../../new_fields/URLField";
+import { ImageBox } from "../nodes/ImageBox";
 
 library.add(faPalette);
 
@@ -132,6 +135,21 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
+        if (value === ":freeForm") {
+            return this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { width: 200, height: 200 }));
+        } else if (value.startsWith(":")) {
+            const { Document, addDocument } = this.props.parent.props;
+            const fieldKey = value.substring(1);
+            const proto = Doc.GetProto(Document);
+            const created = Docs.Get.DocumentFromField(Document, fieldKey, proto);
+            if (created) {
+                created.title = fieldKey;
+                if (this.props.parent.Document.isTemplateDoc) {
+                    Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
+                }
+            }
+            return created ? addDocument(created) : false;
+        }
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
         const newDoc = Docs.Create.TextDocument({ height: 18, width: 200, documentText: "@@@" + value, title: value, autoHeight: true });

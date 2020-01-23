@@ -6,7 +6,7 @@ import { observable, action, runInAction } from "mobx";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
-import { NumCast } from "../../../new_fields/Types";
+import { NumCast, StrCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -71,9 +71,9 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         return <div >
             <div key="metadata">Metadata: {this.metadataMenu}</div>
             <p key="contexts">Contexts:</p>
-            {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+            {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
             {this._otherDocs.length ? <hr key="hr" /> : null}
-            {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+            {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
         </div>;
     }
 }

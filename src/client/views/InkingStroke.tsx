@@ -9,23 +9,11 @@ import { InkingControl } from "./InkingControl";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
+import { TraceMobx } from "../../new_fields/util";
+import { InteractionUtils } from "../util/InteractionUtils";
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
-
-export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
-    const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
-    return (
-        <polyline
-            points={pts}
-            style={{
-                fill: "none",
-                stroke: color ?? InkingControl.Instance.selectedColor,
-                strokeWidth: width ?? InkingControl.Instance.selectedWidth
-            }}
-        />
-    );
-}
 
 @observer
 export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocument>(InkDocument) {
@@ -35,6 +23,7 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
     @computed get PanelHeight() { return this.props.PanelHeight(); }
 
     render() {
+        TraceMobx();
         const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
@@ -42,7 +31,7 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
         const top = Math.min(...ys);
         const right = Math.max(...xs);
         const bottom = Math.max(...ys);
-        const points = CreatePolyline(data, 0, 0, this.Document.color, this.Document.strokeWidth);
+        const points = InteractionUtils.CreatePolyline(data, left, top, this.Document.color ?? InkingControl.Instance.selectedColor, this.Document.strokeWidth ?? parseInt(InkingControl.Instance.selectedWidth));
         const width = right - left;
         const height = bottom - top;
         const scaleX = this.PanelWidth / width;
@@ -50,7 +39,7 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
         return (
             <svg width={width} height={height} style={{
                 transformOrigin: "top left",
-                transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
+                transform: `scale(${scaleX}, ${scaleY})`,
                 mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
                 pointerEvents: "all"
             }}>
