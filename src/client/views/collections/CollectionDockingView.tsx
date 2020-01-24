@@ -132,7 +132,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public static CloseRightSplit(document: Doc): boolean {
+    public static CloseRightSplit(document: Opt<Doc>): boolean {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
         let retVal = false;
@@ -140,14 +140,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
                 if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
                     DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId) &&
-                    Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)) {
+                    ((!document && DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document.isDisplayPanel) ||
+                        (document && Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)))) {
                     child.contentItems[0].remove();
                     instance.layoutChanged(document);
                     return true;
                 } else {
                     Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
                         if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId) &&
-                            Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
+                            ((!document && DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document.isDisplayPanel) ||
+                                (document && Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)))) {
                             child.contentItems[j].remove();
                             child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
                             return true;
@@ -214,31 +216,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     @action
     public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
-        if (!CollectionDockingView.Instance) return false;
-        const instance = CollectionDockingView.Instance;
-        if (instance._goldenLayout.root.contentItems[0].isRow) {
-            let found: DocumentView | undefined;
-            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
-                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.props.Document.isDisplayPanel) {
-                    found = DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!;
-                } else {
-                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.props.Document.isDisplayPanel) {
-                            found = DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!;
-                            return true;
-                        }
-                        return false;
-                    });
-                }
-            });
-            if (found) {
-                Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
-            } else {
-                const stackView = Docs.Create.FreeformDocument([document], { _fitToBox: true, isDisplayPanel: true, title: "document viewer" });
-                CollectionDockingView.AddRightSplit(stackView, undefined, []);
-            }
-        }
+        document.isDisplayPanel = true;
+        CollectionDockingView.CloseRightSplit(undefined);
+        CollectionDockingView.AddRightSplit(document, dataDoc, libraryPath);
     }
 
     @undoBatch

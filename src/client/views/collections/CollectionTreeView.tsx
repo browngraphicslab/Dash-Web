@@ -640,7 +640,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     MulticolumnDocument([], { title: "data", _height: 100, onChildClick: ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.activeHero = copyField(this.data)`, { containingCollection: Doc.name }) }),
                     TextDocument({ title: "short_description", autoHeight: true }),
                     ...["year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key, _height: 30 }))
-                ], { autoHeight: true, _chromeStatus: "disabled", title: "detailed layout stack" });
+                ], { _chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
 
                 const cardLayout = ImageDocument(fallbackImg, { isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
