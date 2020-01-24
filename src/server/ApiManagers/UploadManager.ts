@@ -169,8 +169,7 @@ export default class UploadManager extends ApiManager {
             secureHandler: async ({ req, res }) => {
                 const { source } = req.body;
                 if (typeof source === "string") {
-                    const { serverAccessPaths } = await DashUploadUtils.UploadImage(source);
-                    return res.send(await DashUploadUtils.InspectImage(serverAccessPaths[SizeSuffix.Original]));
+                    return res.send(await DashUploadUtils.InspectImage(source));
                 }
                 res.send({});
             }

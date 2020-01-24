@@ -214,26 +214,26 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
     _curSuffix = "_m";
 
-    _resized = "";
-    resize = (imgPath: string) => {
-        requestImageSize(imgPath)
-            .then((size: any) => {
-                const rotation = NumCast(this.dataDoc.rotation) % 180;
-                const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
-                const aspect = realsize.height / realsize.width;
-                if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
-                    setTimeout(action(() => {
-                        if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
-                            this._resized = imgPath;
-                            this.Document.height = this.Document[WidthSym]() * aspect;
-                            this.Document.nativeHeight = realsize.height;
-                            this.Document.nativeWidth = realsize.width;
-                        }
-                    }), 0);
-                } else this._resized = imgPath;
-            })
-            .catch((err: any) => console.log(err));
-    }
+    // _resized = "";
+    // resize = (imgPath: string) => {
+    //     requestImageSize(imgPath)
+    //         .then((size: any) => {
+    //             const rotation = NumCast(this.dataDoc.rotation) % 180;
+    //             const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
+    //             const aspect = realsize.height / realsize.width;
+    //             if (this.Document.width && (Math.abs(1 - NumCast(this.Document.height) / NumCast(this.Document.width) / (realsize.height / realsize.width)) > 0.1)) {
+    //                 setTimeout(action(() => {
+    //                     if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
+    //                         this._resized = imgPath;
+    //                         this.Document.height = this.Document[WidthSym]() * aspect;
+    //                         this.Document.nativeHeight = realsize.height;
+    //                         this.Document.nativeWidth = realsize.width;
+    //                     }
+    //                 }), 0);
+    //             } else this._resized = imgPath;
+    //         })
+    //         .catch((err: any) => console.log(err));
+    // }
 
     @action
     onPointerEnter = () => {
@@ -306,7 +306,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
 
-        !this.Document.ignoreAspect && this._resized !== srcpath && this.resize(srcpath);
+        // !this.Document.ignoreAspect && this._resized !== srcpath && this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
             <div className="imageBox-fader" >
