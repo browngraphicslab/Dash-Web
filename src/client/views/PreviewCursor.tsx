@@ -65,7 +65,7 @@ export class PreviewCursor extends React.Component<{}> {
 
                 return PreviewCursor._addDocument(Docs.Create.ImageDocument(
                     arr[1], {
-                    width: 300, title: arr[1],
+                    _width: 300, title: arr[1],
                     x: newPoint[0],
                     y: newPoint[1],
                 }));

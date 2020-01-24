@@ -52,7 +52,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
         const nw = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 927));
         const nh = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, 1200));
-        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document.height = this.Document[WidthSym]() * (nh / nw));
+        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
 
         const backup = "oldPath";
         const { Document } = this.props;
@@ -258,7 +258,9 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
             }
             if (!this._pdfjsRequested) {
                 this._pdfjsRequested = true;
-                Pdfjs.getDocument(pdfUrl.url.href).promise.then(pdf => runInAction(() => this._pdf = pdf));
+                const promise = Pdfjs.getDocument(pdfUrl.url.href).promise;
+                promise.then(pdf => { runInAction(() => { this._pdf = pdf; console.log("promise"); }) });
+
             }
         }
         return this.renderTitleBox;

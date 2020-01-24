@@ -312,7 +312,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
                         results.map(action((result: any) => {
                             const { clientAccessPath, nativeWidth, nativeHeight, contentSize } = result;
-                            const full = { ...options, width: 300, title: dropFileName };
+                            const full = { ...options, _width: 300, title: dropFileName };
                             const pathname = Utils.prepend(clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 if (doc) {
