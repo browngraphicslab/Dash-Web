@@ -424,7 +424,7 @@ export namespace Doc {
         if (layout instanceof Doc && layout !== alias) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
-        const aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
+        const aliasNumber = 1;//Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${aliasNumber})`);
         return alias;
     }
@@ -579,7 +579,7 @@ export namespace Doc {
             Doc.GetProto(target).type = DocumentType.TEMPLATE;
             target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
 
-            Doc.GetProto(target)[targetKey] = layoutCustomLayout;
+            Doc.GetProto(target)[targetKey] = new PrefetchProxy(layoutCustomLayout);
         }
         target.layoutKey = targetKey;
         return target;
@@ -752,16 +752,14 @@ export namespace Doc {
             source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
     }
 
-    export function MakeDocFilter(docFilters: string[]) {
-        let docFilterText = "";
-        for (let i = 0; i < docFilters.length; i += 3) {
-            const key = docFilters[i];
-            const value = docFilters[i + 1];
-            const modifiers = docFilters[i + 2];
-            const scriptText = `${modifiers === "x" ? "!" : ""}matchFieldValue(doc, "${key}", "${value}")`;
-            docFilterText = docFilterText ? docFilterText + " || " + scriptText : scriptText;
+    export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
+        const fieldVal = doc[key] ? doc[key] : doc[key + "_ext"];
+        if (Cast(fieldVal, listSpec("string"), []).length) {
+            const vals = Cast(fieldVal, listSpec("string"), []);
+            return vals.some(v => v === value);
         }
-        return docFilterText ? "(" + docFilterText + ")" : "";
+        const fieldStr = Field.toString(fieldVal as Field);
+        return fieldStr == value;
     }
 }
 
@@ -781,15 +779,6 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function matchFieldValue(doc: Doc, key: string, value: any) {
-    const fieldVal = doc[key] ? doc[key] : doc[key + "_ext"];
-    if (Cast(fieldVal, listSpec("string"), []).length) {
-        const vals = Cast(fieldVal, listSpec("string"), []);
-        return vals.some(v => v === value);
-    }
-    const fieldStr = Field.toString(fieldVal as Field);
-    return fieldStr == value;
-});
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
     const docFilters = Cast(container._docFilter, listSpec("string"), []);
     for (let i = 0; i < docFilters.length; i += 3) {
@@ -804,6 +793,4 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
         docFilters.push(modifiers);
         container._docFilter = new List<string>(docFilters);
     }
-    const docFilterText = Doc.MakeDocFilter(docFilters);
-    container.viewSpecScript = docFilterText ? ScriptField.MakeFunction(docFilterText, { doc: Doc.name }) : undefined;
 });

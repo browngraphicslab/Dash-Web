@@ -82,8 +82,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc.xPadding, 10), NumCast(this.layoutDoc.yPadding, 10)); }
-    @computed get nativeWidth() { return this.Document._fitToContent ? 0 : this.Document._nativeWidth || 0; }
-    @computed get nativeHeight() { return this.fitToContent ? 0 : this.Document._nativeHeight || 0; }
+    @computed get nativeWidth() { return this.Document._fitToContent ? 0 : NumCast(this.Document._nativeWidth); }
+    @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private easing = () => this.props.Document.panTransformType === "Ease";
@@ -963,6 +963,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         </MarqueeView>;
     }
     @computed get contentScaling() {
+        if (this.props.annotationsKey) return 0;
         const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
         const wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
         return wscale < hscale ? wscale : hscale;

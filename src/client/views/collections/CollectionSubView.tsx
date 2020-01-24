@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
@@ -66,15 +66,16 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         componentDidMount() {
-            this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-                async (args) => {
-                    if (args[1] instanceof Doc) {
-                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), "layoutFromParent"));
+            this._childLayoutDisposer = reaction(() => [this.childDocs, (Cast(this.props.Document.childLayout, Doc) as Doc)?.[Id]],
+                (args) => {
+                    const childLayout = Cast(this.props.Document.childLayout, Doc);
+                    if (childLayout instanceof Doc) {
+                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout as Doc, doc, "layoutFromParent"));
                     }
-                    else if (!(args[1] instanceof Promise)) {
-                        this.childDocs.filter(d => !d.isTemplateForField).map(async doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
+                    else if (!(childLayout instanceof Promise)) {
+                        this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
                     }
-                });
+                }, { fireImmediately: true });
 
         }
         componentWillUnmount() {
@@ -106,7 +107,19 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get childDocs() {
             const docs = DocListCast(this.dataField);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            const viewedDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
+            const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
+                let result = false;
+                for (let i = 0; i < docFilters.length; i += 3) {
+                    const key = docFilters[i];
+                    const value = docFilters[i + 1];
+                    const modifiers = docFilters[i + 2];
+                    result = result || ((modifiers === "x") !== Doc.matchFieldValue(d, key, value));
+                }
+                return result;
+            }) : viewedDocs;
+            return filteredDocs;
         }
 
         @action
