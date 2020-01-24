@@ -141,7 +141,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             const { Document, addDocument } = this.props.parent.props;
             const fieldKey = value.substring(1);
             const proto = Doc.GetProto(Document);
-            const created = Docs.Get.DocumentFromField(Document, fieldKey, proto);
+            const dataDoc = this.props.parent.props.DataDoc || this.props.parent.dataDoc;
+            const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, proto);
             if (created) {
                 created.title = fieldKey;
                 if (this.props.parent.Document.isTemplateDoc) {
