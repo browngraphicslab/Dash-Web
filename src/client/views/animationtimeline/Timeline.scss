@@ -10,39 +10,79 @@ $timelineDark: #77a1aa;
     display: flex;
     align-items: flex-start;
     flex-direction: row;
-    justify-content: space-evenly;
+    // justify-content: space-evenly;
     align-items: center;
-    top: 20px;
+    top: 3px;
+    width: 100%;
 
-    .timeline-icon {
-        color: $timelineColor;
+    .overview-tool {
+        display: flex;
+        justify-content: center;
     }
 
-    div {
-        padding: 0px;
+    .playbackControls {
+        display: flex;
+        margin-left: 30px;
+        max-width: 84px;
+        width: 84px;
+
+        .timeline-icon {
+            color: $timelineColor;
+            margin-left: 3px;
+        }
+
+    }
+
+    .grid-box {
+        display: grid;
+        grid-template-columns: [first] 50% [line2] 25% [line3] 25%;
+        width: calc(100% - 150px);
+        // width: 100%;
         margin-left: 10px;
+
+        .time-box {
+            margin-left: 5px;
+            display: flex;
+        }
+
+        .mode-box {
+            display: flex;
+            margin-left: 5px;
+        }
+
+        .overview-box {
+            width: 100%;
+            display: flex;
+        }
+
+        div {
+            padding: 0px;
+            // margin-left: 10px;
+        }
     }
 
     .animation-text {
-        font-size: 20px;
+        // font-size: 16px;
         height: auto;
         width: auto;
         white-space: nowrap;
-        font-size: 16px;
+        font-size: 14px;
         color: black;
         letter-spacing: 2px;
         text-transform: uppercase;
     }
 
     .round-toggle {
-        height: 40px;
-        width: 80px;
+        height: 20px;
+        width: 40px;
+        min-width: 40px;
         background-color: white;
-        border: 2px solid black;
+        border: 2px solid $timelineDark;
         border-radius: 20px;
         animation-fill-mode: forwards;
         animation-duration: 500ms;
         top: 30px;
+        margin-left: 5px;
 
         input {
             position: absolute;
@@ -52,29 +92,30 @@ $timelineDark: #77a1aa;
         }
 
         .round-toggle-slider {
-            height: 35px;
-            width: 35px;
+            height: 17px;
+            width: 17px;
             background-color: white;
-            border: 3px solid black;
-            border-radius: 20px;
+            border: 2px solid $timelineDark;
+            border-radius: 50%;
             transition: transform 500ms ease-in-out;
             margin-left: 0px;
-            margin-top: 0.5px;
+            // margin-top: 0.5px;
         }
     }
 
 }
 
 .time-input {
-    height: 40px;
-    width: 120px;
+    height: 20px;
+    // width: 120px;
+    width: 100%;
     white-space: nowrap;
-    font-size: 16px;
+    font-size: 12px;
     color: black;
     letter-spacing: 2px;
     text-transform: uppercase;
     padding-left: 5px;
-
+    margin-left: 5px;
 }
 
 .tick {
@@ -99,7 +140,7 @@ $timelineDark: #77a1aa;
     transition: transform 500ms ease;
 
     .info-container {
-        margin-top: 80px;
+        margin-top: 50px;
         right: 20px;
         position: absolute;
         height: calc(100% - 100px);
@@ -138,9 +179,12 @@ $timelineDark: #77a1aa;
 
         .trackbox {
             top: 30px;
+            // TODO: where is this 30px coming from?
             height: calc(100% - 30px);
+            // height: 100%;
             width: 100%;
-            border: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
             overflow: hidden;
             background-color: white;
             position: absolute;
@@ -150,7 +194,7 @@ $timelineDark: #77a1aa;
     }
 
     .title-container {
-        margin-top: 110px;
+        margin-top: 80px;
         margin-left: 20px;
         height: calc(100% - 100px - 30px);
         width: 100px;
@@ -159,6 +203,7 @@ $timelineDark: #77a1aa;
         border-left: 2px solid black;
         border-top: 2px solid black;
         border-bottom: 2px solid black;
+        border-right: 2px solid $timelineDark;
 
         .datapane {
             top: 0px;
@@ -181,6 +226,7 @@ $timelineDark: #77a1aa;
         height: 20px;
         width: 40px;
         left: calc(50% - 25px);
+        color: $timelineDark;
     }
 }
 

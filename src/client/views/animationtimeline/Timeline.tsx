@@ -3,7 +3,7 @@ import "./Timeline.scss";
 import { listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
-import { observable, action, computed, runInAction } from "mobx";
+import { observable, action, computed, runInAction, IReactionDisposer, reaction } from "mobx";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
@@ -77,6 +77,11 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _doubleClickEnabled = false;
     @observable private _titleHeight = 0;
 
+    // so a reaction can be made
+    @observable public _isAuthoring = this.props.Document.isATOn;
+    @observable private _resizeReaction?: IReactionDisposer;
+    @observable private _panelWidth = 0;
+
     /**
      * collection get method. Basically defines what defines collection's children. These will be tracked in the timeline. Do not edit. 
      */
@@ -114,6 +119,19 @@ export class Timeline extends React.Component<FieldViewProps> {
             this.props.Document.isATOn = !this.props.Document.isATOn; //turns the boolean on, saying AT (animation timeline) is on
             this.toggleHandle();
         });
+
+        this._resizeReaction = reaction(
+            () => this.props.PanelWidth,
+            () => {
+                // if (!this.props.parent._isAuthoring) {
+                // runInAction(() => {
+                console.log("resizing");
+                // this.setOverviewWidth();
+                // });
+                // }
+            },
+        );
+
     }
 
     componentWillUnmount() {
@@ -402,19 +420,58 @@ export class Timeline extends React.Component<FieldViewProps> {
     private timelineToolBox = (scale: number) => {
         let size = 40 * scale; //50 is default
         let iconSize = 25;
+
+        //decides if information should be omitted because the timeline is very small
+        // if its less than 950 pixels then it's going to be overlapping
+        let shouldCompress = false;
+        let width: number = this.props.PanelWidth();
+        if (width < 850) {
+            shouldCompress = true;
+        }
+
+        let modeString, overviewString, lengthString;
+        let modeType = this.props.Document.isATOn ? "Author" : "Play";
+
+        if (!shouldCompress) {
+            modeString = "Mode: " + modeType;
+            overviewString = "Overview:";
+            lengthString = "Length: ";
+        }
+        else {
+            modeString = modeType;
+            overviewString = "";
+            lengthString = "";
+        }
+
+
+        // let modeType: string = this.props.Document.isATOn ? "Author" : "Play";
+        // let modeString: string = "Mode: " + modeType;
+        // let overviewString: string = "Overview:";
+        // let lengthString: string = "Length: ";
+
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
-                <div className="timeline-icon" key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
-                <div className="timeline-icon" key=" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
-                <div className="timeline-icon" key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
-                <div key="overview-text" className="animation-text">Timeline Overview</div>
-                <TimelineOverview isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
-                <div key="animation-text" className="animation-text">Mode: {this.props.Document.isATOn ? "Authoring" : "Play"}</div>
-                <div key="round-toggle" ref={this._roundToggleContainerRef} className="round-toggle">
-                    <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
+                <div className="playbackControls">
+                    <div className="timeline-icon" key="timeline_windBack" onClick={this.windBackward} title="Slow Down Animation"> <FontAwesomeIcon icon={faBackward} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
+                    <div className="timeline-icon" key=" timeline_play" onClick={this.onPlay} title="Play/Pause"> <FontAwesomeIcon icon={this._playButton} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
+                    <div className="timeline-icon" key="timeline_windForward" onClick={this.windForward} title="Speed Up Animation"> <FontAwesomeIcon icon={faForward} style={{ height: `${iconSize}px`, width: `${iconSize}px` }} /> </div>
                 </div>
-                <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }}>Length: </div>
-                <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }} placeholder={String(this._time) + "ms"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                <div className="grid-box overview-tool">
+                    <div className="overview-box">
+                        <div key="overview-text" className="animation-text">{overviewString}</div>
+                        <TimelineOverview parent={this} isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                    </div>
+                    <div className="mode-box overview-tool">
+                        <div key="animation-text" className="animation-text">{modeString}</div>
+                        <div key="round-toggle" ref={this._roundToggleContainerRef} className="round-toggle">
+                            <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
+                        </div>
+                    </div>
+                    <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
+                        <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }}>{lengthString}</div>
+                        <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -457,13 +514,15 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggleContainer.style.backgroundColor = "white";
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isATOn = false;
+            this._isAuthoring = false;
         } else {
-            roundToggle.style.transform = "translate(40px, 0px)";
+            roundToggle.style.transform = "translate(20px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
             roundToggleContainer.style.backgroundColor = "#9acedf";
             timelineContainer.style.top = "0px";
             this.props.Document.isATOn = true;
+            this._isAuthoring = true;
         }
     }
 
@@ -498,6 +557,11 @@ export class Timeline extends React.Component<FieldViewProps> {
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
      */
     render() {
+        console.log(this.props.PanelWidth());
+        runInAction(() => {
+            this._panelWidth = this.props.PanelWidth();
+            console.log("changing!!")
+        });
         return (
             <div>
                 <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
