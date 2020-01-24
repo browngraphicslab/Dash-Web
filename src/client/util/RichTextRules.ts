@@ -196,7 +196,7 @@ export const inpRules = {
         new InputRule(
             new RegExp(/%#$/),
             (state, match, start, end) => {
-                const target = Docs.Create.TextDocument({ _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, autoHeight: true, fontSize: 9, title: "inline comment" });
+                const target = Docs.Create.TextDocument({ _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const newNode = schema.nodes.dashComment.create({ docid: target[Id] });
                 const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });

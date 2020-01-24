@@ -27,6 +27,7 @@ import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { TraceMobx } from '../../../new_fields/util';
 import { SelectionManager } from '../../util/SelectionManager';
+import { cache } from 'sharp';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -212,33 +213,34 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
     _curSuffix = "_m";
 
-    _resized = "";
     resize = (imgPath: string) => {
-        // if (!this.dataDoc[this.props.fieldKey + "-nativeHeight"]) 
-        // {
-        requestImageSize(imgPath)
-            .then((size: any) => {
+        const cachedNativeSize = {
+            width: NumCast(this.Document[this.props.fieldKey + "-nativeWidth"]),
+            height: NumCast(this.Document[this.props.fieldKey + "-nativeHeight"])
+        };
+        const cachedImgPath = this.dataDoc[this.props.fieldKey + "-imgPath"];
+        if (!cachedNativeSize.width || !cachedNativeSize.height || imgPath !== cachedImgPath) {
+            (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) && requestImageSize(imgPath).then((inquiredSize: any) => {
                 const rotation = NumCast(this.dataDoc[this.props.fieldKey + "-rotation"]) % 180;
-                const realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
-                const aspect = realsize.height / realsize.width;
-                if (this.Document._width && (Math.abs(1 - NumCast(this.Document._height) / NumCast(this.Document._width) / (realsize.height / realsize.width)) > 0.1)) {
-                    setTimeout(action(() => {
-                        if (this.paths[NumCast(this.props.Document.curPage)] === imgPath && (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc)) {
-                            this._resized = imgPath;
-                            this.Document._height = this.Document[WidthSym]() * aspect;
-                            this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = realsize.height;
-                            this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = realsize.width;
-                        }
-                    }), 0);
-                } else this._resized = imgPath;
+                const rotatedNativeSize = rotation === 90 || rotation === 270 ? { height: inquiredSize.width, width: inquiredSize.height } : inquiredSize;
+                const rotatedAspect = rotatedNativeSize.height / rotatedNativeSize.width;
+                const docAspect = this.Document[HeightSym]() / this.Document[WidthSym]();
+                setTimeout(action(() => {
+                    if (this.Document[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
+                        this.Document._height = this.Document[WidthSym]() * rotatedAspect;
+                        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = rotatedNativeSize.width;
+                        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = rotatedNativeSize.height;
+                    }
+                    this.dataDoc[this.props.fieldKey + "-imgPath"] = imgPath;
+                }), 0);
             })
-            .catch((err: any) => console.log(err));
-        // } else {
-        //     setTimeout(() => {
-        //         this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"]);
-        //         this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]);
-        //     }, 0);
-        // }
+                .catch((err: any) => console.log(err));
+        } else if (this.Document._nativeHeight !== cachedNativeSize.width || this.Document._nativeWidth !== cachedNativeSize.height) {
+            setTimeout(() => {
+                this.Document._nativeWidth = cachedNativeSize.width;
+                this.Document._nativeHeight = cachedNativeSize.height;
+            }, 0);
+        }
     }
 
     @action
@@ -309,7 +311,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
 
-        !this.Document.ignoreAspect && this._resized !== srcpath && this.resize(srcpath);
+        !this.Document.ignoreAspect && this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
             <div className="imageBox-fader" >

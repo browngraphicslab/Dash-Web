@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import { unlinkSync, createWriteStream, readFileSync, rename } from 'fs';
 import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -12,8 +12,9 @@ import { basename } from "path";
 import { createIfNotExists } from './ActionUtilities';
 import { ParsedPDF } from "../server/PdfTypes";
 const parse = require('pdf-parse');
-import { Directory, serverPathToFile, clientPathToFile } from './ApiManagers/UploadManager';
+import { Directory, serverPathToFile, clientPathToFile, pathToDirectory } from './ApiManagers/UploadManager';
 import { red } from 'colors';
+const requestImageSize = require("../client/util/request-image-size");
 
 export enum SizeSuffix {
     Small = "_s",
@@ -25,6 +26,10 @@ export enum SizeSuffix {
 export function InjectSize(filename: string, size: SizeSuffix) {
     const extension = path.extname(filename).toLowerCase();
     return filename.substring(0, filename.length - extension.length) + size + extension;
+}
+
+function isLocal() {
+    return /Dash-Web[\\\/]src[\\\/]server[\\\/]public[\\\/](.*)/;
 }
 
 export namespace DashUploadUtils {
@@ -92,12 +97,12 @@ export namespace DashUploadUtils {
     }
 
     async function UploadPdf(absolutePath: string) {
-        const dataBuffer = fs.readFileSync(absolutePath);
+        const dataBuffer = readFileSync(absolutePath);
         const result: ParsedPDF = await parse(dataBuffer);
         const parsedName = basename(absolutePath);
         await new Promise<void>((resolve, reject) => {
             const textFilename = `${parsedName.substring(0, parsedName.length - 4)}.txt`;
-            const writeStream = fs.createWriteStream(serverPathToFile(Directory.text, textFilename));
+            const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
         return MoveParsedFile(absolutePath, Directory.pdfs);
@@ -134,12 +139,13 @@ export namespace DashUploadUtils {
     };
 
     export interface InspectionResults {
-        isLocal: boolean;
-        stream: any;
-        normalizedUrl: string;
+        source: string;
+        requestable: string;
         exifData: EnrichedExifData;
-        contentSize?: number;
-        contentType?: string;
+        contentSize: number;
+        contentType: string;
+        nativeWidth: number;
+        nativeHeight: number;
     }
 
     export interface EnrichedExifData {
@@ -152,6 +158,12 @@ export namespace DashUploadUtils {
         return Promise.all(pending);
     }
 
+    export interface RequestedImageSize {
+        width: number;
+        height: number;
+        type: string;
+    }
+
     /**
      * Based on the url's classification as local or remote, gleans
      * as much information as possible about the specified image
@@ -159,24 +171,28 @@ export namespace DashUploadUtils {
      * @param source is the path or url to the image in question
      */
     export const InspectImage = async (source: string): Promise<InspectionResults> => {
-        const { isLocal, stream, normalized: normalizedUrl } = classify(source);
-        const exifData = await parseExifData(source);
+        let resolvedUrl: string;
+        const matches = isLocal().exec(source);
+        if (matches === null) {
+            resolvedUrl = source;
+        } else {
+            resolvedUrl = `http://localhost:1050/${matches[1].split("\\").join("/")}`;
+        }
+        const exifData = await parseExifData(resolvedUrl);
         const results = {
             exifData,
-            isLocal,
-            stream,
-            normalizedUrl
+            requestable: resolvedUrl
         };
-        // stop here if local, since request.head() can't handle local paths, only urls on the web
-        if (isLocal) {
-            return results;
-        }
         const { headers } = (await new Promise<any>((resolve, reject) => {
-            request.head(source, (error, res) => error ? reject(error) : resolve(res));
-        }));
+            request.head(resolvedUrl, (error, res) => error ? reject(error) : resolve(res));
+        }).catch(error => console.error(error)));
+        const { width: nativeWidth, height: nativeHeight }: RequestedImageSize = await requestImageSize(resolvedUrl);
         return {
+            source,
             contentSize: parseInt(headers[size]),
             contentType: headers[type],
+            nativeWidth,
+            nativeHeight,
             ...results
         };
     };
@@ -185,22 +201,20 @@ export namespace DashUploadUtils {
         return new Promise<{ clientAccessPath: Opt<string> }>(resolve => {
             const filename = basename(absolutePath);
             const destinationPath = serverPathToFile(destination, filename);
-            fs.rename(absolutePath, destinationPath, error => {
+            rename(absolutePath, destinationPath, error => {
                 resolve({ clientAccessPath: error ? undefined : clientPathToFile(destination, filename) });
             });
         });
     }
 
     export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, format?: string, prefix = ""): Promise<ImageUploadInformation> => {
-        const { isLocal, stream, normalizedUrl, contentSize, contentType, exifData } = metadata;
-        const resolved = filename || generate(prefix, normalizedUrl);
-        const extension = format || sanitizeExtension(normalizedUrl || resolved);
+        const { requestable, source, ...remaining } = metadata;
+        const resolved = filename || generate(prefix, requestable);
+        const extension = format || sanitizeExtension(requestable || resolved);
         const information: ImageUploadInformation = {
             clientAccessPath: clientPathToFile(Directory.images, resolved),
             serverAccessPaths: {},
-            exifData,
-            contentSize,
-            contentType,
+            ...remaining
         };
         const { pngs, jpgs } = AcceptibleMedia;
         return new Promise<ImageUploadInformation>(async (resolve, reject) => {
@@ -220,32 +234,22 @@ export namespace DashUploadUtils {
                 await new Promise<void>(resolve => {
                     const filename = InjectSize(resolved, suffix);
                     information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, filename);
-                    stream(normalizedUrl).pipe(resizer).pipe(fs.createWriteStream(serverPathToFile(Directory.images, filename)))
+                    request(requestable).pipe(resizer).pipe(createWriteStream(serverPathToFile(Directory.images, filename)))
                         .on('close', resolve)
                         .on('error', reject);
                 });
             }
-            if (isLocal) {
-                await new Promise<boolean>(resolve => {
-                    fs.unlink(normalizedUrl, error => resolve(error === null));
-                });
+            if (isLocal().test(source)) {
+                unlinkSync(source);
             }
             resolve(information);
         });
     };
 
-    const classify = (url: string) => {
-        const isLocal = /Dash-Web(\\|\/)src(\\|\/)server(\\|\/)public(\\|\/)files/g.test(url);
-        return {
-            isLocal,
-            stream: isLocal ? fs.createReadStream : request,
-            normalized: isLocal ? path.normalize(url) : url
-        };
-    };
-
     const parseExifData = async (source: string): Promise<EnrichedExifData> => {
+        const image = await request.get(source, { encoding: null });
         return new Promise<EnrichedExifData>(resolve => {
-            new ExifImage(source, (error, data) => {
+            new ExifImage({ image }, (error, data) => {
                 let reason: Opt<string> = undefined;
                 if (error) {
                     reason = (error as any).code;

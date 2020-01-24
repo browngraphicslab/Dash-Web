@@ -101,7 +101,7 @@ export function makeEditable() {
 }
 
 let layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
-    "LODdisable", "dropAction", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin"];
+    "LODdisable", "dropAction", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" &&
@@ -110,7 +110,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
             console.log(prop + " is deprecated - switch to _" + prop);
             prop = "_" + prop;
         }
-        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver); // + "-" + (prop as string).substring(1);
+        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
         if (resolvedLayout instanceof Doc) {
             resolvedLayout[prop] = value;
             return true;
@@ -127,11 +127,10 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
             console.log(prop + " is deprecated - switch to _" + prop);
             prop = "_" + prop;
         }
-        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver); // + "-" + (prop as string).substring(1);
+        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
         if (resolvedLayout instanceof Doc) {
             return resolvedLayout[prop];
         }
-        // prop = getFieldImpl(target, "layoutKey", receiver) + "-" + (prop as string).substring(1);
     }
     if (prop === "then") {//If we're being awaited
         return undefined;

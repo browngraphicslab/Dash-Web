@@ -161,7 +161,7 @@ def write_text_doc(content):
                 "__type": "date"
             },
             "isPrototype": True,
-            "autoHeight": True,
+            "_autoHeight": True,
             "page": -1,
             "nativeHeight": 200,
             "height": 200,

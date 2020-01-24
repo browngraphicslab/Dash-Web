@@ -42,7 +42,7 @@ export class PreviewCursor extends React.Component<{}> {
                 if (re.test(e.clipboardData.getData("text/plain"))) {
                     const url = e.clipboardData.getData("text/plain");
                     return PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, width: 500, height: 300,
+                        title: url, _width: 500, _height: 300,
                         // nativeWidth: 300, nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     }));
@@ -50,9 +50,9 @@ export class PreviewCursor extends React.Component<{}> {
 
                 // creates text document
                 return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument({
-                    width: 500,
+                    _width: 500,
                     limitHeight: 400,
-                    autoHeight: true,
+                    _autoHeight: true,
                     x: newPoint[0],
                     y: newPoint[1],
                     title: "-pasted text-"

@@ -427,7 +427,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 } else {
                     dW && (layoutDoc._width = actualdW);
                     dH && (layoutDoc._height = actualdH);
-                    dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
+                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
                 }
             }
             e.stopPropagation();
@@ -548,7 +548,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             fieldTemplate.backgroundColor = doc.backgroundColor;
             fieldTemplate.heading = 1;
-            fieldTemplate.autoHeight = true;
+            fieldTemplate._autoHeight = true;
 
             const docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
@@ -621,7 +621,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
-        this.layoutDoc.autoHeight = this.layoutDoc.autoHeight = false;
+        this.layoutDoc._autoHeight = false;
         this.layoutDoc.ignoreAspect = !this.layoutDoc.ignoreAspect;
         if (!this.layoutDoc.ignoreAspect && !this.layoutDoc._nativeWidth) {
             this.layoutDoc._nativeWidth = this.props.PanelWidth();
@@ -740,7 +740,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc!), icon: "concierge-bell" });
         }
         layoutItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        layoutItems.push({ description: `${this.Document.autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc.autoHeight = !this.layoutDoc.autoHeight, icon: "plus" });
+        layoutItems.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
         layoutItems.push({ description: this.Document.ignoreAspect || !this.Document._nativeWidth || !this.Document._nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         layoutItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         layoutItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });

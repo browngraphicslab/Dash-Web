@@ -101,10 +101,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
         } else if (!e.ctrlKey) {
             this.props.addLiveTextDocument(
-                Docs.Create.TextDocument({ _width: 200, _height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" }));
+                Docs.Create.TextDocument({ _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
         } else if (e.keyCode > 48 && e.keyCode <= 57) {
             const notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-            const text = Docs.Create.TextDocument({ _width: 200, _height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" });
+            const text = Docs.Create.TextDocument({ _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
             text.layout = notes[(e.keyCode - 49) % notes.length];
             this.props.addLiveTextDocument(text);
         }
@@ -374,14 +374,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             return d;
         });
         newCollection._chromeStatus = "disabled";
-        const summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, _width: 300, _height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        const summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, _width: 300, _height: 100, _autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
         Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
         newCollection.x = bounds.left + bounds.width;
         Doc.GetProto(newCollection).summaryDoc = summary;
         Doc.GetProto(newCollection).title = ComputedField.MakeFunction(`summaryTitle(this);`);
         if (e instanceof KeyboardEvent ? e.key === "s" : true) { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
             const container = Docs.Create.FreeformDocument([summary, newCollection], {
-                x: bounds.left, y: bounds.top, _width: 300, _height: 200, autoHeight: true,
+                x: bounds.left, y: bounds.top, _width: 300, _height: 200, _autoHeight: true,
                 _viewType: CollectionViewType.Stacking, _chromeStatus: "disabled", title: "-summary-"
             });
             Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"

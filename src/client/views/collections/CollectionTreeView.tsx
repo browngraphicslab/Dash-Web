@@ -638,7 +638,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 const detailedLayout = Docs.Create.StackingDocument([
                     ImageDocument(fallbackImg, { title: "activeHero" }),
                     MulticolumnDocument([], { title: "data", _height: 100, onChildClick: ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.activeHero = copyField(this.data)`, { containingCollection: Doc.name }) }),
-                    TextDocument({ title: "short_description", autoHeight: true }),
+                    TextDocument({ title: "short_description", _autoHeight: true }),
                     ...["year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key, _height: 30 }))
                 ], { _chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);

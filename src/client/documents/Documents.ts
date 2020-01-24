@@ -56,6 +56,7 @@ const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
 export interface DocumentOptions {
+    _autoHeight?: boolean;
     _panX?: number;
     _panY?: number;
     _width?: number;
@@ -103,7 +104,6 @@ export interface DocumentOptions {
     sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
-    autoHeight?: boolean;
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
@@ -333,7 +333,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn", "_chromeStatus", "_forceActive", "_fitWidth", "_LODdisable"];
+        const delegateKeys = ["x", "y", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn", "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -703,7 +703,7 @@ export namespace Docs {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);
                 layout = CollectionView.LayoutString;
             } else {
-                created = Docs.Create.TextDocument({ ...{ _width: 200, _height: 25, autoHeight: true }, ...resolved });
+                created = Docs.Create.TextDocument({ ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
             created.layout = layout?.(fieldKey);

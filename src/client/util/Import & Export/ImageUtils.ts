@@ -14,9 +14,17 @@ export namespace ImageUtils {
             return false;
         }
         const source = field.url.href;
-        const response = await Networking.PostToServer("/inspectImage", { source });
-        const { error, data } = response.exifData;
+        const {
+            contentSize,
+            nativeWidth,
+            nativeHeight,
+            exifData: { error, data }
+        } = await Networking.PostToServer("/inspectImage", { source });
         document.exif = error || Docs.Get.DocumentHierarchyFromJson(data);
+        const proto = Doc.GetProto(document);
+        proto.nativeWidth = nativeWidth;
+        proto.nativeHeight = nativeHeight;
+        proto.contentSize = contentSize;
         return data !== undefined;
     };
 

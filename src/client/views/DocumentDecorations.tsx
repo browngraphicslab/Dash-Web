@@ -493,7 +493,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (layoutDoc._width = actualdW);
                     dH && (layoutDoc._height = actualdH);
-                    dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
+                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
                 }
             }
         }));

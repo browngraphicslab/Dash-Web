@@ -214,7 +214,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({
                 description: "Stacking (AutoHeight)", event: () => {
                     this.props.Document._viewType = CollectionViewType.Stacking;
-                    this.props.Document.autoHeight = true;
+                    this.props.Document._autoHeight = true;
                 }, icon: "ellipsis-v"
             });
             subItems.push({ description: "Staff", event: () => this.props.Document._viewType = CollectionViewType.Staff, icon: "music" });

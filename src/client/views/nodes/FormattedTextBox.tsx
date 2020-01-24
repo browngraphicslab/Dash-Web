@@ -530,7 +530,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         );
 
         this._heightReactionDisposer = reaction(
-            () => [this.layoutDoc[WidthSym](), this.layoutDoc.autoHeight],
+            () => [this.layoutDoc[WidthSym](), this.layoutDoc._autoHeight],
             () => this.tryUpdateHeight()
         );
 
@@ -1051,12 +1051,12 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
-        if (!this.layoutDoc.animateToPos && this.layoutDoc.autoHeight && scrollHeight &&
+        if (!this.layoutDoc.animateToPos && this.layoutDoc._autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
                 this.layoutDoc.limitHeight = undefined;
-                this.layoutDoc.autoHeight = false;
+                this.layoutDoc._autoHeight = false;
             }
             const nh = this.Document.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
             const dh = NumCast(this.layoutDoc._height, 0);
@@ -1084,7 +1084,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc.autoHeight ? "max-content" : undefined,
+                    height: this.layoutDoc._autoHeight ? "max-content" : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
