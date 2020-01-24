@@ -140,16 +140,15 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         } else if (value.startsWith(":")) {
             const { Document, addDocument } = this.props.parent.props;
             const fieldKey = value.substring(1);
-            const proto = Doc.GetProto(Document);
-            const dataDoc = this.props.parent.props.DataDoc || this.props.parent.dataDoc;
-            const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, proto);
+            const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
+            const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(Document));
             if (created) {
-                created.title = fieldKey;
                 if (this.props.parent.Document.isTemplateDoc) {
                     Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
                 }
+                return addDocument(created);
             }
-            return created ? addDocument(created) : false;
+            return false;
         }
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);

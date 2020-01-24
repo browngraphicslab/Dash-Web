@@ -707,6 +707,7 @@ export namespace Docs {
                 layout = FormattedTextBox.LayoutString;
             }
             created.layout = layout?.(fieldKey);
+            created.title = fieldKey;
             proto && (created.proto = Doc.GetProto(proto));
             return created;
         }
