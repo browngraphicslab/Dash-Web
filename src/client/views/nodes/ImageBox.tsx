@@ -73,14 +73,17 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.complete.docDragData) {
-            if (de.altKey && de.complete.docDragData.draggedDocuments.length && de.complete.docDragData.draggedDocuments[0].data instanceof ImageField) {
-                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(de.complete.docDragData.draggedDocuments[0].data.url);
-                e.stopPropagation();
+            if (de.metaKey) {
+                de.complete.docDragData.droppedDocuments.forEach(action((drop: Doc) => {
+                    Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-alternates", drop);
+                    e.stopPropagation();
+                }));
+            } else if (de.altKey || !this.dataDoc[this.props.fieldKey]) {
+                if (de.complete.docDragData.draggedDocuments?.[0].data instanceof ImageField) {
+                    this.dataDoc[this.props.fieldKey] = new ImageField(de.complete.docDragData.draggedDocuments[0].data.url);
+                    e.stopPropagation();
+                }
             }
-            de.metaKey && de.complete.docDragData.droppedDocuments.forEach(action((drop: Doc) => {
-                Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-alternates", drop);
-                e.stopPropagation();
-            }));
         }
     }
 

@@ -424,8 +424,7 @@ export namespace Doc {
         if (layout instanceof Doc && layout !== alias) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
-        const aliasNumber = 1;//Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
-        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${aliasNumber})`);
+        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         return alias;
     }
 
