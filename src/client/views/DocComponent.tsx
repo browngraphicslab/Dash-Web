@@ -42,7 +42,7 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
 
 
 ///  DocAnnotatbleComponent return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
-interface DocAnnotatableProps {
+export interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
@@ -58,12 +58,15 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
         @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
-        @computed get annotationsKey() { return this.props.fieldKey+"-annotations"; }
+
+        _annotationKey: string = "annotations";
+        public set annotationKey(val: string) { this._annotationKey = val; }
+        public get annotationKey() { return this._annotationKey }
 
         @action.bound
         removeDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = undefined;
-            const value = Cast(this.dataDoc[this.props.fieldKey+"-"+this.annotationsKey], listSpec(Doc), []);
+            const value = Cast(this.dataDoc[this.props.fieldKey + "-" + this._annotationKey], listSpec(Doc), []);
             const index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
             return index !== -1 && value && value.splice(index, 1) ? true : false;
         }
@@ -76,7 +79,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @action.bound
         addDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = this.props.Document;
-            return Doc.AddDocToList(this.dataDoc, this.annotationsKey, doc) ? true : false;
+            return Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-" + this._annotationKey, doc) ? true : false;
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));

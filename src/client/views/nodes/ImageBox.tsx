@@ -355,7 +355,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationsKey}
+                annotationsKey={this.annotationKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}

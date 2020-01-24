@@ -54,9 +54,7 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
-    onClick?: ScriptField,
     layoutKey: string,
-    hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
         TraceMobx();

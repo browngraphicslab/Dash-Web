@@ -198,7 +198,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationsKey}
+                annotationsKey={this.annotationKey}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

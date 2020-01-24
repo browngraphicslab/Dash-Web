@@ -340,7 +340,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 <CollectionFreeFormView {...this.props}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
-                    annotationsKey={this.annotationsKey}
+                    annotationsKey={this.annotationKey}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
                     isAnnotationOverlay={true}

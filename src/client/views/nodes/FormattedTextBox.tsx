@@ -30,7 +30,7 @@ import { inpRules } from "../../util/RichTextRules";
 import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { DocAnnotatableComponent, DocAnnotatableProps } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
@@ -46,17 +46,12 @@ import { CollectionFreeFormView } from '../collections/collectionFreeForm/Collec
 import { InkTool } from '../../../new_fields/InkField';
 import { TraceMobx } from '../../../new_fields/util';
 import RichTextMenu from '../../util/RichTextMenu';
-import { DocumentDecorations } from '../DocumentDecorations';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
 
 export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
-    height?: string;
-    color?: string;
-    outer_div?: (domminus: HTMLElement) => void;
-    firstinstance?: boolean;
 }
 
 const richTextSchema = createSchema({
@@ -95,9 +90,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _buttonBarReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @observable private _ruleFontSize = 0;
-    @observable private _ruleFontFamily = "Arial";
-    @observable private _fontAlign = "";
     @observable private _entered = false;
 
     public static FocusedBox: FormattedTextBox | undefined;
@@ -1078,7 +1070,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidthPercent, "0%"); }
     @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
-    @computed get annotationsKey() { return "annotations"; }
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
@@ -1093,13 +1084,13 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc.autoHeight ? "max-content" : this.props.height ? this.props.height : undefined,
+                    height: this.layoutDoc.autoHeight ? "max-content" : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
-                    color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
+                    color: this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive ? "none" : "all",
-                    fontSize: this._ruleFontSize ? this._ruleFontSize : NumCast(this.layoutDoc.fontSize, 13),
-                    fontFamily: this._ruleFontFamily ? this._ruleFontFamily : StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
+                    fontSize: NumCast(this.layoutDoc.fontSize, 13),
+                    fontFamily: StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
                 }}
                 onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}
@@ -1124,7 +1115,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         <CollectionFreeFormView {...this.props}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={() => this.sidebarWidth}
-                            annotationsKey={this.annotationsKey}
+                            annotationsKey={this.annotationKey}
                             isAnnotationOverlay={false}
                             focus={this.props.focus}
                             isSelected={this.props.isSelected}
